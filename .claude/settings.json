@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./vendor/bin/phpunit *)",
+      "Bash(php bin/migrate.php *)",
+      "Bash(composer install *)",
+      "Bash(composer audit *)",
+      "Bash(npm test *)",
+      "Bash(gh run list *)",
+      "Bash(gh pr checks *)"
+    ]
+  }
+}

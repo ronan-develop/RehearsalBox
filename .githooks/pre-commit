@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Bloque tout commit direct sur main — cf. .github/CONVENTION_DE_COMMIT.md
+# et empêche de committer des secrets évidents dans les fichiers stagés.
+
+set -euo pipefail
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo '')"
+
+# main n'évolue QUE via une PR mergée côté GitHub — aucun commit local sur
+# main, merge inclus. Un merge --no-ff local est aussi bloqué : ça force à
+# passer par `gh pr merge` / l'interface GitHub, pas par un merge en local.
+if [ "$branch" = "main" ]; then
+    echo "❌ Aucun commit local sur main, même un merge." >&2
+    echo "Passe par une PR : git checkout -b feat/<nom-explicite>, push, puis gh pr merge (ou l'interface GitHub)." >&2
+    exit 1
+fi
+
+# Garde-fou basique anti-secret : bloque si un fichier stagé ressemble à un
+# fichier de config local/secrets qui ne devrait jamais être committé.
+staged_files="$(git diff --cached --name-only)"
+forbidden_pattern='(^|/)(config\.local\.php|\.env(\.local)?|.*\.pem|.*_rsa|.*\.key)$'
+
+blocked="$(echo "$staged_files" | grep -E "$forbidden_pattern" || true)"
+if [ -n "$blocked" ]; then
+    echo "❌ Fichier(s) potentiellement sensible(s) stagé(s) :" >&2
+    echo "$blocked" >&2
+    echo "Vérifie qu'il ne s'agit pas d'un secret avant de forcer ce commit." >&2
+    exit 1
+fi
+
+exit 0
