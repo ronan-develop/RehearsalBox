@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Bloque tout commit direct sur main — cf. .github/CONVENTION_DE_COMMIT.md
+# et empêche de committer des secrets évidents dans les fichiers stagés.
+
+set -euo pipefail
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo '')"
+
+if [ "$branch" = "main" ]; then
+    echo "❌ Commit direct sur main interdit." >&2
+    echo "Crée une branche : git checkout -b feat/<nom-explicite>" >&2
+    exit 1
+fi
+
+# Garde-fou basique anti-secret : bloque si un fichier stagé ressemble à un
+# fichier de config local/secrets qui ne devrait jamais être committé.
+staged_files="$(git diff --cached --name-only)"
+forbidden_pattern='(^|/)(config\.local\.php|\.env(\.local)?|.*\.pem|.*_rsa|.*\.key)$'
+
+blocked="$(echo "$staged_files" | grep -E "$forbidden_pattern" || true)"
+if [ -n "$blocked" ]; then
+    echo "❌ Fichier(s) potentiellement sensible(s) stagé(s) :" >&2
+    echo "$blocked" >&2
+    echo "Vérifie qu'il ne s'agit pas d'un secret avant de forcer ce commit." >&2
+    exit 1
+fi
+
+exit 0

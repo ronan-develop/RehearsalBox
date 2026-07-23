@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Valide le format "<emoji> <type>(<scope>): <sujet>" — cf. .github/CONVENTION_DE_COMMIT.md
+
+set -euo pipefail
+
+commit_msg_file="$1"
+first_line="$(head -n1 "$commit_msg_file")"
+
+# Types autorisés (cf. tableau de .github/CONVENTION_DE_COMMIT.md)
+types="feat|fix|docs|refactor|perf|test|build|ci|chore|style|security|revert|WIP"
+
+# Un emoji suivi d'un espace, puis type(scope): sujet.
+# On ne liste pas tous les emojis un par un : on vérifie juste qu'un caractère
+# non-ASCII ouvre la ligne, avant le motif type(scope): texte.
+pattern="^[^a-zA-Z0-9] +(${types})\([^)]+\): .+"
+
+if ! echo "$first_line" | grep -qE "$pattern"; then
+    echo "❌ Message de commit invalide : \"$first_line\"" >&2
+    echo "" >&2
+    echo "Format attendu : <emoji> <type>(<scope>): <sujet>" >&2
+    echo "Exemple : ✨ feat(AvailabilityService): ajoute la revendication de créneau" >&2
+    echo "" >&2
+    echo "Types valides : feat, fix, docs, refactor, perf, test, build, ci, chore, style, security, revert, WIP" >&2
+    echo "Voir .github/CONVENTION_DE_COMMIT.md pour le détail." >&2
+    exit 1
+fi
+
+# Scope explicite : rejette les scopes trop vagues connus (file, api, tests, code...)
+vague_scopes="file|api|tests|code|stuff|misc|divers"
+if echo "$first_line" | grep -qE "\((${vague_scopes})\):"; then
+    echo "❌ Scope trop vague dans : \"$first_line\"" >&2
+    echo "Le scope doit nommer une classe/un module précis (ex: AvailabilityService), pas '${vague_scopes//|/, }'." >&2
+    exit 1
+fi
+
+exit 0
