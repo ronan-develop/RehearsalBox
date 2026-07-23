@@ -1,0 +1,77 @@
+.rb-dashboard-page {
+  min-height: 100vh;
+  padding: var(--rb-space-4);
+  padding-bottom: calc(var(--rb-space-6) + env(safe-area-inset-bottom));
+}
+
+.rb-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rb-space-3);
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-dashboard-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.rb-dashboard-header select {
+  padding: var(--rb-space-2) var(--rb-space-3);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  color: var(--rb-text);
+}
+
+.rb-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.rb-slot-list {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-slot-card {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: var(--rb-space-4);
+  box-shadow: var(--rb-shadow);
+}
+
+.rb-slot-card-date {
+  margin: 0 0 var(--rb-space-2);
+  font-weight: 600;
+  color: var(--rb-accent-2);
+}
+
+.rb-slot-card-reason {
+  margin: 0 0 var(--rb-space-3);
+  color: var(--rb-text-2);
+  font-size: 0.9375rem;
+}
+
+.rb-slot-card-claim {
+  width: 100%;
+  padding: var(--rb-space-3);
+  background: var(--rb-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rb-slot-card-claim:hover {
+  background: color-mix(in srgb, var(--rb-accent) 85%, black);
+}
+
+.rb-empty-state {
+  color: var(--rb-text-3);
+  text-align: center;
+  padding: var(--rb-space-6) 0;
+}

@@ -68,6 +68,22 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    public function testFindByMemberReturnsOnlyGroupsTheUserBelongsTo(): void
+    {
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $userRepository = new MysqlUserRepository($this->pdo);
+
+        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $user = $userRepository->save($this->newUser('dana@rehearsalbox.test'));
+        $groupRepository->addMember($groupA->id(), $user->id());
+
+        $found = $groupRepository->findByMember($user->id());
+
+        self::assertCount(1, $found);
+        self::assertSame($groupA->id(), $found[0]->id());
+    }
+
     public function testRemoveMemberThenIsMemberReturnsFalse(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);

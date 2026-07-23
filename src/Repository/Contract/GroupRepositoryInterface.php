@@ -13,6 +13,9 @@ interface GroupRepositoryInterface
     /** @return list<Group> */
     public function findAll(): array;
 
+    /** @return list<Group> */
+    public function findByMember(int $userId): array;
+
     public function save(Group $group): Group;
 
     public function addMember(int $groupId, int $userId): void;
