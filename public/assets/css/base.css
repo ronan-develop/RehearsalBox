@@ -1,0 +1,52 @@
+:root {
+  --rb-bg: #121212;
+  --rb-bg-2: #1a1a1a;
+  --rb-surface: #1e1e1e;
+  --rb-surface-strong: #262626;
+  --rb-border: #333333;
+  --rb-text: #f2f2f2;
+  --rb-text-2: #b3b3b3;
+  --rb-text-3: #7a7a7a;
+  --rb-accent: #e63946;
+  --rb-accent-2: #ff8c00;
+  --rb-ok: #2ecc71;
+  --rb-warn: #f1c40f;
+  --rb-err: #e63946;
+  --rb-space-1: 0.25rem;
+  --rb-space-2: 0.5rem;
+  --rb-space-3: 1rem;
+  --rb-space-4: 1.5rem;
+  --rb-space-5: 2rem;
+  --rb-space-6: 3rem;
+  --rb-radius-sm: 4px;
+  --rb-radius-md: 8px;
+  --rb-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --rb-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--rb-bg);
+  color: var(--rb-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, button {
+  font-family: inherit;
+}
+
+button, .rb-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--rb-radius-sm);
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+button:active, .rb-btn:active {
+  transform: scale(0.98);
+}
