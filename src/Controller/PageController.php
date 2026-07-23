@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Enum\UserRole;
 use App\Http\Response;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Service\Contract\AvailabilityServiceInterface;
+use App\Service\Contract\GroupServiceInterface;
+use App\Service\Contract\SlotServiceInterface;
 use App\View\TemplateRendererInterface;
 
 final class PageController
@@ -19,6 +22,8 @@ final class PageController
         private readonly AuthGuard $authGuard,
         private readonly AvailabilityServiceInterface $availabilityService,
         private readonly GroupRepositoryInterface $groupRepository,
+        private readonly SlotServiceInterface $slotService,
+        private readonly GroupServiceInterface $groupService,
     ) {
     }
 
@@ -46,6 +51,27 @@ final class PageController
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'exceptions' => $exceptions,
             'groups' => $groups,
+        ]));
+    }
+
+    public function adminSlots(): Response
+    {
+        $this->authGuard->requireRole(UserRole::Admin);
+
+        return new Response($this->renderer->render('admin/slots/index', [
+            'csrfToken' => $this->csrfTokenManager->getToken(),
+            'slots' => $this->slotService->findAllActive(),
+            'groups' => $this->groupService->findAll(),
+        ]));
+    }
+
+    public function adminGroups(): Response
+    {
+        $this->authGuard->requireRole(UserRole::Admin);
+
+        return new Response($this->renderer->render('admin/groups/index', [
+            'csrfToken' => $this->csrfTokenManager->getToken(),
+            'groups' => $this->groupService->findAll(),
         ]));
     }
 }

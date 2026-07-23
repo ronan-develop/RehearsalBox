@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\Api\GroupApiController;
+use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
 
 return [
@@ -11,6 +13,8 @@ return [
         ['GET', '/', [PageController::class, 'dashboard']],
         ['GET', '/login', [PageController::class, 'login']],
         ['GET', '/register', [PageController::class, 'register']],
+        ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
+        ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
     ],
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
@@ -18,5 +22,13 @@ return [
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
         ['GET',  '/api/availability', [AvailabilityApiController::class, 'weekView']],
         ['POST', '/api/availability/{exceptionId}/claim', [AvailabilityApiController::class, 'claim']],
+        ['GET',    '/api/admin/slots', [SlotApiController::class, 'index']],
+        ['POST',   '/api/admin/slots', [SlotApiController::class, 'store']],
+        ['PATCH',  '/api/admin/slots/{id}', [SlotApiController::class, 'update']],
+        ['DELETE', '/api/admin/slots/{id}', [SlotApiController::class, 'destroy']],
+        ['GET',    '/api/admin/groups', [GroupApiController::class, 'index']],
+        ['POST',   '/api/admin/groups', [GroupApiController::class, 'store']],
+        ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
+        ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
     ],
 ];

@@ -1,0 +1,122 @@
+.rb-admin-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--rb-space-4);
+  padding-bottom: calc(var(--rb-space-6) + env(safe-area-inset-bottom));
+}
+
+.rb-admin-page h1 {
+  font-size: 1.25rem;
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-admin-form {
+  display: grid;
+  gap: var(--rb-space-3);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: var(--rb-space-4);
+  margin-bottom: var(--rb-space-5);
+}
+
+.rb-admin-form select,
+.rb-admin-form input {
+  width: 100%;
+  padding: var(--rb-space-2) var(--rb-space-3);
+  background: var(--rb-bg-2);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  color: var(--rb-text);
+}
+
+.rb-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rb-admin-table th,
+.rb-admin-table td {
+  text-align: left;
+  padding: var(--rb-space-2) var(--rb-space-3);
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-btn-danger {
+  background: var(--rb-err);
+  color: #fff;
+  padding: var(--rb-space-1) var(--rb-space-2);
+}
+
+.rb-group-list {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-group-card {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: var(--rb-space-4);
+}
+
+.rb-group-genre {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+  margin: 0 0 var(--rb-space-3);
+}
+
+.rb-add-member-form {
+  display: flex;
+  gap: var(--rb-space-2);
+}
+
+.rb-add-member-form input {
+  flex: 1;
+  padding: var(--rb-space-2);
+  background: var(--rb-bg-2);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  color: var(--rb-text);
+}
+
+.rb-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--rb-space-4);
+  z-index: 1000;
+}
+
+.rb-modal {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: var(--rb-space-4);
+  max-width: 320px;
+  width: 100%;
+}
+
+.rb-modal-actions {
+  display: flex;
+  gap: var(--rb-space-2);
+  margin-top: var(--rb-space-3);
+}
+
+.rb-modal-actions .rb-btn {
+  flex: 1;
+  padding: var(--rb-space-2);
+}
+
+.rb-modal-cancel {
+  background: var(--rb-surface-strong);
+  color: var(--rb-text);
+}
+
+.rb-modal-confirm {
+  background: var(--rb-err);
+  color: #fff;
+}
