@@ -45,26 +45,29 @@
             <button type="submit" class="rb-btn rb-auth-submit">Ajouter le créneau</button>
         </form>
 
-        <table class="rb-admin-table">
-            <thead>
-                <tr><th>Jour</th><th>Horaire</th><th></th></tr>
-            </thead>
-            <tbody data-slot-list-body>
-                <?php foreach ($slots as $slot): ?>
-                    <tr data-slot-row data-slot-id="<?= e((string) $slot->id()) ?>">
-                        <td><?= e($slot->weekday()->name) ?></td>
-                        <td><?= e($slot->startTime()) ?> – <?= e($slot->endTime()) ?></td>
-                        <td>
-                            <button type="button" class="rb-btn rb-btn-danger" data-delete-slot-button
-                                    data-slot-id="<?= e((string) $slot->id()) ?>">
-                                Supprimer
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+        <div class="rb-admin-table-wrapper">
+            <table class="rb-admin-table">
+                <thead>
+                    <tr><th>Jour</th><th>Horaire</th><th></th></tr>
+                </thead>
+                <tbody data-slot-list-body>
+                    <?php foreach ($slots as $slot): ?>
+                        <tr data-slot-row data-slot-id="<?= e((string) $slot->id()) ?>">
+                            <td><?= e($slot->weekday()->name) ?></td>
+                            <td><?= e($slot->startTime()) ?> – <?= e($slot->endTime()) ?></td>
+                            <td>
+                                <button type="button" class="rb-btn rb-btn-danger" data-delete-slot-button
+                                        data-slot-id="<?= e((string) $slot->id()) ?>">
+                                    Supprimer
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
+    <?php require __DIR__ . '/../../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>
