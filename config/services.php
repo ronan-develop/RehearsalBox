@@ -3,9 +3,20 @@
 declare(strict_types=1);
 
 use App\Container\Container;
-use App\Controller\Api\PingApiController;
-use App\Controller\PingController;
+use App\Controller\Api\AuthApiController;
+use App\Controller\PageController;
 use App\Database\ConnectionFactory;
+use App\Repository\Contract\UserRepositoryInterface;
+use App\Repository\MysqlUserRepository;
+use App\Security\CsrfTokenManager;
+use App\Security\NativePasswordHasher;
+use App\Security\NativeSession;
+use App\Security\PasswordHasherInterface;
+use App\Security\SessionInterface;
+use App\Service\AuthService;
+use App\Service\Contract\AuthServiceInterface;
+use App\View\PhpTemplateRenderer;
+use App\View\TemplateRendererInterface;
 
 /** @param array<string, mixed> $config */
 return static function (array $config): Container {
@@ -13,8 +24,35 @@ return static function (array $config): Container {
 
     $container->set(PDO::class, fn () => (new ConnectionFactory($config['db']))->create());
 
-    $container->set(PingController::class, fn () => new PingController());
-    $container->set(PingApiController::class, fn () => new PingApiController());
+    $container->set(UserRepositoryInterface::class, fn ($c) => new MysqlUserRepository($c->get(PDO::class)));
+
+    $container->set(PasswordHasherInterface::class, fn () => new NativePasswordHasher());
+    $container->set(SessionInterface::class, function () {
+        $session = new NativeSession();
+        $session->start();
+
+        return $session;
+    });
+    $container->set(CsrfTokenManager::class, fn ($c) => new CsrfTokenManager($c->get(SessionInterface::class)));
+
+    $container->set(AuthServiceInterface::class, fn ($c) => new AuthService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(PasswordHasherInterface::class),
+        $c->get(SessionInterface::class),
+    ));
+
+    $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
+
+    $container->set(PageController::class, fn ($c) => new PageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+    ));
+
+    $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
+        $c->get(AuthServiceInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(PasswordHasherInterface::class),
+    ));
 
     return $container;
 };

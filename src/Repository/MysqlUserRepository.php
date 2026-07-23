@@ -56,7 +56,8 @@ final class MysqlUserRepository implements UserRepositoryInterface
 
         $statement = $this->pdo->prepare(
             'UPDATE users SET email = :email, password_hash = :password_hash, display_name = :display_name,
-             role = :role, is_active = :is_active WHERE id = :id'
+             role = :role, is_active = :is_active, failed_login_attempts = :failed_login_attempts,
+             locked_until = :locked_until WHERE id = :id'
         );
         $statement->execute([
             'id' => $user->id(),
@@ -65,6 +66,8 @@ final class MysqlUserRepository implements UserRepositoryInterface
             'display_name' => $user->displayName(),
             'role' => $user->role()->value,
             'is_active' => (int) $user->isActive(),
+            'failed_login_attempts' => $user->failedLoginAttempts(),
+            'locked_until' => $user->lockedUntil()?->format('Y-m-d H:i:s'),
         ]);
 
         return $this->findById($user->id());

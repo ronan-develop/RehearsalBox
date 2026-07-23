@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-use App\Controller\Api\PingApiController;
-use App\Controller\PingController;
+use App\Controller\Api\AuthApiController;
+use App\Controller\PageController;
 
 return [
     'pages' => [
-        ['GET', '/ping', [PingController::class, 'index']],
+        ['GET', '/login', [PageController::class, 'login']],
+        ['GET', '/register', [PageController::class, 'register']],
     ],
     'api' => [
-        ['GET', '/api/ping', [PingApiController::class, 'index']],
+        ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
+        ['POST', '/api/auth/register', [AuthApiController::class, 'register']],
+        ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
     ],
 ];
