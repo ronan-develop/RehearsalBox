@@ -1,6 +1,7 @@
 /vendor/
 /node_modules/
 /config/config.local.php
+/.secrets
 /.phpunit.cache/
 /.phpunit.result.cache
 *.log
