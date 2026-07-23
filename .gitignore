@@ -1,0 +1,7 @@
+/vendor/
+/node_modules/
+/config/config.local.php
+/.phpunit.cache/
+/.phpunit.result.cache
+*.log
+.DS_Store

@@ -1,0 +1,7 @@
+{
+  "name": "rehearsalbox",
+  "private": true,
+  "scripts": {
+    "test": "node --test assets/js/**/*.test.js"
+  }
+}
