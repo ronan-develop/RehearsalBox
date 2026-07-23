@@ -14,3 +14,9 @@ test('renderGroupCard includes the group id for later DOM targeting', () => {
 
   assert.ok(html.includes('data-group-id="7"'));
 });
+
+test('renderGroupCard uses the shared rb-card class for visual consistency', () => {
+  const html = renderGroupCard({ id: 1, name: 'Groupe Test', genre: null, colorHex: null });
+
+  assert.ok(html.includes('rb-card'));
+});

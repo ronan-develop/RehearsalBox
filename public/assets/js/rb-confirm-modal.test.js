@@ -15,3 +15,9 @@ test('buildConfirmModalMarkup includes confirm and cancel buttons', () => {
   assert.ok(html.includes('data-confirm-modal-confirm'));
   assert.ok(html.includes('data-confirm-modal-cancel'));
 });
+
+test('buildConfirmModalMarkup uses the shared rb-card class for visual consistency', () => {
+  const html = buildConfirmModalMarkup('Confirmer ?');
+
+  assert.ok(html.includes('rb-card'));
+});

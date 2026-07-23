@@ -12,32 +12,32 @@
     <div class="rb-admin-page">
         <h1>Groupes</h1>
 
-        <form data-async data-endpoint="/api/admin/groups" data-method="POST" class="rb-admin-form">
+        <form data-async data-endpoint="/api/admin/groups" data-method="POST" class="rb-admin-form rb-card">
             <div class="rb-field">
                 <label for="name">Nom du groupe</label>
-                <input type="text" id="name" name="name" required maxlength="120">
+                <input type="text" id="name" name="name" class="rb-input" required maxlength="120">
             </div>
             <div class="rb-field">
                 <label for="genre">Genre</label>
-                <input type="text" id="genre" name="genre" maxlength="60">
+                <input type="text" id="genre" name="genre" class="rb-input" maxlength="60">
             </div>
             <div class="rb-field">
                 <label for="colorHex">Couleur</label>
-                <input type="color" id="colorHex" name="colorHex" value="#e63946">
+                <input type="color" id="colorHex" name="colorHex" value="#b5654a">
             </div>
-            <button type="submit" class="rb-btn rb-auth-submit">Créer le groupe</button>
+            <button type="submit" class="rb-btn-primary">Créer le groupe</button>
         </form>
 
         <div class="rb-group-list" data-group-list>
             <?php foreach ($groups as $group): ?>
-                <article class="rb-group-card" data-group-id="<?= e((string) $group->id()) ?>">
+                <article class="rb-group-card rb-card" data-group-id="<?= e((string) $group->id()) ?>">
                     <h3><?= e($group->name()) ?></h3>
                     <?php if ($group->genre() !== null): ?>
                         <p class="rb-group-genre"><?= e($group->genre()) ?></p>
                     <?php endif; ?>
                     <form data-async data-endpoint="/api/admin/groups/<?= e((string) $group->id()) ?>/members"
                           data-method="POST" class="rb-add-member-form">
-                        <input type="email" name="email" placeholder="Email du musicien" required>
+                        <input type="email" name="email" class="rb-input" placeholder="Email du musicien" required>
                         <button type="submit" class="rb-btn">Ajouter</button>
                     </form>
                 </article>

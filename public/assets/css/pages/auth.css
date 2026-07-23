@@ -9,53 +9,10 @@
 .rb-auth-card {
   width: 100%;
   max-width: 360px;
-  background: var(--rb-surface);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-md);
   padding: var(--rb-space-5);
 }
 
 .rb-auth-card h1 {
   margin: 0 0 var(--rb-space-4);
   font-size: 1.5rem;
-}
-
-.rb-field {
-  margin-bottom: var(--rb-space-3);
-}
-
-.rb-field label {
-  display: block;
-  margin-bottom: var(--rb-space-1);
-  color: var(--rb-text-2);
-  font-size: 0.875rem;
-}
-
-.rb-field input {
-  width: 100%;
-  padding: var(--rb-space-2) var(--rb-space-3);
-  background: var(--rb-bg-2);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-sm);
-  color: var(--rb-text);
-}
-
-.rb-field-error {
-  display: block;
-  margin-top: var(--rb-space-1);
-  color: var(--rb-err);
-  font-size: 0.8125rem;
-  min-height: 1em;
-}
-
-.rb-auth-submit {
-  width: 100%;
-  padding: var(--rb-space-3);
-  background: var(--rb-accent);
-  color: #fff;
-  font-weight: 600;
-}
-
-.rb-auth-submit:hover {
-  background: color-mix(in srgb, var(--rb-accent) 85%, black);
 }

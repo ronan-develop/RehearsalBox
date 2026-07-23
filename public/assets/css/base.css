@@ -1,17 +1,21 @@
 :root {
-  --rb-bg: #121212;
-  --rb-bg-2: #1a1a1a;
-  --rb-surface: #1e1e1e;
-  --rb-surface-strong: #262626;
-  --rb-border: #333333;
-  --rb-text: #f2f2f2;
-  --rb-text-2: #b3b3b3;
-  --rb-text-3: #7a7a7a;
-  --rb-accent: #e63946;
-  --rb-accent-2: #ff8c00;
-  --rb-ok: #2ecc71;
-  --rb-warn: #f1c40f;
-  --rb-err: #e63946;
+  /* Palette "braise éteinte" — sobre, sans cliché rock/metal (pas de rouge
+     sang ni de couleurs saturées, cf. issue #17) : fond quasi noir à teinte
+     froide, accent rouille/terracotta désaturé évoquant le cuir et le métal
+     patiné plutôt qu'un rouge criard. */
+  --rb-bg: #15151a;
+  --rb-bg-2: #1a1a20;
+  --rb-surface: #1d1d22;
+  --rb-surface-strong: #26262d;
+  --rb-border: #35353d;
+  --rb-text: #ececec;
+  --rb-text-2: #a8a6a2;
+  --rb-text-3: #726f6b;
+  --rb-accent: #b5654a;
+  --rb-accent-2: #8a8478;
+  --rb-ok: #6b9b6e;
+  --rb-warn: #c9a04a;
+  --rb-err: #a8493c;
   --rb-space-1: 0.25rem;
   --rb-space-2: 0.5rem;
   --rb-space-3: 1rem;
@@ -76,6 +80,64 @@ button:active::after, .rb-btn:active::after {
   opacity: 1;
   transform: scale(1.4);
   transition-duration: 0ms;
+}
+
+/* Bouton plein largeur, accent — action principale d'un formulaire. */
+.rb-btn-primary {
+  width: 100%;
+  padding: var(--rb-space-3);
+  background: var(--rb-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rb-btn-primary:hover {
+  background: color-mix(in srgb, var(--rb-accent) 85%, black);
+}
+
+/* Carte générique — socle commun repris par les cartes de créneau, groupe,
+   formulaire admin, modale, etc. (évite de redéfinir surface/bordure/radius
+   à chaque écran). */
+.rb-card {
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: var(--rb-space-4);
+  box-shadow: var(--rb-shadow);
+}
+
+/* Champ de formulaire générique — label + input, cohérent sur tous les écrans. */
+.rb-field {
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-field label {
+  display: block;
+  margin-bottom: var(--rb-space-1);
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-input {
+  width: 100%;
+  padding: var(--rb-space-2) var(--rb-space-3);
+  background: var(--rb-bg-2);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  color: var(--rb-text);
+}
+
+.rb-input:focus {
+  outline: none;
+  border-color: var(--rb-accent);
+}
+
+.rb-field-error {
+  display: block;
+  margin-top: var(--rb-space-1);
+  color: var(--rb-err);
+  font-size: 0.8125rem;
+  min-height: 1em;
 }
 
 .rb-bottom-nav {

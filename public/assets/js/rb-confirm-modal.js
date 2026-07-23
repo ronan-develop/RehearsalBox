@@ -1,7 +1,7 @@
 /**
  * <rb-confirm-modal> — Web Component natif en Light DOM (pas de Shadow DOM :
- * hérite directement des classes .rb-modal* déjà globales dans admin.css,
- * sans rien dupliquer). Remplace confirm() natif, mauvaise UX mobile
+ * hérite directement des classes .rb-modal et .rb-card déjà globales, sans
+ * rien dupliquer). Remplace confirm() natif, mauvaise UX mobile
  * (cf. plan §6/§10.2).
  *
  * Balise statique attendue une fois par page : <rb-confirm-modal></rb-confirm-modal>.
@@ -15,7 +15,7 @@ function escapeHtml(value) {
 export function buildConfirmModalMarkup(message) {
   return `
     <div class="rb-modal-backdrop" data-confirm-modal>
-      <div class="rb-modal" role="alertdialog" aria-modal="true">
+      <div class="rb-modal rb-card" role="alertdialog" aria-modal="true">
         <p>${escapeHtml(message)}</p>
         <div class="rb-modal-actions">
           <button type="button" class="rb-btn rb-modal-cancel" data-confirm-modal-cancel>Annuler</button>
