@@ -59,4 +59,46 @@ final class User
     {
         return $this->lockedUntil !== null && $this->lockedUntil > $now;
     }
+
+    public function failedLoginAttempts(): int
+    {
+        return $this->failedLoginAttempts;
+    }
+
+    public function lockedUntil(): ?\DateTimeImmutable
+    {
+        return $this->lockedUntil;
+    }
+
+    /** Verrouille temporairement le compte après le seuil d'échecs (cf. plan §10.4). */
+    public function withFailedLoginAttempt(int $maxAttempts, \DateTimeImmutable $now, string $lockDuration): self
+    {
+        $attempts = $this->failedLoginAttempts + 1;
+        $lockedUntil = $attempts >= $maxAttempts ? $now->modify($lockDuration) : $this->lockedUntil;
+
+        return new self(
+            $this->id,
+            $this->email,
+            $this->passwordHash,
+            $this->displayName,
+            $this->role,
+            $this->isActive,
+            $attempts,
+            $lockedUntil,
+        );
+    }
+
+    public function withResetFailedAttempts(): self
+    {
+        return new self(
+            $this->id,
+            $this->email,
+            $this->passwordHash,
+            $this->displayName,
+            $this->role,
+            $this->isActive,
+            0,
+            null,
+        );
+    }
 }
