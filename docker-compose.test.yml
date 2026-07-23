@@ -1,0 +1,16 @@
+# Base de données de test locale — dev/test uniquement, ne reflète pas la
+# prod (hébergement mutualisé, sans Docker). Voir .claude/commands.md.
+services:
+  db-test:
+    image: mariadb:10.11
+    container_name: rehearsalbox-test-db
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: rehearsalbox_test
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

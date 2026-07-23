@@ -39,6 +39,12 @@ jobs:
         run: composer audit
 
       - name: Run PHPUnit
+        env:
+          DB_TEST_HOST: 127.0.0.1
+          DB_TEST_PORT: "3306"
+          DB_TEST_NAME: rehearsalbox_test
+          DB_TEST_USER: root
+          DB_TEST_PASSWORD: root
         run: ./vendor/bin/phpunit --colors=always
 
   js:

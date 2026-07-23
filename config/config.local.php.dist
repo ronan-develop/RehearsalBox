@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+// Copier en config.local.php (gitignore) et adapter à l'environnement local.
+
+return [
+    'debug' => true,
+    'db' => [
+        'host' => '127.0.0.1',
+        'port' => '3307',
+        'name' => 'rehearsalbox_test',
+        'user' => 'root',
+        'password' => 'root',
+    ],
+];
