@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildConfirmModalMarkup } from './confirm-modal.js';
+import { buildConfirmModalMarkup } from './rb-confirm-modal.js';
 
 test('buildConfirmModalMarkup escapes the message to prevent XSS', () => {
   const html = buildConfirmModalMarkup('<script>alert(1)</script>');

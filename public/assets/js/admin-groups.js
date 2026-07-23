@@ -5,7 +5,7 @@
 import { initAsyncForms } from './forms.js';
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
-import { confirmAction } from './confirm-modal.js';
+import { confirmAction } from './rb-confirm-modal.js';
 
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
