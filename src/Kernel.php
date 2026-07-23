@@ -11,12 +11,17 @@ use App\Http\Response;
 use App\Routing\Exception\MethodNotAllowedException;
 use App\Routing\Exception\RouteNotFoundException;
 use App\Routing\Router;
+use App\Security\CsrfTokenManager;
+use App\Security\Exception\AccessDeniedException;
 
 final class Kernel
 {
+    private const MUTATING_METHODS = ['POST', 'PATCH', 'DELETE', 'PUT'];
+
     public function __construct(
         private readonly Router $router,
         private readonly ContainerInterface $container,
+        private readonly CsrfTokenManager $csrfTokenManager,
     ) {
     }
 
@@ -30,10 +35,26 @@ final class Kernel
             return $this->errorResponse($request, 405, 'Méthode non autorisée');
         }
 
+        // Vérifié en tout premier, avant toute logique métier (cf. plan §5/§10.3) —
+        // le controller n'est jamais atteint sans token valide sur une mutation API.
+        if ($this->isMutatingApiRequest($request) && !$this->csrfTokenManager->isValid((string) $request->header('X-CSRF-Token', ''))) {
+            return $this->errorResponse($request, 403, 'Token CSRF invalide ou manquant.');
+        }
+
         [$serviceId, $method] = $matched->handler;
         $controller = $this->container->get($serviceId);
 
-        return $controller->$method($request, ...array_values($matched->params));
+        try {
+            return $controller->$method($request, ...array_values($matched->params));
+        } catch (AccessDeniedException $e) {
+            return $this->errorResponse($request, 403, $e->getMessage());
+        }
+    }
+
+    private function isMutatingApiRequest(Request $request): bool
+    {
+        return str_starts_with($request->path(), '/api/')
+            && in_array($request->method(), self::MUTATING_METHODS, true);
     }
 
     private function errorResponse(Request $request, int $statusCode, string $message): Response
