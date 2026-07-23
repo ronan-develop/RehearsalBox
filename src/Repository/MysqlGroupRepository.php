@@ -30,6 +30,19 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         return array_map($this->hydrate(...), $rows);
     }
 
+    public function findByMember(int $userId): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT g.* FROM `groups` g
+             INNER JOIN group_user gu ON gu.group_id = g.id
+             WHERE gu.user_id = :user_id
+             ORDER BY g.name'
+        );
+        $statement->execute(['user_id' => $userId]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
     public function save(Group $group): Group
     {
         if ($group->id() === 0) {
