@@ -11,10 +11,14 @@ types="feat|fix|docs|refactor|perf|test|build|ci|chore|style|security|revert|WIP
 
 # Un emoji suivi d'un espace, puis type(scope): sujet.
 # On ne liste pas tous les emojis un par un : on vérifie juste qu'un caractère
-# non-ASCII ouvre la ligne, avant le motif type(scope): texte.
-pattern="^[^a-zA-Z0-9] +(${types})\([^)]+\): .+"
+# non-ASCII ouvre la ligne, avant le motif type(scope): texte. Certains emojis
+# de la convention (♻️ 🏗️ 🏭 🛠️ 🎨) sont composés de 2 codepoints (le second
+# étant U+FE0F, variation selector) — \X (grapheme cluster complet) les
+# absorbe en un seul "caractère utilisateur" plutôt qu'un [^a-zA-Z0-9] qui
+# n'en consommerait qu'un seul codepoint.
+pattern="^\X +(${types})\([^)]+\): .+"
 
-if ! echo "$first_line" | grep -qE "$pattern"; then
+if ! echo "$first_line" | grep -Pq "$pattern"; then
     echo "❌ Message de commit invalide : \"$first_line\"" >&2
     echo "" >&2
     echo "Format attendu : <emoji> <type>(<scope>): <sujet>" >&2
