@@ -42,6 +42,7 @@
             <?php endforeach; ?>
         </main>
     </div>
+    <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>

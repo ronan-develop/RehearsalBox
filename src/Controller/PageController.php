@@ -51,27 +51,30 @@ final class PageController
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'exceptions' => $exceptions,
             'groups' => $groups,
+            'currentUserRole' => $user->role(),
         ]));
     }
 
     public function adminSlots(): Response
     {
-        $this->authGuard->requireRole(UserRole::Admin);
+        $user = $this->authGuard->requireRole(UserRole::Admin);
 
         return new Response($this->renderer->render('admin/slots/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'slots' => $this->slotService->findAllActive(),
             'groups' => $this->groupService->findAll(),
+            'currentUserRole' => $user->role(),
         ]));
     }
 
     public function adminGroups(): Response
     {
-        $this->authGuard->requireRole(UserRole::Admin);
+        $user = $this->authGuard->requireRole(UserRole::Admin);
 
         return new Response($this->renderer->render('admin/groups/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'groups' => $this->groupService->findAll(),
+            'currentUserRole' => $user->role(),
         ]));
     }
 }
