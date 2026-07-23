@@ -51,14 +51,6 @@
   gap: var(--rb-space-3);
 }
 
-.rb-slot-card {
-  background: var(--rb-surface);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-md);
-  padding: var(--rb-space-4);
-  box-shadow: var(--rb-shadow);
-}
-
 .rb-slot-card-date {
   margin: 0 0 var(--rb-space-2);
   font-weight: 600;
@@ -69,18 +61,6 @@
   margin: 0 0 var(--rb-space-3);
   color: var(--rb-text-2);
   font-size: 0.9375rem;
-}
-
-.rb-slot-card-claim {
-  width: 100%;
-  padding: var(--rb-space-3);
-  background: var(--rb-accent);
-  color: #fff;
-  font-weight: 600;
-}
-
-.rb-slot-card-claim:hover {
-  background: color-mix(in srgb, var(--rb-accent) 85%, black);
 }
 
 .rb-empty-state {

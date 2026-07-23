@@ -10,25 +10,25 @@
 </head>
 <body>
     <div class="rb-auth-page">
-        <div class="rb-auth-card">
+        <div class="rb-auth-card rb-card">
             <h1>Rejoindre RehearsalBox</h1>
             <form data-async data-endpoint="/api/auth/register" data-method="POST">
                 <div class="rb-field">
                     <label for="displayName">Nom affiché</label>
-                    <input type="text" id="displayName" name="displayName" required maxlength="100">
+                    <input type="text" id="displayName" name="displayName" class="rb-input" required maxlength="100">
                     <span class="rb-field-error" data-field-error="displayName"></span>
                 </div>
                 <div class="rb-field">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required autocomplete="email">
+                    <input type="email" id="email" name="email" class="rb-input" required autocomplete="email">
                     <span class="rb-field-error" data-field-error="email"></span>
                 </div>
                 <div class="rb-field">
                     <label for="password">Mot de passe</label>
-                    <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+                    <input type="password" id="password" name="password" class="rb-input" required minlength="8" autocomplete="new-password">
                     <span class="rb-field-error" data-field-error="password"></span>
                 </div>
-                <button type="submit" class="rb-auth-submit">Créer mon compte</button>
+                <button type="submit" class="rb-btn-primary">Créer mon compte</button>
             </form>
         </div>
     </div>

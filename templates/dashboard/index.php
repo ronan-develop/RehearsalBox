@@ -27,13 +27,13 @@
                 <p class="rb-empty-state">Aucun créneau libéré pour le moment.</p>
             <?php endif; ?>
             <?php foreach ($exceptions as $exception): ?>
-                <article class="rb-slot-card" data-exception-id="<?= e((string) $exception->id()) ?>">
+                <article class="rb-slot-card rb-card" data-exception-id="<?= e((string) $exception->id()) ?>">
                     <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
                     <?php if ($exception->releasedReason() !== null): ?>
                         <p class="rb-slot-card-reason"><?= e($exception->releasedReason()) ?></p>
                     <?php endif; ?>
                     <?php if ($groups !== []): ?>
-                        <button type="button" class="rb-btn rb-slot-card-claim" data-claim-button
+                        <button type="button" class="rb-btn rb-btn-primary rb-slot-card-claim" data-claim-button
                                 data-exception-id="<?= e((string) $exception->id()) ?>">
                             Je prends ce créneau
                         </button>

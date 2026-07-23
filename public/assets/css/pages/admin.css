@@ -13,21 +13,7 @@
 .rb-admin-form {
   display: grid;
   gap: var(--rb-space-3);
-  background: var(--rb-surface);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-md);
-  padding: var(--rb-space-4);
   margin-bottom: var(--rb-space-5);
-}
-
-.rb-admin-form select,
-.rb-admin-form input {
-  width: 100%;
-  padding: var(--rb-space-2) var(--rb-space-3);
-  background: var(--rb-bg-2);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-sm);
-  color: var(--rb-text);
 }
 
 .rb-admin-table-wrapper {
@@ -60,13 +46,6 @@
   gap: var(--rb-space-3);
 }
 
-.rb-group-card {
-  background: var(--rb-surface);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-md);
-  padding: var(--rb-space-4);
-}
-
 .rb-group-genre {
   color: var(--rb-text-2);
   font-size: 0.875rem;
@@ -78,13 +57,8 @@
   gap: var(--rb-space-2);
 }
 
-.rb-add-member-form input {
+.rb-add-member-form .rb-input {
   flex: 1;
-  padding: var(--rb-space-2);
-  background: var(--rb-bg-2);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-sm);
-  color: var(--rb-text);
 }
 
 .rb-modal-backdrop {
@@ -99,10 +73,6 @@
 }
 
 .rb-modal {
-  background: var(--rb-surface);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-md);
-  padding: var(--rb-space-4);
   max-width: 320px;
   width: 100%;
 }

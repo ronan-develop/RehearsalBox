@@ -15,11 +15,11 @@ function escapeHtml(value) {
 
 export function renderGroupCard(group) {
   return `
-    <article class="rb-group-card" data-group-id="${group.id}">
+    <article class="rb-group-card rb-card" data-group-id="${group.id}">
       <h3>${escapeHtml(group.name)}</h3>
       ${group.genre ? `<p class="rb-group-genre">${escapeHtml(group.genre)}</p>` : ''}
       <form data-async data-endpoint="/api/admin/groups/${group.id}/members" data-method="POST" class="rb-add-member-form">
-        <input type="email" name="email" placeholder="Email du musicien" required>
+        <input type="email" name="email" class="rb-input" placeholder="Email du musicien" required>
         <button type="submit" class="rb-btn">Ajouter</button>
       </form>
     </article>
