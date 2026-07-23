@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Api;
+
+use App\Controller\Api\__Name__ApiController;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Gabarit RED : à créer et lancer AVANT d'écrire le controller/service testé
+ * (voir .claude/tdd.md — RED → GREEN → REFACTOR).
+ */
+final class __Name__ApiControllerTest extends TestCase
+{
+    // ── Accès non autorisé ───────────────────────────────────────────────
+
+    public function testReturns401WhenNotAuthenticated(): void
+    {
+        // TODO: appel sans session -> 401
+        self::markTestIncomplete();
+    }
+
+    public function testReturns403WhenNotOwnerOrWrongRole(): void
+    {
+        // TODO: IDOR / rôle insuffisant -> 403 (cf. plan de sécurité §10.5)
+        self::markTestIncomplete();
+    }
+
+    // ── Cas nominal ──────────────────────────────────────────────────────
+
+    public function testNominalCaseReturnsExpectedPayload(): void
+    {
+        // TODO: happy path -> 200/201 + payload JSON attendu
+        self::markTestIncomplete();
+    }
+
+    // ── Cas limites ──────────────────────────────────────────────────────
+
+    public function testReturns422OnInvalidPayload(): void
+    {
+        // TODO: validation (champ manquant, format invalide, longueur excessive)
+        self::markTestIncomplete();
+    }
+
+    public function testReturns409OnConflict(): void
+    {
+        // TODO: conflit métier (ex: créneau déjà revendiqué) -> 409, pas d'exception
+        self::markTestIncomplete();
+    }
+}
