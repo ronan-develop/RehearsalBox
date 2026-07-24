@@ -25,6 +25,8 @@ return [
         ['GET',  '/api/availability/slots', [AvailabilityApiController::class, 'requestableSlots']],
         ['POST', '/api/availability/request', [AvailabilityApiController::class, 'request']],
         ['POST', '/api/availability/{exceptionId}/respond', [AvailabilityApiController::class, 'respond']],
+        ['PATCH', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'update']],
+        ['DELETE', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'destroy']],
         ['GET',    '/api/admin/slots', [SlotApiController::class, 'index']],
         ['POST',   '/api/admin/slots', [SlotApiController::class, 'store']],
         ['PATCH',  '/api/admin/slots/{id}', [SlotApiController::class, 'update']],

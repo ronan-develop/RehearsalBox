@@ -75,6 +75,34 @@ final class AvailabilityApiController
         return new JsonResponse(self::toArray($responded));
     }
 
+    public function update(Request $request, string $exceptionId): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $occurrenceDate = new \DateTimeImmutable((string) $request->body('occurrenceDate', ''));
+        $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
+
+        try {
+            $updated = $this->availabilityService->updateRequest((int) $exceptionId, $occurrenceDate, $reason, $user->id());
+        } catch (RequestAlreadyRespondedException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 409);
+        }
+
+        return new JsonResponse(self::toArray($updated));
+    }
+
+    public function destroy(Request $request, string $exceptionId): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        try {
+            $this->availabilityService->cancelRequest((int) $exceptionId, $user->id());
+        } catch (RequestAlreadyRespondedException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 409);
+        }
+
+        return new JsonResponse([], 204);
+    }
+
     /** @return array<string, mixed> */
     private static function slotToArray(RequestableSlot $requestableSlot): array
     {
