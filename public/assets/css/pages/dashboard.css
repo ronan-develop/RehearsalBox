@@ -172,6 +172,9 @@
   background: rgba(255, 255, 255, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  /* Bords courts (gauche/droite) légèrement déchirés, comme arraché d'un
+     rouleau de scotch — les bords longs (haut/bas) restent nets. */
+  clip-path: polygon(0% 0%, 1.2% 0%, 1.6% 21.8%, 1.7% 42.7%, 0.1% 58.6%, 2.9% 72%, 0.4% 88.7%, 0% 100%, 100% 100%, 98.5% 100%, 99.7% 78.6%, 97.6% 59.8%, 99.4% 43.2%, 99.4% 27.9%, 97.3% 8.4%, 100% 0%);
 }
 
 .rb-planning-card-tape--corner-left {
