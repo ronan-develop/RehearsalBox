@@ -1,9 +1,9 @@
 /**
  * Dashboard disponibilités — rendu initial server-side (cf. plan §5bis),
- * seule l'action de revendication passe en XHR : le DOM est patché en place
- * (retrait de la carte), jamais de rechargement de page. Cas 409 (déjà
- * pris) : toast d'erreur + retrait de la carte pour resynchroniser sans
- * reload complet.
+ * seules les actions (répondre à une demande, en initier une) passent en
+ * XHR : le DOM est patché en place, jamais de rechargement de page. Cas
+ * 409 (déjà répondue) : toast d'erreur + retrait de la carte pour
+ * resynchroniser sans reload complet.
  */
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
@@ -13,18 +13,18 @@ export function getCurrentGroupId(root = document) {
   return select ? select.value : root.querySelector('[data-current-group-id]')?.dataset.currentGroupId;
 }
 
-export async function handleClaim(button, root = document) {
+export async function handleRespond(button, root = document) {
   const exceptionId = button.dataset.exceptionId;
-  const groupId = getCurrentGroupId(root);
+  const accepted = button.dataset.accepted === 'true';
 
   try {
-    await apiFetch(`/api/availability/${exceptionId}/claim`, {
+    await apiFetch(`/api/availability/${exceptionId}/respond`, {
       method: 'POST',
-      body: JSON.stringify({ groupId: Number(groupId) }),
+      body: JSON.stringify({ accepted }),
     });
 
     root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
-    showToast('Créneau revendiqué avec succès.', 'success');
+    showToast(accepted ? 'Demande acceptée.' : 'Demande refusée.', 'success');
   } catch (error) {
     showToast(error.message, 'error');
 
@@ -34,15 +34,42 @@ export async function handleClaim(button, root = document) {
   }
 }
 
+export async function handleRequestSubmit(event, root = document) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+
+  try {
+    await apiFetch('/api/availability/request', {
+      method: 'POST',
+      body: JSON.stringify({
+        recurringSlotId: Number(formData.get('recurringSlotId')),
+        occurrenceDate: formData.get('occurrenceDate'),
+        requestingGroupId: Number(formData.get('requestingGroupId')),
+        reason: formData.get('reason') || null,
+      }),
+    });
+
+    showToast('Demande envoyée.', 'success');
+    form.reset();
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
 export function initAvailability(root = document) {
   root.querySelector('[data-current-group-select]')?.addEventListener('change', (event) => {
     event.target.dataset.currentGroupId = event.target.value;
   });
 
   root.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-claim-button]');
-    if (button) {
-      handleClaim(button, root);
+    const respondButton = event.target.closest('[data-respond-button]');
+    if (respondButton) {
+      handleRespond(respondButton, root);
     }
+  });
+
+  root.querySelector('[data-request-form]')?.addEventListener('submit', (event) => {
+    handleRequestSubmit(event, root);
   });
 }
