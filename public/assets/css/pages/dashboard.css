@@ -121,7 +121,7 @@
     98.6% 2.75%, 100% 0.5%,
     100% 100%, 0% 100%
   );
-  box-shadow: 0 0 6px rgba(237, 231, 220, 0.08);
+  box-shadow: 0 0 12px rgba(237, 231, 220, 0.22);
   transition: box-shadow 0.2s ease;
 }
 
