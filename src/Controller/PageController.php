@@ -59,6 +59,17 @@ final class PageController
         ]));
     }
 
+    public function planning(): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        return new Response($this->renderer->render('planning/index', [
+            'csrfToken' => $this->csrfTokenManager->getToken(),
+            'planningSlots' => $this->slotService->findPlanningSlots(),
+            'currentUserRole' => $user->role(),
+        ]));
+    }
+
     public function adminSlots(): Response
     {
         $user = $this->authGuard->requireRole(UserRole::Admin);
