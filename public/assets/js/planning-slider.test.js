@@ -58,3 +58,15 @@ test('createAutoScrollController starts running by default', () => {
 
   assert.equal(controller.isRunning(), true);
 });
+
+test('createAutoScrollController pause() is idempotent under concurrent mouseenter/manual pause', () => {
+  const track = makeFakeTrack();
+  const controller = createAutoScrollController(track, { step: 2 });
+
+  controller.pause();
+  controller.pause();
+  controller.tick();
+
+  assert.equal(track.scrollLeft, 0);
+  assert.equal(controller.isRunning(), false);
+});

@@ -32,11 +32,18 @@ export function initPlanningSlider(root = document) {
     return;
   }
 
-  const controller = createAutoScrollController(track, { step: 1 });
-  const intervalId = setInterval(controller.tick, 30);
+  const controller = createAutoScrollController(track, { step: 2 });
+  const intervalId = setInterval(controller.tick, 20);
 
+  // Souris : pause au survol (desktop).
   slider.addEventListener('mouseenter', () => controller.pause());
   slider.addEventListener('mouseleave', () => controller.resume());
+
+  // Tactile : pause pendant le contact pour ne pas gêner un scroll au doigt
+  // en cours (cf. ticket #27) ; reprend au relâchement, pas de bouton dédié.
+  slider.addEventListener('touchstart', () => controller.pause(), { passive: true });
+  slider.addEventListener('touchend', () => controller.resume());
+  slider.addEventListener('touchcancel', () => controller.resume());
 
   return { controller, intervalId };
 }
