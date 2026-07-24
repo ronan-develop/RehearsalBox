@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Service\Contract;
 
+use App\Entity\RecurringSlot;
 use App\Entity\SlotException;
 
 interface AvailabilityServiceInterface
 {
+    /** @return list<RecurringSlot> Créneaux actifs appartenant à d'autres groupes que ceux de $userId. */
+    public function findRequestableSlotsFor(int $userId): array;
+
     /**
      * @throws \App\Security\Exception\AccessDeniedException si l'utilisateur courant n'appartient pas à $groupId
      * @return list<SlotException>

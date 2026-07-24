@@ -222,4 +222,18 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         self::assertCount(1, $found);
     }
+
+    public function testFindRequestableSlotsForExcludesSlotsOfCallersOwnGroups(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, $holderGroupId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $slotRepository->save(new RecurringSlot(0, $requestingGroupId, Weekday::Thursday, '18:00:00', '20:00:00', true));
+
+        $requestable = $service->findRequestableSlotsFor($requestingUserId);
+
+        self::assertCount(1, $requestable);
+        self::assertSame($holderGroupId, $requestable[0]->groupId());
+    }
 }

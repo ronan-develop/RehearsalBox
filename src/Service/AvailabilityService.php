@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\RecurringSlot;
 use App\Entity\SlotException;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
@@ -19,6 +20,19 @@ final class AvailabilityService implements AvailabilityServiceInterface
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly RecurringSlotRepositoryInterface $recurringSlotRepository,
     ) {
+    }
+
+    public function findRequestableSlotsFor(int $userId): array
+    {
+        $ownGroupIds = array_map(
+            static fn ($group) => $group->id(),
+            $this->groupRepository->findByMember($userId),
+        );
+
+        return array_values(array_filter(
+            $this->recurringSlotRepository->findAllActive(),
+            static fn (RecurringSlot $slot) => !in_array($slot->groupId(), $ownGroupIds, true),
+        ));
     }
 
     public function findPendingForHolderGroup(int $groupId, int $userId): array

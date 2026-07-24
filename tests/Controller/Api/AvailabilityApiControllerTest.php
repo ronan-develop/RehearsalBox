@@ -226,4 +226,20 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
     }
+
+    public function testRequestableSlotsReturnsSlotsOfOtherGroups(): void
+    {
+        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('GET', '/api/availability/slots', [], [], []);
+        $response = $controller->requestableSlots($request);
+
+        self::assertSame(200, $response->statusCode());
+    }
 }

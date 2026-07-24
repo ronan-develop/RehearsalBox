@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Entity\RecurringSlot;
 use App\Entity\SlotException;
 use App\Http\JsonResponse;
 use App\Http\Request;
@@ -37,6 +38,15 @@ final class AvailabilityApiController
         return new JsonResponse(['exceptions' => array_map(self::toArray(...), $exceptions)]);
     }
 
+    public function requestableSlots(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $slots = $this->availabilityService->findRequestableSlotsFor($user->id());
+
+        return new JsonResponse(['slots' => array_map(self::slotToArray(...), $slots)]);
+    }
+
     public function request(Request $request): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
@@ -63,6 +73,18 @@ final class AvailabilityApiController
         }
 
         return new JsonResponse(self::toArray($responded));
+    }
+
+    /** @return array<string, mixed> */
+    private static function slotToArray(RecurringSlot $slot): array
+    {
+        return [
+            'id' => $slot->id(),
+            'groupId' => $slot->groupId(),
+            'weekday' => $slot->weekday()->value,
+            'startTime' => $slot->startTime(),
+            'endTime' => $slot->endTime(),
+        ];
     }
 
     /** @return array<string, mixed> */
