@@ -9,3 +9,11 @@ if (!function_exists('e')) {
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
+
+if (!function_exists('formatTime')) {
+    /** Affichage HH:MM d'une heure stockée en HH:MM:SS (colonnes TIME de recurring_slots). */
+    function formatTime(string $time): string
+    {
+        return substr($time, 0, 5);
+    }
+}
