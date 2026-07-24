@@ -100,19 +100,13 @@
   width: 220px;
   height: 156px;
   scroll-snap-align: start;
-  /* Rupture assumée avec le fond sombre du reste de l'app : effet
-     "flyer merch" en papier blanc cassé posé sur le dashboard. Coins
-     haut/bas largement arrondis (cf. référence merch) avec une fine
-     déchirure irrégulière entre les deux coins hauts. Un seul tracé
-     (clip-path: path()) porte les deux à la fois, en coordonnées
-     absolues (d'où la hauteur fixée ci-dessus).
-     box-shadow est rogné par clip-path quel que soit son intensité (déjà
-     constaté avec l'ancien polygon) : le halo passe donc par
-     filter: drop-shadow(), qui lui suit le tracé réel sans être coupé. */
-  background: #ede7dc;
-  border: none;
-  color: #2a2620;
-  clip-path: path('M 0 22 A 22 22 0 0 1 22 0 L 22 0.58 L 26.2 0.12 L 30.3 0.05 L 33.1 0.79 L 37.2 2.22 L 40.8 0.99 L 43.2 0.97 L 44.9 0.27 L 47.9 0.27 L 52.1 0.39 L 56 0.42 L 59 0.58 L 62 0.29 L 64.1 0.97 L 65.7 0.04 L 68.2 0.92 L 71.5 0.01 L 73.7 2.22 L 77.1 1.57 L 79.3 2.33 L 82.2 0.91 L 85.7 0.36 L 88.2 0.52 L 92.4 0.82 L 95.9 0.67 L 98 0.49 L 101.9 2.11 L 106.2 2.14 L 107.7 0.95 L 110.5 0.81 L 114 0.74 L 115.6 0.13 L 117.3 0.41 L 119.1 0.99 L 122.4 0.29 L 126.6 2.18 L 129.7 0.72 L 133.7 0.68 L 136 0.08 L 138 0.18 L 139.8 0.55 L 142.2 1.67 L 144.7 1.85 L 147.8 0.44 L 150.3 0.56 L 152.4 0.29 L 155.4 2.18 L 158.7 0.3 L 160.4 0.43 L 162.3 1.6 L 164.9 0.02 L 166.8 0.31 L 170.7 0.82 L 174.7 0.96 L 178.3 0.16 L 181.8 2.5 L 184.2 0.39 L 188.6 0.25 L 190.2 0.83 L 194.7 1.63 L 196.9 0.81 L 198 0 A 22 22 0 0 1 220 22 L 220 134 A 22 22 0 0 1 198 156 L 22 156 A 22 22 0 0 1 0 134 Z');
+  /* filter: drop-shadow() posé sur le MÊME élément qu'un clip-path ne se
+     rend jamais visuellement dans Chromium (constaté : getComputedStyle
+     renvoie bien la valeur, le style est appliqué, mais rien n'apparaît à
+     l'écran même en zoomant fort — confirmé en retirant clip-path pour
+     voir le halo réapparaître aussitôt). Le filtre est donc porté par ce
+     wrapper SANS clip-path ; la forme (fond + découpe) est déportée sur
+     l'enfant .rb-planning-card-shape ci-dessous. */
   filter: drop-shadow(0 0 10px rgba(254, 248, 248, 0.55));
   transition: filter 0.15s ease, transform 0.15s ease;
 }
@@ -122,6 +116,20 @@
      s'enfoncer dans la surface au lieu de s'élever, cf. retour utilisateur). */
   transform: translate(-2px, 2px);
   filter: drop-shadow(2px 2px 10px rgba(254, 248, 248, 0.75));
+}
+
+.rb-planning-card-shape {
+  width: 100%;
+  height: 100%;
+  /* Rupture assumée avec le fond sombre du reste de l'app : effet
+     "flyer merch" en papier blanc cassé posé sur le dashboard. Coins
+     haut/bas largement arrondis (cf. référence merch) avec une fine
+     déchirure irrégulière entre les deux coins hauts, portées par un
+     seul tracé en coordonnées absolues (d'où la taille fixe du parent). */
+  background: #ede7dc;
+  color: #2a2620;
+  clip-path: path('M 0 22 A 22 22 0 0 1 22 0 L 22 0.58 L 26.2 0.12 L 30.3 0.05 L 33.1 0.79 L 37.2 2.22 L 40.8 0.99 L 43.2 0.97 L 44.9 0.27 L 47.9 0.27 L 52.1 0.39 L 56 0.42 L 59 0.58 L 62 0.29 L 64.1 0.97 L 65.7 0.04 L 68.2 0.92 L 71.5 0.01 L 73.7 2.22 L 77.1 1.57 L 79.3 2.33 L 82.2 0.91 L 85.7 0.36 L 88.2 0.52 L 92.4 0.82 L 95.9 0.67 L 98 0.49 L 101.9 2.11 L 106.2 2.14 L 107.7 0.95 L 110.5 0.81 L 114 0.74 L 115.6 0.13 L 117.3 0.41 L 119.1 0.99 L 122.4 0.29 L 126.6 2.18 L 129.7 0.72 L 133.7 0.68 L 136 0.08 L 138 0.18 L 139.8 0.55 L 142.2 1.67 L 144.7 1.85 L 147.8 0.44 L 150.3 0.56 L 152.4 0.29 L 155.4 2.18 L 158.7 0.3 L 160.4 0.43 L 162.3 1.6 L 164.9 0.02 L 166.8 0.31 L 170.7 0.82 L 174.7 0.96 L 178.3 0.16 L 181.8 2.5 L 184.2 0.39 L 188.6 0.25 L 190.2 0.83 L 194.7 1.63 L 196.9 0.81 L 198 0 A 22 22 0 0 1 220 22 L 220 134 A 22 22 0 0 1 198 156 L 22 156 A 22 22 0 0 1 0 134 Z');
+  padding: var(--rb-space-4);
 }
 
 .rb-planning-card-group {
