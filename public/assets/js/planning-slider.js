@@ -42,8 +42,8 @@ export function initPlanningSlider(root = document) {
     return;
   }
 
-  const controller = createAutoScrollController(track, { step: 2 });
-  const intervalId = setInterval(controller.tick, 20);
+  const controller = createAutoScrollController(track, { step: 1 });
+  const intervalId = setInterval(controller.tick, 40);
 
   // Souris : pause au survol (desktop).
   slider.addEventListener('mouseenter', () => controller.pause());
