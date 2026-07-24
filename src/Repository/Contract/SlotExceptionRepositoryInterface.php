@@ -30,4 +30,16 @@ interface SlotExceptionRepositoryInterface
      * un résultat métier normal (cf. plan §0.2/§10.5).
      */
     public function respond(int $exceptionId, bool $accepted, int $respondedByUserId): bool;
+
+    /**
+     * Modifie la date d'occurrence et/ou la raison d'une demande en_attente.
+     * Retourne false si la demande n'existe plus ou a déjà été traitée.
+     */
+    public function update(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason): bool;
+
+    /**
+     * Supprime une demande en_attente. Retourne false si elle n'existe plus
+     * ou a déjà été traitée.
+     */
+    public function delete(int $exceptionId): bool;
 }

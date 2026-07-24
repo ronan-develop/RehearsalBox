@@ -143,6 +143,77 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertFalse($repository->respond(9999, true, 1));
     }
 
+    public function testUpdateOnPendingExceptionSucceeds(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Raison initiale');
+
+        $updated = $repository->update($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Raison modifiée');
+
+        self::assertTrue($updated);
+
+        $found = $repository->findById($exception->id());
+        self::assertSame('2026-08-11', $found->occurrenceDate()->format('Y-m-d'));
+        self::assertSame('Raison modifiée', $found->requestReason());
+    }
+
+    public function testUpdateOnAlreadyRespondedExceptionReturnsFalse(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($exception->id(), true, $requestingUserId);
+
+        $updated = $repository->update($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Nouvelle raison');
+
+        self::assertFalse($updated);
+        self::assertSame('2026-08-04', $repository->findById($exception->id())->occurrenceDate()->format('Y-m-d'));
+    }
+
+    public function testUpdateOnUnknownExceptionReturnsFalse(): void
+    {
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        self::assertFalse($repository->update(9999, new \DateTimeImmutable('2026-08-11'), null));
+    }
+
+    public function testDeleteOnPendingExceptionSucceeds(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $deleted = $repository->delete($exception->id());
+
+        self::assertTrue($deleted);
+        self::assertNull($repository->findById($exception->id()));
+    }
+
+    public function testDeleteOnAlreadyRespondedExceptionReturnsFalse(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($exception->id(), true, $requestingUserId);
+
+        $deleted = $repository->delete($exception->id());
+
+        self::assertFalse($deleted);
+        self::assertNotNull($repository->findById($exception->id()));
+    }
+
+    public function testDeleteOnUnknownExceptionReturnsFalse(): void
+    {
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        self::assertFalse($repository->delete(9999));
+    }
+
     /** @return array{0: int, 1: int, 2: int, 3: int, 4: int} [holderSlotId, holderGroupId, holderUserId, requestingGroupId, requestingUserId] */
     private function createHolderAndRequester(): array
     {

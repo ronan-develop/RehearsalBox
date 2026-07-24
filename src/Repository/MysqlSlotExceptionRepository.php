@@ -89,6 +89,32 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         return $statement->rowCount() === 1;
     }
 
+    public function update(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason): bool
+    {
+        $statement = $this->pdo->prepare(
+            "UPDATE slot_exceptions
+             SET occurrence_date = :occurrence_date, request_reason = :request_reason
+             WHERE id = :id AND status = 'en_attente'"
+        );
+        $statement->execute([
+            'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+            'request_reason' => $reason,
+            'id' => $exceptionId,
+        ]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function delete(int $exceptionId): bool
+    {
+        $statement = $this->pdo->prepare(
+            "DELETE FROM slot_exceptions WHERE id = :id AND status = 'en_attente'"
+        );
+        $statement->execute(['id' => $exceptionId]);
+
+        return $statement->rowCount() === 1;
+    }
+
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): SlotException
     {
