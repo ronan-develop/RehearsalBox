@@ -46,6 +46,36 @@ final class SlotServiceTest extends RepositoryTestCase
         $service->create($group->id(), Weekday::Tuesday, '20:00:00', '18:00:00');
     }
 
+    public function testCreateWithEndTimeAtMaxCeilingSucceeds(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+
+        $slot = $service->create($group->id(), Weekday::Tuesday, '22:00:00', '23:30:00');
+
+        self::assertSame('23:30:00', $slot->endTime());
+    }
+
+    public function testCreateWithEndTimeAfterMaxCeilingThrowsInvalidArgument(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $service->create($group->id(), Weekday::Tuesday, '22:00:00', '23:31:00');
+    }
+
+    public function testCreateWithEndTimeAtMidnightThrowsInvalidArgument(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $service->create($group->id(), Weekday::Tuesday, '22:00:00', '00:00:00');
+    }
+
     public function testCreateOverlappingSlotOnSameGroupAndDayThrows(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -78,6 +108,28 @@ final class SlotServiceTest extends RepositoryTestCase
 
         self::assertSame('19:00:00', $updated->startTime());
         self::assertSame('21:00:00', $updated->endTime());
+    }
+
+    public function testUpdateWithEndBeforeStartThrowsInvalidArgument(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $service->update($slot->id(), '20:00:00', '19:00:00');
+    }
+
+    public function testUpdateWithEndTimeAfterMaxCeilingThrowsInvalidArgument(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $service->update($slot->id(), '22:00:00', '23:45:00');
     }
 
     public function testUpdateOnUnknownSlotThrowsInvalidArgument(): void
