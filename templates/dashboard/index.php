@@ -23,7 +23,7 @@
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
-                        <p class="rb-planning-card-weekday"><?= e($slot->weekday()->name) ?></p>
+                        <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                         <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
                     </div>
                 </article>
@@ -121,7 +121,7 @@
                             <?php foreach ($requestableSlots as $requestableSlot): ?>
                                 <?php $slot = $requestableSlot->slot(); ?>
                                 <option value="<?= e((string) $slot->id()) ?>">
-                                    <?= e($requestableSlot->groupName()) ?> — <?= e($slot->weekday()->name) ?> <?= e(formatTime($slot->startTime())) ?>–<?= e(formatTime($slot->endTime())) ?>
+                                    <?= e($requestableSlot->groupName()) ?> — <?= e(formatWeekday($slot->weekday())) ?> <?= e(formatTime($slot->startTime())) ?>–<?= e(formatTime($slot->endTime())) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
