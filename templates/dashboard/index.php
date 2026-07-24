@@ -14,6 +14,24 @@
             <h1>Demandes d'échange de créneaux</h1>
         </header>
 
+        <?php if ($planningSlots !== []): ?>
+            <section class="rb-planning-section">
+                <h2>Planning des créneaux fixes</h2>
+                <div class="rb-planning-slider" data-planning-slider>
+                    <div class="rb-planning-track" data-planning-track>
+                        <?php foreach ($planningSlots as $requestableSlot): ?>
+                            <?php $slot = $requestableSlot->slot(); ?>
+                            <article class="rb-planning-card rb-card">
+                                <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
+                                <p class="rb-planning-card-weekday"><?= e($slot->weekday()->name) ?></p>
+                                <p class="rb-planning-card-time"><?= e($slot->startTime()) ?> – <?= e($slot->endTime()) ?></p>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <section class="rb-slot-list" data-pending-list>
             <h2>Demandes reçues à traiter</h2>
             <?php if ($pendingExceptions === []): ?>

@@ -11,7 +11,6 @@ use App\Controller\PageController;
 return [
     'pages' => [
         ['GET', '/', [PageController::class, 'dashboard']],
-        ['GET', '/planning', [PageController::class, 'planning']],
         ['GET', '/login', [PageController::class, 'login']],
         ['GET', '/register', [PageController::class, 'register']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],

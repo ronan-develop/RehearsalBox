@@ -51,21 +51,11 @@ final class PageController
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
+            'planningSlots' => $this->slotService->findPlanningSlots(),
             'pendingExceptions' => $pending,
             'requestedExceptions' => $requested,
             'requestableSlots' => $this->availabilityService->findRequestableSlotsFor($user->id()),
             'groups' => $groups,
-            'currentUserRole' => $user->role(),
-        ]));
-    }
-
-    public function planning(): Response
-    {
-        $user = $this->authGuard->requireLogin();
-
-        return new Response($this->renderer->render('planning/index', [
-            'csrfToken' => $this->csrfTokenManager->getToken(),
-            'planningSlots' => $this->slotService->findPlanningSlots(),
             'currentUserRole' => $user->role(),
         ]));
     }
