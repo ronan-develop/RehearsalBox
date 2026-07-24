@@ -66,6 +66,7 @@ return static function (array $config): Container {
     $container->set(AvailabilityServiceInterface::class, fn ($c) => new AvailabilityService(
         $c->get(SlotExceptionRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
+        $c->get(RecurringSlotRepositoryInterface::class),
     ));
 
     $container->set(SlotServiceInterface::class, fn ($c) => new SlotService($c->get(RecurringSlotRepositoryInterface::class)));
