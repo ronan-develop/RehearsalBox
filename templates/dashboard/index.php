@@ -43,9 +43,28 @@
                 <p class="rb-empty-state">Aucune demande envoyée pour le moment.</p>
             <?php endif; ?>
             <?php foreach ($requestedExceptions as $exception): ?>
-                <article class="rb-slot-card rb-card">
+                <article class="rb-slot-card rb-card" data-exception-id="<?= e((string) $exception->id()) ?>">
                     <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
                     <p class="rb-slot-card-status">Statut : <?= e($exception->status()->value) ?></p>
+                    <?php if ($exception->isEnAttente()): ?>
+                        <form data-update-form data-exception-id="<?= e((string) $exception->id()) ?>">
+                            <div class="rb-field">
+                                <label for="occurrence-date-<?= e((string) $exception->id()) ?>">Date précise</label>
+                                <input type="date" id="occurrence-date-<?= e((string) $exception->id()) ?>" name="occurrenceDate"
+                                       class="rb-input" value="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>" required>
+                            </div>
+                            <div class="rb-field">
+                                <label for="request-reason-<?= e((string) $exception->id()) ?>">Raison (optionnel)</label>
+                                <input type="text" id="request-reason-<?= e((string) $exception->id()) ?>" name="reason"
+                                       class="rb-input" value="<?= e($exception->requestReason() ?? '') ?>">
+                            </div>
+                            <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
+                        </form>
+                        <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
+                                data-exception-id="<?= e((string) $exception->id()) ?>">
+                            Annuler
+                        </button>
+                    <?php endif; ?>
                 </article>
             <?php endforeach; ?>
         </section>

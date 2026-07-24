@@ -57,6 +57,46 @@ export async function handleRequestSubmit(event, root = document) {
   }
 }
 
+export async function handleCancel(button, root = document) {
+  const exceptionId = button.dataset.exceptionId;
+
+  try {
+    await apiFetch(`/api/availability/${exceptionId}`, {
+      method: 'DELETE',
+    });
+
+    root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
+    showToast('Demande annulée.', 'success');
+  } catch (error) {
+    showToast(error.message, 'error');
+
+    if (error.status === 409) {
+      root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
+    }
+  }
+}
+
+export async function handleUpdateSubmit(event, root = document) {
+  event.preventDefault();
+  const form = event.target;
+  const exceptionId = form.dataset.exceptionId;
+  const formData = new FormData(form);
+
+  try {
+    await apiFetch(`/api/availability/${exceptionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        occurrenceDate: formData.get('occurrenceDate'),
+        reason: formData.get('reason') || null,
+      }),
+    });
+
+    showToast('Demande modifiée.', 'success');
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
 export function initAvailability(root = document) {
   root.querySelector('[data-current-group-select]')?.addEventListener('change', (event) => {
     event.target.dataset.currentGroupId = event.target.value;
@@ -67,9 +107,20 @@ export function initAvailability(root = document) {
     if (respondButton) {
       handleRespond(respondButton, root);
     }
+
+    const cancelButton = event.target.closest('[data-cancel-button]');
+    if (cancelButton) {
+      handleCancel(cancelButton, root);
+    }
   });
 
   root.querySelector('[data-request-form]')?.addEventListener('submit', (event) => {
     handleRequestSubmit(event, root);
+  });
+
+  root.querySelectorAll('[data-update-form]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      handleUpdateSubmit(event, root);
+    });
   });
 }
