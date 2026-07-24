@@ -14,7 +14,7 @@
             <h1>Créneaux libérés</h1>
             <?php if ($groups !== []): ?>
                 <label for="current-group" class="rb-visually-hidden">Revendiquer au nom de</label>
-                <select id="current-group" data-current-group-select data-current-group-id="<?= e((string) $groups[0]->id()) ?>">
+                <select id="current-group" class="rb-input" data-current-group-select data-current-group-id="<?= e((string) $groups[0]->id()) ?>">
                     <?php foreach ($groups as $group): ?>
                         <option value="<?= e((string) $group->id()) ?>"><?= e($group->name()) ?></option>
                     <?php endforeach; ?>

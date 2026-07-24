@@ -34,13 +34,6 @@
   border-bottom: 1px solid var(--rb-border);
 }
 
-.rb-btn-danger {
-  background: var(--rb-err);
-  color: #fff;
-  padding: var(--rb-space-2) var(--rb-space-3);
-  min-height: 44px;
-}
-
 .rb-group-list {
   display: grid;
   gap: var(--rb-space-3);
@@ -90,11 +83,22 @@
 }
 
 .rb-modal-cancel {
-  background: var(--rb-surface-strong);
+  background: transparent;
+  border: 1px solid var(--rb-border);
   color: var(--rb-text);
 }
 
+.rb-modal-cancel:hover {
+  border-color: var(--rb-text-2);
+}
+
 .rb-modal-confirm {
+  background: transparent;
+  border: 1px solid var(--rb-err);
+  color: var(--rb-err);
+}
+
+.rb-modal-confirm:hover {
   background: var(--rb-err);
   color: #fff;
 }
