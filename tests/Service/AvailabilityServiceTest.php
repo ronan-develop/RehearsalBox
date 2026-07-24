@@ -247,4 +247,113 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         self::assertSame('Groupe Titulaire', $requestable[0]->groupName());
     }
+
+    public function testUpdateRequestByMemberOfRequestingGroupSucceeds(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Raison initiale');
+
+        $updated = $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Raison modifiée', $requestingUserId);
+
+        self::assertSame('2026-08-11', $updated->occurrenceDate()->format('Y-m-d'));
+        self::assertSame('Raison modifiée', $updated->requestReason());
+    }
+
+    /**
+     * IDOR : seul un membre du groupe DEMANDEUR (A) peut modifier sa propre
+     * demande — ni le groupe titulaire (B), ni un tiers.
+     */
+    public function testUpdateRequestByMemberOfHolderGroupThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
+    }
+
+    public function testUpdateRequestOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $service->respond($exception->id(), true, $holderUserId);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $requestingUserId);
+    }
+
+    public function testUpdateRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->updateRequest(9999, new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
+    }
+
+    public function testCancelRequestByMemberOfRequestingGroupSucceeds(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $service->cancelRequest($exception->id(), $requestingUserId);
+
+        self::assertNull($exceptionRepository->findById($exception->id()));
+    }
+
+    /**
+     * IDOR : seul un membre du groupe DEMANDEUR (A) peut annuler sa propre
+     * demande — ni le groupe titulaire (B), ni un tiers.
+     */
+    public function testCancelRequestByMemberOfHolderGroupThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->cancelRequest($exception->id(), $holderUserId);
+    }
+
+    public function testCancelRequestOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $service->respond($exception->id(), true, $holderUserId);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->cancelRequest($exception->id(), $requestingUserId);
+    }
+
+    public function testCancelRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->cancelRequest(9999, $holderUserId);
+    }
 }

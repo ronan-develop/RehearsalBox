@@ -114,4 +114,43 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         return $responded;
     }
+
+    public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+        }
+
+        // IDOR : seul le groupe DEMANDEUR (A), déduit de l'exception en base
+        // et jamais d'un paramètre client, peut modifier sa propre demande.
+        if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas au groupe demandeur de cette demande.");
+        }
+
+        if (!$this->slotExceptionRepository->update($exceptionId, $occurrenceDate, $reason)) {
+            throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
+        }
+
+        $updated = $this->slotExceptionRepository->findById($exceptionId);
+        \assert($updated !== null);
+
+        return $updated;
+    }
+
+    public function cancelRequest(int $exceptionId, int $userId): void
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+        }
+
+        if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas au groupe demandeur de cette demande.");
+        }
+
+        if (!$this->slotExceptionRepository->delete($exceptionId)) {
+            throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
+        }
+    }
 }

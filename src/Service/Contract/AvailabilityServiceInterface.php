@@ -40,4 +40,16 @@ interface AvailabilityServiceInterface
      * @throws \App\Service\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà répondue
      */
     public function respond(int $exceptionId, bool $accepted, int $userId): SlotException;
+
+    /**
+     * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe demandeur de l'exception
+     * @throws \App\Service\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà traitée
+     */
+    public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException;
+
+    /**
+     * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe demandeur de l'exception
+     * @throws \App\Service\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà traitée
+     */
+    public function cancelRequest(int $exceptionId, int $userId): void;
 }
