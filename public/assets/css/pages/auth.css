@@ -8,11 +8,21 @@
 
 .rb-auth-card {
   width: 100%;
-  max-width: 360px;
-  padding: var(--rb-space-5);
+  max-width: 380px;
+  padding: var(--rb-space-6) var(--rb-space-5);
+  border-width: 1px;
+  box-shadow: none;
 }
 
 .rb-auth-card h1 {
-  margin: 0 0 var(--rb-space-4);
-  font-size: 1.5rem;
+  margin: 0 0 var(--rb-space-6);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.rb-auth-card .rb-field:last-of-type {
+  margin-bottom: var(--rb-space-5);
 }

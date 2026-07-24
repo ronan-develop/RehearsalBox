@@ -82,17 +82,22 @@ button:active::after, .rb-btn:active::after {
   transition-duration: 0ms;
 }
 
-/* Bouton plein largeur, accent — action principale d'un formulaire. */
+/* Bouton plein largeur, accent — action principale d'un formulaire.
+   Bordure fine + fond transparent (inspiration hellfest.fr, issue #21) :
+   pas de bloc plein criard, le remplissage n'arrive qu'au survol. */
 .rb-btn-primary {
   width: 100%;
   padding: var(--rb-space-3);
-  background: var(--rb-accent);
-  color: #fff;
+  background: transparent;
+  border: 1px solid var(--rb-accent);
+  color: var(--rb-accent);
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .rb-btn-primary:hover {
-  background: color-mix(in srgb, var(--rb-accent) 85%, black);
+  background: var(--rb-accent);
+  color: #fff;
 }
 
 /* Carte générique — socle commun repris par les cartes de créneau, groupe,
