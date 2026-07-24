@@ -53,12 +53,15 @@ async function handleDelete(button, root) {
 export function initAdminSlots(root = document) {
   initAsyncForms(root);
 
-  root.querySelector('form[data-async][data-endpoint="/api/admin/slots"]')
-    ?.addEventListener('async-success', (event) => {
-      root.querySelector('[data-slot-list-body]')?.insertAdjacentHTML('beforeend', renderSlotRow(event.detail));
-      event.target.reset();
-      showToast('Créneau créé.', 'success');
-    });
+  const slotForm = root.querySelector('form[data-async][data-endpoint="/api/admin/slots"]');
+  slotForm?.addEventListener('async-success', (event) => {
+    root.querySelector('[data-slot-list-body]')?.insertAdjacentHTML('beforeend', renderSlotRow(event.detail));
+    event.target.reset();
+    showToast('Créneau créé.', 'success');
+  });
+  slotForm?.addEventListener('async-error', (event) => {
+    showToast(event.detail.message, 'error');
+  });
 
   root.addEventListener('click', (event) => {
     const button = event.target.closest('[data-delete-slot-button]');

@@ -39,7 +39,7 @@
             </div>
             <div class="rb-field">
                 <label for="endTime">Fin</label>
-                <input type="time" id="endTime" name="endTime" class="rb-input" required>
+                <input type="time" id="endTime" name="endTime" class="rb-input" max="23:30" required>
             </div>
             <span class="rb-field-error" data-field-error="startTime"></span>
             <button type="submit" class="rb-btn-primary">Ajouter le créneau</button>

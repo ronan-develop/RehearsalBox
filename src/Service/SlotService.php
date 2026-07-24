@@ -12,15 +12,26 @@ use App\Service\Exception\OverlappingSlotException;
 
 final class SlotService implements SlotServiceInterface
 {
+    private const MAX_END_TIME = '23:30:00';
+
     public function __construct(private readonly RecurringSlotRepositoryInterface $slotRepository)
     {
     }
 
-    public function create(int $groupId, Weekday $weekday, string $startTime, string $endTime): RecurringSlot
+    private function assertValidTimes(string $startTime, string $endTime): void
     {
         if ($endTime <= $startTime) {
             throw new \InvalidArgumentException('L’heure de fin doit être après l’heure de début.');
         }
+
+        if ($endTime > self::MAX_END_TIME) {
+            throw new \InvalidArgumentException('L’heure de fin ne peut pas dépasser 23h30.');
+        }
+    }
+
+    public function create(int $groupId, Weekday $weekday, string $startTime, string $endTime): RecurringSlot
+    {
+        $this->assertValidTimes($startTime, $endTime);
 
         foreach ($this->slotRepository->findByGroup($groupId) as $existing) {
             if ($existing->isActive() && $existing->weekday() === $weekday && $existing->overlaps($startTime, $endTime)) {
@@ -37,6 +48,8 @@ final class SlotService implements SlotServiceInterface
         if ($slot === null) {
             throw new \InvalidArgumentException("Créneau {$slotId} introuvable.");
         }
+
+        $this->assertValidTimes($startTime, $endTime);
 
         return $this->slotRepository->save(new RecurringSlot(
             $slot->id(),
