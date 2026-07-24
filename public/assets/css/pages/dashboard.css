@@ -77,9 +77,12 @@
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  /* Espace vertical pour que l'ombre du hover ne soit pas rognée par
-     overflow-y: hidden (cf. retour visuel — la carte semblait "mangée"). */
-  padding-block: var(--rb-space-2);
+  /* Espace vertical pour que le halo (filter: drop-shadow, jusqu'à ~14px
+     de flou+offset) ne soit pas rogné par overflow-y: hidden — 8px était
+     insuffisant et le halo restait invisible malgré un style calculé
+     correct (constaté : sliderHeight 172px == cardHeight 156px + 2×8px,
+     zéro marge réelle pour le flou). */
+  padding-block: var(--rb-space-4);
 }
 
 .rb-planning-slider::-webkit-scrollbar {
