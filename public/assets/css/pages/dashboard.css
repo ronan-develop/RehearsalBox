@@ -128,18 +128,30 @@
      haut/bas largement arrondis (cf. référence merch) avec une fine
      déchirure irrégulière entre les deux coins hauts, portées par un
      seul tracé en coordonnées absolues (d'où la taille fixe du parent). */
+  /* Angles/positions par défaut (repris par --wrinkle-* si le JS n'a pas
+     encore tourné, ex: no-JS ou avant DOMContentLoaded) : valeurs neutres
+     identiques à l'ancienne version fixe. */
+  --wrinkle-angle-1: 115deg;
+  --wrinkle-angle-2: 25deg;
+  --wrinkle-angle-3: 200deg;
+  --wrinkle-pos-1: 20% 15%;
+  --wrinkle-pos-2: 80% 85%;
+  --wrinkle-pos-3: 70% 20%;
   background-color: #ede7dc;
   /* Effet papier froissé : superposition de dégradés en niveaux de gris
      (plis diagonaux + zones d'ombre/lumière irrégulières) fondus sur la
      couleur papier via overlay — pas de texture externe, cohérent avec
-     la contrainte "pas de dépendance externe" du projet. */
+     la contrainte "pas de dépendance externe" du projet. Angles/positions
+     pilotés par des variables CSS randomisées par carte (planning-slider.js,
+     randomizeCardWrinkles) pour éviter que toutes les cartes soient
+     visuellement identiques (cf. retour utilisateur). */
   background-image:
-    linear-gradient(115deg, transparent 40%, rgba(0, 0, 0, 0.06) 41%, transparent 43%),
-    linear-gradient(25deg, transparent 60%, rgba(255, 255, 255, 0.5) 61%, transparent 64%),
-    linear-gradient(200deg, transparent 30%, rgba(0, 0, 0, 0.05) 32%, transparent 35%),
-    radial-gradient(ellipse at 20% 15%, rgba(255, 255, 255, 0.45) 0%, transparent 45%),
-    radial-gradient(ellipse at 80% 85%, rgba(0, 0, 0, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 20%, rgba(0, 0, 0, 0.05) 0%, transparent 40%);
+    linear-gradient(var(--wrinkle-angle-1), transparent 40%, rgba(0, 0, 0, 0.06) 41%, transparent 43%),
+    linear-gradient(var(--wrinkle-angle-2), transparent 60%, rgba(255, 255, 255, 0.5) 61%, transparent 64%),
+    linear-gradient(var(--wrinkle-angle-3), transparent 30%, rgba(0, 0, 0, 0.05) 32%, transparent 35%),
+    radial-gradient(ellipse at var(--wrinkle-pos-1), rgba(255, 255, 255, 0.45) 0%, transparent 45%),
+    radial-gradient(ellipse at var(--wrinkle-pos-2), rgba(0, 0, 0, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at var(--wrinkle-pos-3), rgba(0, 0, 0, 0.05) 0%, transparent 40%);
   background-blend-mode: overlay, overlay, overlay, normal, normal, normal;
   color: #2a2620;
   clip-path: path('M 0 22 A 22 22 0 0 1 22 0 L 22 0.58 L 26.2 0.12 L 30.3 0.05 L 33.1 0.79 L 37.2 2.22 L 40.8 0.99 L 43.2 0.97 L 44.9 0.27 L 47.9 0.27 L 52.1 0.39 L 56 0.42 L 59 0.58 L 62 0.29 L 64.1 0.97 L 65.7 0.04 L 68.2 0.92 L 71.5 0.01 L 73.7 2.22 L 77.1 1.57 L 79.3 2.33 L 82.2 0.91 L 85.7 0.36 L 88.2 0.52 L 92.4 0.82 L 95.9 0.67 L 98 0.49 L 101.9 2.11 L 106.2 2.14 L 107.7 0.95 L 110.5 0.81 L 114 0.74 L 115.6 0.13 L 117.3 0.41 L 119.1 0.99 L 122.4 0.29 L 126.6 2.18 L 129.7 0.72 L 133.7 0.68 L 136 0.08 L 138 0.18 L 139.8 0.55 L 142.2 1.67 L 144.7 1.85 L 147.8 0.44 L 150.3 0.56 L 152.4 0.29 L 155.4 2.18 L 158.7 0.3 L 160.4 0.43 L 162.3 1.6 L 164.9 0.02 L 166.8 0.31 L 170.7 0.82 L 174.7 0.96 L 178.3 0.16 L 181.8 2.5 L 184.2 0.39 L 188.6 0.25 L 190.2 0.83 L 194.7 1.63 L 196.9 0.81 L 198 0 A 22 22 0 0 1 220 22 L 220 158 A 22 22 0 0 1 198 180 L 22 180 A 22 22 0 0 1 0 158 Z');

@@ -35,12 +35,41 @@ export function createAutoScrollController(track, { step = 1 } = {}) {
   };
 }
 
+/**
+ * Génère un jeu de variables CSS (angles/positions des dégradés de
+ * l'effet papier froissé, cf. .rb-planning-card-shape) pour qu'aucune
+ * carte ne partage exactement le même motif visuel. `random` est injecté
+ * (au lieu de Math.random directement) pour rester testable de façon
+ * déterministe.
+ */
+export function generateWrinkleStyle(random = Math.random) {
+  return {
+    '--wrinkle-angle-1': `${Math.round(random() * 360)}deg`,
+    '--wrinkle-angle-2': `${Math.round(random() * 360)}deg`,
+    '--wrinkle-angle-3': `${Math.round(random() * 360)}deg`,
+    '--wrinkle-pos-1': `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+    '--wrinkle-pos-2': `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+    '--wrinkle-pos-3': `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+  };
+}
+
+function randomizeCardWrinkles(root) {
+  root.querySelectorAll('.rb-planning-card-shape').forEach((shape) => {
+    const style = generateWrinkleStyle();
+    for (const [property, value] of Object.entries(style)) {
+      shape.style.setProperty(property, value);
+    }
+  });
+}
+
 export function initPlanningSlider(root = document) {
   const slider = root.querySelector('[data-planning-slider]');
   const track = root.querySelector('[data-planning-track]');
   if (!slider || !track) {
     return;
   }
+
+  randomizeCardWrinkles(root);
 
   const controller = createAutoScrollController(track, { step: 1 });
   const intervalId = setInterval(controller.tick, 40);
