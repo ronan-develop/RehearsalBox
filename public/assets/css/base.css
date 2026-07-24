@@ -50,6 +50,11 @@ input, button {
   font-family: inherit;
 }
 
+h1 {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
 button, .rb-btn {
   position: relative;
   overflow: hidden;
@@ -100,6 +105,34 @@ button:active::after, .rb-btn:active::after {
   color: #fff;
 }
 
+/* Bouton secondaire — bordure neutre, pour les actions non principales
+   (ex: ajouter un membre à un groupe). */
+.rb-btn {
+  padding: var(--rb-space-2) var(--rb-space-3);
+  min-height: 44px;
+  background: transparent;
+  border: 1px solid var(--rb-border);
+  color: var(--rb-text);
+  font-weight: 600;
+}
+
+.rb-btn:hover {
+  border-color: var(--rb-text-2);
+}
+
+/* Bouton destructif — même logique outline que les autres, teinté --rb-err
+   plutôt qu'un bloc plein rouge criard. */
+.rb-btn-danger {
+  background: transparent;
+  border: 1px solid var(--rb-err);
+  color: var(--rb-err);
+}
+
+.rb-btn-danger:hover {
+  background: var(--rb-err);
+  color: #fff;
+}
+
 /* Carte générique — socle commun repris par les cartes de créneau, groupe,
    formulaire admin, modale, etc. (évite de redéfinir surface/bordure/radius
    à chaque écran). */
@@ -108,7 +141,6 @@ button:active::after, .rb-btn:active::after {
   border: 1px solid var(--rb-border);
   border-radius: var(--rb-radius-md);
   padding: var(--rb-space-4);
-  box-shadow: var(--rb-shadow);
 }
 
 /* Champ de formulaire générique — label + input, cohérent sur tous les écrans. */

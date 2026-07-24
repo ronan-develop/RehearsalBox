@@ -17,13 +17,8 @@
   font-size: 1.25rem;
 }
 
-.rb-dashboard-header select {
+.rb-dashboard-header .rb-input {
   width: 100%;
-  padding: var(--rb-space-2) var(--rb-space-3);
-  background: var(--rb-surface);
-  border: 1px solid var(--rb-border);
-  border-radius: var(--rb-radius-sm);
-  color: var(--rb-text);
 }
 
 @media (min-width: 480px) {
@@ -33,7 +28,7 @@
     justify-content: space-between;
   }
 
-  .rb-dashboard-header select {
+  .rb-dashboard-header .rb-input {
     width: auto;
   }
 }
