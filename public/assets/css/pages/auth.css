@@ -8,19 +8,34 @@
 
 .rb-auth-card {
   width: 100%;
-  max-width: 380px;
-  padding: var(--rb-space-6) var(--rb-space-5);
+  max-width: 320px;
+  padding: var(--rb-space-5) var(--rb-space-4);
   border-width: 1px;
   box-shadow: none;
+  overflow: hidden;
 }
 
-.rb-auth-card h1 {
-  margin: 0 0 var(--rb-space-6);
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  text-align: center;
-  text-transform: uppercase;
+.rb-auth-logo-wrap {
+  position: relative;
+  margin: calc(var(--rb-space-5) * -1) calc(var(--rb-space-4) * -1) var(--rb-space-4);
+}
+
+.rb-auth-logo-wrap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 32px;
+  background: linear-gradient(to bottom, transparent, var(--rb-surface));
+}
+
+.rb-auth-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1010 / 700;
+  object-fit: cover;
 }
 
 .rb-auth-card .rb-field:last-of-type {
