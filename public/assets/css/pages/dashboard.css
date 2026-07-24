@@ -77,6 +77,9 @@
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
+  /* Espace vertical pour que l'ombre du hover ne soit pas rognée par
+     overflow-y: hidden (cf. retour visuel — la carte semblait "mangée"). */
+  padding-block: var(--rb-space-2);
 }
 
 .rb-planning-slider::-webkit-scrollbar {
@@ -93,11 +96,15 @@
   flex: 0 0 auto;
   width: 220px;
   scroll-snap-align: start;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Coins irréguliers façon papier déchiré, en restant dans la palette
+     sombre du design-system (pas de fond clair, cf. base.css) — inspiré
+     des cartes produit du merch Hellfest, adapté au thème sombre. */
+  border-radius: 2px 28px 4px 34px / 26px 4px 30px 6px;
+  border-width: 2px;
+  transition: box-shadow 0.2s ease;
 }
 
 .rb-planning-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--rb-shadow-lg);
 }
 
