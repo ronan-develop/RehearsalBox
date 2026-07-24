@@ -121,16 +121,18 @@
     98.6% 2.75%, 100% 0.5%,
     100% 100%, 0% 100%
   );
+  box-shadow: 0 0 6px rgba(237, 231, 220, 0.08);
   transition: box-shadow 0.2s ease;
 }
 
 .rb-planning-card:hover {
-  box-shadow: var(--rb-shadow-lg);
+  box-shadow: 0 0 6px rgba(237, 231, 220, 0.08), var(--rb-shadow-lg);
 }
 
 .rb-planning-card-group {
   margin: 0 0 var(--rb-space-2);
   color: var(--rb-accent);
+  text-shadow: 0 1px 1px rgba(21, 21, 26, 0.45);
 }
 
 .rb-planning-card-weekday {
