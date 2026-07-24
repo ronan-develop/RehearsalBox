@@ -122,11 +122,15 @@
     100% 100%, 0% 100%
   );
   box-shadow: 0 0 12px rgba(237, 231, 220, 0.22);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .rb-planning-card:hover {
-  box-shadow: 0 0 6px rgba(237, 231, 220, 0.08), var(--rb-shadow-lg);
+  /* Effet "bouton enfoncé" : décalage vers le bas-gauche, ombre resserrée
+     plutôt qu'étendue — la carte semble s'enfoncer dans la surface au lieu
+     de s'élever (cf. retour utilisateur). */
+  transform: translate(-2px, 2px);
+  box-shadow: 0 0 4px rgba(237, 231, 220, 0.18);
 }
 
 .rb-planning-card-group {
