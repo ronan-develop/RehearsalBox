@@ -93,6 +93,13 @@
 }
 
 .rb-planning-card {
+  position: relative;
+  /* Isole le contexte d'empilement de la carte : sans ça, le z-index: -1
+     du ::before (halo) le place derrière la carte SUIVANTE dans le flex,
+     pas seulement derrière celle-ci — le halo se retrouvait masqué par
+     la carte voisine (constaté avec le halo invisible malgré un style
+     calculé correct). */
+  isolation: isolate;
   flex: 0 0 auto;
   width: 220px;
   scroll-snap-align: start;
@@ -121,18 +128,34 @@
     98.6% 2.75%, 100% 0.5%,
     100% 100%, 0% 100%
   );
+  transition: transform 0.15s ease;
+}
+
+/* clip-path découpe tout le rendu de l'élément, box-shadow inclus : une
+   ombre posée directement sur .rb-planning-card serait toujours rognée
+   au polygone et donc invisible, quelle que soit son intensité (constaté
+   en testant plusieurs valeurs sans aucun résultat visuel). Le halo est
+   donc porté par ce pseudo-élément non clippé, placé juste derrière. */
+.rb-planning-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: inherit;
   box-shadow: 0 0 12px rgba(237, 231, 220, 0.22);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: box-shadow 0.15s ease;
 }
 
 .rb-planning-card:hover {
-  /* Effet "bouton enfoncé" : décalage vers le bas-gauche, ombre resserrée
-     plutôt qu'étendue — la carte semble s'enfoncer dans la surface au lieu
-     de s'élever (cf. retour utilisateur). */
+  /* Effet "bouton enfoncé" : décalage vers le bas-gauche (la carte semble
+     s'enfoncer dans la surface au lieu de s'élever, cf. retour utilisateur). */
   transform: translate(-2px, 2px);
-  box-shadow: 2px 2px 5px 0px rgba(254, 248, 248, 0.75);
-  -webkit-box-shadow: 2px 2px 5px 0px rgba(254, 248, 248, 0.75);
-  -moz-box-shadow: 2px 2px 5px 0px rgba(254, 248, 248, 0.75);
+}
+
+.rb-planning-card:hover::before {
+  box-shadow: 2px 2px 20px 6px rgba(254, 248, 248, 0.75);
+  -webkit-box-shadow: 2px 2px 20px 6px rgba(254, 248, 248, 0.75);
+  -moz-box-shadow: 2px 2px 20px 6px rgba(254, 248, 248, 0.75);
 }
 
 .rb-planning-card-group {
