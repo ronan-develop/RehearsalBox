@@ -1,20 +1,30 @@
 /**
  * Défilement automatique du slider planning, en pause au survol (souris)
  * et sans interférer avec le scroll tactile natif sur mobile.
+ *
+ * Translate le track via transform (pas scrollLeft) : le conteneur visible
+ * [data-planning-slider] n'est pas lui-même scrollable dans ce layout,
+ * seul [data-planning-track] déborde (width: max-content). Le HTML dans
+ * templates/dashboard/index.php duplique une fois la liste de cartes ; on
+ * boucle donc dès la moitié de offsetWidth pour repartir pile là où la
+ * copie dupliquée est visuellement identique à l'original (pas de saut).
+ *
  * Logique de tick extraite de tout DOM/timer pour rester testable en
  * environnement node --test (pas de window/requestAnimationFrame).
  */
 export function createAutoScrollController(track, { step = 1 } = {}) {
   let running = true;
+  let offset = 0;
 
   function tick() {
     if (!running) {
       return;
     }
 
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    const next = track.scrollLeft + step;
-    track.scrollLeft = next >= maxScroll ? 0 : next;
+    const halfWidth = track.offsetWidth / 2;
+    const next = offset + step;
+    offset = next >= halfWidth ? 0 : next;
+    track.style.transform = `translateX(${-offset}px)`;
   }
 
   return {
@@ -27,15 +37,12 @@ export function createAutoScrollController(track, { step = 1 } = {}) {
 
 export function initPlanningSlider(root = document) {
   const slider = root.querySelector('[data-planning-slider]');
-  if (!slider) {
+  const track = root.querySelector('[data-planning-track]');
+  if (!slider || !track) {
     return;
   }
 
-  // overflow-x est porté par [data-planning-slider] (le conteneur), pas par
-  // [data-planning-track] (le contenu en width:max-content) : c'est donc
-  // slider.scrollLeft qui doit avancer, sinon scrollWidth === clientWidth
-  // sur track et le défilement n'a visuellement aucun effet.
-  const controller = createAutoScrollController(slider, { step: 2 });
+  const controller = createAutoScrollController(track, { step: 2 });
   const intervalId = setInterval(controller.tick, 20);
 
   // Souris : pause au survol (desktop).
