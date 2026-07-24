@@ -65,9 +65,10 @@
                     <div class="rb-field">
                         <label for="requested-slot">Créneau visé</label>
                         <select id="requested-slot" name="recurringSlotId" class="rb-input">
-                            <?php foreach ($requestableSlots as $slot): ?>
+                            <?php foreach ($requestableSlots as $requestableSlot): ?>
+                                <?php $slot = $requestableSlot->slot(); ?>
                                 <option value="<?= e((string) $slot->id()) ?>">
-                                    <?= e($slot->weekday()->name) ?> <?= e($slot->startTime()) ?>–<?= e($slot->endTime()) ?>
+                                    <?= e($requestableSlot->groupName()) ?> — <?= e($slot->weekday()->name) ?> <?= e($slot->startTime()) ?>–<?= e($slot->endTime()) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

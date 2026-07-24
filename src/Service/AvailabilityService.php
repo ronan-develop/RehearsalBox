@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\RecurringSlot;
+use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
@@ -29,9 +30,19 @@ final class AvailabilityService implements AvailabilityServiceInterface
             $this->groupRepository->findByMember($userId),
         );
 
-        return array_values(array_filter(
+        $otherGroupsSlots = array_filter(
             $this->recurringSlotRepository->findAllActive(),
             static fn (RecurringSlot $slot) => !in_array($slot->groupId(), $ownGroupIds, true),
+        );
+
+        return array_values(array_map(
+            function (RecurringSlot $slot): RequestableSlot {
+                $group = $this->groupRepository->findById($slot->groupId());
+                \assert($group !== null);
+
+                return new RequestableSlot($slot, $group->name());
+            },
+            $otherGroupsSlots,
         ));
     }
 

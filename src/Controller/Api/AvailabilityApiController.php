@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Entity\RecurringSlot;
+use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 use App\Http\JsonResponse;
 use App\Http\Request;
@@ -76,11 +76,14 @@ final class AvailabilityApiController
     }
 
     /** @return array<string, mixed> */
-    private static function slotToArray(RecurringSlot $slot): array
+    private static function slotToArray(RequestableSlot $requestableSlot): array
     {
+        $slot = $requestableSlot->slot();
+
         return [
             'id' => $slot->id(),
             'groupId' => $slot->groupId(),
+            'groupName' => $requestableSlot->groupName(),
             'weekday' => $slot->weekday()->value,
             'startTime' => $slot->startTime(),
             'endTime' => $slot->endTime(),

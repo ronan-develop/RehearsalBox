@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Service\Contract;
 
-use App\Entity\RecurringSlot;
+use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 
 interface AvailabilityServiceInterface
 {
-    /** @return list<RecurringSlot> Créneaux actifs appartenant à d'autres groupes que ceux de $userId. */
+    /** @return list<RequestableSlot> Créneaux actifs appartenant à d'autres groupes que ceux de $userId, avec le nom du groupe titulaire. */
     public function findRequestableSlotsFor(int $userId): array;
 
     /**

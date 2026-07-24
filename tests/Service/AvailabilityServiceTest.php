@@ -234,6 +234,17 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $requestable = $service->findRequestableSlotsFor($requestingUserId);
 
         self::assertCount(1, $requestable);
-        self::assertSame($holderGroupId, $requestable[0]->groupId());
+        self::assertSame($holderGroupId, $requestable[0]->slot()->groupId());
+    }
+
+    public function testFindRequestableSlotsForIncludesHolderGroupName(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $requestable = $service->findRequestableSlotsFor($requestingUserId);
+
+        self::assertSame('Groupe Titulaire', $requestable[0]->groupName());
     }
 }
