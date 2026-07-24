@@ -27,12 +27,15 @@ export function createAutoScrollController(track, { step = 1 } = {}) {
 
 export function initPlanningSlider(root = document) {
   const slider = root.querySelector('[data-planning-slider]');
-  const track = root.querySelector('[data-planning-track]');
-  if (!slider || !track) {
+  if (!slider) {
     return;
   }
 
-  const controller = createAutoScrollController(track, { step: 2 });
+  // overflow-x est porté par [data-planning-slider] (le conteneur), pas par
+  // [data-planning-track] (le contenu en width:max-content) : c'est donc
+  // slider.scrollLeft qui doit avancer, sinon scrollWidth === clientWidth
+  // sur track et le défilement n'a visuellement aucun effet.
+  const controller = createAutoScrollController(slider, { step: 2 });
   const intervalId = setInterval(controller.tick, 20);
 
   // Souris : pause au survol (desktop).
