@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoScrollController, generateWrinkleStyle, pickTapePosition } from './planning-slider.js';
+import { createAutoScrollController, generateWrinkleStyle, generateExtraWrinkles, pickTapePosition } from './planning-slider.js';
 
 function makeFakeTrack(offsetWidth = 1000) {
   let translateX = 0;
@@ -142,4 +142,41 @@ test('pickTapePosition splits the 0-1 range evenly across the 3 variants', () =>
   assert.equal(pickTapePosition(() => 0), 'rb-planning-card-tape--corner-left');
   assert.equal(pickTapePosition(() => 0.5), 'rb-planning-card-tape--corner-right');
   assert.equal(pickTapePosition(() => 0.9), 'rb-planning-card-tape--top-center');
+});
+
+test('generateExtraWrinkles returns styles for both extra wrinkles with a size for each', () => {
+  const style = generateExtraWrinkles(() => 0.5);
+
+  assert.ok('--wrinkle-extra-1-size' in style);
+  assert.ok('--wrinkle-extra-2-size' in style);
+  assert.ok('--wrinkle-extra-1-angle' in style);
+  assert.ok('--wrinkle-extra-2-angle' in style);
+  assert.ok('--wrinkle-extra-1-pos' in style);
+  assert.ok('--wrinkle-extra-2-pos' in style);
+});
+
+test('generateExtraWrinkles can produce zero, one, or two visible wrinkles depending on random', () => {
+  // count() dérive du nombre de tailles non "0% 0%" — pas d'uniformité,
+  // certaines cartes n'ont aucun pli court supplémentaire (cf. retour
+  // utilisateur : "une ou deux pliures supplémentaires").
+  const countVisible = (style) => [style['--wrinkle-extra-1-size'], style['--wrinkle-extra-2-size']]
+    .filter((size) => size !== '0% 0%').length;
+
+  const zero = generateExtraWrinkles(() => 0.05);
+  const one = generateExtraWrinkles(() => 0.5);
+  const two = generateExtraWrinkles(() => 0.95);
+
+  assert.equal(countVisible(zero), 0);
+  assert.equal(countVisible(one), 1);
+  assert.equal(countVisible(two), 2);
+});
+
+test('generateExtraWrinkles produces a size small enough to stay partial (not full card)', () => {
+  const style = generateExtraWrinkles(() => 0.99);
+
+  for (const key of ['--wrinkle-extra-1-size', '--wrinkle-extra-2-size']) {
+    const [w, h] = style[key].split(' ').map((v) => Number(v.replace('%', '')));
+    assert.ok(w > 0 && w <= 60, `${key} width=${w} should be a partial size`);
+    assert.ok(h > 0 && h <= 60, `${key} height=${h} should be a partial size`);
+  }
 });

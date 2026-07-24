@@ -139,6 +139,17 @@
   --wrinkle-pos-1: 20% 15%;
   --wrinkle-pos-2: 80% 85%;
   --wrinkle-pos-3: 70% 20%;
+  /* Plis courts supplémentaires (0, 1 ou 2 par carte, cf. retour
+     utilisateur "pour ne pas être uniforme") : contrairement aux 3 plis
+     ci-dessus qui traversent toute la carte, ceux-là sont confinés à une
+     zone rectangulaire via background-size + no-repeat. Invisibles par
+     défaut (taille 0), activés par planning-slider.js. */
+  --wrinkle-extra-1-angle: 0deg;
+  --wrinkle-extra-1-pos: 50% 50%;
+  --wrinkle-extra-1-size: 0% 0%;
+  --wrinkle-extra-2-angle: 0deg;
+  --wrinkle-extra-2-pos: 50% 50%;
+  --wrinkle-extra-2-size: 0% 0%;
   background-color: #ede7dc;
   /* Effet papier froissé : superposition de dégradés en niveaux de gris
      (plis diagonaux + zones d'ombre/lumière irrégulières) fondus sur la
@@ -153,8 +164,13 @@
     linear-gradient(var(--wrinkle-angle-3), transparent 30%, rgba(0, 0, 0, 0.05) 32%, transparent 35%),
     radial-gradient(ellipse at var(--wrinkle-pos-1), rgba(255, 255, 255, 0.45) 0%, transparent 45%),
     radial-gradient(ellipse at var(--wrinkle-pos-2), rgba(0, 0, 0, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at var(--wrinkle-pos-3), rgba(0, 0, 0, 0.05) 0%, transparent 40%);
-  background-blend-mode: overlay, overlay, overlay, normal, normal, normal;
+    radial-gradient(ellipse at var(--wrinkle-pos-3), rgba(0, 0, 0, 0.05) 0%, transparent 40%),
+    linear-gradient(var(--wrinkle-extra-1-angle), transparent 45%, rgba(0, 0, 0, 0.08) 47%, transparent 49%),
+    linear-gradient(var(--wrinkle-extra-2-angle), transparent 45%, rgba(0, 0, 0, 0.08) 47%, transparent 49%);
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, var(--wrinkle-extra-1-pos), var(--wrinkle-extra-2-pos);
+  background-size: cover, cover, cover, cover, cover, cover, var(--wrinkle-extra-1-size), var(--wrinkle-extra-2-size);
+  background-repeat: no-repeat;
+  background-blend-mode: overlay, overlay, overlay, normal, normal, normal, overlay, overlay;
   color: #2a2620;
   clip-path: path('M 0 22 A 22 22 0 0 1 22 0 L 22 0.58 L 26.2 0.12 L 30.3 0.05 L 33.1 0.79 L 37.2 2.22 L 40.8 0.99 L 43.2 0.97 L 44.9 0.27 L 47.9 0.27 L 52.1 0.39 L 56 0.42 L 59 0.58 L 62 0.29 L 64.1 0.97 L 65.7 0.04 L 68.2 0.92 L 71.5 0.01 L 73.7 2.22 L 77.1 1.57 L 79.3 2.33 L 82.2 0.91 L 85.7 0.36 L 88.2 0.52 L 92.4 0.82 L 95.9 0.67 L 98 0.49 L 101.9 2.11 L 106.2 2.14 L 107.7 0.95 L 110.5 0.81 L 114 0.74 L 115.6 0.13 L 117.3 0.41 L 119.1 0.99 L 122.4 0.29 L 126.6 2.18 L 129.7 0.72 L 133.7 0.68 L 136 0.08 L 138 0.18 L 139.8 0.55 L 142.2 1.67 L 144.7 1.85 L 147.8 0.44 L 150.3 0.56 L 152.4 0.29 L 155.4 2.18 L 158.7 0.3 L 160.4 0.43 L 162.3 1.6 L 164.9 0.02 L 166.8 0.31 L 170.7 0.82 L 174.7 0.96 L 178.3 0.16 L 181.8 2.5 L 184.2 0.39 L 188.6 0.25 L 190.2 0.83 L 194.7 1.63 L 196.9 0.81 L 198 0 A 22 22 0 0 1 220 22 L 220 158 A 22 22 0 0 1 198 180 L 22 180 A 22 22 0 0 1 0 158 Z');
   padding: var(--rb-space-3);

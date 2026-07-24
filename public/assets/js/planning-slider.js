@@ -53,9 +53,40 @@ export function generateWrinkleStyle(random = Math.random) {
   };
 }
 
+/**
+ * Génère 0, 1 ou 2 plis courts supplémentaires (contrairement aux 3 plis
+ * de generateWrinkleStyle qui traversent toute la carte, ceux-là sont
+ * confinés à une zone rectangulaire via --wrinkle-extra-N-size) pour que
+ * les cartes ne soient pas toutes uniformes (cf. retour utilisateur).
+ * Taille "0% 0%" = pli invisible. `random` injecté pour rester testable.
+ */
+export function generateExtraWrinkles(random = Math.random) {
+  const count = random() < 1 / 3 ? 0 : random() < 2 / 3 ? 1 : 2;
+
+  const wrinkle = (visible) => visible
+    ? {
+      angle: `${Math.round(random() * 360)}deg`,
+      pos: `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+      size: `${20 + Math.round(random() * 30)}% ${20 + Math.round(random() * 30)}%`,
+    }
+    : { angle: '0deg', pos: '50% 50%', size: '0% 0%' };
+
+  const first = wrinkle(count >= 1);
+  const second = wrinkle(count >= 2);
+
+  return {
+    '--wrinkle-extra-1-angle': first.angle,
+    '--wrinkle-extra-1-pos': first.pos,
+    '--wrinkle-extra-1-size': first.size,
+    '--wrinkle-extra-2-angle': second.angle,
+    '--wrinkle-extra-2-pos': second.pos,
+    '--wrinkle-extra-2-size': second.size,
+  };
+}
+
 function randomizeCardWrinkles(root) {
   root.querySelectorAll('.rb-planning-card-shape').forEach((shape) => {
-    const style = generateWrinkleStyle();
+    const style = { ...generateWrinkleStyle(), ...generateExtraWrinkles() };
     for (const [property, value] of Object.entries(style)) {
       shape.style.setProperty(property, value);
     }
