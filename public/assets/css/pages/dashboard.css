@@ -130,7 +130,9 @@
      plutôt qu'étendue — la carte semble s'enfoncer dans la surface au lieu
      de s'élever (cf. retour utilisateur). */
   transform: translate(-2px, 2px);
-  box-shadow: 0 0 20px 4px rgba(255, 255, 255, 0.6);
+  box-shadow: 2px 2px 5px 0px rgba(254, 248, 248, 0.75);
+  -webkit-box-shadow: 2px 2px 5px 0px rgba(254, 248, 248, 0.75);
+  -moz-box-shadow: 2px 2px 5px 0px rgba(254, 248, 248, 0.75);
 }
 
 .rb-planning-card-group {
