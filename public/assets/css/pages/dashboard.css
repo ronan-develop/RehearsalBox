@@ -106,16 +106,18 @@
      l'écran même en zoomant fort — confirmé en retirant clip-path pour
      voir le halo réapparaître aussitôt). Le filtre est donc porté par ce
      wrapper SANS clip-path ; la forme (fond + découpe) est déportée sur
-     l'enfant .rb-planning-card-shape ci-dessous. */
-  filter: drop-shadow(0 0 10px rgba(254, 248, 248, 0.55));
+     l'enfant .rb-planning-card-shape ci-dessous.
+     Ombre visible en permanence ; au hover elle s'efface pour appuyer
+     l'effet "bouton enfoncé" (cf. retour utilisateur — c'était inversé). */
+  filter: drop-shadow(2px 2px 4px rgba(254, 248, 248, 0.55));
   transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 .rb-planning-card:hover {
-  /* Effet "bouton enfoncé" : décalage vers le bas-gauche (la carte semble
-     s'enfoncer dans la surface au lieu de s'élever, cf. retour utilisateur). */
+  /* Effet "bouton enfoncé" : décalage vers le bas-gauche + ombre effacée,
+     la carte semble s'enfoncer dans la surface au lieu de s'élever. */
   transform: translate(-2px, 2px);
-  filter: drop-shadow(2px 2px 10px rgba(254, 248, 248, 0.75));
+  filter: drop-shadow(0 0 0 rgba(254, 248, 248, 0));
 }
 
 .rb-planning-card-shape {
