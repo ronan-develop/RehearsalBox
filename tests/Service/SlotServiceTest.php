@@ -20,7 +20,7 @@ final class SlotServiceTest extends RepositoryTestCase
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $slotRepository = new MysqlRecurringSlotRepository($this->pdo);
-        $service = new SlotService($slotRepository);
+        $service = new SlotService($slotRepository, $groupRepository);
 
         return [$service, $groupRepository, $slotRepository];
     }
@@ -164,5 +164,30 @@ final class SlotServiceTest extends RepositoryTestCase
         $found = $service->findByGroup($groupA->id());
 
         self::assertCount(1, $found);
+    }
+
+    public function testFindPlanningSlotsReturnsSlotWithGroupName(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $planning = $service->findPlanningSlots();
+
+        self::assertCount(1, $planning);
+        self::assertSame('Groupe Test', $planning[0]->groupName());
+        self::assertSame(Weekday::Tuesday, $planning[0]->slot()->weekday());
+    }
+
+    public function testFindPlanningSlotsExcludesInactiveSlots(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+        $service->delete($slot->id());
+
+        $planning = $service->findPlanningSlots();
+
+        self::assertCount(0, $planning);
     }
 }

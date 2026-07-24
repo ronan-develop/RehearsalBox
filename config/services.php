@@ -69,7 +69,10 @@ return static function (array $config): Container {
         $c->get(RecurringSlotRepositoryInterface::class),
     ));
 
-    $container->set(SlotServiceInterface::class, fn ($c) => new SlotService($c->get(RecurringSlotRepositoryInterface::class)));
+    $container->set(SlotServiceInterface::class, fn ($c) => new SlotService(
+        $c->get(RecurringSlotRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+    ));
 
     $container->set(GroupServiceInterface::class, fn ($c) => new GroupService(
         $c->get(GroupRepositoryInterface::class),

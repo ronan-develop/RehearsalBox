@@ -6,6 +6,8 @@ namespace App\Service;
 
 use App\Entity\Enum\Weekday;
 use App\Entity\RecurringSlot;
+use App\Entity\RequestableSlot;
+use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Service\Contract\SlotServiceInterface;
 use App\Service\Exception\OverlappingSlotException;
@@ -14,8 +16,10 @@ final class SlotService implements SlotServiceInterface
 {
     private const MAX_END_TIME = '23:30:00';
 
-    public function __construct(private readonly RecurringSlotRepositoryInterface $slotRepository)
-    {
+    public function __construct(
+        private readonly RecurringSlotRepositoryInterface $slotRepository,
+        private readonly GroupRepositoryInterface $groupRepository,
+    ) {
     }
 
     private function assertValidTimes(string $startTime, string $endTime): void
@@ -86,5 +90,18 @@ final class SlotService implements SlotServiceInterface
     public function findAllActive(): array
     {
         return $this->slotRepository->findAllActive();
+    }
+
+    public function findPlanningSlots(): array
+    {
+        return array_map(
+            function (RecurringSlot $slot): RequestableSlot {
+                $group = $this->groupRepository->findById($slot->groupId());
+                \assert($group !== null);
+
+                return new RequestableSlot($slot, $group->name());
+            },
+            $this->slotRepository->findAllActive(),
+        );
     }
 }
