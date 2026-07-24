@@ -31,7 +31,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, new NativePasswordHasher(), $session);
         $authGuard = new AuthGuard($authService);
-        $slotService = new SlotService($slotRepository);
+        $slotService = new SlotService($slotRepository, $groupRepository);
 
         $controller = new SlotApiController($slotService, $authGuard);
 

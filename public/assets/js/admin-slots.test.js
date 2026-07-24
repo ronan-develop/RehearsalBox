@@ -20,6 +20,13 @@ test('renderSlotRow escapes nothing user-controlled but includes the weekday lab
   assert.ok(html.includes('data-slot-id="5"'));
 });
 
+test('renderSlotRow displays times as HH:MM, stripping seconds', () => {
+  const html = renderSlotRow({ id: 5, groupId: 1, weekday: 1, startTime: '18:00:00', endTime: '20:00:00' });
+
+  assert.ok(html.includes('18:00 – 20:00'));
+  assert.ok(!html.includes('18:00:00'));
+});
+
 test('WEEKDAY_LABELS has exactly 7 entries matching the Weekday PHP enum', () => {
   assert.equal(WEEKDAY_LABELS.length, 7);
 });

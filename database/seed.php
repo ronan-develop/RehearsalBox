@@ -45,6 +45,11 @@ $groupIds = [];
 foreach ([
     ['Black Sabbath Tribute', 'metal', '#e63946'],
     ['Dead Kennedys Cover', 'punk', '#f77f00'],
+    ['Blackened Sun', 'black metal', '#6a4c93'],
+    ['Nebula Sprawl', 'prog rock', '#1982c4'],
+    ['Rust Prophet', 'stoner rock', '#8ac926'],
+    ['Vacant Riot', 'punk hardcore', '#ff595e'],
+    ['Iron Vultures', 'heavy metal', '#ffca3a'],
 ] as [$name, $genre, $color]) {
     $insertGroup->execute(['name' => $name, 'genre' => $genre, 'color' => $color]);
     $groupIds[$name] = (int) $pdo->lastInsertId();
@@ -65,6 +70,11 @@ $insertSlot = $pdo->prepare(
 $insertSlot->execute(['group_id' => $groupIds['Black Sabbath Tribute'], 'weekday' => 1, 'start' => '18:00:00', 'end' => '20:00:00']);
 $insertSlot->execute(['group_id' => $groupIds['Dead Kennedys Cover'], 'weekday' => 3, 'start' => '19:00:00', 'end' => '21:00:00']);
 $deadKennedysSlotId = (int) $pdo->lastInsertId();
+$insertSlot->execute(['group_id' => $groupIds['Blackened Sun'], 'weekday' => 0, 'start' => '18:00:00', 'end' => '20:00:00']);
+$insertSlot->execute(['group_id' => $groupIds['Nebula Sprawl'], 'weekday' => 2, 'start' => '20:00:00', 'end' => '22:30:00']);
+$insertSlot->execute(['group_id' => $groupIds['Rust Prophet'], 'weekday' => 4, 'start' => '19:30:00', 'end' => '22:00:00']);
+$insertSlot->execute(['group_id' => $groupIds['Vacant Riot'], 'weekday' => 5, 'start' => '14:00:00', 'end' => '17:00:00']);
+$insertSlot->execute(['group_id' => $groupIds['Iron Vultures'], 'weekday' => 6, 'start' => '21:00:00', 'end' => '23:30:00']);
 
 $insertException = $pdo->prepare(
     "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason)

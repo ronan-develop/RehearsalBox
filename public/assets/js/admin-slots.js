@@ -10,6 +10,11 @@ import { confirmAction } from './rb-confirm-modal.js';
 
 export const WEEKDAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
+/** Affichage HH:MM d'une heure API en HH:MM:SS. */
+export function formatTime(time) {
+  return time.slice(0, 5);
+}
+
 export function buildSlotPayload(entries) {
   return {
     groupId: Number(entries.groupId),
@@ -23,7 +28,7 @@ export function renderSlotRow(slot) {
   return `
     <tr data-slot-row data-slot-id="${slot.id}">
       <td>${WEEKDAY_LABELS[slot.weekday]}</td>
-      <td>${slot.startTime} – ${slot.endTime}</td>
+      <td>${formatTime(slot.startTime)} – ${formatTime(slot.endTime)}</td>
       <td>
         <button type="button" class="rb-btn rb-btn-danger" data-delete-slot-button data-slot-id="${slot.id}">
           Supprimer

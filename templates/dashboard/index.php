@@ -14,6 +14,40 @@
             <h1>Demandes d'échange de créneaux</h1>
         </header>
 
+        <?php if ($planningSlots !== []): ?>
+            <?php
+            $renderPlanningCard = static function ($requestableSlot) {
+                $slot = $requestableSlot->slot();
+                ?>
+                <article class="rb-planning-card">
+                    <span class="rb-planning-card-tape" aria-hidden="true"></span>
+                    <div class="rb-planning-card-shape">
+                        <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
+                        <p class="rb-planning-card-weekday"><?= e($slot->weekday()->name) ?></p>
+                        <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
+                    </div>
+                </article>
+                <?php
+            };
+            ?>
+            <section class="rb-planning-section">
+                <h2>Planning des créneaux fixes</h2>
+                <div class="rb-planning-slider" data-planning-slider>
+                    <div class="rb-planning-track" data-planning-track>
+                        <?php foreach ($planningSlots as $requestableSlot): ?>
+                            <?php $renderPlanningCard($requestableSlot); ?>
+                        <?php endforeach; ?>
+                        <?php // Copie dupliquée pour boucler le défilement sans saut visuel (cf. planning-slider.js). ?>
+                        <div aria-hidden="true" style="display: contents;">
+                            <?php foreach ($planningSlots as $requestableSlot): ?>
+                                <?php $renderPlanningCard($requestableSlot); ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <section class="rb-slot-list" data-pending-list>
             <h2>Demandes reçues à traiter</h2>
             <?php if ($pendingExceptions === []): ?>
@@ -87,7 +121,7 @@
                             <?php foreach ($requestableSlots as $requestableSlot): ?>
                                 <?php $slot = $requestableSlot->slot(); ?>
                                 <option value="<?= e((string) $slot->id()) ?>">
-                                    <?= e($requestableSlot->groupName()) ?> — <?= e($slot->weekday()->name) ?> <?= e($slot->startTime()) ?>–<?= e($slot->endTime()) ?>
+                                    <?= e($requestableSlot->groupName()) ?> — <?= e($slot->weekday()->name) ?> <?= e(formatTime($slot->startTime())) ?>–<?= e(formatTime($slot->endTime())) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

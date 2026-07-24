@@ -54,7 +54,7 @@
                     <?php foreach ($slots as $slot): ?>
                         <tr data-slot-row data-slot-id="<?= e((string) $slot->id()) ?>">
                             <td><?= e($slot->weekday()->name) ?></td>
-                            <td><?= e($slot->startTime()) ?> – <?= e($slot->endTime()) ?></td>
+                            <td><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></td>
                             <td>
                                 <button type="button" class="rb-btn rb-btn-danger" data-delete-slot-button
                                         data-slot-id="<?= e((string) $slot->id()) ?>">

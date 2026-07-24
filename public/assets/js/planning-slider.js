@@ -1,0 +1,138 @@
+/**
+ * Défilement automatique du slider planning, en pause au survol (souris)
+ * et sans interférer avec le scroll tactile natif sur mobile.
+ *
+ * Translate le track via transform (pas scrollLeft) : le conteneur visible
+ * [data-planning-slider] n'est pas lui-même scrollable dans ce layout,
+ * seul [data-planning-track] déborde (width: max-content). Le HTML dans
+ * templates/dashboard/index.php duplique une fois la liste de cartes ; on
+ * boucle donc dès la moitié de offsetWidth pour repartir pile là où la
+ * copie dupliquée est visuellement identique à l'original (pas de saut).
+ *
+ * Logique de tick extraite de tout DOM/timer pour rester testable en
+ * environnement node --test (pas de window/requestAnimationFrame).
+ */
+export function createAutoScrollController(track, { step = 1 } = {}) {
+  let running = true;
+  let offset = 0;
+
+  function tick() {
+    if (!running) {
+      return;
+    }
+
+    const halfWidth = track.offsetWidth / 2;
+    const next = offset + step;
+    offset = next >= halfWidth ? 0 : next;
+    track.style.transform = `translateX(${-offset}px)`;
+  }
+
+  return {
+    tick,
+    pause: () => { running = false; },
+    resume: () => { running = true; },
+    isRunning: () => running,
+  };
+}
+
+/**
+ * Génère un jeu de variables CSS (angles/positions des dégradés de
+ * l'effet papier froissé, cf. .rb-planning-card-shape) pour qu'aucune
+ * carte ne partage exactement le même motif visuel. `random` est injecté
+ * (au lieu de Math.random directement) pour rester testable de façon
+ * déterministe.
+ */
+export function generateWrinkleStyle(random = Math.random) {
+  return {
+    '--wrinkle-angle-1': `${Math.round(random() * 360)}deg`,
+    '--wrinkle-angle-2': `${Math.round(random() * 360)}deg`,
+    '--wrinkle-angle-3': `${Math.round(random() * 360)}deg`,
+    '--wrinkle-pos-1': `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+    '--wrinkle-pos-2': `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+    '--wrinkle-pos-3': `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+  };
+}
+
+/**
+ * Génère 0, 1 ou 2 plis courts supplémentaires (contrairement aux 3 plis
+ * de generateWrinkleStyle qui traversent toute la carte, ceux-là sont
+ * confinés à une zone rectangulaire via --wrinkle-extra-N-size) pour que
+ * les cartes ne soient pas toutes uniformes (cf. retour utilisateur).
+ * Taille "0% 0%" = pli invisible. `random` injecté pour rester testable.
+ */
+export function generateExtraWrinkles(random = Math.random) {
+  const count = random() < 1 / 3 ? 0 : random() < 2 / 3 ? 1 : 2;
+
+  const wrinkle = (visible) => visible
+    ? {
+      angle: `${Math.round(random() * 360)}deg`,
+      pos: `${Math.round(random() * 100)}% ${Math.round(random() * 100)}%`,
+      size: `${20 + Math.round(random() * 30)}% ${20 + Math.round(random() * 30)}%`,
+    }
+    : { angle: '0deg', pos: '50% 50%', size: '0% 0%' };
+
+  const first = wrinkle(count >= 1);
+  const second = wrinkle(count >= 2);
+
+  return {
+    '--wrinkle-extra-1-angle': first.angle,
+    '--wrinkle-extra-1-pos': first.pos,
+    '--wrinkle-extra-1-size': first.size,
+    '--wrinkle-extra-2-angle': second.angle,
+    '--wrinkle-extra-2-pos': second.pos,
+    '--wrinkle-extra-2-size': second.size,
+  };
+}
+
+function randomizeCardWrinkles(root) {
+  root.querySelectorAll('.rb-planning-card-shape').forEach((shape) => {
+    const style = { ...generateWrinkleStyle(), ...generateExtraWrinkles() };
+    for (const [property, value] of Object.entries(style)) {
+      shape.style.setProperty(property, value);
+    }
+  });
+}
+
+const TAPE_POSITIONS = ['rb-planning-card-tape--corner-left', 'rb-planning-card-tape--corner-right', 'rb-planning-card-tape--top-center'];
+
+/**
+ * Choisit une des 3 positions de scotch (coin gauche/droit en diagonale,
+ * ou centré vertical en haut — cf. .rb-planning-card-tape--*) à parts
+ * égales. `random` injecté pour rester testable de façon déterministe.
+ */
+export function pickTapePosition(random = Math.random) {
+  const index = Math.min(Math.floor(random() * TAPE_POSITIONS.length), TAPE_POSITIONS.length - 1);
+  return TAPE_POSITIONS[index];
+}
+
+function randomizeCardTapes(root) {
+  root.querySelectorAll('.rb-planning-card-tape').forEach((tape) => {
+    tape.classList.add(pickTapePosition());
+  });
+}
+
+export function initPlanningSlider(root = document) {
+  const slider = root.querySelector('[data-planning-slider]');
+  const track = root.querySelector('[data-planning-track]');
+  if (!slider || !track) {
+    return;
+  }
+
+  randomizeCardWrinkles(root);
+  randomizeCardTapes(root);
+
+  const controller = createAutoScrollController(track, { step: 1 });
+  const intervalId = setInterval(controller.tick, 40);
+
+  // Souris : pause au survol (desktop).
+  slider.addEventListener('mouseenter', () => controller.pause());
+  slider.addEventListener('mouseleave', () => controller.resume());
+
+  // Tactile : pause pendant le contact pour ne pas gêner un scroll au doigt
+  // en cours (cf. ticket #27) ; reprend au relâchement, pas de bouton dédié.
+  slider.addEventListener('touchstart', () => controller.pause(), { passive: true });
+  slider.addEventListener('touchend', () => controller.resume());
+  slider.addEventListener('touchcancel', () => controller.resume());
+
+  return { controller, intervalId };
+}

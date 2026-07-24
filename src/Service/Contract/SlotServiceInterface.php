@@ -6,6 +6,7 @@ namespace App\Service\Contract;
 
 use App\Entity\Enum\Weekday;
 use App\Entity\RecurringSlot;
+use App\Entity\RequestableSlot;
 
 interface SlotServiceInterface
 {
@@ -25,4 +26,7 @@ interface SlotServiceInterface
 
     /** @return list<RecurringSlot> */
     public function findAllActive(): array;
+
+    /** @return list<RequestableSlot> */
+    public function findPlanningSlots(): array;
 }

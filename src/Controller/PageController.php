@@ -51,6 +51,7 @@ final class PageController
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
+            'planningSlots' => $this->slotService->findPlanningSlots(),
             'pendingExceptions' => $pending,
             'requestedExceptions' => $requested,
             'requestableSlots' => $this->availabilityService->findRequestableSlotsFor($user->id()),
