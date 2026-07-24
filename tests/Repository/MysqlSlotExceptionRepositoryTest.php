@@ -17,23 +17,26 @@ use App\Tests\RepositoryTestCase;
 
 final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 {
-    public function testCreateLiberationThenFindByIdReturnsLibereeStatus(): void
+    public function testCreateRequestThenFindByIdReturnsEnAttenteStatus(): void
     {
-        [$slotId, $userId] = $this->createSlotAndUser();
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $created = $repository->createLiberation(
-            $slotId,
+        $created = $repository->createRequest(
+            $holderSlotId,
             new \DateTimeImmutable('2026-08-04'),
-            $userId,
-            'Tournée annulée',
+            $requestingGroupId,
+            $requestingUserId,
+            'Concert samedi',
         );
 
         $found = $repository->findById($created->id());
 
         self::assertNotNull($found);
-        self::assertTrue($found->isLiberee());
-        self::assertSame('Tournée annulée', $found->releasedReason());
+        self::assertTrue($found->isEnAttente());
+        self::assertSame('Concert samedi', $found->requestReason());
+        self::assertSame($requestingGroupId, $found->requestedByGroupId());
+        self::assertSame($requestingUserId, $found->requestedByUserId());
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
@@ -43,89 +46,115 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertNull($repository->findById(9999));
     }
 
-    public function testCreateLiberationTwiceForSameOccurrenceViolatesUniqueConstraint(): void
+    public function testCreateRequestTwiceForSameOccurrenceViolatesUniqueConstraint(): void
     {
-        [$slotId, $userId] = $this->createSlotAndUser();
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
         $date = new \DateTimeImmutable('2026-08-04');
 
-        $repository->createLiberation($slotId, $date, $userId, null);
+        $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
 
         $this->expectException(\PDOException::class);
 
-        $repository->createLiberation($slotId, $date, $userId, null);
+        $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
     }
 
-    public function testFindLiberatedBetweenReturnsOnlyOccurrencesInRange(): void
+    public function testFindPendingForHolderGroupReturnsOnlyPendingForThatGroupsSlots(): void
     {
-        [$slotId, $userId] = $this->createSlotAndUser();
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $repository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $userId, null);
-        $repository->createLiberation($slotId, new \DateTimeImmutable('2026-09-15'), $userId, null);
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
 
-        $inRange = $repository->findLiberatedBetween(
-            new \DateTimeImmutable('2026-08-01'),
-            new \DateTimeImmutable('2026-08-31'),
-        );
+        $pendingForHolder = $repository->findPendingForHolderGroup($holderGroupId);
+        $pendingForRequester = $repository->findPendingForHolderGroup($requestingGroupId);
 
-        self::assertCount(1, $inRange);
+        self::assertCount(1, $pendingForHolder);
+        self::assertCount(0, $pendingForRequester);
     }
 
-    public function testClaimOnLiberatedExceptionSucceeds(): void
+    public function testFindByRequestingGroupReturnsRequestsMadeByThatGroup(): void
     {
-        [$slotId, $userId, $groupId] = $this->createSlotAndUser();
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $userId, null);
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
 
-        $claimed = $repository->claim($exception->id(), $groupId, $userId);
+        $requestedByRequester = $repository->findByRequestingGroup($requestingGroupId);
+        $requestedByHolder = $repository->findByRequestingGroup($holderGroupId);
 
-        self::assertTrue($claimed);
+        self::assertCount(1, $requestedByRequester);
+        self::assertCount(0, $requestedByHolder);
+    }
+
+    public function testRespondAcceptedOnPendingExceptionSucceeds(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $responded = $repository->respond($exception->id(), true, $requestingUserId);
+
+        self::assertTrue($responded);
 
         $found = $repository->findById($exception->id());
-        self::assertFalse($found->isLiberee());
-        self::assertSame($groupId, $found->claimedByGroupId());
+        self::assertFalse($found->isEnAttente());
+        self::assertSame($requestingUserId, $found->respondedByUserId());
+    }
+
+    public function testRespondRefusedOnPendingExceptionSucceeds(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $responded = $repository->respond($exception->id(), false, $requestingUserId);
+
+        self::assertTrue($responded);
+        self::assertFalse($repository->findById($exception->id())->isEnAttente());
     }
 
     /**
-     * Le test le plus important du projet (cf. plan §0.2/§10.5) : une
-     * exception déjà revendiquée ne doit JAMAIS pouvoir être revendiquée une
-     * seconde fois — claim() doit renvoyer false, jamais lever.
+     * Le test le plus important du projet (cf. plan §0.2/§10.5, hérité de
+     * l'ancien claim()) : une demande déjà répondue ne doit JAMAIS pouvoir
+     * être répondue une seconde fois — respond() doit renvoyer false, jamais
+     * lever, pour rester un résultat métier normal en cas de concurrence.
      */
-    public function testClaimOnAlreadyClaimedExceptionReturnsFalseWithoutThrowing(): void
+    public function testRespondOnAlreadyRespondedExceptionReturnsFalseWithoutThrowing(): void
     {
-        [$slotId, $userId, $groupId] = $this->createSlotAndUser();
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $userId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
 
-        $firstClaim = $repository->claim($exception->id(), $groupId, $userId);
-        $secondClaim = $repository->claim($exception->id(), $groupId, $userId);
+        $firstResponse = $repository->respond($exception->id(), true, $requestingUserId);
+        $secondResponse = $repository->respond($exception->id(), false, $requestingUserId);
 
-        self::assertTrue($firstClaim);
-        self::assertFalse($secondClaim);
+        self::assertTrue($firstResponse);
+        self::assertFalse($secondResponse);
     }
 
-    public function testClaimOnUnknownExceptionReturnsFalse(): void
+    public function testRespondOnUnknownExceptionReturnsFalse(): void
     {
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        self::assertFalse($repository->claim(9999, 1, 1));
+        self::assertFalse($repository->respond(9999, true, 1));
     }
 
-    /** @return array{0: int, 1: int, 2: int} [slotId, userId, groupId] */
-    private function createSlotAndUser(): array
+    /** @return array{0: int, 1: int, 2: int, 3: int, 4: int} [holderSlotId, holderGroupId, holderUserId, requestingGroupId, requestingUserId] */
+    private function createHolderAndRequester(): array
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $slotRepository = new MysqlRecurringSlotRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
-        $slot = $slotRepository->save(
-            new RecurringSlot(0, $group->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true)
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null));
+        $holderSlot = $slotRepository->save(
+            new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true)
         );
-        $user = $userRepository->save(new User(
+        $holderUser = $userRepository->save(new User(
             id: 0,
             email: 'alice@rehearsalbox.test',
             passwordHash: password_hash('password', PASSWORD_DEFAULT),
@@ -136,6 +165,18 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
             lockedUntil: null,
         ));
 
-        return [$slot->id(), $user->id(), $group->id()];
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null));
+        $requestingUser = $userRepository->save(new User(
+            id: 0,
+            email: 'bob@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Bob',
+            role: UserRole::Musicien,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+
+        return [$holderSlot->id(), $holderGroup->id(), $holderUser->id(), $requestingGroup->id(), $requestingUser->id()];
     }
 }
