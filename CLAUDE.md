@@ -8,16 +8,16 @@ Sommaire de référence. Lire avant toute intervention — suivre les liens pour
 
 ## Index
 
-|Sujet|Fichier|
-|-|-|
-|Architecture `src/`|[.claude/architecture.md](.claude/architecture.md)|
-|Commits, branches, `/git`|[.claude/git-conventions.md](.claude/git-conventions.md)|
-|Commandes (dev, tests, DB)|[.claude/commands.md](.claude/commands.md)|
-|Méthodologie TDD|[.claude/tdd.md](.claude/tdd.md)|
-|Design frontend|[.claude/frontend.md](.claude/frontend.md)|
-|Layout CSS, mobile-first|[.claude/layout.md](.claude/layout.md)|
-|CI/CD, suivi|[.claude/cicd.md](.claude/cicd.md)|
-|Déploiement (WIP, hébergeur non choisi)|[.claude/deploiement.md](.claude/deploiement.md)|
+| Sujet                                   | Fichier                                                  |
+|-----------------------------------------|----------------------------------------------------------|
+| Architecture `src/`                     | [.claude/architecture.md](.claude/architecture.md)       |
+| Commits, branches, `/git`               | [.claude/git-conventions.md](.claude/git-conventions.md) |
+| Commandes (dev, tests, DB)              | [.claude/commands.md](.claude/commands.md)               |
+| Méthodologie TDD                        | [.claude/tdd.md](.claude/tdd.md)                         |
+| Design frontend                         | [.claude/frontend.md](.claude/frontend.md)               |
+| Layout CSS, mobile-first                | [.claude/layout.md](.claude/layout.md)                   |
+| CI/CD, suivi                            | [.claude/cicd.md](.claude/cicd.md)                       |
+| Déploiement (WIP, hébergeur non choisi) | [.claude/deploiement.md](.claude/deploiement.md)         |
 
 ---
 

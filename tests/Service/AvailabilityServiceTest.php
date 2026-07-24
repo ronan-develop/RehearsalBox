@@ -15,7 +15,7 @@ use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\AvailabilityService;
-use App\Service\Exception\SlotAlreadyClaimedException;
+use App\Service\Exception\RequestAlreadyRespondedException;
 use App\Tests\RepositoryTestCase;
 
 final class AvailabilityServiceTest extends RepositoryTestCase
@@ -27,25 +27,24 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $exceptionRepository = new MysqlSlotExceptionRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $service = new AvailabilityService($exceptionRepository, $groupRepository);
+        $service = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
 
         return [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository];
     }
 
-    /** @return array{0: int, 1: int, 2: int} [slotId, releasingUserId, releasingGroupId] */
-    private function createSlotAndUser(
+    /** @return array{0: int, 1: int, 2: int} [holderSlotId, holderGroupId, holderUserId] */
+    private function createHolder(
         MysqlGroupRepository $groupRepository,
         MysqlRecurringSlotRepository $slotRepository,
         MysqlUserRepository $userRepository,
-        string $email = 'alice@rehearsalbox.test',
     ): array {
-        $group = $groupRepository->save(new Group(0, 'Groupe Test ' . $email, null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null));
         $slot = $slotRepository->save(
             new RecurringSlot(0, $group->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true)
         );
         $user = $userRepository->save(new User(
             id: 0,
-            email: $email,
+            email: 'alice@rehearsalbox.test',
             passwordHash: password_hash('password', PASSWORD_DEFAULT),
             displayName: 'Alice',
             role: UserRole::Musicien,
@@ -53,19 +52,16 @@ final class AvailabilityServiceTest extends RepositoryTestCase
             failedLoginAttempts: 0,
             lockedUntil: null,
         ));
+        $groupRepository->addMember($group->id(), $user->id());
 
-        return [$slot->id(), $user->id(), $group->id()];
+        return [$slot->id(), $group->id(), $user->id()];
     }
 
-    public function testClaimByMemberOfGroupSucceeds(): void
+    /** @return array{0: int, 1: int} [requestingGroupId, requestingUserId] */
+    private function createRequester(MysqlGroupRepository $groupRepository, MysqlUserRepository $userRepository): array
     {
-        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
-        [$slotId, $releasingUserId] = $this->createSlotAndUser($groupRepository, $slotRepository, $userRepository, 'alice@rehearsalbox.test');
-
-        $exception = $exceptionRepository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $releasingUserId, null);
-
-        $claimingGroup = $groupRepository->save(new Group(0, 'Groupe Revendicateur', null, null));
-        $claimingUser = $userRepository->save(new User(
+        $group = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null));
+        $user = $userRepository->save(new User(
             id: 0,
             email: 'bob@rehearsalbox.test',
             passwordHash: password_hash('password', PASSWORD_DEFAULT),
@@ -75,78 +71,35 @@ final class AvailabilityServiceTest extends RepositoryTestCase
             failedLoginAttempts: 0,
             lockedUntil: null,
         ));
-        $groupRepository->addMember($claimingGroup->id(), $claimingUser->id());
+        $groupRepository->addMember($group->id(), $user->id());
 
-        $claimed = $service->claim($exception->id(), $claimingGroup->id(), $claimingUser->id());
+        return [$group->id(), $user->id()];
+    }
 
-        self::assertFalse($claimed->isLiberee());
-        self::assertSame($claimingGroup->id(), $claimed->claimedByGroupId());
+    public function testRequestByMemberOfRequestingGroupSucceeds(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $created = $service->request($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Concert samedi');
+
+        self::assertTrue($created->isEnAttente());
+        self::assertSame($requestingGroupId, $created->requestedByGroupId());
     }
 
     /**
-     * IDOR (cf. plan §10.5) : un musicien qui n'appartient pas au groupe
-     * revendicateur doit être rejeté même si le groupId fourni existe bel et
-     * bien — l'appartenance est vérifiée côté serveur, jamais fait confiance
-     * au payload client.
+     * IDOR (création) : l'appelant doit appartenir au groupe DEMANDEUR fourni
+     * même si ce groupe existe bel et bien — jamais fait confiance au payload
+     * client seul.
      */
-    public function testClaimByUserNotMemberOfClaimingGroupThrowsAccessDenied(): void
+    public function testRequestByUserNotMemberOfRequestingGroupThrowsAccessDenied(): void
     {
-        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
-        [$slotId, $releasingUserId] = $this->createSlotAndUser($groupRepository, $slotRepository, $userRepository, 'alice@rehearsalbox.test');
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $releasingUserId, null);
-
-        $otherGroup = $groupRepository->save(new Group(0, 'Groupe Auquel Bob N’Appartient Pas', null, null));
-        $bob = $userRepository->save(new User(
-            id: 0,
-            email: 'bob@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
-            displayName: 'Bob',
-            role: UserRole::Musicien,
-            isActive: true,
-            failedLoginAttempts: 0,
-            lockedUntil: null,
-        ));
-        // Bob n'est volontairement PAS ajouté comme membre de $otherGroup.
-
-        $this->expectException(AccessDeniedException::class);
-
-        $service->claim($exception->id(), $otherGroup->id(), $bob->id());
-    }
-
-    public function testClaimOnAlreadyClaimedExceptionThrowsSlotAlreadyClaimed(): void
-    {
-        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
-        [$slotId, $releasingUserId] = $this->createSlotAndUser($groupRepository, $slotRepository, $userRepository, 'alice@rehearsalbox.test');
-
-        $exception = $exceptionRepository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $releasingUserId, null);
-
-        $claimingGroup = $groupRepository->save(new Group(0, 'Groupe Revendicateur', null, null));
-        $claimingUser = $userRepository->save(new User(
-            id: 0,
-            email: 'bob@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
-            displayName: 'Bob',
-            role: UserRole::Musicien,
-            isActive: true,
-            failedLoginAttempts: 0,
-            lockedUntil: null,
-        ));
-        $groupRepository->addMember($claimingGroup->id(), $claimingUser->id());
-
-        $service->claim($exception->id(), $claimingGroup->id(), $claimingUser->id());
-
-        $this->expectException(SlotAlreadyClaimedException::class);
-
-        $service->claim($exception->id(), $claimingGroup->id(), $claimingUser->id());
-    }
-
-    public function testClaimOnUnknownExceptionThrowsSlotAlreadyClaimed(): void
-    {
-        [$service, $groupRepository, , , $userRepository] = $this->makeService();
-
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
-        $user = $userRepository->save(new User(
+        $chris = $userRepository->save(new User(
             id: 0,
             email: 'chris@rehearsalbox.test',
             passwordHash: password_hash('password', PASSWORD_DEFAULT),
@@ -156,25 +109,251 @@ final class AvailabilityServiceTest extends RepositoryTestCase
             failedLoginAttempts: 0,
             lockedUntil: null,
         ));
-        $groupRepository->addMember($group->id(), $user->id());
+        // Chris n'est volontairement PAS ajouté comme membre de $requestingGroupId.
 
-        $this->expectException(SlotAlreadyClaimedException::class);
+        $this->expectException(AccessDeniedException::class);
 
-        $service->claim(9999, $group->id(), $user->id());
+        $service->request($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $chris->id(), null);
     }
 
-    public function testFindLiberatedBetweenDelegatesToRepository(): void
+    public function testRespondByMemberOfHolderGroupAcceptedSucceeds(): void
     {
         [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
-        [$slotId, $releasingUserId] = $this->createSlotAndUser($groupRepository, $slotRepository, $userRepository, 'alice@rehearsalbox.test');
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exceptionRepository->createLiberation($slotId, new \DateTimeImmutable('2026-08-04'), $releasingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
 
-        $found = $service->findLiberatedBetween(
-            new \DateTimeImmutable('2026-08-01'),
-            new \DateTimeImmutable('2026-08-31'),
-        );
+        $responded = $service->respond($exception->id(), true, $holderUserId);
+
+        self::assertFalse($responded->isEnAttente());
+    }
+
+    public function testRespondByMemberOfHolderGroupRefusedSucceeds(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $responded = $service->respond($exception->id(), false, $holderUserId);
+
+        self::assertFalse($responded->isEnAttente());
+    }
+
+    /**
+     * Test central de l'inversion d'IDOR corrigée par #22 : un membre du
+     * groupe DEMANDEUR (A) ne doit PAS pouvoir répondre à sa propre demande
+     * — c'était exactement le bug de conception de l'ancien claim() (qui
+     * vérifiait le groupe revendicateur au lieu du groupe titulaire).
+     */
+    public function testRespondByMemberOfRequestingGroupThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->respond($exception->id(), true, $requestingUserId);
+    }
+
+    public function testRespondOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $service->respond($exception->id(), true, $holderUserId);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->respond($exception->id(), true, $holderUserId);
+    }
+
+    public function testRespondOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->respond(9999, true, $holderUserId);
+    }
+
+    public function testFindPendingForHolderGroupDelegatesToRepositoryAfterMembershipCheck(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, $holderGroupId, $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $found = $service->findPendingForHolderGroup($holderGroupId, $holderUserId);
 
         self::assertCount(1, $found);
+    }
+
+    public function testFindPendingForHolderGroupByNonMemberThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, $holderGroupId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->findPendingForHolderGroup($holderGroupId, $requestingUserId);
+    }
+
+    public function testFindByRequestingGroupDelegatesToRepositoryAfterMembershipCheck(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $found = $service->findByRequestingGroup($requestingGroupId, $requestingUserId);
+
+        self::assertCount(1, $found);
+    }
+
+    public function testFindRequestableSlotsForExcludesSlotsOfCallersOwnGroups(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, $holderGroupId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $slotRepository->save(new RecurringSlot(0, $requestingGroupId, Weekday::Thursday, '18:00:00', '20:00:00', true));
+
+        $requestable = $service->findRequestableSlotsFor($requestingUserId);
+
+        self::assertCount(1, $requestable);
+        self::assertSame($holderGroupId, $requestable[0]->slot()->groupId());
+    }
+
+    public function testFindRequestableSlotsForIncludesHolderGroupName(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $requestable = $service->findRequestableSlotsFor($requestingUserId);
+
+        self::assertSame('Groupe Titulaire', $requestable[0]->groupName());
+    }
+
+    public function testUpdateRequestByMemberOfRequestingGroupSucceeds(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Raison initiale');
+
+        $updated = $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Raison modifiée', $requestingUserId);
+
+        self::assertSame('2026-08-11', $updated->occurrenceDate()->format('Y-m-d'));
+        self::assertSame('Raison modifiée', $updated->requestReason());
+    }
+
+    /**
+     * IDOR : seul un membre du groupe DEMANDEUR (A) peut modifier sa propre
+     * demande — ni le groupe titulaire (B), ni un tiers.
+     */
+    public function testUpdateRequestByMemberOfHolderGroupThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
+    }
+
+    public function testUpdateRequestOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $service->respond($exception->id(), true, $holderUserId);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $requestingUserId);
+    }
+
+    public function testUpdateRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->updateRequest(9999, new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
+    }
+
+    public function testCancelRequestByMemberOfRequestingGroupSucceeds(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $service->cancelRequest($exception->id(), $requestingUserId);
+
+        self::assertNull($exceptionRepository->findById($exception->id()));
+    }
+
+    /**
+     * IDOR : seul un membre du groupe DEMANDEUR (A) peut annuler sa propre
+     * demande — ni le groupe titulaire (B), ni un tiers.
+     */
+    public function testCancelRequestByMemberOfHolderGroupThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->cancelRequest($exception->id(), $holderUserId);
+    }
+
+    public function testCancelRequestOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $service->respond($exception->id(), true, $holderUserId);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->cancelRequest($exception->id(), $requestingUserId);
+    }
+
+    public function testCancelRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->cancelRequest(9999, $holderUserId);
     }
 }

@@ -40,16 +40,20 @@ final class PageController
     public function dashboard(): Response
     {
         $user = $this->authGuard->requireLogin();
-
-        $exceptions = $this->availabilityService->findLiberatedBetween(
-            new \DateTimeImmutable('today'),
-            new \DateTimeImmutable('+30 days'),
-        );
         $groups = $this->groupRepository->findByMember($user->id());
+
+        $pending = [];
+        $requested = [];
+        foreach ($groups as $group) {
+            $pending = [...$pending, ...$this->availabilityService->findPendingForHolderGroup($group->id(), $user->id())];
+            $requested = [...$requested, ...$this->availabilityService->findByRequestingGroup($group->id(), $user->id())];
+        }
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
-            'exceptions' => $exceptions,
+            'pendingExceptions' => $pending,
+            'requestedExceptions' => $requested,
+            'requestableSlots' => $this->availabilityService->findRequestableSlotsFor($user->id()),
             'groups' => $groups,
             'currentUserRole' => $user->role(),
         ]));

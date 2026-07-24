@@ -4,42 +4,153 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\RecurringSlot;
+use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\AvailabilityServiceInterface;
-use App\Service\Exception\SlotAlreadyClaimedException;
+use App\Service\Exception\RequestAlreadyRespondedException;
 
 final class AvailabilityService implements AvailabilityServiceInterface
 {
     public function __construct(
         private readonly SlotExceptionRepositoryInterface $slotExceptionRepository,
         private readonly GroupRepositoryInterface $groupRepository,
+        private readonly RecurringSlotRepositoryInterface $recurringSlotRepository,
     ) {
     }
 
-    public function findLiberatedBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function findRequestableSlotsFor(int $userId): array
     {
-        return $this->slotExceptionRepository->findLiberatedBetween($from, $to);
+        $ownGroupIds = array_map(
+            static fn ($group) => $group->id(),
+            $this->groupRepository->findByMember($userId),
+        );
+
+        $otherGroupsSlots = array_filter(
+            $this->recurringSlotRepository->findAllActive(),
+            static fn (RecurringSlot $slot) => !in_array($slot->groupId(), $ownGroupIds, true),
+        );
+
+        return array_values(array_map(
+            function (RecurringSlot $slot): RequestableSlot {
+                $group = $this->groupRepository->findById($slot->groupId());
+                \assert($group !== null);
+
+                return new RequestableSlot($slot, $group->name());
+            },
+            $otherGroupsSlots,
+        ));
     }
 
-    public function claim(int $exceptionId, int $groupId, int $userId): SlotException
+    public function findPendingForHolderGroup(int $groupId, int $userId): array
     {
-        // Appartenance vérifiée côté serveur à partir de l'utilisateur en
-        // session, jamais déduite du payload client (IDOR, cf. plan §10.5) —
-        // un groupId valide fourni par un attaquant ne suffit pas.
         if (!$this->groupRepository->isMember($groupId, $userId)) {
             throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
         }
 
-        if (!$this->slotExceptionRepository->claim($exceptionId, $groupId, $userId)) {
-            throw new SlotAlreadyClaimedException('Ce créneau a déjà été revendiqué ou n’existe plus.');
+        return $this->slotExceptionRepository->findPendingForHolderGroup($groupId);
+    }
+
+    public function findByRequestingGroup(int $groupId, int $userId): array
+    {
+        if (!$this->groupRepository->isMember($groupId, $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
         }
 
-        $claimed = $this->slotExceptionRepository->findById($exceptionId);
-        \assert($claimed !== null);
+        return $this->slotExceptionRepository->findByRequestingGroup($groupId);
+    }
 
-        return $claimed;
+    public function request(
+        int $recurringSlotId,
+        \DateTimeImmutable $occurrenceDate,
+        int $requestingGroupId,
+        int $userId,
+        ?string $reason,
+    ): SlotException {
+        // Appartenance vérifiée côté serveur à partir de l'utilisateur en
+        // session, jamais déduite du payload client (IDOR) — un groupId
+        // valide fourni par un attaquant ne suffit pas.
+        if (!$this->groupRepository->isMember($requestingGroupId, $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
+        }
+
+        return $this->slotExceptionRepository->createRequest(
+            $recurringSlotId,
+            $occurrenceDate,
+            $requestingGroupId,
+            $userId,
+            $reason,
+        );
+    }
+
+    public function respond(int $exceptionId, bool $accepted, int $userId): SlotException
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+        }
+
+        $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
+        \assert($slot !== null);
+
+        // IDOR inversé par rapport à l'ancien claim() : c'est le groupe
+        // TITULAIRE du créneau (déduit du recurring_slot serveur, jamais
+        // d'un paramètre client) qui répond à la demande du groupe
+        // demandeur — pas l'inverse.
+        if (!$this->groupRepository->isMember($slot->groupId(), $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas au groupe titulaire de ce créneau.");
+        }
+
+        if (!$this->slotExceptionRepository->respond($exceptionId, $accepted, $userId)) {
+            throw new RequestAlreadyRespondedException('Cette demande a déjà reçu une réponse.');
+        }
+
+        $responded = $this->slotExceptionRepository->findById($exceptionId);
+        \assert($responded !== null);
+
+        return $responded;
+    }
+
+    public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+        }
+
+        // IDOR : seul le groupe DEMANDEUR (A), déduit de l'exception en base
+        // et jamais d'un paramètre client, peut modifier sa propre demande.
+        if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas au groupe demandeur de cette demande.");
+        }
+
+        if (!$this->slotExceptionRepository->update($exceptionId, $occurrenceDate, $reason)) {
+            throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
+        }
+
+        $updated = $this->slotExceptionRepository->findById($exceptionId);
+        \assert($updated !== null);
+
+        return $updated;
+    }
+
+    public function cancelRequest(int $exceptionId, int $userId): void
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+        }
+
+        if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas au groupe demandeur de cette demande.");
+        }
+
+        if (!$this->slotExceptionRepository->delete($exceptionId)) {
+            throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
+        }
     }
 }

@@ -6,8 +6,8 @@ namespace App\Entity\Enum;
 
 enum SlotExceptionStatus: string
 {
-    case Liberee = 'liberee';
-    case Revendiquee = 'revendiquee';
+    case EnAttente = 'en_attente';
+    case Acceptee = 'acceptee';
+    case Refusee = 'refusee';
     case Expiree = 'expiree';
-    case Annulee = 'annulee';
 }

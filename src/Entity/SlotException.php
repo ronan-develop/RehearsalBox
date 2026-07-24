@@ -13,10 +13,10 @@ final class SlotException
         private readonly int $recurringSlotId,
         private readonly \DateTimeImmutable $occurrenceDate,
         private readonly SlotExceptionStatus $status,
-        private readonly int $releasedByUserId,
-        private readonly ?string $releasedReason,
-        private readonly ?int $claimedByGroupId,
-        private readonly ?int $claimedByUserId,
+        private readonly int $requestedByGroupId,
+        private readonly int $requestedByUserId,
+        private readonly ?string $requestReason,
+        private readonly ?int $respondedByUserId,
     ) {
     }
 
@@ -40,28 +40,28 @@ final class SlotException
         return $this->status;
     }
 
-    public function releasedByUserId(): int
+    public function requestedByGroupId(): int
     {
-        return $this->releasedByUserId;
+        return $this->requestedByGroupId;
     }
 
-    public function releasedReason(): ?string
+    public function requestedByUserId(): int
     {
-        return $this->releasedReason;
+        return $this->requestedByUserId;
     }
 
-    public function claimedByGroupId(): ?int
+    public function requestReason(): ?string
     {
-        return $this->claimedByGroupId;
+        return $this->requestReason;
     }
 
-    public function claimedByUserId(): ?int
+    public function respondedByUserId(): ?int
     {
-        return $this->claimedByUserId;
+        return $this->respondedByUserId;
     }
 
-    public function isLiberee(): bool
+    public function isEnAttente(): bool
     {
-        return $this->status === SlotExceptionStatus::Liberee;
+        return $this->status === SlotExceptionStatus::EnAttente;
     }
 }

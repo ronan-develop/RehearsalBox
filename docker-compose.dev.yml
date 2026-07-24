@@ -1,0 +1,22 @@
+# Base de données de dev locale — distincte de la base de test (docker-compose.test.yml)
+# pour ne pas être vidée à chaque run de phpunit. Dev/local uniquement, ne reflète pas
+# la prod (hébergement mutualisé, sans Docker). Voir .claude/commands.md.
+services:
+  db-dev:
+    image: mariadb:10.11
+    container_name: rehearsalbox-dev-db
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: rehearsalbox_dev
+    ports:
+      - "3308:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - rehearsalbox-dev-db-data:/var/lib/mysql
+
+volumes:
+  rehearsalbox-dev-db-data:

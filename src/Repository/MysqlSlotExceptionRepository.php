@@ -24,53 +24,93 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         return $row === false ? null : $this->hydrate($row);
     }
 
-    public function findLiberatedBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    public function findPendingForHolderGroup(int $groupId): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT * FROM slot_exceptions
-             WHERE status = 'liberee' AND occurrence_date BETWEEN :from AND :to
-             ORDER BY occurrence_date"
+            "SELECT se.* FROM slot_exceptions se
+             INNER JOIN recurring_slots rs ON rs.id = se.recurring_slot_id
+             WHERE rs.group_id = :group_id AND se.status = 'en_attente'
+             ORDER BY se.occurrence_date"
         );
-        $statement->execute([
-            'from' => $from->format('Y-m-d'),
-            'to' => $to->format('Y-m-d'),
-        ]);
+        $statement->execute(['group_id' => $groupId]);
 
         return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
-    public function createLiberation(
+    public function findByRequestingGroup(int $groupId): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT * FROM slot_exceptions
+             WHERE requested_by_group_id = :group_id
+             ORDER BY occurrence_date'
+        );
+        $statement->execute(['group_id' => $groupId]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function createRequest(
         int $recurringSlotId,
         \DateTimeImmutable $occurrenceDate,
-        int $releasedByUserId,
+        int $requestedByGroupId,
+        int $requestedByUserId,
         ?string $reason,
     ): SlotException {
         $statement = $this->pdo->prepare(
-            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, released_by_user_id, released_reason)
-             VALUES (:recurring_slot_id, :occurrence_date, 'liberee', :released_by_user_id, :released_reason)"
+            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason)
+             VALUES (:recurring_slot_id, :occurrence_date, 'en_attente', :requested_by_group_id, :requested_by_user_id, :request_reason)"
         );
         $statement->execute([
             'recurring_slot_id' => $recurringSlotId,
             'occurrence_date' => $occurrenceDate->format('Y-m-d'),
-            'released_by_user_id' => $releasedByUserId,
-            'released_reason' => $reason,
+            'requested_by_group_id' => $requestedByGroupId,
+            'requested_by_user_id' => $requestedByUserId,
+            'request_reason' => $reason,
         ]);
 
         return $this->findById((int) $this->pdo->lastInsertId());
     }
 
-    public function claim(int $exceptionId, int $groupId, int $userId): bool
+    public function respond(int $exceptionId, bool $accepted, int $respondedByUserId): bool
+    {
+        $newStatus = $accepted ? SlotExceptionStatus::Acceptee : SlotExceptionStatus::Refusee;
+
+        $statement = $this->pdo->prepare(
+            "UPDATE slot_exceptions
+             SET status = :new_status, responded_by_user_id = :user_id, responded_at = NOW()
+             WHERE id = :id AND status = 'en_attente'"
+        );
+        $statement->execute([
+            'new_status' => $newStatus->value,
+            'id' => $exceptionId,
+            'user_id' => $respondedByUserId,
+        ]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function update(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason): bool
     {
         $statement = $this->pdo->prepare(
             "UPDATE slot_exceptions
-             SET status = 'revendiquee', claimed_by_group_id = :group_id, claimed_by_user_id = :user_id, claimed_at = NOW()
-             WHERE id = :id AND status = 'liberee'"
+             SET occurrence_date = :occurrence_date, request_reason = :request_reason
+             WHERE id = :id AND status = 'en_attente'"
         );
         $statement->execute([
+            'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+            'request_reason' => $reason,
             'id' => $exceptionId,
-            'group_id' => $groupId,
-            'user_id' => $userId,
         ]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function delete(int $exceptionId): bool
+    {
+        $statement = $this->pdo->prepare(
+            "DELETE FROM slot_exceptions WHERE id = :id AND status = 'en_attente'"
+        );
+        $statement->execute(['id' => $exceptionId]);
 
         return $statement->rowCount() === 1;
     }
@@ -83,10 +123,10 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
             recurringSlotId: (int) $row['recurring_slot_id'],
             occurrenceDate: new \DateTimeImmutable((string) $row['occurrence_date']),
             status: SlotExceptionStatus::from((string) $row['status']),
-            releasedByUserId: (int) $row['released_by_user_id'],
-            releasedReason: $row['released_reason'] !== null ? (string) $row['released_reason'] : null,
-            claimedByGroupId: $row['claimed_by_group_id'] !== null ? (int) $row['claimed_by_group_id'] : null,
-            claimedByUserId: $row['claimed_by_user_id'] !== null ? (int) $row['claimed_by_user_id'] : null,
+            requestedByGroupId: (int) $row['requested_by_group_id'],
+            requestedByUserId: (int) $row['requested_by_user_id'],
+            requestReason: $row['request_reason'] !== null ? (string) $row['request_reason'] : null,
+            respondedByUserId: $row['responded_by_user_id'] !== null ? (int) $row['responded_by_user_id'] : null,
         );
     }
 }

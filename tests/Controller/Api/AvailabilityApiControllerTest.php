@@ -34,7 +34,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, new NativePasswordHasher(), $session);
         $authGuard = new AuthGuard($authService);
-        $availabilityService = new AvailabilityService($exceptionRepository, $groupRepository);
+        $availabilityService = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
 
         $controller = new AvailabilityApiController($availabilityService, $authGuard);
 
@@ -55,77 +55,329 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         ));
     }
 
-    public function testClaimByAuthenticatedMemberReturns200(): void
+    public function testRequestByAuthenticatedMemberReturns201(): void
+    {
+        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('POST', '/api/availability/request', [], [
+            'recurringSlotId' => $slot->id(),
+            'occurrenceDate' => '2026-08-04',
+            'requestingGroupId' => $requestingGroup->id(),
+            'reason' => 'Concert samedi',
+        ], []);
+
+        $response = $controller->request($request);
+
+        self::assertSame(201, $response->statusCode());
+    }
+
+    public function testRequestByNonMemberOfRequestingGroupThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $chris = $this->createUser($userRepository, 'chris@rehearsalbox.test');
+        // Chris n'est volontairement PAS membre de $requestingGroup.
+        $authService->attempt('chris@rehearsalbox.test', 'password');
+
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
+
+        $request = new Request('POST', '/api/availability/request', [], [
+            'recurringSlotId' => $slot->id(),
+            'occurrenceDate' => '2026-08-04',
+            'requestingGroupId' => $requestingGroup->id(),
+        ], []);
+        $controller->request($request);
+    }
+
+    public function testRequestWithoutSessionThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, $slotRepository] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
+
+        $request = new Request('POST', '/api/availability/request', [], [
+            'recurringSlotId' => $slot->id(),
+            'occurrenceDate' => '2026-08-04',
+            'requestingGroupId' => 1,
+        ], []);
+        $controller->request($request);
+    }
+
+    public function testRespondAcceptedByMemberOfHolderGroupReturns200(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $releasingGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
-        $slot = $slotRepository->save(new RecurringSlot(0, $releasingGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-        $releasingUser = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $exception = $exceptionRepository->createLiberation($slot->id(), new \DateTimeImmutable('2026-08-04'), $releasingUser->id(), null);
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $claimingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
-        $claimingUser = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($claimingGroup->id(), $claimingUser->id());
-        $authService->attempt('bob@rehearsalbox.test', 'password');
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $request = new Request('POST', "/api/availability/{$exception->id()}/claim", [], ['groupId' => $claimingGroup->id()], []);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
 
-        $response = $controller->claim($request, (string) $exception->id());
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+
+        $request = new Request('POST', "/api/availability/{$exception->id()}/respond", [], ['accepted' => true], []);
+        $response = $controller->respond($request, (string) $exception->id());
 
         self::assertSame(200, $response->statusCode());
     }
 
-    public function testClaimWithoutSessionThrowsAccessDenied(): void
-    {
-        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeController();
-
-        $releasingGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
-        $slot = $slotRepository->save(new RecurringSlot(0, $releasingGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-        $releasingUser = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $exception = $exceptionRepository->createLiberation($slot->id(), new \DateTimeImmutable('2026-08-04'), $releasingUser->id(), null);
-
-        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
-
-        $request = new Request('POST', "/api/availability/{$exception->id()}/claim", [], ['groupId' => $releasingGroup->id()], []);
-        $controller->claim($request, (string) $exception->id());
-    }
-
-    public function testClaimOnAlreadyClaimedReturns409(): void
+    public function testRespondByMemberOfRequestingGroupThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $releasingGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
-        $slot = $slotRepository->save(new RecurringSlot(0, $releasingGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-        $releasingUser = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $exception = $exceptionRepository->createLiberation($slot->id(), new \DateTimeImmutable('2026-08-04'), $releasingUser->id(), null);
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $claimingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
-        $claimingUser = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($claimingGroup->id(), $claimingUser->id());
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+
         $authService->attempt('bob@rehearsalbox.test', 'password');
 
-        $exceptionRepository->claim($exception->id(), $claimingGroup->id(), $claimingUser->id());
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
 
-        $request = new Request('POST', "/api/availability/{$exception->id()}/claim", [], ['groupId' => $claimingGroup->id()], []);
-        $response = $controller->claim($request, (string) $exception->id());
+        $request = new Request('POST', "/api/availability/{$exception->id()}/respond", [], ['accepted' => true], []);
+        $controller->respond($request, (string) $exception->id());
+    }
+
+    public function testRespondOnAlreadyRespondedReturns409(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exceptionRepository->respond($exception->id(), true, $alice->id());
+
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+
+        $request = new Request('POST', "/api/availability/{$exception->id()}/respond", [], ['accepted' => true], []);
+        $response = $controller->respond($request, (string) $exception->id());
 
         self::assertSame(409, $response->statusCode());
     }
 
-    public function testWeekViewReturnsLiberatedExceptions(): void
+    public function testPendingForGroupReturnsOnlyPendingExceptions(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $group = $groupRepository->save(new Group(0, 'Groupe A', null, null));
-        $slot = $slotRepository->save(new RecurringSlot(0, $group->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-        $user = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $exceptionRepository->createLiberation($slot->id(), new \DateTimeImmutable('2026-08-04'), $user->id(), null);
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+
         $authService->attempt('alice@rehearsalbox.test', 'password');
 
-        $request = new Request('GET', '/api/availability', ['from' => '2026-08-01', 'to' => '2026-08-31'], [], []);
+        $request = new Request('GET', "/api/availability/pending/{$holderGroup->id()}", [], [], []);
+        $response = $controller->pendingForGroup($request, (string) $holderGroup->id());
 
-        $response = $controller->weekView($request);
+        self::assertSame(200, $response->statusCode());
+    }
+
+    public function testRequestedByGroupReturnsRequestsForThatGroup(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('GET', "/api/availability/requested/{$requestingGroup->id()}", [], [], []);
+        $response = $controller->requestedByGroup($request, (string) $requestingGroup->id());
+
+        self::assertSame(200, $response->statusCode());
+    }
+
+    public function testUpdateByMemberOfRequestingGroupReturns200(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), 'Raison initiale');
+
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('PATCH', "/api/availability/{$exception->id()}", [], [
+            'occurrenceDate' => '2026-08-11',
+            'reason' => 'Raison modifiée',
+        ], []);
+        $response = $controller->update($request, (string) $exception->id());
+
+        self::assertSame(200, $response->statusCode());
+    }
+
+    public function testUpdateByMemberOfHolderGroupThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
+
+        $request = new Request('PATCH', "/api/availability/{$exception->id()}", [], ['occurrenceDate' => '2026-08-11'], []);
+        $controller->update($request, (string) $exception->id());
+    }
+
+    public function testUpdateOnAlreadyRespondedReturns409(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exceptionRepository->respond($exception->id(), true, $alice->id());
+
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('PATCH', "/api/availability/{$exception->id()}", [], ['occurrenceDate' => '2026-08-11'], []);
+        $response = $controller->update($request, (string) $exception->id());
+
+        self::assertSame(409, $response->statusCode());
+    }
+
+    public function testDestroyByMemberOfRequestingGroupReturns204(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('DELETE', "/api/availability/{$exception->id()}", [], [], []);
+        $response = $controller->destroy($request, (string) $exception->id());
+
+        self::assertSame(204, $response->statusCode());
+    }
+
+    public function testDestroyByMemberOfHolderGroupThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
+
+        $request = new Request('DELETE', "/api/availability/{$exception->id()}", [], [], []);
+        $controller->destroy($request, (string) $exception->id());
+    }
+
+    public function testDestroyOnAlreadyRespondedReturns409(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($holderGroup->id(), $alice->id());
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exceptionRepository->respond($exception->id(), true, $alice->id());
+
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('DELETE', "/api/availability/{$exception->id()}", [], [], []);
+        $response = $controller->destroy($request, (string) $exception->id());
+
+        self::assertSame(409, $response->statusCode());
+    }
+
+    public function testRequestableSlotsReturnsSlotsOfOtherGroups(): void
+    {
+        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        $request = new Request('GET', '/api/availability/slots', [], [], []);
+        $response = $controller->requestableSlots($request);
 
         self::assertSame(200, $response->statusCode());
     }

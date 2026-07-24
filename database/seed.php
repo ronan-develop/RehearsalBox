@@ -63,13 +63,17 @@ $insertSlot = $pdo->prepare(
     'INSERT INTO recurring_slots (group_id, weekday, start_time, end_time) VALUES (:group_id, :weekday, :start, :end)'
 );
 $insertSlot->execute(['group_id' => $groupIds['Black Sabbath Tribute'], 'weekday' => 1, 'start' => '18:00:00', 'end' => '20:00:00']);
-$slotId = (int) $pdo->lastInsertId();
 $insertSlot->execute(['group_id' => $groupIds['Dead Kennedys Cover'], 'weekday' => 3, 'start' => '19:00:00', 'end' => '21:00:00']);
+$deadKennedysSlotId = (int) $pdo->lastInsertId();
 
 $insertException = $pdo->prepare(
-    "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, released_by_user_id, released_reason)
-     VALUES (:slot_id, DATE_ADD(CURDATE(), INTERVAL (9 - DAYOFWEEK(CURDATE())) DAY), 'liberee', :released_by, 'Tournée annulée, créneau libre')"
+    "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason)
+     VALUES (:slot_id, DATE_ADD(CURDATE(), INTERVAL (10 - DAYOFWEEK(CURDATE())) DAY), 'en_attente', :requested_group, :requested_by, 'Concert samedi, répétition supplémentaire nécessaire')"
 );
-$insertException->execute(['slot_id' => $slotId, 'released_by' => $userIds['alice@rehearsalbox.test']]);
+$insertException->execute([
+    'slot_id' => $deadKennedysSlotId,
+    'requested_group' => $groupIds['Black Sabbath Tribute'],
+    'requested_by' => $userIds['alice@rehearsalbox.test'],
+]);
 
 echo "Seed appliqué (mot de passe pour tous les comptes : \"password\").\n";

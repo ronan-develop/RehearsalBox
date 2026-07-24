@@ -29,6 +29,16 @@ export function initAsyncForms(root = document) {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
+      // Un double submit (double-clic, Entrée + clic) enverrait deux requêtes
+      // concurrentes avec le même jeton CSRF ; comme la connexion régénère
+      // l'ID de session côté serveur, la seconde arriverait sur une session
+      // déjà remplacée et échouerait en CSRF invalide malgré des identifiants
+      // corrects. On ignore les soumissions tant qu'une est déjà en vol.
+      if (form.dataset.submitting === 'true') {
+        return;
+      }
+      form.dataset.submitting = 'true';
+
       const endpoint = form.dataset.endpoint || form.action;
       const method = (form.dataset.method || form.method || 'POST').toUpperCase();
       const payload = serializeFormEntries(new FormData(form).entries());
@@ -39,6 +49,8 @@ export function initAsyncForms(root = document) {
       } catch (error) {
         showFieldErrors(form, error.fields);
         form.dispatchEvent(new CustomEvent('async-error', { detail: error }));
+      } finally {
+        delete form.dataset.submitting;
       }
     });
   });

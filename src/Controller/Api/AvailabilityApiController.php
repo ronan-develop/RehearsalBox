@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
 use App\Service\Contract\AvailabilityServiceInterface;
-use App\Service\Exception\SlotAlreadyClaimedException;
+use App\Service\Exception\RequestAlreadyRespondedException;
 
 final class AvailabilityApiController
 {
@@ -19,30 +20,102 @@ final class AvailabilityApiController
     ) {
     }
 
-    public function weekView(Request $request): JsonResponse
+    public function pendingForGroup(Request $request, string $groupId): JsonResponse
     {
-        $this->authGuard->requireLogin();
+        $user = $this->authGuard->requireLogin();
 
-        $from = new \DateTimeImmutable((string) $request->query('from', 'today'));
-        $to = new \DateTimeImmutable((string) $request->query('to', '+7 days'));
-
-        $exceptions = $this->availabilityService->findLiberatedBetween($from, $to);
+        $exceptions = $this->availabilityService->findPendingForHolderGroup((int) $groupId, $user->id());
 
         return new JsonResponse(['exceptions' => array_map(self::toArray(...), $exceptions)]);
     }
 
-    public function claim(Request $request, string $exceptionId): JsonResponse
+    public function requestedByGroup(Request $request, string $groupId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $groupId = (int) $request->body('groupId', 0);
+
+        $exceptions = $this->availabilityService->findByRequestingGroup((int) $groupId, $user->id());
+
+        return new JsonResponse(['exceptions' => array_map(self::toArray(...), $exceptions)]);
+    }
+
+    public function requestableSlots(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $slots = $this->availabilityService->findRequestableSlotsFor($user->id());
+
+        return new JsonResponse(['slots' => array_map(self::slotToArray(...), $slots)]);
+    }
+
+    public function request(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $recurringSlotId = (int) $request->body('recurringSlotId', 0);
+        $occurrenceDate = new \DateTimeImmutable((string) $request->body('occurrenceDate', ''));
+        $requestingGroupId = (int) $request->body('requestingGroupId', 0);
+        $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
+
+        $created = $this->availabilityService->request($recurringSlotId, $occurrenceDate, $requestingGroupId, $user->id(), $reason);
+
+        return new JsonResponse(self::toArray($created), 201);
+    }
+
+    public function respond(Request $request, string $exceptionId): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $accepted = (bool) $request->body('accepted', false);
 
         try {
-            $claimed = $this->availabilityService->claim((int) $exceptionId, $groupId, $user->id());
-        } catch (SlotAlreadyClaimedException $e) {
+            $responded = $this->availabilityService->respond((int) $exceptionId, $accepted, $user->id());
+        } catch (RequestAlreadyRespondedException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 409);
         }
 
-        return new JsonResponse(self::toArray($claimed));
+        return new JsonResponse(self::toArray($responded));
+    }
+
+    public function update(Request $request, string $exceptionId): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $occurrenceDate = new \DateTimeImmutable((string) $request->body('occurrenceDate', ''));
+        $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
+
+        try {
+            $updated = $this->availabilityService->updateRequest((int) $exceptionId, $occurrenceDate, $reason, $user->id());
+        } catch (RequestAlreadyRespondedException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 409);
+        }
+
+        return new JsonResponse(self::toArray($updated));
+    }
+
+    public function destroy(Request $request, string $exceptionId): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        try {
+            $this->availabilityService->cancelRequest((int) $exceptionId, $user->id());
+        } catch (RequestAlreadyRespondedException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 409);
+        }
+
+        return new JsonResponse([], 204);
+    }
+
+    /** @return array<string, mixed> */
+    private static function slotToArray(RequestableSlot $requestableSlot): array
+    {
+        $slot = $requestableSlot->slot();
+
+        return [
+            'id' => $slot->id(),
+            'groupId' => $slot->groupId(),
+            'groupName' => $requestableSlot->groupName(),
+            'weekday' => $slot->weekday()->value,
+            'startTime' => $slot->startTime(),
+            'endTime' => $slot->endTime(),
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -53,8 +126,9 @@ final class AvailabilityApiController
             'recurringSlotId' => $exception->recurringSlotId(),
             'occurrenceDate' => $exception->occurrenceDate()->format('Y-m-d'),
             'status' => $exception->status()->value,
-            'releasedReason' => $exception->releasedReason(),
-            'claimedByGroupId' => $exception->claimedByGroupId(),
+            'requestedByGroupId' => $exception->requestedByGroupId(),
+            'requestReason' => $exception->requestReason(),
+            'respondedByUserId' => $exception->respondedByUserId(),
         ];
     }
 }
