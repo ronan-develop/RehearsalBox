@@ -20,6 +20,7 @@
                 $slot = $requestableSlot->slot();
                 ?>
                 <article class="rb-planning-card">
+                    <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
                         <p class="rb-planning-card-weekday"><?= e($slot->weekday()->name) ?></p>

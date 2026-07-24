@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoScrollController, generateWrinkleStyle } from './planning-slider.js';
+import { createAutoScrollController, generateWrinkleStyle, pickTapePosition } from './planning-slider.js';
 
 function makeFakeTrack(offsetWidth = 1000) {
   let translateX = 0;
@@ -128,4 +128,18 @@ test('generateWrinkleStyle differs between two different random sources', () => 
   const styleB = generateWrinkleStyle(() => seqB[call++]);
 
   assert.notDeepEqual(styleA, styleB);
+});
+
+test('pickTapePosition returns one of the 3 known variants', () => {
+  const variants = ['rb-planning-card-tape--corner-left', 'rb-planning-card-tape--corner-right', 'rb-planning-card-tape--top-center'];
+
+  for (const value of [0, 0.34, 0.67, 0.99]) {
+    assert.ok(variants.includes(pickTapePosition(() => value)));
+  }
+});
+
+test('pickTapePosition splits the 0-1 range evenly across the 3 variants', () => {
+  assert.equal(pickTapePosition(() => 0), 'rb-planning-card-tape--corner-left');
+  assert.equal(pickTapePosition(() => 0.5), 'rb-planning-card-tape--corner-right');
+  assert.equal(pickTapePosition(() => 0.9), 'rb-planning-card-tape--top-center');
 });

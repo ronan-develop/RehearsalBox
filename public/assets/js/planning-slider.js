@@ -62,6 +62,24 @@ function randomizeCardWrinkles(root) {
   });
 }
 
+const TAPE_POSITIONS = ['rb-planning-card-tape--corner-left', 'rb-planning-card-tape--corner-right', 'rb-planning-card-tape--top-center'];
+
+/**
+ * Choisit une des 3 positions de scotch (coin gauche/droit en diagonale,
+ * ou centré vertical en haut — cf. .rb-planning-card-tape--*) à parts
+ * égales. `random` injecté pour rester testable de façon déterministe.
+ */
+export function pickTapePosition(random = Math.random) {
+  const index = Math.min(Math.floor(random() * TAPE_POSITIONS.length), TAPE_POSITIONS.length - 1);
+  return TAPE_POSITIONS[index];
+}
+
+function randomizeCardTapes(root) {
+  root.querySelectorAll('.rb-planning-card-tape').forEach((tape) => {
+    tape.classList.add(pickTapePosition());
+  });
+}
+
 export function initPlanningSlider(root = document) {
   const slider = root.querySelector('[data-planning-slider]');
   const track = root.querySelector('[data-planning-track]');
@@ -70,6 +88,7 @@ export function initPlanningSlider(root = document) {
   }
 
   randomizeCardWrinkles(root);
+  randomizeCardTapes(root);
 
   const controller = createAutoScrollController(track, { step: 1 });
   const intervalId = setInterval(controller.tick, 40);
