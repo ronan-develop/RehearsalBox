@@ -22,8 +22,6 @@ return [
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
         ['GET',  '/api/availability/pending/{groupId}', [AvailabilityApiController::class, 'pendingForGroup']],
         ['GET',  '/api/availability/requested/{groupId}', [AvailabilityApiController::class, 'requestedByGroup']],
-        ['GET',  '/api/availability/slots', [AvailabilityApiController::class, 'requestableSlots']],
-        ['POST', '/api/availability/request', [AvailabilityApiController::class, 'request']],
         ['POST', '/api/availability/{exceptionId}/respond', [AvailabilityApiController::class, 'respond']],
         ['PATCH', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'update']],
         ['DELETE', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'destroy']],

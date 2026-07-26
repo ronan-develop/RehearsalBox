@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getCurrentGroupId, handleRespond, handleRequestSubmit, handleCancel, handleUpdateSubmit } from './availability.js';
+import { getCurrentGroupId, handleRespond, handleCancel, handleUpdateSubmit } from './availability.js';
 
 function fakeRoot(selectValue) {
   return {
@@ -86,49 +86,6 @@ test('handleRespond removes the card on 409 (already responded)', async () => {
   await handleRespond(fakeButton('9', false), root);
 
   assert.deepEqual(removed, ['9']);
-});
-
-test('handleRequestSubmit prevents native submit and posts the form as JSON', async () => {
-  let calledUrl;
-  let calledBody;
-  globalThis.fetch = async (url, options) => {
-    calledUrl = url;
-    calledBody = JSON.parse(options.body);
-    return { ok: true, json: async () => ({ id: 1, status: 'en_attente' }) };
-  };
-  globalThis.document = fakeDocument();
-
-  let prevented = false;
-  const RealFormData = globalThis.FormData;
-  const formData = new RealFormData();
-  formData.append('recurringSlotId', '3');
-  formData.append('occurrenceDate', '2026-08-04');
-  formData.append('requestingGroupId', '5');
-  formData.append('reason', 'Concert samedi');
-
-  const event = {
-    preventDefault: () => {
-      prevented = true;
-    },
-    target: {
-      reset: () => {},
-    },
-  };
-  globalThis.FormData = function FakeFormData() {
-    return formData;
-  };
-
-  await handleRequestSubmit(event, fakeRoot());
-  globalThis.FormData = RealFormData;
-
-  assert.equal(prevented, true);
-  assert.equal(calledUrl, '/api/availability/request');
-  assert.deepEqual(calledBody, {
-    recurringSlotId: 3,
-    occurrenceDate: '2026-08-04',
-    requestingGroupId: 5,
-    reason: 'Concert samedi',
-  });
 });
 
 function fakeCancelButton(exceptionId) {

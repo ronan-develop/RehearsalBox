@@ -76,45 +76,6 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         return [$group->id(), $user->id()];
     }
 
-    public function testRequestByMemberOfRequestingGroupSucceeds(): void
-    {
-        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
-        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
-        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
-
-        $created = $service->request($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Concert samedi');
-
-        self::assertTrue($created->isEnAttente());
-        self::assertSame($requestingGroupId, $created->requestedByGroupId());
-    }
-
-    /**
-     * IDOR (création) : l'appelant doit appartenir au groupe DEMANDEUR fourni
-     * même si ce groupe existe bel et bien — jamais fait confiance au payload
-     * client seul.
-     */
-    public function testRequestByUserNotMemberOfRequestingGroupThrowsAccessDenied(): void
-    {
-        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
-        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
-        [$requestingGroupId] = $this->createRequester($groupRepository, $userRepository);
-
-        $chris = $userRepository->save(new User(
-            id: 0,
-            email: 'chris@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
-            displayName: 'Chris',
-            role: UserRole::Musicien,
-            isActive: true,
-            failedLoginAttempts: 0,
-            lockedUntil: null,
-        ));
-        // Chris n'est volontairement PAS ajouté comme membre de $requestingGroupId.
-
-        $this->expectException(AccessDeniedException::class);
-
-        $service->request($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $chris->id(), null);
-    }
 
     public function testRespondByMemberOfHolderGroupAcceptedSucceeds(): void
     {
@@ -221,31 +182,6 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $found = $service->findByRequestingGroup($requestingGroupId, $requestingUserId);
 
         self::assertCount(1, $found);
-    }
-
-    public function testFindRequestableSlotsForExcludesSlotsOfCallersOwnGroups(): void
-    {
-        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
-        [, $holderGroupId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
-        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
-
-        $slotRepository->save(new RecurringSlot(0, $requestingGroupId, Weekday::Thursday, '18:00:00', '20:00:00', true));
-
-        $requestable = $service->findRequestableSlotsFor($requestingUserId);
-
-        self::assertCount(1, $requestable);
-        self::assertSame($holderGroupId, $requestable[0]->slot()->groupId());
-    }
-
-    public function testFindRequestableSlotsForIncludesHolderGroupName(): void
-    {
-        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
-        $this->createHolder($groupRepository, $slotRepository, $userRepository);
-        [, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
-
-        $requestable = $service->findRequestableSlotsFor($requestingUserId);
-
-        self::assertSame('Groupe Titulaire', $requestable[0]->groupName());
     }
 
     public function testUpdateRequestByMemberOfRequestingGroupSucceeds(): void

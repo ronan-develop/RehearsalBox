@@ -54,8 +54,6 @@ final class PageController
             'planningSlots' => $this->slotService->findPlanningSlots(),
             'pendingExceptions' => $pending,
             'requestedExceptions' => $requested,
-            'requestableSlots' => $this->availabilityService->findRequestableSlotsFor($user->id()),
-            'groups' => $groups,
             'currentUserRole' => $user->role(),
         ]));
     }

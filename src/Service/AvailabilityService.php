@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\RecurringSlot;
-use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
@@ -21,29 +19,6 @@ final class AvailabilityService implements AvailabilityServiceInterface
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly RecurringSlotRepositoryInterface $recurringSlotRepository,
     ) {
-    }
-
-    public function findRequestableSlotsFor(int $userId): array
-    {
-        $ownGroupIds = array_map(
-            static fn ($group) => $group->id(),
-            $this->groupRepository->findByMember($userId),
-        );
-
-        $otherGroupsSlots = array_filter(
-            $this->recurringSlotRepository->findAllActive(),
-            static fn (RecurringSlot $slot) => !in_array($slot->groupId(), $ownGroupIds, true),
-        );
-
-        return array_values(array_map(
-            function (RecurringSlot $slot): RequestableSlot {
-                $group = $this->groupRepository->findById($slot->groupId());
-                \assert($group !== null);
-
-                return new RequestableSlot($slot, $group->name());
-            },
-            $otherGroupsSlots,
-        ));
     }
 
     public function findPendingForHolderGroup(int $groupId, int $userId): array
@@ -62,29 +37,6 @@ final class AvailabilityService implements AvailabilityServiceInterface
         }
 
         return $this->slotExceptionRepository->findByRequestingGroup($groupId);
-    }
-
-    public function request(
-        int $recurringSlotId,
-        \DateTimeImmutable $occurrenceDate,
-        int $requestingGroupId,
-        int $userId,
-        ?string $reason,
-    ): SlotException {
-        // Appartenance vérifiée côté serveur à partir de l'utilisateur en
-        // session, jamais déduite du payload client (IDOR) — un groupId
-        // valide fourni par un attaquant ne suffit pas.
-        if (!$this->groupRepository->isMember($requestingGroupId, $userId)) {
-            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
-        }
-
-        return $this->slotExceptionRepository->createRequest(
-            $recurringSlotId,
-            $occurrenceDate,
-            $requestingGroupId,
-            $userId,
-            $reason,
-        );
     }
 
     public function respond(int $exceptionId, bool $accepted, int $userId): SlotException

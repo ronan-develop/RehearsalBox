@@ -103,41 +103,6 @@
             <?php endforeach; ?>
         </section>
 
-        <?php if ($groups !== []): ?>
-            <section class="rb-card" data-request-form-section>
-                <h2>Initier une demande</h2>
-                <form data-request-form>
-                    <div class="rb-field">
-                        <label for="requesting-group">Au nom de</label>
-                        <select id="requesting-group" name="requestingGroupId" class="rb-input">
-                            <?php foreach ($groups as $group): ?>
-                                <option value="<?= e((string) $group->id()) ?>"><?= e($group->name()) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="rb-field">
-                        <label for="requested-slot">Créneau visé</label>
-                        <select id="requested-slot" name="recurringSlotId" class="rb-input">
-                            <?php foreach ($requestableSlots as $requestableSlot): ?>
-                                <?php $slot = $requestableSlot->slot(); ?>
-                                <option value="<?= e((string) $slot->id()) ?>">
-                                    <?= e($requestableSlot->groupName()) ?> — <?= e(formatWeekday($slot->weekday())) ?> <?= e(formatTime($slot->startTime())) ?>–<?= e(formatTime($slot->endTime())) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="rb-field">
-                        <label for="occurrence-date">Date précise</label>
-                        <input type="date" id="occurrence-date" name="occurrenceDate" class="rb-input" required>
-                    </div>
-                    <div class="rb-field">
-                        <label for="request-reason">Raison (optionnel)</label>
-                        <input type="text" id="request-reason" name="reason" class="rb-input">
-                    </div>
-                    <button type="submit" class="rb-btn rb-btn-primary">Envoyer la demande</button>
-                </form>
-            </section>
-        <?php endif; ?>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>

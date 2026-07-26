@@ -55,68 +55,6 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         ));
     }
 
-    public function testRequestByAuthenticatedMemberReturns201(): void
-    {
-        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
-
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
-        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
-        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($requestingGroup->id(), $bob->id());
-        $authService->attempt('bob@rehearsalbox.test', 'password');
-
-        $request = new Request('POST', '/api/availability/request', [], [
-            'recurringSlotId' => $slot->id(),
-            'occurrenceDate' => '2026-08-04',
-            'requestingGroupId' => $requestingGroup->id(),
-            'reason' => 'Concert samedi',
-        ], []);
-
-        $response = $controller->request($request);
-
-        self::assertSame(201, $response->statusCode());
-    }
-
-    public function testRequestByNonMemberOfRequestingGroupThrowsAccessDenied(): void
-    {
-        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
-
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
-        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
-        $chris = $this->createUser($userRepository, 'chris@rehearsalbox.test');
-        // Chris n'est volontairement PAS membre de $requestingGroup.
-        $authService->attempt('chris@rehearsalbox.test', 'password');
-
-        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
-
-        $request = new Request('POST', '/api/availability/request', [], [
-            'recurringSlotId' => $slot->id(),
-            'occurrenceDate' => '2026-08-04',
-            'requestingGroupId' => $requestingGroup->id(),
-        ], []);
-        $controller->request($request);
-    }
-
-    public function testRequestWithoutSessionThrowsAccessDenied(): void
-    {
-        [$controller, $groupRepository, $slotRepository] = $this->makeController();
-
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
-        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-
-        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
-
-        $request = new Request('POST', '/api/availability/request', [], [
-            'recurringSlotId' => $slot->id(),
-            'occurrenceDate' => '2026-08-04',
-            'requestingGroupId' => 1,
-        ], []);
-        $controller->request($request);
-    }
 
     public function testRespondAcceptedByMemberOfHolderGroupReturns200(): void
     {
@@ -366,19 +304,4 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(409, $response->statusCode());
     }
 
-    public function testRequestableSlotsReturnsSlotsOfOtherGroups(): void
-    {
-        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
-
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
-        $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
-
-        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $authService->attempt('bob@rehearsalbox.test', 'password');
-
-        $request = new Request('GET', '/api/availability/slots', [], [], []);
-        $response = $controller->requestableSlots($request);
-
-        self::assertSame(200, $response->statusCode());
-    }
 }
