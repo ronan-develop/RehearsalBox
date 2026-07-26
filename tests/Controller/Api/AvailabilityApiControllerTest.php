@@ -55,7 +55,6 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         ));
     }
 
-
     public function testRespondAcceptedByMemberOfHolderGroupReturns200(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
