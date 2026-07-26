@@ -273,6 +273,34 @@ button:active::after, .rb-btn:active::after {
   color: var(--rb-accent-2);
 }
 
+.rb-logout-only {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  background: var(--rb-surface);
+  border-top: 1px solid var(--rb-border);
+  box-shadow: var(--rb-elevation-2);
+  padding: var(--rb-space-2) var(--rb-space-2) calc(var(--rb-space-2) + env(safe-area-inset-bottom));
+  z-index: 900;
+}
+
+.rb-btn-logout-centered {
+  min-height: 44px;
+  padding: 0 var(--rb-space-4);
+  background: none;
+  border: none;
+  color: var(--rb-text-2);
+  font-size: 0.8125rem;
+  border-radius: var(--rb-radius-sm);
+}
+
+.rb-btn-logout-centered:active {
+  color: var(--rb-accent-2);
+}
+
 .rb-toast-container {
   position: fixed;
   bottom: calc(var(--rb-space-4) + env(safe-area-inset-bottom));

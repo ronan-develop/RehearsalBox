@@ -1,11 +1,15 @@
 <?php
 /** @var \App\Entity\Enum\UserRole $currentUserRole */
 ?>
+<?php if ($currentUserRole === \App\Entity\Enum\UserRole::Admin): ?>
 <nav class="rb-bottom-nav">
     <a href="/" class="rb-bottom-nav-link">Disponibilités</a>
-    <?php if ($currentUserRole === \App\Entity\Enum\UserRole::Admin): ?>
-        <a href="/admin/slots" class="rb-bottom-nav-link">Créneaux</a>
-        <a href="/admin/groups" class="rb-bottom-nav-link">Groupes</a>
-    <?php endif; ?>
+    <a href="/admin/slots" class="rb-bottom-nav-link">Créneaux</a>
+    <a href="/admin/groups" class="rb-bottom-nav-link">Groupes</a>
     <button type="button" class="rb-bottom-nav-link rb-bottom-nav-logout" data-logout>Déconnexion</button>
 </nav>
+<?php else: ?>
+<div class="rb-logout-only">
+    <button type="button" class="rb-btn-logout-centered" data-logout>Déconnexion</button>
+</div>
+<?php endif; ?>

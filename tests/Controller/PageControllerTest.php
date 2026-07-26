@@ -92,4 +92,39 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringNotContainsString('data-planning-slider', $response->body());
     }
+
+    public function testDashboardHidesNavLinksForNonAdmin(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->dashboard();
+
+        self::assertStringNotContainsString('<nav', $response->body());
+        self::assertStringNotContainsString('href="/admin', $response->body());
+        self::assertStringContainsString('data-logout', $response->body());
+    }
+
+    public function testDashboardKeepsNavForAdmin(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $userRepository->save(new User(
+            id: 0,
+            email: 'admin@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Admin Test',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('<nav', $response->body());
+        self::assertStringContainsString('href="/admin/slots"', $response->body());
+        self::assertStringContainsString('href="/admin/groups"', $response->body());
+        self::assertStringContainsString('data-logout', $response->body());
+    }
 }
