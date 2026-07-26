@@ -50,7 +50,7 @@ final class PageControllerTest extends RepositoryTestCase
             $groupService,
         );
 
-        return [$controller, $groupRepository, $slotService, $userRepository, $authService];
+        return [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository];
     }
 
     private function createLoggedInUser(MysqlUserRepository $userRepository, AuthService $authService): User
@@ -128,5 +128,45 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('href="/admin/slots"', $response->body());
         self::assertStringContainsString('href="/admin/groups"', $response->body());
         self::assertStringContainsString('data-logout', $response->body());
+    }
+
+    public function testDashboardShowsPendingRequestsForAdminWhoIsAlsoGroupMember(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository] = $this->makeController();
+
+        $admin = $userRepository->save(new User(
+            id: 0,
+            email: 'admin@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Admin Test',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Admin', null, null, 'contact@example.test'));
+        $groupRepository->addMember($holderGroup->id(), $admin->id());
+        $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $requester = $userRepository->save(new User(
+            id: 0,
+            email: 'bob@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Bob',
+            role: UserRole::Musicien,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $groupRepository->addMember($requestingGroup->id(), $requester->id());
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $requester->id(), 'Concert samedi');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('data-pending-list', $response->body());
+        self::assertStringContainsString('Concert samedi', $response->body());
     }
 }
