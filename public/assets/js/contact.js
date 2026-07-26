@@ -67,13 +67,20 @@ export function initContact(root = document) {
   });
 
   root.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') {
+    if (event.key === 'Escape') {
+      const overlay = root.querySelector('[data-contact-modal-overlay]');
+      if (overlay && !overlay.hidden) {
+        closeContactModal(root);
+      }
       return;
     }
 
-    const overlay = root.querySelector('[data-contact-modal-overlay]');
-    if (overlay && !overlay.hidden) {
-      closeContactModal(root);
+    if (event.key === 'Enter' || event.key === ' ') {
+      const contactCard = event.target.closest('[data-contact-group-id]');
+      if (contactCard) {
+        event.preventDefault();
+        openContactModal(contactCard, root);
+      }
     }
   });
 

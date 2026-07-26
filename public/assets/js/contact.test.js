@@ -146,3 +146,28 @@ test('initContact ignores Escape when the modal is already closed', () => {
 
   assert.equal(state.hidden, true);
 });
+
+test('initContact opens the modal when pressing Enter on a planning card', () => {
+  const { state, overlay } = fakeOverlay();
+  const root = fakeInitRoot(overlay);
+  initContact(root);
+
+  const card = { closest: (selector) => (selector === '[data-contact-group-id]' ? card : null), dataset: { contactGroupId: '9', contactGroupName: 'Groupe Clavier' } };
+  let prevented = false;
+  root.dispatch('keydown', { key: 'Enter', target: card, preventDefault: () => { prevented = true; } });
+
+  assert.equal(state.hidden, false);
+  assert.equal(state.groupIdInputValue, '9');
+  assert.equal(prevented, true);
+});
+
+test('initContact opens the modal when pressing Space on a planning card', () => {
+  const { state, overlay } = fakeOverlay();
+  const root = fakeInitRoot(overlay);
+  initContact(root);
+
+  const card = { closest: (selector) => (selector === '[data-contact-group-id]' ? card : null), dataset: { contactGroupId: '9', contactGroupName: 'Groupe Clavier' } };
+  root.dispatch('keydown', { key: ' ', target: card, preventDefault: () => {} });
+
+  assert.equal(state.hidden, false);
+});

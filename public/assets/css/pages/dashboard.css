@@ -101,9 +101,7 @@
   width: 220px;
   height: 180px;
   scroll-snap-align: start;
-  display: block;
-  text-decoration: none;
-  color: inherit;
+  cursor: pointer;
   /* filter: drop-shadow() posé sur le MÊME élément qu'un clip-path ne se
      rend jamais visuellement dans Chromium (constaté : getComputedStyle
      renvoie bien la valeur, le style est appliqué, mais rien n'apparaît à
