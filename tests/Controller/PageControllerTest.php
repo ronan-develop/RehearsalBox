@@ -86,6 +86,28 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('contact@example.test', $response->body());
     }
 
+    public function testGroupContactRedirectsToMailto(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        $response = $controller->groupContact($group->id());
+
+        self::assertSame(302, $response->statusCode());
+        self::assertSame('mailto:contact@example.test', $response->headers()['Location']);
+    }
+
+    public function testGroupContactWithUnknownGroupReturns404(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->groupContact(9999);
+
+        self::assertSame(404, $response->statusCode());
+    }
+
     public function testDashboardShowsNoPlanningSliderWhenNoFixedSlots(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();

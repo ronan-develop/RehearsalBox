@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\DashboardExceptionItem;
 use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
+use App\Http\RedirectResponse;
 use App\Http\Response;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
@@ -73,6 +74,18 @@ final class PageController
             'dashboardExceptions' => $items,
             'currentUserRole' => $user->role(),
         ]));
+    }
+
+    public function groupContact(int $id): Response
+    {
+        $this->authGuard->requireLogin();
+
+        $group = $this->groupRepository->findById($id);
+        if ($group === null) {
+            return new Response('', 404);
+        }
+
+        return new RedirectResponse('mailto:' . $group->contactEmail());
     }
 
     public function adminSlots(): Response
