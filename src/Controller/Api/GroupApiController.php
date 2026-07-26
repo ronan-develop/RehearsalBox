@@ -35,6 +35,10 @@ final class GroupApiController
         $colorHex = $request->body('colorHex') !== null ? (string) $request->body('colorHex') : null;
         $contactEmail = (string) $request->body('contactEmail', '');
 
+        if (filter_var($contactEmail, FILTER_VALIDATE_EMAIL) === false) {
+            return new JsonResponse(['error' => "L'email de contact est requis et doit être valide."], 422);
+        }
+
         $group = $this->groupService->create($name, $genre, $colorHex, $contactEmail);
 
         return new JsonResponse(self::toArray($group), 201);
