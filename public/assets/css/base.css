@@ -207,6 +207,33 @@ button:active::after, .rb-btn:active::after {
   padding: var(--rb-space-4);
 }
 
+.rb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: var(--rb-space-4);
+  z-index: 1000;
+}
+
+.rb-modal-overlay[hidden] {
+  display: none;
+}
+
+.rb-modal {
+  width: 100%;
+  max-width: 420px;
+}
+
+.rb-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--rb-space-2);
+  margin-top: var(--rb-space-3);
+}
+
 /* Champ de formulaire générique — label + input, cohérent sur tous les écrans. */
 .rb-field {
   margin-bottom: var(--rb-space-3);

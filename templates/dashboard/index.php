@@ -19,14 +19,14 @@
             $renderPlanningCard = static function ($requestableSlot) {
                 $slot = $requestableSlot->slot();
                 ?>
-                <a class="rb-planning-card" href="/groups/<?= e((string) $requestableSlot->groupId()) ?>/contact">
+                <button type="button" class="rb-planning-card" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>">
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
                         <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                         <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
                     </div>
-                </a>
+                </button>
                 <?php
             };
             ?>
@@ -103,6 +103,22 @@
             <?php endforeach; ?>
         </section>
 
+        <div class="rb-modal-overlay" data-contact-modal-overlay hidden>
+            <div class="rb-modal rb-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+                <h2 id="contact-modal-title" data-contact-modal-title>Contacter le groupe</h2>
+                <form data-contact-form>
+                    <input type="hidden" name="groupId" data-contact-group-id-input>
+                    <div class="rb-field">
+                        <label for="contact-message">Message</label>
+                        <textarea id="contact-message" name="message" class="rb-input" rows="4" required></textarea>
+                    </div>
+                    <div class="rb-modal-actions">
+                        <button type="button" class="rb-btn" data-contact-modal-cancel>Annuler</button>
+                        <button type="submit" class="rb-btn rb-btn-primary">Envoyer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>

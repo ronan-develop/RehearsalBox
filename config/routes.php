@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
+use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
 
@@ -15,7 +16,6 @@ return [
         ['GET', '/register', [PageController::class, 'register']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
-        ['GET', '/groups/{id}/contact', [PageController::class, 'groupContact']],
     ],
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
@@ -34,5 +34,6 @@ return [
         ['POST',   '/api/admin/groups', [GroupApiController::class, 'store']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
+        ['POST',   '/api/groups/{id}/contact', [GroupContactApiController::class, 'send']],
     ],
 ];

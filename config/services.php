@@ -6,6 +6,7 @@ use App\Container\Container;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
+use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
 use App\Database\ConnectionFactory;
@@ -29,10 +30,13 @@ use App\Service\Contract\AuthServiceInterface;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Service\Contract\SlotServiceInterface;
+use App\Service\GroupContactService;
 use App\Service\GroupService;
 use App\Service\SlotService;
 use App\View\PhpTemplateRenderer;
 use App\View\TemplateRendererInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport;
 
 /** @param array<string, mixed> $config */
 return static function (array $config): Container {
@@ -79,6 +83,15 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
     ));
 
+    $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(
+        Transport::fromDsn($config['mailer']['dsn']),
+    ));
+
+    $container->set(GroupContactService::class, fn ($c) => new GroupContactService(
+        $c->get(MailerInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+    ));
+
     $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
 
     $container->set(PageController::class, fn ($c) => new PageController(
@@ -109,6 +122,11 @@ return static function (array $config): Container {
 
     $container->set(GroupApiController::class, fn ($c) => new GroupApiController(
         $c->get(GroupServiceInterface::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(GroupContactApiController::class, fn ($c) => new GroupContactApiController(
+        $c->get(GroupContactService::class),
         $c->get(AuthGuard::class),
     ));
 

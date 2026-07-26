@@ -18,5 +18,14 @@ services:
     volumes:
       - rehearsalbox-dev-db-data:/var/lib/mysql
 
+  # Intercepte les emails envoyés en dev sans SMTP réel — interface web sur
+  # http://localhost:8025 pour les consulter (aucun envoi effectif à un vrai destinataire).
+  mailpit:
+    image: axllent/mailpit
+    container_name: rehearsalbox-dev-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
 volumes:
   rehearsalbox-dev-db-data:
