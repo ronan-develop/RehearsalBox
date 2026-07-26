@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\Enum\UserRole;
 use App\Http\RedirectResponse;
+use App\Http\Request;
 use App\Http\Response;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
@@ -59,11 +60,11 @@ final class PageController
         ]));
     }
 
-    public function groupContact(int $id): Response
+    public function groupContact(Request $request, string $id): Response
     {
         $this->authGuard->requireLogin();
 
-        $group = $this->groupRepository->findById($id);
+        $group = $this->groupRepository->findById((int) $id);
         if ($group === null) {
             return new Response('', 404);
         }
