@@ -50,12 +50,13 @@
 
         <?php if ($dashboardExceptions !== []): ?>
             <section class="rb-exception-deck" data-exception-deck>
-                <?php foreach ($dashboardExceptions as $item): ?>
+                <?php foreach ($dashboardExceptions as $deckPosition => $item): ?>
                     <?php
                     $exception = $item->exception();
                     $isRecue = $item->direction() === \App\Entity\Enum\ExceptionDirection::Recue;
                     ?>
-                    <article class="rb-slot-card rb-card rb-exception-card" data-exception-id="<?= e((string) $exception->id()) ?>">
+                    <article class="rb-slot-card rb-card rb-exception-card" data-exception-id="<?= e((string) $exception->id()) ?>"
+                             style="--deck-index: <?= e((string) $deckPosition) ?>">
                         <p class="rb-badge rb-badge-direction"><?= $isRecue ? 'Reçue' : 'Envoyée' ?></p>
                         <p class="rb-badge rb-badge-status"><?= e(formatExceptionStatus($exception->status())) ?></p>
                         <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
