@@ -10,7 +10,6 @@ use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
 use App\Entity\Group;
 use App\Entity\User;
-use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
@@ -85,31 +84,6 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Groupe Test', $response->body());
         self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
         self::assertStringNotContainsString('contact@example.test', $response->body());
-    }
-
-    public function testGroupContactRedirectsToMailto(): void
-    {
-        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
-        $this->createLoggedInUser($userRepository, $authService);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-
-        $response = $controller->groupContact(
-            new Request('GET', "/groups/{$group->id()}/contact", [], [], []),
-            (string) $group->id(),
-        );
-
-        self::assertSame(302, $response->statusCode());
-        self::assertSame('mailto:contact@example.test', $response->headers()['Location']);
-    }
-
-    public function testGroupContactWithUnknownGroupReturns404(): void
-    {
-        [$controller, , , $userRepository, $authService] = $this->makeController();
-        $this->createLoggedInUser($userRepository, $authService);
-
-        $response = $controller->groupContact(new Request('GET', '/groups/9999/contact', [], [], []), '9999');
-
-        self::assertSame(404, $response->statusCode());
     }
 
     public function testDashboardShowsNoPlanningSliderWhenNoFixedSlots(): void

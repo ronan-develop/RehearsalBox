@@ -16,7 +16,6 @@ return [
         ['GET', '/register', [PageController::class, 'register']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
-        ['GET', '/groups/{id}/contact', [PageController::class, 'groupContact']],
     ],
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
