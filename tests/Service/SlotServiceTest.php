@@ -28,7 +28,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateAddsSlotToGroup(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
 
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
@@ -39,7 +39,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateWithEndBeforeStartThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
 
         $this->expectException(\InvalidArgumentException::class);
 
@@ -49,7 +49,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateWithEndTimeAtMaxCeilingSucceeds(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
 
         $slot = $service->create($group->id(), Weekday::Tuesday, '22:00:00', '23:30:00');
 
@@ -59,7 +59,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateWithEndTimeAfterMaxCeilingThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
 
         $this->expectException(\InvalidArgumentException::class);
 
@@ -69,7 +69,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateWithEndTimeAtMidnightThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
 
         $this->expectException(\InvalidArgumentException::class);
 
@@ -79,7 +79,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateOverlappingSlotOnSameGroupAndDayThrows(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $this->expectException(OverlappingSlotException::class);
@@ -90,7 +90,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testCreateNonOverlappingSlotOnSameDaySucceeds(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $slot = $service->create($group->id(), Weekday::Tuesday, '20:00:00', '22:00:00');
@@ -101,7 +101,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testUpdateChangesSlotTimes(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $updated = $service->update($slot->id(), '19:00:00', '21:00:00');
@@ -113,7 +113,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testUpdateWithEndBeforeStartThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $this->expectException(\InvalidArgumentException::class);
@@ -124,7 +124,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testUpdateWithEndTimeAfterMaxCeilingThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $this->expectException(\InvalidArgumentException::class);
@@ -144,7 +144,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testDeleteDeactivatesSlot(): void
     {
         [$service, $groupRepository, $slotRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $service->delete($slot->id());
@@ -156,8 +156,8 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testFindByGroupReturnsOnlySlotsOfThatGroup(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null));
-        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
+        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $service->create($groupA->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
         $service->create($groupB->id(), Weekday::Wednesday, '19:00:00', '21:00:00');
 
@@ -169,7 +169,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testFindPlanningSlotsReturnsSlotWithGroupName(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $planning = $service->findPlanningSlots();
@@ -182,7 +182,7 @@ final class SlotServiceTest extends RepositoryTestCase
     public function testFindPlanningSlotsExcludesInactiveSlots(): void
     {
         [$service, $groupRepository] = $this->makeService();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
         $service->delete($slot->id());
 

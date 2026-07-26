@@ -11,6 +11,7 @@ final class Group
         private readonly string $name,
         private readonly ?string $genre,
         private readonly ?string $colorHex,
+        private readonly string $contactEmail,
     ) {
     }
 
@@ -32,5 +33,10 @@ final class Group
     public function colorHex(): ?string
     {
         return $this->colorHex;
+    }
+
+    public function contactEmail(): string
+    {
+        return $this->contactEmail;
     }
 }

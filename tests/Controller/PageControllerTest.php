@@ -74,7 +74,7 @@ final class PageControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
         $this->createLoggedInUser($userRepository, $authService);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slotService->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $response = $controller->dashboard();

@@ -38,7 +38,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         MysqlRecurringSlotRepository $slotRepository,
         MysqlUserRepository $userRepository,
     ): array {
-        $group = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(
             new RecurringSlot(0, $group->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true)
         );
@@ -60,7 +60,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
     /** @return array{0: int, 1: int} [requestingGroupId, requestingUserId] */
     private function createRequester(MysqlGroupRepository $groupRepository, MysqlUserRepository $userRepository): array
     {
-        $group = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
         $user = $userRepository->save(new User(
             id: 0,
             email: 'bob@rehearsalbox.test',

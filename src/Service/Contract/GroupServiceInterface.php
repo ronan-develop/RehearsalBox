@@ -8,7 +8,7 @@ use App\Entity\Group;
 
 interface GroupServiceInterface
 {
-    public function create(string $name, ?string $genre, ?string $colorHex): Group;
+    public function create(string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group;
 
     /** @throws \InvalidArgumentException si aucun compte n'existe avec cet email */
     public function addMemberByEmail(int $groupId, string $email): void;

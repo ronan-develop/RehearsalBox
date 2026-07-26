@@ -17,9 +17,9 @@ final class GroupService implements GroupServiceInterface
     ) {
     }
 
-    public function create(string $name, ?string $genre, ?string $colorHex): Group
+    public function create(string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group
     {
-        return $this->groupRepository->save(new Group(0, $name, $genre, $colorHex));
+        return $this->groupRepository->save(new Group(0, $name, $genre, $colorHex, $contactEmail));
     }
 
     public function addMemberByEmail(int $groupId, string $email): void

@@ -17,13 +17,14 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
     {
         $repository = new MysqlGroupRepository($this->pdo);
 
-        $inserted = $repository->save(new Group(0, 'Black Sabbath Tribute', 'metal', '#e63946'));
+        $inserted = $repository->save(new Group(0, 'Black Sabbath Tribute', 'metal', '#e63946', 'contact@example.test'));
 
         $found = $repository->findById($inserted->id());
 
         self::assertNotNull($found);
         self::assertSame('Black Sabbath Tribute', $found->name());
         self::assertSame('metal', $found->genre());
+        self::assertSame('contact@example.test', $found->contactEmail());
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
@@ -36,8 +37,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
     public function testFindAllReturnsEveryGroup(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
-        $repository->save(new Group(0, 'Groupe A', null, null));
-        $repository->save(new Group(0, 'Groupe B', null, null));
+        $repository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
+        $repository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
 
         $all = $repository->findAll();
 
@@ -49,7 +50,7 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $user = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
 
         $groupRepository->addMember($group->id(), $user->id());
@@ -62,7 +63,7 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $user = $userRepository->save($this->newUser('bob@rehearsalbox.test'));
 
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
@@ -73,8 +74,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null));
-        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
+        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $user = $userRepository->save($this->newUser('dana@rehearsalbox.test'));
         $groupRepository->addMember($groupA->id(), $user->id());
 
@@ -89,7 +90,7 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $user = $userRepository->save($this->newUser('chris@rehearsalbox.test'));
         $groupRepository->addMember($group->id(), $user->id());
 

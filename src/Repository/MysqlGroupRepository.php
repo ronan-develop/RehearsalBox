@@ -47,25 +47,27 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
     {
         if ($group->id() === 0) {
             $statement = $this->pdo->prepare(
-                'INSERT INTO `groups` (name, genre, color_hex) VALUES (:name, :genre, :color_hex)'
+                'INSERT INTO `groups` (name, genre, color_hex, contact_email) VALUES (:name, :genre, :color_hex, :contact_email)'
             );
             $statement->execute([
                 'name' => $group->name(),
                 'genre' => $group->genre(),
                 'color_hex' => $group->colorHex(),
+                'contact_email' => $group->contactEmail(),
             ]);
 
             return $this->findById((int) $this->pdo->lastInsertId());
         }
 
         $statement = $this->pdo->prepare(
-            'UPDATE `groups` SET name = :name, genre = :genre, color_hex = :color_hex WHERE id = :id'
+            'UPDATE `groups` SET name = :name, genre = :genre, color_hex = :color_hex, contact_email = :contact_email WHERE id = :id'
         );
         $statement->execute([
             'id' => $group->id(),
             'name' => $group->name(),
             'genre' => $group->genre(),
             'color_hex' => $group->colorHex(),
+            'contact_email' => $group->contactEmail(),
         ]);
 
         return $this->findById($group->id());
@@ -105,6 +107,7 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
             name: (string) $row['name'],
             genre: $row['genre'] !== null ? (string) $row['genre'] : null,
             colorHex: $row['color_hex'] !== null ? (string) $row['color_hex'] : null,
+            contactEmail: (string) $row['contact_email'],
         );
     }
 }

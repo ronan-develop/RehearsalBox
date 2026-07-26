@@ -33,8 +33,9 @@ final class GroupApiController
         $name = (string) $request->body('name', '');
         $genre = $request->body('genre') !== null ? (string) $request->body('genre') : null;
         $colorHex = $request->body('colorHex') !== null ? (string) $request->body('colorHex') : null;
+        $contactEmail = (string) $request->body('contactEmail', '');
 
-        $group = $this->groupService->create($name, $genre, $colorHex);
+        $group = $this->groupService->create($name, $genre, $colorHex, $contactEmail);
 
         return new JsonResponse(self::toArray($group), 201);
     }

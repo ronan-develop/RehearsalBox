@@ -80,6 +80,6 @@ final class MysqlRecurringSlotRepositoryTest extends RepositoryTestCase
     {
         $repository = new MysqlGroupRepository($this->pdo);
 
-        return $repository->save(new Group(0, $name, null, null))->id();
+        return $repository->save(new Group(0, $name, null, null, 'contact@example.test'))->id();
     }
 }

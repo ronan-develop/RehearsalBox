@@ -39,19 +39,19 @@ foreach ([
 }
 
 $insertGroup = $pdo->prepare(
-    'INSERT INTO `groups` (name, genre, color_hex) VALUES (:name, :genre, :color)'
+    'INSERT INTO `groups` (name, genre, color_hex, contact_email) VALUES (:name, :genre, :color, :contactEmail)'
 );
 $groupIds = [];
 foreach ([
-    ['Black Sabbath Tribute', 'metal', '#e63946'],
-    ['Dead Kennedys Cover', 'punk', '#f77f00'],
-    ['Blackened Sun', 'black metal', '#6a4c93'],
-    ['Nebula Sprawl', 'prog rock', '#1982c4'],
-    ['Rust Prophet', 'stoner rock', '#8ac926'],
-    ['Vacant Riot', 'punk hardcore', '#ff595e'],
-    ['Iron Vultures', 'heavy metal', '#ffca3a'],
-] as [$name, $genre, $color]) {
-    $insertGroup->execute(['name' => $name, 'genre' => $genre, 'color' => $color]);
+    ['Black Sabbath Tribute', 'metal', '#e63946', 'contact+black-sabbath-tribute@rehearsalbox.test'],
+    ['Dead Kennedys Cover', 'punk', '#f77f00', 'contact+dead-kennedys-cover@rehearsalbox.test'],
+    ['Blackened Sun', 'black metal', '#6a4c93', 'contact+blackened-sun@rehearsalbox.test'],
+    ['Nebula Sprawl', 'prog rock', '#1982c4', 'contact+nebula-sprawl@rehearsalbox.test'],
+    ['Rust Prophet', 'stoner rock', '#8ac926', 'contact+rust-prophet@rehearsalbox.test'],
+    ['Vacant Riot', 'punk hardcore', '#ff595e', 'contact+vacant-riot@rehearsalbox.test'],
+    ['Iron Vultures', 'heavy metal', '#ffca3a', 'contact+iron-vultures@rehearsalbox.test'],
+] as [$name, $genre, $color, $contactEmail]) {
+    $insertGroup->execute(['name' => $name, 'genre' => $genre, 'color' => $color, 'contactEmail' => $contactEmail]);
     $groupIds[$name] = (int) $pdo->lastInsertId();
 }
 

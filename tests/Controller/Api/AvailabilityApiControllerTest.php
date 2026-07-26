@@ -59,10 +59,10 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
         $authService->attempt('bob@rehearsalbox.test', 'password');
@@ -83,10 +83,10 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $chris = $this->createUser($userRepository, 'chris@rehearsalbox.test');
         // Chris n'est volontairement PAS membre de $requestingGroup.
         $authService->attempt('chris@rehearsalbox.test', 'password');
@@ -105,7 +105,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
         $this->expectException(\App\Security\Exception\AccessDeniedException::class);
@@ -122,12 +122,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -145,10 +145,10 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -166,12 +166,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -190,12 +190,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
 
@@ -211,10 +211,10 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
         $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
@@ -231,10 +231,10 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -255,12 +255,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -278,12 +278,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -302,10 +302,10 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -323,12 +323,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -346,12 +346,12 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
         $alice = $this->createUser($userRepository, 'alice@rehearsalbox.test');
         $groupRepository->addMember($holderGroup->id(), $alice->id());
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
@@ -370,7 +370,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
         $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
