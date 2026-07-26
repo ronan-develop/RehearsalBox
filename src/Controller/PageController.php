@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\DashboardExceptionItem;
+use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
 use App\Http\Response;
 use App\Repository\Contract\GroupRepositoryInterface;
@@ -42,18 +44,33 @@ final class PageController
         $user = $this->authGuard->requireLogin();
         $groups = $this->groupRepository->findByMember($user->id());
 
-        $pending = [];
-        $requested = [];
+        $items = [];
+        $seenPendingIds = [];
+        $seenRequestedIds = [];
         foreach ($groups as $group) {
-            $pending = [...$pending, ...$this->availabilityService->findPendingForHolderGroup($group->id(), $user->id())];
-            $requested = [...$requested, ...$this->availabilityService->findByRequestingGroup($group->id(), $user->id())];
+            foreach ($this->availabilityService->findPendingForHolderGroup($group->id(), $user->id()) as $exception) {
+                if (isset($seenPendingIds[$exception->id()])) {
+                    continue;
+                }
+                $seenPendingIds[$exception->id()] = true;
+                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue);
+            }
+            foreach ($this->availabilityService->findByRequestingGroup($group->id(), $user->id()) as $exception) {
+                if (isset($seenRequestedIds[$exception->id()])) {
+                    continue;
+                }
+                $seenRequestedIds[$exception->id()] = true;
+                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee);
+            }
         }
+
+        usort($items, static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
+            $b->exception()->createdAt() <=> $a->exception()->createdAt());
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'planningSlots' => $this->slotService->findPlanningSlots(),
-            'pendingExceptions' => $pending,
-            'requestedExceptions' => $requested,
+            'dashboardExceptions' => $items,
             'currentUserRole' => $user->role(),
         ]));
     }

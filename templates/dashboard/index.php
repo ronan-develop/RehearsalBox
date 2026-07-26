@@ -48,60 +48,52 @@
             </section>
         <?php endif; ?>
 
-        <section class="rb-slot-list" data-pending-list>
-            <h2>Demandes reçues à traiter</h2>
-            <?php if ($pendingExceptions === []): ?>
-                <p class="rb-empty-state">Aucune demande à traiter pour le moment.</p>
-            <?php endif; ?>
-            <?php foreach ($pendingExceptions as $exception): ?>
-                <article class="rb-slot-card rb-card" data-exception-id="<?= e((string) $exception->id()) ?>">
-                    <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
-                    <?php if ($exception->requestReason() !== null): ?>
-                        <p class="rb-slot-card-reason"><?= e($exception->requestReason()) ?></p>
-                    <?php endif; ?>
-                    <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
-                            data-exception-id="<?= e((string) $exception->id()) ?>">
-                        Accepter
-                    </button>
-                    <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
-                            data-exception-id="<?= e((string) $exception->id()) ?>">
-                        Refuser
-                    </button>
-                </article>
-            <?php endforeach; ?>
-        </section>
-
-        <section class="rb-slot-list" data-requested-list>
-            <h2>Mes demandes envoyées</h2>
-            <?php if ($requestedExceptions === []): ?>
-                <p class="rb-empty-state">Aucune demande envoyée pour le moment.</p>
-            <?php endif; ?>
-            <?php foreach ($requestedExceptions as $exception): ?>
-                <article class="rb-slot-card rb-card" data-exception-id="<?= e((string) $exception->id()) ?>">
-                    <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
-                    <p class="rb-slot-card-status">Statut : <?= e($exception->status()->value) ?></p>
-                    <?php if ($exception->isEnAttente()): ?>
-                        <form data-update-form data-exception-id="<?= e((string) $exception->id()) ?>">
-                            <div class="rb-field">
-                                <label for="occurrence-date-<?= e((string) $exception->id()) ?>">Date précise</label>
-                                <input type="date" id="occurrence-date-<?= e((string) $exception->id()) ?>" name="occurrenceDate"
-                                       class="rb-input" value="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>" required>
-                            </div>
-                            <div class="rb-field">
-                                <label for="request-reason-<?= e((string) $exception->id()) ?>">Raison (optionnel)</label>
-                                <input type="text" id="request-reason-<?= e((string) $exception->id()) ?>" name="reason"
-                                       class="rb-input" value="<?= e($exception->requestReason() ?? '') ?>">
-                            </div>
-                            <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
-                        </form>
-                        <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
-                                data-exception-id="<?= e((string) $exception->id()) ?>">
-                            Annuler
-                        </button>
-                    <?php endif; ?>
-                </article>
-            <?php endforeach; ?>
-        </section>
+        <?php if ($dashboardExceptions !== []): ?>
+            <section class="rb-exception-deck" data-exception-deck>
+                <?php foreach ($dashboardExceptions as $item): ?>
+                    <?php
+                    $exception = $item->exception();
+                    $isRecue = $item->direction() === \App\Entity\Enum\ExceptionDirection::Recue;
+                    ?>
+                    <article class="rb-slot-card rb-card rb-exception-card" data-exception-id="<?= e((string) $exception->id()) ?>">
+                        <p class="rb-badge rb-badge-direction"><?= $isRecue ? 'Reçue' : 'Envoyée' ?></p>
+                        <p class="rb-badge rb-badge-status"><?= e(formatExceptionStatus($exception->status())) ?></p>
+                        <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
+                        <?php if ($exception->requestReason() !== null): ?>
+                            <p class="rb-slot-card-reason"><?= e($exception->requestReason()) ?></p>
+                        <?php endif; ?>
+                        <?php if ($isRecue && $exception->isEnAttente()): ?>
+                            <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
+                                    data-exception-id="<?= e((string) $exception->id()) ?>">
+                                Accepter
+                            </button>
+                            <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
+                                    data-exception-id="<?= e((string) $exception->id()) ?>">
+                                Refuser
+                            </button>
+                        <?php elseif (!$isRecue && $exception->isEnAttente()): ?>
+                            <form data-update-form data-exception-id="<?= e((string) $exception->id()) ?>">
+                                <div class="rb-field">
+                                    <label for="occurrence-date-<?= e((string) $exception->id()) ?>">Date précise</label>
+                                    <input type="date" id="occurrence-date-<?= e((string) $exception->id()) ?>" name="occurrenceDate"
+                                           class="rb-input" value="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>" required>
+                                </div>
+                                <div class="rb-field">
+                                    <label for="request-reason-<?= e((string) $exception->id()) ?>">Raison (optionnel)</label>
+                                    <input type="text" id="request-reason-<?= e((string) $exception->id()) ?>" name="reason"
+                                           class="rb-input" value="<?= e($exception->requestReason() ?? '') ?>">
+                                </div>
+                                <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
+                            </form>
+                            <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
+                                    data-exception-id="<?= e((string) $exception->id()) ?>">
+                                Annuler
+                            </button>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </section>
+        <?php endif; ?>
 
         <div class="rb-modal-overlay" data-contact-modal-overlay hidden>
             <div class="rb-modal rb-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">

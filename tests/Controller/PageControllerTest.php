@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Controller\PageController;
+use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
 use App\Entity\Group;
@@ -166,7 +167,48 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        self::assertStringContainsString('data-pending-list', $response->body());
+        self::assertStringContainsString('data-exception-deck', $response->body());
         self::assertStringContainsString('Concert samedi', $response->body());
+    }
+
+    public function testDashboardMergesReceivedAndSentExceptionsSortedByCreatedAtDescending(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
+
+        $user = $this->createLoggedInUser($userRepository, $authService);
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $groupRepository->addMember($holderGroup->id(), $user->id());
+        $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $otherGroup = $groupRepository->save(new Group(0, 'Autre Groupe', null, null, 'contact@example.test'));
+        $groupRepository->addMember($otherGroup->id(), $user->id());
+
+        // Demande reçue par $holderGroup (dont $user est membre).
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $otherGroup->id(), $user->id(), 'Demande reçue');
+
+        // Demande envoyée par $otherGroup (dont $user est aussi membre) vers un autre créneau.
+        $otherHolderGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
+        $otherSlot = $slotService->create($otherHolderGroup->id(), Weekday::Wednesday, '18:00:00', '20:00:00');
+        $exceptionRepository->createRequest($otherSlot->id(), new \DateTimeImmutable('2026-08-05'), $otherGroup->id(), $user->id(), 'Demande envoyée');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('data-exception-deck', $response->body());
+        $recuePosition = strpos($response->body(), 'Demande reçue');
+        $envoyeePosition = strpos($response->body(), 'Demande envoyée');
+        self::assertNotFalse($recuePosition);
+        self::assertNotFalse($envoyeePosition);
+        self::assertGreaterThan($recuePosition, $envoyeePosition, 'La demande la plus récente (envoyée en second) doit apparaître en premier.');
+    }
+
+    public function testDashboardHidesExceptionDeckSectionWhenListIsEmpty(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->dashboard();
+
+        self::assertStringNotContainsString('data-exception-deck', $response->body());
     }
 }
