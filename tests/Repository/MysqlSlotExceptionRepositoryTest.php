@@ -37,6 +37,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertSame('Concert samedi', $found->requestReason());
         self::assertSame($requestingGroupId, $found->requestedByGroupId());
         self::assertSame($requestingUserId, $found->requestedByUserId());
+        self::assertInstanceOf(\DateTimeImmutable::class, $found->createdAt());
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
