@@ -9,6 +9,7 @@ final class RequestableSlot
     public function __construct(
         private readonly RecurringSlot $slot,
         private readonly string $groupName,
+        private readonly int $groupId,
     ) {
     }
 
@@ -20,5 +21,10 @@ final class RequestableSlot
     public function groupName(): string
     {
         return $this->groupName;
+    }
+
+    public function groupId(): int
+    {
+        return $this->groupId;
     }
 }

@@ -19,14 +19,14 @@
             $renderPlanningCard = static function ($requestableSlot) {
                 $slot = $requestableSlot->slot();
                 ?>
-                <article class="rb-planning-card">
+                <a class="rb-planning-card" href="/groups/<?= e((string) $requestableSlot->groupId()) ?>/contact">
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
                         <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                         <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
                     </div>
-                </article>
+                </a>
                 <?php
             };
             ?>

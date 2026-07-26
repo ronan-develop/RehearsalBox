@@ -177,6 +177,7 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertCount(1, $planning);
         self::assertSame('Groupe Test', $planning[0]->groupName());
         self::assertSame(Weekday::Tuesday, $planning[0]->slot()->weekday());
+        self::assertSame($group->id(), $planning[0]->groupId());
     }
 
     public function testFindPlanningSlotsExcludesInactiveSlots(): void
