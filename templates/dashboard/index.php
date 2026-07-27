@@ -11,7 +11,7 @@
 <body>
     <div class="rb-dashboard-page">
         <header class="rb-dashboard-header">
-            <h1>B27</h1>
+            <h1>#B27</h1>
         </header>
 
         <?php if ($planningSlots !== []): ?>
