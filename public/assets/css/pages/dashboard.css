@@ -220,7 +220,11 @@
 
 .rb-planning-card-group {
   margin: 0 0 var(--rb-space-2);
-  color: var(--rb-accent);
+  /* Couleur locale à la carte (pas --rb-accent, réutilisé ailleurs pour les
+     boutons/bordures) : même famille terracotta que le thème, mais plus
+     sombre/désaturée pour rester lisible sur le fond papier clair sans
+     virer au saumon (cf. retour utilisateur). */
+  color: #9c5540;
   text-shadow: 0 1px 1px rgba(21, 21, 26, 0.45);
 }
 
