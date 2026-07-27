@@ -25,7 +25,7 @@
   --rb-space-4: 2rem;
   --rb-space-5: 2.75rem;
   --rb-space-6: 4rem;
-  --rb-font-display: 'Archivo', system-ui, -apple-system, sans-serif;
+  --rb-font-display: 'Fraunces', system-ui, -apple-system, serif;
   --rb-font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --rb-radius-sm: 4px;
   --rb-radius-md: 8px;
@@ -53,6 +53,22 @@
   font-weight: 800;
   font-display: swap;
   src: url('../fonts/archivo-800.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/fraunces-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/fraunces-700.woff2') format('woff2');
 }
 
 @font-face {
@@ -95,28 +111,36 @@ input, button {
   font-family: inherit;
 }
 
-h1, h2, h3 {
+h1, h2 {
   font-family: var(--rb-font-display);
   margin: 0 0 var(--rb-space-3);
 }
 
+h3 {
+  font-family: var(--rb-font-body);
+  margin: 0 0 var(--rb-space-3);
+}
+
 /* Hiérarchie par taille/graisse plutôt que par couleur (direction Hellfest,
-   cf. #21) : h1 nettement au-dessus du corps, h2/h3 dégressifs. */
+   cf. #21) : h1 nettement au-dessus du corps, h2/h3 dégressifs.
+   h1/h2 en Fraunces (serif compacte, cf. #17) ; h3 reste en Inter — sous-titre
+   discret plutôt que de surcharger la hiérarchie d'une troisième graisse serif. */
 h1 {
   font-size: 1.75rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 h2 {
   font-size: 1.375rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 h3 {
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 button, .rb-btn {

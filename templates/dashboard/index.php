@@ -11,7 +11,7 @@
 <body>
     <div class="rb-dashboard-page">
         <header class="rb-dashboard-header">
-            <h1>Demandes d'échange de créneaux</h1>
+            <h1>B27</h1>
         </header>
 
         <?php if ($planningSlots !== []): ?>
@@ -31,7 +31,7 @@
             };
             ?>
             <section class="rb-planning-section">
-                <h2>Planning des créneaux fixes</h2>
+                <h2>Planning :</h2>
                 <div class="rb-planning-slider" data-planning-slider>
                     <div class="rb-planning-track" data-planning-track>
                         <?php foreach ($planningSlots as $requestableSlot): ?>
