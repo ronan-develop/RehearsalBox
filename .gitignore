@@ -7,3 +7,5 @@
 *.log
 .DS_Store
 *:Zone.Identifier
+/plan.md
+/prompt
