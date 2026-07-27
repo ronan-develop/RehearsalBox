@@ -181,10 +181,10 @@ test('generateExtraWrinkles produces a size small enough to stay partial (not fu
   }
 });
 
-test('generateTornEdgesPath returns a CSS path() starting with the top-left rounded corner arc', () => {
+test('generateTornEdgesPath returns a CSS path() starting from the top-left corner point (no noise before the very first corner, like the original static trace)', () => {
   const path = generateTornEdgesPath(() => 0.5);
 
-  assert.match(path, /^path\('M 0 22 A 22 22 0 0 1 22 0 /);
+  assert.match(path, /^path\('M 0 22 A 22 22 0 0 1 [\d.]+ [\d.]+ /);
 });
 
 test('generateTornEdgesPath closes the shape and preserves the 4 rounded corner arcs (radius 22)', () => {
@@ -218,9 +218,86 @@ test('generateTornEdgesPath produces a different path for two different random s
   assert.notEqual(pathA, pathB);
 });
 
+/**
+ * Extrait, pour chaque arc de coin `A 22 22 0 0 1 x y`, son point d'arrivée
+ * (x, y) — c'est le point qui suit immédiatement le "A 22 22 0 0 1 " dans le
+ * path. Avec la structure actuelle, ce point EST le premier point de bruit
+ * du bord suivant (ou le point M de fermeture pour le dernier arc) : aucun
+ * point théorique de coin fixe n'est utilisé comme intermédiaire (cf.
+ * commentaire de generateTornEdgesPath — régression #51).
+ */
+function extractArcEndpoints(path) {
+  return [...path.matchAll(/A 22 22 0 0 1 ([\d.]+) ([\d.]+)/g)].map(([, x, y]) => [Number(x), Number(y)]);
+}
+
+test('generateTornEdgesPath keeps a wide enough chord across every corner arc (visible quarter-circle, not a flattened/cut corner)', () => {
+  // Régression #51 : un arc de coin (rayon 22, 90°) doit relier directement
+  // le dernier point de bruit d'un bord au premier point de bruit du bord
+  // suivant, avec une corde d'environ 22*√2 ≈ 31px (la vraie corde
+  // géométrique d'un quart de cercle). Une version précédente insérait un
+  // point théorique de coin fixe (ex: (22,180)) entre l'arc et le bruit
+  // suivant : l'arc lui-même ne reliait alors que deux points quasi
+  // identiques (corde < 2px, arc invisible), et le vrai virage de 90° se
+  // faisait sur un segment L en ligne droite juste après — d'où un coin
+  // visuellement coupé au lieu d'arrondi.
+  for (const randomValue of [0.99, 0.95, 0.9, 0.5, 0.1, 0.05, 0.01]) {
+    const path = generateTornEdgesPath(() => randomValue);
+    const arcStarts = [[0, 22], ...extractArcEndpoints(path).slice(0, -1)];
+    const arcEnds = extractArcEndpoints(path);
+
+    arcStarts.forEach(([startX, startY], i) => {
+      const [endX, endY] = arcEnds[i];
+      const chord = Math.hypot(endX - startX, endY - startY);
+      assert.ok(chord > 20, `random=${randomValue} arc ${i}: chord=${chord.toFixed(2)} too short (points ${startX},${startY} and ${endX},${endY} too close)`);
+    });
+  }
+});
+
+test('generateTornEdgesPath never uses a fixed theoretical corner point as an arc endpoint (each arc ends on real jittered noise)', () => {
+  // Régression #51, symptôme direct : une version buggée faisait finir un
+  // arc sur un point de coin théorique fixe (ex: (22,180), (220,22)) au lieu
+  // du premier point de bruit réel du bord suivant. Comme l'amplitude de
+  // bruit est bornée à JITTER_AMPLITUDE_MAX=2.5px, un point d'arc tombant
+  // exactement sur une valeur ronde de coin (0, 22, 198, 220, 180) à plus
+  // de 2.5px de tout point théorique voisin serait suspect ; ici on vérifie
+  // l'inverse et plus direct : sur beaucoup de tirages, aucun point de fin
+  // d'arc ne doit être une valeur entière "ronde" caractéristique d'un coin
+  // fixe (22, 198, 220, 180, 0) alors que jitterAmplitude()/jitterPositions()
+  // ne produisent que des décimales avec bruit.
+  const theoreticalCorners = new Set(['22', '198', '220', '180', '0']);
+  for (let trial = 0; trial < 200; trial += 1) {
+    const path = generateTornEdgesPath();
+    const endpoints = [...path.matchAll(/A 22 22 0 0 1 ([\d.]+) ([\d.]+)/g)];
+    for (const [, x, y] of endpoints) {
+      const bothRound = theoreticalCorners.has(x) && theoreticalCorners.has(y);
+      assert.ok(!bothRound, `trial ${trial}: arc endpoint (${x},${y}) looks like a fixed theoretical corner, not jittered noise`);
+    }
+  }
+});
+
+test('generateTornEdgesPath keeps a wide chord across every corner arc under real Math.random (fuzz, not just fixed samples)', () => {
+  // Complète le test à valeurs fixes ci-dessus avec un fuzz sur de vrais
+  // tirages aléatoires : la régression #51 n'apparaissait que pour certaines
+  // combinaisons de tirages (intermittent selon les cartes), donc un test à
+  // quelques valeurs fixes de random() peut passer sans couvrir le cas réel.
+  for (let trial = 0; trial < 300; trial += 1) {
+    const path = generateTornEdgesPath();
+    const arcStarts = [[0, 22], ...extractArcEndpoints(path).slice(0, -1)];
+    const arcEnds = extractArcEndpoints(path);
+
+    arcStarts.forEach(([startX, startY], i) => {
+      const [endX, endY] = arcEnds[i];
+      const chord = Math.hypot(endX - startX, endY - startY);
+      assert.ok(chord > 20, `trial ${trial} arc ${i}: chord=${chord.toFixed(2)} too short (points ${startX},${startY} and ${endX},${endY} too close)`);
+    });
+  }
+});
+
 test('generateTornEdgesPath produces a different path for each of the 4 edges (not a repeated/mirrored pattern)', () => {
   const path = generateTornEdgesPath(() => 0.5);
-  // Segments entre chaque paire d'arcs consécutifs = un côté de la carte.
+  // 4 arcs -> 5 segments après split ; le premier ("path('M 0 22 ") ne
+  // contient aucun bruit (coin haut-gauche sans irrégularité adjacente,
+  // comme le tracé statique d'origine) et n'est pas un bord à comparer.
   const segments = path.split(/A 22 22 0 0 1 [\d.]+ [\d.]+ /).slice(1);
 
   assert.equal(segments.length, 4);
