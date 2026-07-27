@@ -16,6 +16,12 @@ interface SlotExceptionRepositoryInterface
     /** @return list<SlotException> Demandes envoyées par $groupId, tous statuts confondus. */
     public function findByRequestingGroup(int $groupId): array;
 
+    /**
+     * @return list<SlotException> Exceptions acceptées dont l'occurrence tombe dans la
+     *         semaine en cours (lundi-dimanche) — cf. planning "créneaux occasionnels" #34.
+     */
+    public function findAcceptedForCurrentWeek(): array;
+
     public function createRequest(
         int $recurringSlotId,
         \DateTimeImmutable $occurrenceDate,

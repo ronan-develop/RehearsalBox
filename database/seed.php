@@ -68,10 +68,12 @@ $insertSlot = $pdo->prepare(
     'INSERT INTO recurring_slots (group_id, weekday, start_time, end_time) VALUES (:group_id, :weekday, :start, :end)'
 );
 $insertSlot->execute(['group_id' => $groupIds['Black Sabbath Tribute'], 'weekday' => 1, 'start' => '18:00:00', 'end' => '20:00:00']);
+$blackSabbathSlotId = (int) $pdo->lastInsertId();
 $insertSlot->execute(['group_id' => $groupIds['Dead Kennedys Cover'], 'weekday' => 3, 'start' => '19:00:00', 'end' => '21:00:00']);
 $deadKennedysSlotId = (int) $pdo->lastInsertId();
 $insertSlot->execute(['group_id' => $groupIds['Blackened Sun'], 'weekday' => 0, 'start' => '18:00:00', 'end' => '20:00:00']);
 $insertSlot->execute(['group_id' => $groupIds['Nebula Sprawl'], 'weekday' => 2, 'start' => '20:00:00', 'end' => '22:30:00']);
+$nebulaSprawlSlotId = (int) $pdo->lastInsertId();
 $insertSlot->execute(['group_id' => $groupIds['Rust Prophet'], 'weekday' => 4, 'start' => '19:30:00', 'end' => '22:00:00']);
 $insertSlot->execute(['group_id' => $groupIds['Vacant Riot'], 'weekday' => 5, 'start' => '14:00:00', 'end' => '17:00:00']);
 $insertSlot->execute(['group_id' => $groupIds['Iron Vultures'], 'weekday' => 6, 'start' => '21:00:00', 'end' => '23:30:00']);
@@ -84,6 +86,31 @@ $insertException->execute([
     'slot_id' => $deadKennedysSlotId,
     'requested_group' => $groupIds['Black Sabbath Tribute'],
     'requested_by' => $userIds['alice@rehearsalbox.test'],
+]);
+
+// Créneaux occasionnels (#34) : exceptions déjà acceptées, dont l'occurrence
+// tombe dans la semaine en cours (lundi-dimanche) — visibles dans le planning
+// avec le label "Occasionnel", sur 2 groupes distincts pour illustrer le tri
+// chronologique mélangé avec les créneaux fixes.
+$insertAcceptedException = $pdo->prepare(
+    "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason, responded_by_user_id, responded_at)
+     VALUES (:slot_id, :occurrence_date, 'acceptee', :requested_group, :requested_by, :reason, :responded_by, NOW())"
+);
+$insertAcceptedException->execute([
+    'slot_id' => $blackSabbathSlotId,
+    'occurrence_date' => (new DateTimeImmutable('monday this week'))->format('Y-m-d'),
+    'requested_group' => $groupIds['Rust Prophet'],
+    'requested_by' => $userIds['bob@rehearsalbox.test'],
+    'reason' => 'Session d\'enregistrement, créneau du titulaire libéré cette semaine',
+    'responded_by' => $userIds['alice@rehearsalbox.test'],
+]);
+$insertAcceptedException->execute([
+    'slot_id' => $nebulaSprawlSlotId,
+    'occurrence_date' => (new DateTimeImmutable('wednesday this week'))->format('Y-m-d'),
+    'requested_group' => $groupIds['Vacant Riot'],
+    'requested_by' => $userIds['chris@rehearsalbox.test'],
+    'reason' => null,
+    'responded_by' => $userIds['bob@rehearsalbox.test'],
 ]);
 
 echo "Seed appliqué (mot de passe pour tous les comptes : \"password\").\n";
