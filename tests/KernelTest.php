@@ -11,6 +11,7 @@ use App\Kernel;
 use App\Routing\Router;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\Exception\UnauthenticatedException;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\TestCase;
 
@@ -110,6 +111,46 @@ final class KernelTest extends TestCase
 
         self::assertSame(403, $response->statusCode());
         self::assertStringNotContainsString('application/json', $response->headers()['Content-Type'] ?? '');
+    }
+
+    public function testHandleRedirectsToLoginWhenControllerThrowsUnauthenticatedOnPageRoute(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/', ['dashboard_controller', 'index']);
+
+        $container = new Container();
+        $container->set('dashboard_controller', fn () => new class {
+            public function index(): never
+            {
+                throw new UnauthenticatedException('Connexion requise.');
+            }
+        });
+
+        $kernel = $this->kernel($router, $container);
+        $response = $kernel->handle(new Request('GET', '/', [], [], []));
+
+        self::assertSame(302, $response->statusCode());
+        self::assertSame('/login', $response->headers()['Location']);
+    }
+
+    public function testHandleReturnsJson401WhenControllerThrowsUnauthenticatedOnApiRoute(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/api/availability', ['availability_controller', 'index']);
+
+        $container = new Container();
+        $container->set('availability_controller', fn () => new class {
+            public function index(): never
+            {
+                throw new UnauthenticatedException('Connexion requise.');
+            }
+        });
+
+        $kernel = $this->kernel($router, $container);
+        $response = $kernel->handle(new Request('GET', '/api/availability', [], [], []));
+
+        self::assertSame(401, $response->statusCode());
+        self::assertStringContainsString('application/json', $response->headers()['Content-Type']);
     }
 
     public function testHandleRejectsMutatingApiRequestWithoutCsrfTokenBeforeReachingController(): void
