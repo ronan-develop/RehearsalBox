@@ -13,6 +13,7 @@ use App\Routing\Exception\RouteNotFoundException;
 use App\Routing\Router;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\Exception\UnauthenticatedException;
 
 final class Kernel
 {
@@ -46,6 +47,12 @@ final class Kernel
 
         try {
             return $controller->$method($request, ...array_values($matched->params));
+        } catch (UnauthenticatedException $e) {
+            if (str_starts_with($request->path(), '/api/')) {
+                return $this->errorResponse($request, 401, $e->getMessage());
+            }
+
+            return new Response(statusCode: 302, headers: ['Location' => '/login']);
         } catch (AccessDeniedException $e) {
             return $this->errorResponse($request, 403, $e->getMessage());
         }

@@ -8,6 +8,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\Exception\UnauthenticatedException;
 use App\Service\Contract\AuthServiceInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -50,11 +51,11 @@ final class AuthGuardTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
-    public function testRequireLoginThrowsWhenNoUser(): void
+    public function testRequireLoginThrowsUnauthenticatedWhenNoUser(): void
     {
         $guard = new AuthGuard($this->authServiceReturning(null));
 
-        $this->expectException(AccessDeniedException::class);
+        $this->expectException(UnauthenticatedException::class);
 
         $guard->requireLogin();
     }
@@ -77,11 +78,11 @@ final class AuthGuardTest extends TestCase
         $guard->requireRole(UserRole::Admin);
     }
 
-    public function testRequireRoleThrowsWhenNoUser(): void
+    public function testRequireRoleThrowsUnauthenticatedWhenNoUser(): void
     {
         $guard = new AuthGuard($this->authServiceReturning(null));
 
-        $this->expectException(AccessDeniedException::class);
+        $this->expectException(UnauthenticatedException::class);
 
         $guard->requireRole(UserRole::Admin);
     }

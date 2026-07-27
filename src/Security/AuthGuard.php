@@ -7,6 +7,7 @@ namespace App\Security;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\Exception\UnauthenticatedException;
 use App\Service\Contract\AuthServiceInterface;
 
 final class AuthGuard
@@ -19,7 +20,7 @@ final class AuthGuard
     {
         $user = $this->authService->currentUser();
         if ($user === null) {
-            throw new AccessDeniedException('Connexion requise.');
+            throw new UnauthenticatedException('Connexion requise.');
         }
 
         return $user;

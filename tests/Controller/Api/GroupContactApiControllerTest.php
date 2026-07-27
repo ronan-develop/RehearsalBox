@@ -12,7 +12,7 @@ use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
-use App\Security\Exception\AccessDeniedException;
+use App\Security\Exception\UnauthenticatedException;
 use App\Security\NativePasswordHasher;
 use App\Service\AuthService;
 use App\Service\GroupContactService;
@@ -79,12 +79,12 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
         self::assertNotNull($mailer->sent);
     }
 
-    public function testSendWithoutSessionThrowsAccessDenied(): void
+    public function testSendWithoutSessionThrowsUnauthenticated(): void
     {
         [$controller, $groupRepository] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
 
-        $this->expectException(AccessDeniedException::class);
+        $this->expectException(UnauthenticatedException::class);
 
         $request = new Request('POST', "/api/groups/{$group->id()}/contact", [], ['message' => 'Bonjour'], []);
         $controller->send($request, (string) $group->id());
