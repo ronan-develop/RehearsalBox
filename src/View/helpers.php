@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Entity\Enum\SlotExceptionStatus;
 use App\Entity\Enum\Weekday;
 
 if (!function_exists('e')) {
@@ -32,6 +33,19 @@ if (!function_exists('formatWeekday')) {
             Weekday::Friday => 'Vendredi',
             Weekday::Saturday => 'Samedi',
             Weekday::Sunday => 'Dimanche',
+        };
+    }
+}
+
+if (!function_exists('formatExceptionStatus')) {
+    /** Traduction en français — SlotExceptionStatus::value est le slug technique stocké en base. */
+    function formatExceptionStatus(SlotExceptionStatus $status): string
+    {
+        return match ($status) {
+            SlotExceptionStatus::EnAttente => 'En attente',
+            SlotExceptionStatus::Acceptee => 'Acceptée',
+            SlotExceptionStatus::Refusee => 'Refusée',
+            SlotExceptionStatus::Expiree => 'Expirée',
         };
     }
 }

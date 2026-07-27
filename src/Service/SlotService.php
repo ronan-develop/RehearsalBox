@@ -99,7 +99,7 @@ final class SlotService implements SlotServiceInterface
                 $group = $this->groupRepository->findById($slot->groupId());
                 \assert($group !== null);
 
-                return new RequestableSlot($slot, $group->name());
+                return new RequestableSlot($slot, $group->name(), $group->id());
             },
             $this->slotRepository->findAllActive(),
         );

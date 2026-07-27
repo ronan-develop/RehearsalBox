@@ -101,6 +101,7 @@
   width: 220px;
   height: 180px;
   scroll-snap-align: start;
+  cursor: pointer;
   /* filter: drop-shadow() posé sur le MÊME élément qu'un clip-path ne se
      rend jamais visuellement dans Chromium (constaté : getComputedStyle
      renvoie bien la valeur, le style est appliqué, mais rien n'apparaît à
@@ -228,4 +229,53 @@
 .rb-planning-card-time {
   margin: 0;
   color: #5a5449;
+}
+
+/* Deck de cartes empilées (#42) : chaque carte est positionnée en absolute
+   dans un conteneur à hauteur fixe, décalée/tournée selon sa position dans
+   la pile via --deck-index (posée en JS) — on ne voit que le dessus de la
+   pile + un bout des suivantes en dessous, façon jeu de cartes à jouer. */
+.rb-exception-deck {
+  position: relative;
+  height: 280px;
+  margin-bottom: var(--rb-space-4);
+  /* Empêche le drag/swipe tactile de déclencher un scroll de page pendant
+     la navigation manuelle dans la pile (borné, pas de boucle). */
+  touch-action: pan-y;
+}
+
+.rb-exception-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  --deck-index: 0;
+  --deck-drag-x: 0px;
+  transform:
+    translateX(calc(var(--deck-drag-x) + var(--deck-index) * 10px))
+    translateY(calc(var(--deck-index) * 8px))
+    rotate(calc(var(--deck-index) * 2deg));
+  transform-origin: bottom center;
+  transition: transform 0.25s ease;
+  z-index: calc(100 - var(--deck-index));
+}
+
+.rb-exception-card[data-dragging] {
+  transition: none;
+}
+
+.rb-badge {
+  display: inline-block;
+  margin: 0 var(--rb-space-2) var(--rb-space-2) 0;
+  padding: 2px var(--rb-space-2);
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--rb-surface-strong);
+  border: 1px solid var(--rb-border);
+  color: var(--rb-text-2);
+}
+
+.rb-badge-direction {
+  color: var(--rb-accent-2);
+  border-color: var(--rb-accent-2);
 }

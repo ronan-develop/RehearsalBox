@@ -55,7 +55,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
     public function testIndexReturnsAllActiveSlots(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
@@ -72,7 +72,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
     public function testStoreByAdminReturns201(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
@@ -91,7 +91,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
     public function testStoreByNonAdminThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'musicien@rehearsalbox.test', UserRole::Musicien);
         $authService->attempt('musicien@rehearsalbox.test', 'password');
 
@@ -109,7 +109,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
     public function testStoreWithOverlappingSlotReturns422(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
@@ -127,7 +127,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
     public function testUpdateByAdminReturns200(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
@@ -147,7 +147,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
     public function testDestroyByAdminReturns204(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 

@@ -25,6 +25,10 @@
                 <label for="colorHex">Couleur</label>
                 <input type="color" id="colorHex" name="colorHex" value="#b5654a">
             </div>
+            <div class="rb-field">
+                <label for="contactEmail">Email de contact</label>
+                <input type="email" id="contactEmail" name="contactEmail" class="rb-input" required maxlength="190">
+            </div>
             <button type="submit" class="rb-btn-primary">Créer le groupe</button>
         </form>
 

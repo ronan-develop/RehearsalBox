@@ -55,7 +55,7 @@ final class GroupApiControllerTest extends RepositoryTestCase
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
-        $controller->store(new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null], []));
+        $controller->store(new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'contact@example.test'], []));
 
         $response = $controller->index(new Request('GET', '/api/admin/groups', [], [], []));
 
@@ -65,14 +65,44 @@ final class GroupApiControllerTest extends RepositoryTestCase
 
     public function testStoreByAdminReturns201(): void
     {
-        [$controller, , $userRepository, $authService] = $this->makeController();
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
-        $request = new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => 'metal', 'colorHex' => '#e63946'], []);
+        $request = new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => 'metal', 'colorHex' => '#e63946', 'contactEmail' => 'contact@example.test'], []);
         $response = $controller->store($request);
+        $body = json_decode($response->body(), true);
 
         self::assertSame(201, $response->statusCode());
+        self::assertArrayNotHasKey('contactEmail', $body);
+        $saved = $groupRepository->findById($body['id']);
+        self::assertSame('contact@example.test', $saved->contactEmail());
+    }
+
+    public function testStoreWithMissingContactEmailReturns422(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $request = new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null], []);
+        $response = $controller->store($request);
+
+        self::assertSame(422, $response->statusCode());
+        self::assertCount(0, $groupRepository->findAll());
+    }
+
+    public function testStoreWithInvalidContactEmailReturns422(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $request = new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'pas-un-email'], []);
+        $response = $controller->store($request);
+
+        self::assertSame(422, $response->statusCode());
+        self::assertCount(0, $groupRepository->findAll());
     }
 
     public function testStoreByNonAdminThrowsAccessDenied(): void
@@ -83,7 +113,7 @@ final class GroupApiControllerTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
 
-        $controller->store(new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null], []));
+        $controller->store(new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'contact@example.test'], []));
     }
 
     public function testAddMemberWithKnownEmailReturns200(): void
@@ -91,7 +121,7 @@ final class GroupApiControllerTest extends RepositoryTestCase
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
-        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'alice@rehearsalbox.test', UserRole::Musicien);
 
         $request = new Request('POST', "/api/admin/groups/{$group->id()}/members", [], ['email' => 'alice@rehearsalbox.test'], []);
@@ -105,7 +135,7 @@ final class GroupApiControllerTest extends RepositoryTestCase
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
-        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
 
         $request = new Request('POST', "/api/admin/groups/{$group->id()}/members", [], ['email' => 'inconnu@rehearsalbox.test'], []);
         $response = $controller->addMember($request, (string) $group->id());
@@ -118,7 +148,7 @@ final class GroupApiControllerTest extends RepositoryTestCase
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
         $authService->attempt('admin@rehearsalbox.test', 'password');
-        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $user = $this->createUser($userRepository, 'alice@rehearsalbox.test', UserRole::Musicien);
         $groupRepository->addMember($group->id(), $user->id());
 

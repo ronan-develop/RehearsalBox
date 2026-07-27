@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+if (PHP_SAPI === 'cli-server') {
+    $requestedPath = __DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if ($requestedPath !== __DIR__ . '/index.php' && is_file($requestedPath)) {
+        return false;
+    }
+}
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Http\Request;

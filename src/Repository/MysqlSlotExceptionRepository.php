@@ -127,6 +127,7 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
             requestedByUserId: (int) $row['requested_by_user_id'],
             requestReason: $row['request_reason'] !== null ? (string) $row['request_reason'] : null,
             respondedByUserId: $row['responded_by_user_id'] !== null ? (int) $row['responded_by_user_id'] : null,
+            createdAt: new \DateTimeImmutable((string) $row['created_at']),
         );
     }
 }

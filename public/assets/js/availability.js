@@ -1,9 +1,8 @@
 /**
- * Dashboard disponibilités — rendu initial server-side (cf. plan §5bis),
- * seules les actions (répondre à une demande, en initier une) passent en
- * XHR : le DOM est patché en place, jamais de rechargement de page. Cas
- * 409 (déjà répondue) : toast d'erreur + retrait de la carte pour
- * resynchroniser sans reload complet.
+ * Dashboard disponibilités — rendu initial server-side, seules les actions
+ * (répondre, modifier, annuler une demande) passent en XHR : le DOM est
+ * patché en place, jamais de rechargement de page. Cas 409 (déjà répondue) :
+ * toast d'erreur + retrait de la carte pour resynchroniser sans reload complet.
  */
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
@@ -31,29 +30,6 @@ export async function handleRespond(button, root = document) {
     if (error.status === 409) {
       root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
     }
-  }
-}
-
-export async function handleRequestSubmit(event, root = document) {
-  event.preventDefault();
-  const form = event.target;
-  const formData = new FormData(form);
-
-  try {
-    await apiFetch('/api/availability/request', {
-      method: 'POST',
-      body: JSON.stringify({
-        recurringSlotId: Number(formData.get('recurringSlotId')),
-        occurrenceDate: formData.get('occurrenceDate'),
-        requestingGroupId: Number(formData.get('requestingGroupId')),
-        reason: formData.get('reason') || null,
-      }),
-    });
-
-    showToast('Demande envoyée.', 'success');
-    form.reset();
-  } catch (error) {
-    showToast(error.message, 'error');
   }
 }
 
@@ -112,10 +88,6 @@ export function initAvailability(root = document) {
     if (cancelButton) {
       handleCancel(cancelButton, root);
     }
-  });
-
-  root.querySelector('[data-request-form]')?.addEventListener('submit', (event) => {
-    handleRequestSubmit(event, root);
   });
 
   root.querySelectorAll('[data-update-form]').forEach((form) => {

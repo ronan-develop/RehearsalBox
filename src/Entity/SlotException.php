@@ -17,6 +17,7 @@ final class SlotException
         private readonly int $requestedByUserId,
         private readonly ?string $requestReason,
         private readonly ?int $respondedByUserId,
+        private readonly \DateTimeImmutable $createdAt,
     ) {
     }
 
@@ -63,5 +64,10 @@ final class SlotException
     public function isEnAttente(): bool
     {
         return $this->status === SlotExceptionStatus::EnAttente;
+    }
+
+    public function createdAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
     }
 }

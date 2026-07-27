@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Controller\PageController;
+use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
 use App\Entity\Group;
@@ -50,7 +51,7 @@ final class PageControllerTest extends RepositoryTestCase
             $groupService,
         );
 
-        return [$controller, $groupRepository, $slotService, $userRepository, $authService];
+        return [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository];
     }
 
     private function createLoggedInUser(MysqlUserRepository $userRepository, AuthService $authService): User
@@ -74,13 +75,15 @@ final class PageControllerTest extends RepositoryTestCase
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
         $this->createLoggedInUser($userRepository, $authService);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $slotService->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
         $response = $controller->dashboard();
 
         self::assertStringContainsString('data-planning-slider', $response->body());
         self::assertStringContainsString('Groupe Test', $response->body());
+        self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
+        self::assertStringNotContainsString('contact@example.test', $response->body());
     }
 
     public function testDashboardShowsNoPlanningSliderWhenNoFixedSlots(): void
@@ -91,5 +94,121 @@ final class PageControllerTest extends RepositoryTestCase
         $response = $controller->dashboard();
 
         self::assertStringNotContainsString('data-planning-slider', $response->body());
+    }
+
+    public function testDashboardHidesNavLinksForNonAdmin(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->dashboard();
+
+        self::assertStringNotContainsString('<nav', $response->body());
+        self::assertStringNotContainsString('href="/admin', $response->body());
+        self::assertStringContainsString('data-logout', $response->body());
+    }
+
+    public function testDashboardKeepsNavForAdmin(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $userRepository->save(new User(
+            id: 0,
+            email: 'admin@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Admin Test',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('<nav', $response->body());
+        self::assertStringContainsString('href="/admin/slots"', $response->body());
+        self::assertStringContainsString('href="/admin/groups"', $response->body());
+        self::assertStringContainsString('data-logout', $response->body());
+    }
+
+    public function testDashboardShowsPendingRequestsForAdminWhoIsAlsoGroupMember(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository] = $this->makeController();
+
+        $admin = $userRepository->save(new User(
+            id: 0,
+            email: 'admin@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Admin Test',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Admin', null, null, 'contact@example.test'));
+        $groupRepository->addMember($holderGroup->id(), $admin->id());
+        $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $requester = $userRepository->save(new User(
+            id: 0,
+            email: 'bob@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Bob',
+            role: UserRole::Musicien,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $groupRepository->addMember($requestingGroup->id(), $requester->id());
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $requester->id(), 'Concert samedi');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('data-exception-deck', $response->body());
+        self::assertStringContainsString('Concert samedi', $response->body());
+    }
+
+    public function testDashboardMergesReceivedAndSentExceptionsSortedByCreatedAtDescending(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
+
+        $user = $this->createLoggedInUser($userRepository, $authService);
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $groupRepository->addMember($holderGroup->id(), $user->id());
+        $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $otherGroup = $groupRepository->save(new Group(0, 'Autre Groupe', null, null, 'contact@example.test'));
+        $groupRepository->addMember($otherGroup->id(), $user->id());
+
+        // Demande reçue par $holderGroup (dont $user est membre).
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $otherGroup->id(), $user->id(), 'Demande reçue');
+
+        // Demande envoyée par $otherGroup (dont $user est aussi membre) vers un autre créneau.
+        $otherHolderGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
+        $otherSlot = $slotService->create($otherHolderGroup->id(), Weekday::Wednesday, '18:00:00', '20:00:00');
+        $exceptionRepository->createRequest($otherSlot->id(), new \DateTimeImmutable('2026-08-05'), $otherGroup->id(), $user->id(), 'Demande envoyée');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('data-exception-deck', $response->body());
+        $recuePosition = strpos($response->body(), 'Demande reçue');
+        $envoyeePosition = strpos($response->body(), 'Demande envoyée');
+        self::assertNotFalse($recuePosition);
+        self::assertNotFalse($envoyeePosition);
+        self::assertGreaterThan($recuePosition, $envoyeePosition, 'La demande la plus récente (envoyée en second) doit apparaître en premier.');
+    }
+
+    public function testDashboardHidesExceptionDeckSectionWhenListIsEmpty(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->dashboard();
+
+        self::assertStringNotContainsString('data-exception-deck', $response->body());
     }
 }

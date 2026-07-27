@@ -37,6 +37,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertSame('Concert samedi', $found->requestReason());
         self::assertSame($requestingGroupId, $found->requestedByGroupId());
         self::assertSame($requestingUserId, $found->requestedByUserId());
+        self::assertInstanceOf(\DateTimeImmutable::class, $found->createdAt());
     }
 
     public function testFindByIdReturnsNullWhenNotFound(): void
@@ -221,7 +222,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         $slotRepository = new MysqlRecurringSlotRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null));
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
         $holderSlot = $slotRepository->save(
             new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true)
         );
@@ -236,7 +237,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
             lockedUntil: null,
         ));
 
-        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
         $requestingUser = $userRepository->save(new User(
             id: 0,
             email: 'bob@rehearsalbox.test',

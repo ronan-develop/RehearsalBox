@@ -40,7 +40,7 @@ final class GroupServiceTest extends RepositoryTestCase
     {
         [$service] = $this->makeService();
 
-        $group = $service->create('Black Sabbath Tribute', 'metal', '#e63946');
+        $group = $service->create('Black Sabbath Tribute', 'metal', '#e63946', 'contact@example.test');
 
         self::assertSame('Black Sabbath Tribute', $group->name());
     }
@@ -48,7 +48,7 @@ final class GroupServiceTest extends RepositoryTestCase
     public function testAddMemberByEmailAddsExistingUser(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null);
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
         $user = $this->createUser($userRepository, 'alice@rehearsalbox.test');
 
         $service->addMemberByEmail($group->id(), 'alice@rehearsalbox.test');
@@ -59,7 +59,7 @@ final class GroupServiceTest extends RepositoryTestCase
     public function testAddMemberByEmailWithUnknownEmailThrowsInvalidArgument(): void
     {
         [$service] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null);
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
 
         $this->expectException(\InvalidArgumentException::class);
 
@@ -69,7 +69,7 @@ final class GroupServiceTest extends RepositoryTestCase
     public function testRemoveMemberRemovesExistingMember(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null);
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
         $user = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $service->addMemberByEmail($group->id(), 'bob@rehearsalbox.test');
 
@@ -81,8 +81,8 @@ final class GroupServiceTest extends RepositoryTestCase
     public function testFindAllReturnsEveryGroup(): void
     {
         [$service] = $this->makeService();
-        $service->create('Groupe A', null, null);
-        $service->create('Groupe B', null, null);
+        $service->create('Groupe A', null, null, 'contact@example.test');
+        $service->create('Groupe B', null, null, 'contact@example.test');
 
         self::assertCount(2, $service->findAll());
     }

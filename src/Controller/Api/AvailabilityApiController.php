@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Entity\RequestableSlot;
 use App\Entity\SlotException;
 use App\Http\JsonResponse;
 use App\Http\Request;
@@ -36,29 +35,6 @@ final class AvailabilityApiController
         $exceptions = $this->availabilityService->findByRequestingGroup((int) $groupId, $user->id());
 
         return new JsonResponse(['exceptions' => array_map(self::toArray(...), $exceptions)]);
-    }
-
-    public function requestableSlots(Request $request): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-
-        $slots = $this->availabilityService->findRequestableSlotsFor($user->id());
-
-        return new JsonResponse(['slots' => array_map(self::slotToArray(...), $slots)]);
-    }
-
-    public function request(Request $request): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-
-        $recurringSlotId = (int) $request->body('recurringSlotId', 0);
-        $occurrenceDate = new \DateTimeImmutable((string) $request->body('occurrenceDate', ''));
-        $requestingGroupId = (int) $request->body('requestingGroupId', 0);
-        $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
-
-        $created = $this->availabilityService->request($recurringSlotId, $occurrenceDate, $requestingGroupId, $user->id(), $reason);
-
-        return new JsonResponse(self::toArray($created), 201);
     }
 
     public function respond(Request $request, string $exceptionId): JsonResponse
@@ -101,21 +77,6 @@ final class AvailabilityApiController
         }
 
         return new JsonResponse([], 204);
-    }
-
-    /** @return array<string, mixed> */
-    private static function slotToArray(RequestableSlot $requestableSlot): array
-    {
-        $slot = $requestableSlot->slot();
-
-        return [
-            'id' => $slot->id(),
-            'groupId' => $slot->groupId(),
-            'groupName' => $requestableSlot->groupName(),
-            'weekday' => $slot->weekday()->value,
-            'startTime' => $slot->startTime(),
-            'endTime' => $slot->endTime(),
-        ];
     }
 
     /** @return array<string, mixed> */

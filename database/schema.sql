@@ -22,6 +22,7 @@ CREATE TABLE `groups` (
     name            VARCHAR(120) NOT NULL,
     genre           VARCHAR(60) NULL,
     color_hex       CHAR(7) NULL,
+    contact_email   VARCHAR(190) NOT NULL,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_groups_name (name)
