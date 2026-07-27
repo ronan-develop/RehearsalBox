@@ -96,11 +96,13 @@ const JITTER_AMPLITUDE_MAX = 2.5;
  * Positions strictement croissantes le long d'un segment [0, length] en
  * coordonnées locales, espacées de JITTER_STEP_MIN à JITTER_STEP_MAX (mêmes
  * bornes que le tracé "papier déchiré" d'origine, cf. .rb-planning-card-shape).
- * N'inclut pas les deux extrémités : ce sont les points de tangence avec les
- * arcs de coin (ajoutés séparément par le tracé du bord, cf. buildEdgePoints),
- * un point jitteré trop proche d'un coin écarte le tracé du cercle de rayon
- * 22 et casse visuellement l'arrondi (constaté ticket #51 : coin bas-gauche
- * systématiquement "coupé").
+ * Le dernier point est forcé à un pas minimal de `length` (symétrique au
+ * point de départ implicite à 0) : sans cette garantie, un tirage où le pas
+ * qui fait dépasser le seuil d'arrêt est grand (proche de JITTER_STEP_MAX)
+ * laisse le dernier point poussé à plusieurs pixels du bord réel — assez
+ * pour raccourcir la corde de l'arc de coin voisin (rayon 22) et casser
+ * visuellement l'arrondi (constaté ticket #51 : coin bas-gauche coupé de
+ * façon intermittente, selon le tirage aléatoire de la carte).
  */
 function jitterPositions(length, random) {
   const positions = [];
@@ -114,6 +116,7 @@ function jitterPositions(length, random) {
     x = next;
     positions.push(x);
   }
+  positions.push(Math.round((length - JITTER_STEP_MIN * random() * 0.3) * 10) / 10);
   return positions;
 }
 
@@ -122,20 +125,14 @@ function jitterAmplitude(random) {
 }
 
 /**
- * Construit les points "L x y" d'un bord déchiré entre deux coins, en
- * coordonnées locales le long de l'axe du bord (0 à `length`), puis les
- * projette dans le repère de la carte via `toCardPoint`. Séparer le calcul
- * local de la projection évite de refaire à la main, pour chaque côté, le
- * calcul des bornes exactes de tangence avec les arcs de coin — source du
- * bug #51 (un bord mal borné produisait un arc de coin quasi dégénéré).
+ * Construit la liste [x, y] (pas encore en chaîne "L x y") des points d'un
+ * bord déchiré, en coordonnées locales le long de l'axe du bord (0 à
+ * `length`), projetés dans le repère de la carte via `toCardPoint`. Séparer
+ * le calcul local de la projection évite de refaire à la main, pour chaque
+ * côté, le calcul des bornes exactes de tangence avec les arcs de coin.
  */
 function buildEdgePoints(length, random, toCardPoint) {
-  return jitterPositions(length, random)
-    .map((along) => {
-      const [x, y] = toCardPoint(along, jitterAmplitude(random));
-      return `L ${x} ${y}`;
-    })
-    .join(' ');
+  return jitterPositions(length, random).map((along) => toCardPoint(along, jitterAmplitude(random)));
 }
 
 /**
@@ -144,11 +141,20 @@ function buildEdgePoints(length, random, toCardPoint) {
  * ticket #51, à l'origine la déchirure n'existait qu'entre les deux coins
  * hauts). Les 4 coins sont géométriquement identiques (même rayon) : chaque
  * bord est calculé dans un repère local commun [0, length] x [0, amplitude]
- * puis projeté sur le bord réel de la carte (translation + orientation),
- * ce qui garantit par construction que le tracé démarre et finit pile aux
- * points de tangence des arcs. Chaque bord tire sa propre séquence
- * indépendamment pour ne pas répéter le même motif (random injecté, cf.
- * generateWrinkleStyle plus haut).
+ * puis projeté sur le bord réel de la carte (translation + orientation).
+ *
+ * Point clé : chaque arc `A 22 22 0 0 1 x y` doit relier directement le
+ * dernier point de bruit du bord précédent au premier point de bruit du
+ * bord suivant — jamais un point théorique de coin intermédiaire (ex:
+ * `(22, 180)`). Une première version passait par ce point théorique, ce qui
+ * réduisait la corde de l'arc à moins de 2px (quasi un point), le rendant
+ * visuellement invisible ; le "virage" de 90° se faisait alors sur le
+ * segment L suivant, en ligne droite — d'où le coin visuellement coupé au
+ * lieu d'arrondi (régression #51, constatée après un premier correctif qui
+ * ne portait que sur l'espacement des points, pas sur cette structure).
+ *
+ * Chaque bord tire sa propre séquence indépendamment pour ne pas répéter
+ * le même motif (random injecté, cf. generateWrinkleStyle plus haut).
  */
 export function generateTornEdgesPath(random = Math.random) {
   const topLength = CARD_WIDTH - 2 * CORNER_RADIUS;
@@ -166,15 +172,25 @@ export function generateTornEdgesPath(random = Math.random) {
   const left = buildEdgePoints(verticalLength, random,
     (along, amp) => [amp, Math.round((CARD_HEIGHT - CORNER_RADIUS - along) * 10) / 10]);
 
-  return `path('M 0 22 A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 22 0 `
-    + `${top} `
-    + `A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${CARD_WIDTH} 22 `
-    + `${right} `
-    + `A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${CARD_WIDTH - CORNER_RADIUS} ${CARD_HEIGHT} `
-    + `${bottom} `
-    + `A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${CORNER_RADIUS} ${CARD_HEIGHT} `
-    + `${left} `
-    + `Z')`;
+  const edges = [top, right, bottom, left];
+  const toLine = (points) => points.slice(1).map(([x, y]) => `L ${x} ${y}`).join(' ');
+
+  // 4 arcs de coin au total : le premier va du point M fixe (0,22, sans
+  // bruit — cf. tracé statique d'origine, qui n'a jamais de bruit sur ce
+  // coin précis) vers le premier point de bruit de `top`. Les 3 arcs
+  // suivants relient chaque bord au suivant (top->right->bottom->left).
+  // Le tracé se referme ensuite en ligne droite (Z) du dernier point de
+  // `left` vers M — comme dans l'original, cette dernière ligne reste
+  // courte car ce point est proche du cercle de M, donc visuellement
+  // indissociable d'un arc.
+  let path = `path('M 0 22 A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${top[0][0]} ${top[0][1]} ${toLine(top)} `;
+  for (let i = 1; i < edges.length; i += 1) {
+    const [x, y] = edges[i][0];
+    path += `A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 ${x} ${y} ${toLine(edges[i])} `;
+  }
+  path += `Z')`;
+
+  return path;
 }
 
 function randomizeCardWrinkles(root) {
