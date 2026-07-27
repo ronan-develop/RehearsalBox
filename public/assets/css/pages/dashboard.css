@@ -218,6 +218,29 @@
   transform: translateX(-50%);
 }
 
+/* Label "Occasionnel" (#34) : bande blanche opaque légèrement irrégulière,
+   façon correction au typex/tipp-ex posée à la main sur la carte — signale
+   qu'un créneau n'est pas un fixe récurrent mais une occurrence ponctuelle
+   (exception acceptée cette semaine). Bords en clip-path pour casser la
+   ligne droite, cohérent avec l'esthétique "papier" du reste de la carte. */
+.rb-planning-card-label--occasional {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  z-index: 1;
+  display: inline-block;
+  padding: 2px 12px;
+  background: #f2f0ea;
+  box-shadow: 0 1px 2px rgba(21, 21, 26, 0.35);
+  transform: rotate(-3deg);
+  clip-path: polygon(0% 15%, 4% 0%, 22% 8%, 41% 0%, 58% 10%, 76% 2%, 93% 12%, 100% 0%, 100% 85%, 96% 100%, 79% 90%, 61% 100%, 43% 92%, 24% 100%, 7% 88%, 0% 100%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b6558;
+}
+
 .rb-planning-card-group {
   margin: 0 0 var(--rb-space-2);
   /* Couleur locale à la carte (pas --rb-accent, réutilisé ailleurs pour les

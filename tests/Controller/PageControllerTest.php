@@ -38,7 +38,7 @@ final class PageControllerTest extends RepositoryTestCase
         $authService = new AuthService($userRepository, new NativePasswordHasher(), $session);
         $authGuard = new AuthGuard($authService);
         $availabilityService = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
-        $slotService = new SlotService($slotRepository, $groupRepository);
+        $slotService = new SlotService($slotRepository, $groupRepository, $exceptionRepository);
         $groupService = new GroupService($groupRepository, $userRepository);
 
         $controller = new PageController(

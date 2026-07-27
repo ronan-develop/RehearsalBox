@@ -22,6 +22,9 @@
                 <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>">
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
+                        <?php if (!$requestableSlot->isRecurring()): ?>
+                            <span class="rb-planning-card-label--occasional" aria-hidden="true">Occasionnel</span>
+                        <?php endif; ?>
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
                         <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                         <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>

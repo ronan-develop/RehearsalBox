@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
+use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
@@ -26,12 +27,13 @@ final class SlotApiControllerTest extends RepositoryTestCase
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $slotRepository = new MysqlRecurringSlotRepository($this->pdo);
+        $exceptionRepository = new MysqlSlotExceptionRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, new NativePasswordHasher(), $session);
         $authGuard = new AuthGuard($authService);
-        $slotService = new SlotService($slotRepository, $groupRepository);
+        $slotService = new SlotService($slotRepository, $groupRepository, $exceptionRepository);
 
         $controller = new SlotApiController($slotService, $authGuard);
 
