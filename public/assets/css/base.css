@@ -341,15 +341,18 @@ button:active::after, .rb-btn:active::after {
 .rb-btn-logout-centered {
   min-height: 44px;
   padding: 0 var(--rb-space-4);
-  background: none;
-  border: none;
-  color: var(--rb-text-2);
+  background: transparent;
+  border: 1px solid var(--rb-accent);
+  color: var(--rb-accent);
   font-size: 0.8125rem;
+  font-weight: 600;
   border-radius: var(--rb-radius-sm);
 }
 
+.rb-btn-logout-centered:hover,
 .rb-btn-logout-centered:active {
-  color: var(--rb-accent-2);
+  background: var(--rb-accent);
+  color: #fff;
 }
 
 .rb-toast-container {
