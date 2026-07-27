@@ -49,6 +49,21 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    public function findAcceptedForCurrentWeek(): array
+    {
+        $monday = (new \DateTimeImmutable('today'))->modify('monday this week')->format('Y-m-d');
+        $sunday = (new \DateTimeImmutable('today'))->modify('sunday this week')->format('Y-m-d');
+
+        $statement = $this->pdo->prepare(
+            "SELECT * FROM slot_exceptions
+             WHERE status = 'acceptee' AND occurrence_date BETWEEN :monday AND :sunday
+             ORDER BY occurrence_date"
+        );
+        $statement->execute(['monday' => $monday, 'sunday' => $sunday]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
     public function createRequest(
         int $recurringSlotId,
         \DateTimeImmutable $occurrenceDate,

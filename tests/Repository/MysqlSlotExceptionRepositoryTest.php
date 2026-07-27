@@ -215,6 +215,47 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertFalse($repository->delete(9999));
     }
 
+    public function testFindAcceptedForCurrentWeekReturnsOnlyAcceptedExceptionsWithinMondayToSunday(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $today = new \DateTimeImmutable('today');
+        $monday = $today->modify('monday this week');
+        $sunday = $today->modify('sunday this week');
+
+        $withinWeek = $repository->createRequest($holderSlotId, $monday, $requestingGroupId, $requestingUserId, null);
+        $repository->respond($withinWeek->id(), true, $requestingUserId);
+
+        $beforeWeek = $repository->createRequest($holderSlotId, $monday->modify('-7 days'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($beforeWeek->id(), true, $requestingUserId);
+
+        $afterWeek = $repository->createRequest($holderSlotId, $sunday->modify('+7 days'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($afterWeek->id(), true, $requestingUserId);
+
+        $results = $repository->findAcceptedForCurrentWeek();
+
+        self::assertCount(1, $results);
+        self::assertSame($withinWeek->id(), $results[0]->id());
+    }
+
+    public function testFindAcceptedForCurrentWeekExcludesPendingAndRefusedExceptions(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $monday = (new \DateTimeImmutable('today'))->modify('monday this week');
+
+        $pending = $repository->createRequest($holderSlotId, $monday, $requestingGroupId, $requestingUserId, null);
+
+        $refused = $repository->createRequest($holderSlotId, $monday->modify('+1 day'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($refused->id(), false, $requestingUserId);
+
+        $results = $repository->findAcceptedForCurrentWeek();
+
+        self::assertCount(0, $results);
+    }
+
     /** @return array{0: int, 1: int, 2: int, 3: int, 4: int} [holderSlotId, holderGroupId, holderUserId, requestingGroupId, requestingUserId] */
     private function createHolderAndRequester(): array
     {
