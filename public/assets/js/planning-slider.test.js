@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoScrollController, generateWrinkleStyle, generateExtraWrinkles, pickTapePosition } from './planning-slider.js';
+import { createAutoScrollController, generateWrinkleStyle, generateExtraWrinkles, pickTapePosition, generateTornEdgesPath } from './planning-slider.js';
 
 function makeFakeTrack(offsetWidth = 1000) {
   let translateX = 0;
@@ -179,4 +179,51 @@ test('generateExtraWrinkles produces a size small enough to stay partial (not fu
     assert.ok(w > 0 && w <= 60, `${key} width=${w} should be a partial size`);
     assert.ok(h > 0 && h <= 60, `${key} height=${h} should be a partial size`);
   }
+});
+
+test('generateTornEdgesPath returns a CSS path() starting with the top-left rounded corner arc', () => {
+  const path = generateTornEdgesPath(() => 0.5);
+
+  assert.match(path, /^path\('M 0 22 A 22 22 0 0 1 22 0 /);
+});
+
+test('generateTornEdgesPath closes the shape and preserves the 4 rounded corner arcs (radius 22)', () => {
+  const path = generateTornEdgesPath(() => 0.5);
+
+  const arcs = path.match(/A 22 22 0 0 1/g) || [];
+  assert.equal(arcs.length, 4);
+  assert.match(path, /Z'\)$/);
+});
+
+test('generateTornEdgesPath keeps every jittered point within the 220x180 card bounds', () => {
+  const path = generateTornEdgesPath(() => 0.5);
+  const coords = [...path.matchAll(/L ([\d.]+) ([\d.]+)/g)].map(([, x, y]) => [Number(x), Number(y)]);
+
+  assert.ok(coords.length > 0);
+  for (const [x, y] of coords) {
+    assert.ok(x >= 0 && x <= 220, `x=${x} out of bounds`);
+    assert.ok(y >= 0 && y <= 180, `y=${y} out of bounds`);
+  }
+});
+
+test('generateTornEdgesPath produces a different path for two different random sources (varies per card)', () => {
+  let call = 0;
+  const seqA = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+  const seqB = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2];
+
+  const pathA = generateTornEdgesPath(() => seqA[(call++) % seqA.length]);
+  call = 0;
+  const pathB = generateTornEdgesPath(() => seqB[(call++) % seqB.length]);
+
+  assert.notEqual(pathA, pathB);
+});
+
+test('generateTornEdgesPath produces a different path for each of the 4 edges (not a repeated/mirrored pattern)', () => {
+  const path = generateTornEdgesPath(() => 0.5);
+  // Segments entre chaque paire d'arcs consécutifs = un côté de la carte.
+  const segments = path.split(/A 22 22 0 0 1 [\d.]+ [\d.]+ /).slice(1);
+
+  assert.equal(segments.length, 4);
+  const uniqueSegments = new Set(segments.map((s) => s.trim()));
+  assert.equal(uniqueSegments.size, 4, 'the 4 edges must not share the same jitter sequence');
 });
