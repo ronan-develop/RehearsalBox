@@ -113,4 +113,24 @@ $insertAcceptedException->execute([
     'responded_by' => $userIds['bob@rehearsalbox.test'],
 ]);
 
+// #59 : 5 demandes d'échange déjà acceptées sur le créneau de Black Sabbath
+// Tribute, pour reproduire visuellement le deck de cartes empilées
+// (--deck-index, ticket #42) avec plusieurs cartes dans la pile.
+foreach ([
+    ['Dead Kennedys Cover', 'chris@rehearsalbox.test', '-6 days', 'Studio réservé, échange de créneau'],
+    ['Blackened Sun', 'bob@rehearsalbox.test', '-5 days', 'Répétition avant showcase'],
+    ['Nebula Sprawl', 'chris@rehearsalbox.test', '-4 days', null],
+    ['Vacant Riot', 'bob@rehearsalbox.test', '-3 days', 'Enregistrement démo'],
+    ['Iron Vultures', 'chris@rehearsalbox.test', '-2 days', null],
+] as [$requestingGroup, $requesterEmail, $offset, $reason]) {
+    $insertAcceptedException->execute([
+        'slot_id' => $blackSabbathSlotId,
+        'occurrence_date' => (new DateTimeImmutable($offset))->format('Y-m-d'),
+        'requested_group' => $groupIds[$requestingGroup],
+        'requested_by' => $userIds[$requesterEmail],
+        'reason' => $reason,
+        'responded_by' => $userIds['alice@rehearsalbox.test'],
+    ]);
+}
+
 echo "Seed appliqué (mot de passe pour tous les comptes : \"password\").\n";
