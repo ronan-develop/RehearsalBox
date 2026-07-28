@@ -23,9 +23,17 @@
 }
 
 .rb-group-space-lineup,
-.rb-group-space-shows {
+.rb-group-space-shows,
+.rb-group-space-documents {
   display: grid;
   gap: var(--rb-space-2);
   list-style: none;
   padding: 0;
+}
+
+.rb-group-space-documents li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rb-space-2);
 }

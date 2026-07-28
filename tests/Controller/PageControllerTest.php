@@ -11,6 +11,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
 use App\Entity\Group;
 use App\Entity\User;
+use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
@@ -41,6 +42,7 @@ final class PageControllerTest extends RepositoryTestCase
         $availabilityService = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
         $slotService = new SlotService($slotRepository, $groupRepository, $exceptionRepository);
         $groupService = new GroupService($groupRepository, $userRepository);
+        $groupDocumentRepository = new MysqlGroupDocumentRepository($this->pdo);
 
         $controller = new PageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
@@ -50,6 +52,7 @@ final class PageControllerTest extends RepositoryTestCase
             $groupRepository,
             $slotService,
             $groupService,
+            $groupDocumentRepository,
         );
 
         return [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository];
@@ -237,6 +240,20 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
         self::assertStringContainsString('Groupe Test', $response->body());
+    }
+
+    public function testGroupSpaceListsGroupDocuments(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Gestionnaire);
+        $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
+        $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'fiche technique.pdf', 'abc123.pdf', 'application/pdf', 100, $user->id()));
+
+        $response = $controller->groupSpace((string) $group->id());
+
+        self::assertStringContainsString('fiche technique.pdf', $response->body());
     }
 
     public function testGroupSpaceByNonMemberThrowsAccessDenied(): void

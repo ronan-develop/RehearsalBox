@@ -8,6 +8,7 @@ use App\Entity\DashboardExceptionItem;
 use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
 use App\Http\Response;
+use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
@@ -27,6 +28,7 @@ final class PageController
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly SlotServiceInterface $slotService,
         private readonly GroupServiceInterface $groupService,
+        private readonly GroupDocumentRepositoryInterface $groupDocumentRepository,
     ) {
     }
 
@@ -113,6 +115,7 @@ final class PageController
             'group' => $group,
             'currentUserRole' => $user->role(),
             'currentUserGroupRole' => $this->groupRepository->roleOf($groupId, $user->id()),
+            'documents' => $this->groupDocumentRepository->findByGroup($groupId),
         ]));
     }
 
