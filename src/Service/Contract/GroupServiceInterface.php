@@ -10,6 +10,11 @@ interface GroupServiceInterface
 {
     public function create(string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group;
 
+    /** @throws \InvalidArgumentException si le groupe n'existe pas */
+    public function update(int $groupId, string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group;
+
+    public function delete(int $groupId): void;
+
     /** @throws \InvalidArgumentException si aucun compte n'existe avec cet email */
     public function addMemberByEmail(int $groupId, string $email): void;
 
