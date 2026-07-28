@@ -6,6 +6,7 @@ namespace App\Tests\Controller;
 
 use App\Controller\PageController;
 use App\Entity\Enum\ExceptionDirection;
+use App\Entity\Enum\GroupUserRole;
 use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
 use App\Entity\Group;
@@ -84,6 +85,19 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Groupe Test', $response->body());
         self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
         self::assertStringNotContainsString('contact@example.test', $response->body());
+    }
+
+    public function testDashboardExposesCurrentUserGroupRoleOnPlanningCard(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Gestionnaire);
+        $slotService->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('data-current-user-group-role="gestionnaire"', $response->body());
     }
 
     public function testDashboardShowsNoPlanningSliderWhenNoFixedSlots(): void
