@@ -29,7 +29,9 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         $statement = $this->pdo->prepare(
             "SELECT se.* FROM slot_exceptions se
              INNER JOIN recurring_slots rs ON rs.id = se.recurring_slot_id
-             WHERE rs.group_id = :group_id AND se.status = 'en_attente'
+             WHERE rs.group_id = :group_id
+               AND se.status = 'en_attente'
+               AND se.occurrence_date >= CURDATE()
              ORDER BY se.occurrence_date"
         );
         $statement->execute(['group_id' => $groupId]);
@@ -40,9 +42,10 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
     public function findByRequestingGroup(int $groupId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT * FROM slot_exceptions
+            "SELECT * FROM slot_exceptions
              WHERE requested_by_group_id = :group_id
-             ORDER BY occurrence_date'
+               AND (status != 'en_attente' OR occurrence_date >= CURDATE())
+             ORDER BY occurrence_date"
         );
         $statement->execute(['group_id' => $groupId]);
 

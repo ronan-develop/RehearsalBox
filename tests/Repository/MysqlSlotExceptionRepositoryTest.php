@@ -88,6 +88,68 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(0, $requestedByHolder);
     }
 
+    public function testFindPendingForHolderGroupExcludesPendingExceptionsWithPastOccurrenceDate(): void
+    {
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('yesterday'), $requestingGroupId, $requestingUserId, null);
+
+        $pendingForHolder = $repository->findPendingForHolderGroup($holderGroupId);
+
+        self::assertCount(0, $pendingForHolder);
+    }
+
+    public function testFindPendingForHolderGroupIncludesPendingExceptionOccurringToday(): void
+    {
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('today'), $requestingGroupId, $requestingUserId, null);
+
+        $pendingForHolder = $repository->findPendingForHolderGroup($holderGroupId);
+
+        self::assertCount(1, $pendingForHolder);
+    }
+
+    public function testFindByRequestingGroupExcludesPendingExceptionsWithPastOccurrenceDate(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('yesterday'), $requestingGroupId, $requestingUserId, null);
+
+        $requestedByRequester = $repository->findByRequestingGroup($requestingGroupId);
+
+        self::assertCount(0, $requestedByRequester);
+    }
+
+    public function testFindByRequestingGroupIncludesPendingExceptionOccurringToday(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('today'), $requestingGroupId, $requestingUserId, null);
+
+        $requestedByRequester = $repository->findByRequestingGroup($requestingGroupId);
+
+        self::assertCount(1, $requestedByRequester);
+    }
+
+    public function testFindByRequestingGroupIncludesPastAcceptedExceptionsAsHistory(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $pastAccepted = $repository->createRequest($holderSlotId, new \DateTimeImmutable('yesterday'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($pastAccepted->id(), true, $requestingUserId);
+
+        $requestedByRequester = $repository->findByRequestingGroup($requestingGroupId);
+
+        self::assertCount(1, $requestedByRequester);
+        self::assertSame($pastAccepted->id(), $requestedByRequester[0]->id());
+    }
+
     public function testRespondAcceptedOnPendingExceptionSucceeds(): void
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
