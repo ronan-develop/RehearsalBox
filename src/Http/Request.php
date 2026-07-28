@@ -6,13 +6,19 @@ namespace App\Http;
 
 final class Request
 {
-    /** @param array<string, mixed> $query @param array<string, mixed> $body @param array<string, string> $headers */
+    /**
+     * @param array<string, mixed> $query
+     * @param array<string, mixed> $body
+     * @param array<string, string> $headers
+     * @param array<string, array{name: string, type: string, tmp_name: string, error: int, size: int}> $files
+     */
     public function __construct(
         private readonly string $method,
         private readonly string $path,
         private readonly array $query,
         private readonly array $body,
         private readonly array $headers,
+        private readonly array $files = [],
     ) {
     }
 
@@ -42,6 +48,7 @@ final class Request
             query: $_GET,
             body: $body,
             headers: $headers,
+            files: $_FILES,
         );
     }
 
@@ -74,5 +81,11 @@ final class Request
     public function header(string $name, ?string $default = null): ?string
     {
         return $this->headers[strtoupper($name)] ?? $this->headers[$name] ?? $default;
+    }
+
+    /** @return array{name: string, type: string, tmp_name: string, error: int, size: int}|null */
+    public function file(string $key): ?array
+    {
+        return $this->files[$key] ?? null;
     }
 }

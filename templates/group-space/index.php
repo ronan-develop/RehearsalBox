@@ -45,6 +45,29 @@
                 </form>
             </section>
         <?php endif; ?>
+
+        <section class="rb-group-space-section">
+            <h2>Documents techniques</h2>
+            <ul class="rb-group-space-documents" data-documents-list>
+                <?php foreach ($documents as $document): ?>
+                    <li data-document-id="<?= e((string) $document->id()) ?>">
+                        <a href="/api/documents/<?= e((string) $document->id()) ?>" target="_blank" rel="noopener"><?= e($document->originalName()) ?></a>
+                        <?php if ($currentUserGroupRole?->value === 'gestionnaire'): ?>
+                            <button type="button" class="rb-btn rb-btn-danger" data-delete-document data-document-id="<?= e((string) $document->id()) ?>">Supprimer</button>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <?php if ($currentUserGroupRole?->value === 'gestionnaire'): ?>
+                <form data-document-upload-form data-endpoint="/api/groups/<?= e((string) $group->id()) ?>/documents" enctype="multipart/form-data">
+                    <div class="rb-field">
+                        <label for="document">Ajouter un document (PDF, JPEG, PNG — 10 Mo max)</label>
+                        <input type="file" id="document" name="document" accept="application/pdf,image/jpeg,image/png" required>
+                    </div>
+                    <button type="submit" class="rb-btn rb-btn-primary">Envoyer</button>
+                </form>
+            <?php endif; ?>
+        </section>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>

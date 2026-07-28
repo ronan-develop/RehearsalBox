@@ -6,6 +6,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\GroupContactApiController;
+use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
@@ -42,5 +43,9 @@ return [
         ['POST',   '/api/groups/{id}/contact', [GroupContactApiController::class, 'send']],
         ['GET',    '/api/groups/{id}/space', [GroupSpaceApiController::class, 'show']],
         ['PATCH',  '/api/groups/{id}/space', [GroupSpaceApiController::class, 'updateProfile']],
+        ['POST',   '/api/groups/{id}/documents', [GroupDocumentApiController::class, 'store']],
+        ['GET',    '/api/groups/{id}/documents', [GroupDocumentApiController::class, 'index']],
+        ['GET',    '/api/documents/{id}', [GroupDocumentApiController::class, 'download']],
+        ['DELETE', '/api/documents/{id}', [GroupDocumentApiController::class, 'destroy']],
     ],
 ];

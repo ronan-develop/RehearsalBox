@@ -7,6 +7,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\GroupContactApiController;
+use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
@@ -15,6 +16,8 @@ use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
+use App\Repository\Contract\GroupDocumentRepositoryInterface;
+use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
@@ -32,6 +35,7 @@ use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Service\Contract\SlotServiceInterface;
 use App\Service\GroupContactService;
+use App\Service\GroupDocumentService;
 use App\Service\GroupService;
 use App\Service\SlotService;
 use App\View\PhpTemplateRenderer;
@@ -105,6 +109,7 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(SlotServiceInterface::class),
         $c->get(GroupServiceInterface::class),
+        $c->get(GroupDocumentRepositoryInterface::class),
     ));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
@@ -136,6 +141,20 @@ return static function (array $config): Container {
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(
         $c->get(GroupServiceInterface::class),
         $c->get(GroupRepositoryInterface::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(GroupDocumentRepositoryInterface::class, fn ($c) => new MysqlGroupDocumentRepository($c->get(PDO::class)));
+
+    $container->set(GroupDocumentService::class, fn ($c) => new GroupDocumentService(
+        $c->get(GroupDocumentRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $config['storage']['group_documents_path'],
+        20,
+    ));
+
+    $container->set(GroupDocumentApiController::class, fn ($c) => new GroupDocumentApiController(
+        $c->get(GroupDocumentService::class),
         $c->get(AuthGuard::class),
     ));
 

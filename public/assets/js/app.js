@@ -5,6 +5,7 @@ import { initAdminGroups } from './admin-groups.js';
 import { initPlanningSlider } from './planning-slider.js';
 import { initExceptionDeck } from './exception-deck.js';
 import { initContact } from './contact.js';
+import { initGroupDocuments } from './group-documents.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -14,4 +15,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlanningSlider();
   initExceptionDeck();
   initContact();
+  initGroupDocuments();
 });
