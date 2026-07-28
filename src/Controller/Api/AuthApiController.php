@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Entity\Enum\UserRole;
+use App\Entity\Group;
 use App\Entity\User;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Repository\Contract\UserRepositoryInterface;
+use App\Security\Exception\AccessDeniedException;
 use App\Security\PasswordHasherInterface;
 use App\Service\Contract\AuthServiceInterface;
 
@@ -70,7 +72,32 @@ final class AuthApiController
             return new JsonResponse(['error' => 'Identifiants invalides.'], 401);
         }
 
+        $groupsToSelect = $this->authService->groupsRequiringSelection();
+        if ($groupsToSelect !== []) {
+            return new JsonResponse([
+                'id' => $user->id(),
+                'displayName' => $user->displayName(),
+                'groupsToSelect' => array_map(
+                    static fn (Group $group): array => ['id' => $group->id(), 'name' => $group->name()],
+                    $groupsToSelect,
+                ),
+            ]);
+        }
+
         return new JsonResponse(['id' => $user->id(), 'displayName' => $user->displayName()]);
+    }
+
+    public function selectGroup(Request $request): JsonResponse
+    {
+        $groupId = (int) $request->body('groupId', 0);
+
+        try {
+            $this->authService->selectActiveGroup($groupId);
+        } catch (AccessDeniedException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 403);
+        }
+
+        return new JsonResponse(['status' => 'ok']);
     }
 
     public function logout(Request $request): JsonResponse

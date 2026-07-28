@@ -39,6 +39,15 @@ final class AuthGuardTest extends TestCase
             public function logout(): void
             {
             }
+
+            public function groupsRequiringSelection(): array
+            {
+                return [];
+            }
+
+            public function selectActiveGroup(int $groupId): void
+            {
+            }
         };
     }
 

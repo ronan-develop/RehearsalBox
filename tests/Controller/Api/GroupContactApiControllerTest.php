@@ -31,7 +31,7 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
         $userRepository = new MysqlUserRepository($this->pdo);
 
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session);
+        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
 
         $mailer = new class implements MailerInterface {

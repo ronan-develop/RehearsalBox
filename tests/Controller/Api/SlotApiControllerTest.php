@@ -31,7 +31,7 @@ final class SlotApiControllerTest extends RepositoryTestCase
         $userRepository = new MysqlUserRepository($this->pdo);
 
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session);
+        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
         $slotService = new SlotService($slotRepository, $groupRepository, $exceptionRepository);
 

@@ -6,8 +6,10 @@ namespace App\Tests\Controller\Api;
 
 use App\Controller\Api\AuthApiController;
 use App\Entity\Enum\UserRole;
+use App\Entity\Group;
 use App\Entity\User;
 use App\Http\Request;
+use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\NativePasswordHasher;
 use App\Service\AuthService;
@@ -19,12 +21,13 @@ final class AuthApiControllerTest extends RepositoryTestCase
     private function makeController(): array
     {
         $userRepository = new MysqlUserRepository($this->pdo);
+        $groupRepository = new MysqlGroupRepository($this->pdo);
         $hasher = new NativePasswordHasher();
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, $hasher, $session);
+        $authService = new AuthService($userRepository, $hasher, $session, $groupRepository);
         $controller = new AuthApiController($authService, $userRepository, $hasher);
 
-        return [$controller, $userRepository, $session];
+        return [$controller, $userRepository, $session, $groupRepository];
     }
 
     public function testRegisterCreatesUserAndReturns201(): void
@@ -142,5 +145,98 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $response = $controller->logout(new Request('POST', '/api/auth/logout', [], [], []));
 
         self::assertSame(200, $response->statusCode());
+    }
+
+    public function testLoginWithSingleGroupDoesNotRequireSelection(): void
+    {
+        [$controller, $userRepository, , $groupRepository] = $this->makeController();
+        $user = $userRepository->save(new User(
+            0,
+            'kim@rehearsalbox.test',
+            (new NativePasswordHasher())->hash('password123'),
+            'Kim',
+            UserRole::Musicien,
+            true,
+            0,
+            null,
+        ));
+        $group = $groupRepository->save(new Group(0, 'Groupe Solo', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+
+        $request = new Request('POST', '/api/auth/login', [], ['email' => 'kim@rehearsalbox.test', 'password' => 'password123'], []);
+        $response = $controller->login($request);
+        $body = json_decode($response->body(), true);
+
+        self::assertSame(200, $response->statusCode());
+        self::assertArrayNotHasKey('groupsToSelect', $body);
+    }
+
+    public function testLoginWithMultipleGroupsRequiresSelection(): void
+    {
+        [$controller, $userRepository, , $groupRepository] = $this->makeController();
+        $user = $userRepository->save(new User(
+            0,
+            'liam@rehearsalbox.test',
+            (new NativePasswordHasher())->hash('password123'),
+            'Liam',
+            UserRole::Musicien,
+            true,
+            0,
+            null,
+        ));
+        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
+        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
+        $groupRepository->addMember($groupA->id(), $user->id());
+        $groupRepository->addMember($groupB->id(), $user->id());
+
+        $request = new Request('POST', '/api/auth/login', [], ['email' => 'liam@rehearsalbox.test', 'password' => 'password123'], []);
+        $response = $controller->login($request);
+        $body = json_decode($response->body(), true);
+
+        self::assertSame(200, $response->statusCode());
+        self::assertCount(2, $body['groupsToSelect']);
+    }
+
+    public function testSelectGroupWithMembershipReturns200(): void
+    {
+        [$controller, $userRepository, , $groupRepository] = $this->makeController();
+        $user = $userRepository->save(new User(
+            0,
+            'mona@rehearsalbox.test',
+            (new NativePasswordHasher())->hash('password123'),
+            'Mona',
+            UserRole::Musicien,
+            true,
+            0,
+            null,
+        ));
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+        $controller->login(new Request('POST', '/api/auth/login', [], ['email' => 'mona@rehearsalbox.test', 'password' => 'password123'], []));
+
+        $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $group->id()], []));
+
+        self::assertSame(200, $response->statusCode());
+    }
+
+    public function testSelectGroupWithoutMembershipReturns403(): void
+    {
+        [$controller, $userRepository, , $groupRepository] = $this->makeController();
+        $user = $userRepository->save(new User(
+            0,
+            'noe@rehearsalbox.test',
+            (new NativePasswordHasher())->hash('password123'),
+            'Noe',
+            UserRole::Musicien,
+            true,
+            0,
+            null,
+        ));
+        $otherGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
+        $controller->login(new Request('POST', '/api/auth/login', [], ['email' => 'noe@rehearsalbox.test', 'password' => 'password123'], []));
+
+        $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $otherGroup->id()], []));
+
+        self::assertSame(403, $response->statusCode());
     }
 }
