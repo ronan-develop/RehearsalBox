@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\User;
+use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
+use App\Security\Exception\AccessDeniedException;
 use App\Security\PasswordHasherInterface;
 use App\Security\SessionInterface;
 use App\Service\Contract\AuthServiceInterface;
@@ -13,6 +15,7 @@ use App\Service\Contract\AuthServiceInterface;
 final class AuthService implements AuthServiceInterface
 {
     private const SESSION_KEY_USER_ID = 'user_id';
+    private const SESSION_KEY_ACTIVE_GROUP_ID = 'active_group_id';
     private const MAX_FAILED_ATTEMPTS = 5;
     private const LOCK_DURATION = '+15 minutes';
 
@@ -20,6 +23,7 @@ final class AuthService implements AuthServiceInterface
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordHasherInterface $passwordHasher,
         private readonly SessionInterface $session,
+        private readonly GroupRepositoryInterface $groupRepository,
     ) {
     }
 
@@ -49,6 +53,11 @@ final class AuthService implements AuthServiceInterface
         $this->session->regenerate();
         $this->session->set(self::SESSION_KEY_USER_ID, $user->id());
 
+        $groups = $this->groupRepository->findByMember($user->id());
+        if (count($groups) === 1) {
+            $this->session->set(self::SESSION_KEY_ACTIVE_GROUP_ID, $groups[0]->id());
+        }
+
         return $user;
     }
 
@@ -62,5 +71,28 @@ final class AuthService implements AuthServiceInterface
     public function logout(): void
     {
         $this->session->destroy();
+    }
+
+    public function groupsRequiringSelection(): array
+    {
+        $user = $this->currentUser();
+        if ($user === null) {
+            return [];
+        }
+
+        $groups = $this->groupRepository->findByMember($user->id());
+
+        return count($groups) > 1 ? $groups : [];
+    }
+
+    public function selectActiveGroup(int $groupId): void
+    {
+        $user = $this->currentUser();
+
+        if ($user === null || !$this->groupRepository->isMember($groupId, $user->id())) {
+            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
+        }
+
+        $this->session->set(self::SESSION_KEY_ACTIVE_GROUP_ID, $groupId);
     }
 }

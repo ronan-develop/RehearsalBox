@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Entity\Enum\UserRole;
+use App\Entity\Group;
 use App\Entity\User;
+use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\CsrfTokenManager;
+use App\Security\Exception\AccessDeniedException;
 use App\Security\NativePasswordHasher;
 use App\Service\AuthService;
 use App\Tests\RepositoryTestCase;
@@ -18,10 +21,11 @@ final class AuthServiceTest extends RepositoryTestCase
     private function makeService(): array
     {
         $userRepository = new MysqlUserRepository($this->pdo);
+        $groupRepository = new MysqlGroupRepository($this->pdo);
         $session = new InMemorySession();
-        $service = new AuthService($userRepository, new NativePasswordHasher(), $session);
+        $service = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
 
-        return [$service, $userRepository, $session];
+        return [$service, $userRepository, $session, $groupRepository];
     }
 
     private function createUser(MysqlUserRepository $repository, string $email, string $password): User
@@ -123,5 +127,68 @@ final class AuthServiceTest extends RepositoryTestCase
         $service->logout();
 
         self::assertTrue($session->destroyed);
+    }
+
+    public function testGroupsRequiringSelectionReturnsEmptyWhenSingleGroup(): void
+    {
+        [$service, $userRepository, , $groupRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'fanny@rehearsalbox.test', 'password123');
+        $group = $groupRepository->save(new Group(0, 'Groupe Solo', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+        $service->attempt('fanny@rehearsalbox.test', 'password123');
+
+        self::assertSame([], $service->groupsRequiringSelection());
+    }
+
+    public function testGroupsRequiringSelectionReturnsGroupsWhenMultiple(): void
+    {
+        [$service, $userRepository, , $groupRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'gaby@rehearsalbox.test', 'password123');
+        $groupA = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
+        $groupB = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
+        $groupRepository->addMember($groupA->id(), $user->id());
+        $groupRepository->addMember($groupB->id(), $user->id());
+        $service->attempt('gaby@rehearsalbox.test', 'password123');
+
+        $groups = $service->groupsRequiringSelection();
+
+        self::assertCount(2, $groups);
+    }
+
+    public function testSelectActiveGroupSetsSessionWhenUserIsMember(): void
+    {
+        [$service, $userRepository, $session, $groupRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'hugo@rehearsalbox.test', 'password123');
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+        $service->attempt('hugo@rehearsalbox.test', 'password123');
+
+        $service->selectActiveGroup($group->id());
+
+        self::assertSame($group->id(), $session->get('active_group_id'));
+    }
+
+    public function testSelectActiveGroupThrowsAccessDeniedWhenUserIsNotMember(): void
+    {
+        [$service, $userRepository, , $groupRepository] = $this->makeService();
+        $this->createUser($userRepository, 'ivan@rehearsalbox.test', 'password123');
+        $otherGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
+        $service->attempt('ivan@rehearsalbox.test', 'password123');
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->selectActiveGroup($otherGroup->id());
+    }
+
+    public function testAttemptAutoSelectsActiveGroupWhenUserHasExactlyOneGroup(): void
+    {
+        [$service, $userRepository, $session, $groupRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'jade@rehearsalbox.test', 'password123');
+        $group = $groupRepository->save(new Group(0, 'Groupe Solo', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+
+        $service->attempt('jade@rehearsalbox.test', 'password123');
+
+        self::assertSame($group->id(), $session->get('active_group_id'));
     }
 }
