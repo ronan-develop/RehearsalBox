@@ -88,6 +88,28 @@ $insertException->execute([
     'requested_by' => $userIds['alice@rehearsalbox.test'],
 ]);
 
+// #43 : plusieurs demandes en_attente reçues simultanément sur le créneau
+// de Black Sabbath Tribute (groupe d'Alice) pour visualiser le deck de
+// cartes empilées en dev — sans ça une seule carte "en_attente" ne permet
+// pas de constater visuellement le fix de neutralisation des cartes du dessous.
+$insertPendingReceivedException = $pdo->prepare(
+    "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason)
+     VALUES (:slot_id, :occurrence_date, 'en_attente', :requested_group, :requested_by, :reason)"
+);
+foreach ([
+    ['Rust Prophet', 'bob@rehearsalbox.test', '+7 days', 'Session d\'enregistrement, besoin du créneau'],
+    ['Vacant Riot', 'bob@rehearsalbox.test', '+8 days', null],
+    ['Iron Vultures', 'chris@rehearsalbox.test', '+9 days', 'Répétition avant showcase'],
+] as [$requestingGroup, $requesterEmail, $offset, $reason]) {
+    $insertPendingReceivedException->execute([
+        'slot_id' => $blackSabbathSlotId,
+        'occurrence_date' => (new DateTimeImmutable($offset))->format('Y-m-d'),
+        'requested_group' => $groupIds[$requestingGroup],
+        'requested_by' => $userIds[$requesterEmail],
+        'reason' => $reason,
+    ]);
+}
+
 // Créneaux occasionnels (#34) : exceptions déjà acceptées, dont l'occurrence
 // tombe dans la semaine en cours (lundi-dimanche) — visibles dans le planning
 // avec le label "Occasionnel", sur 2 groupes distincts pour illustrer le tri
@@ -124,6 +146,28 @@ foreach ([
     ['Iron Vultures', 'chris@rehearsalbox.test', '-2 days', null],
 ] as [$requestingGroup, $requesterEmail, $offset, $reason]) {
     $insertAcceptedException->execute([
+        'slot_id' => $blackSabbathSlotId,
+        'occurrence_date' => (new DateTimeImmutable($offset))->format('Y-m-d'),
+        'requested_group' => $groupIds[$requestingGroup],
+        'requested_by' => $userIds[$requesterEmail],
+        'reason' => $reason,
+        'responded_by' => $userIds['alice@rehearsalbox.test'],
+    ]);
+}
+
+// Historique de demandes refusées par Alice sur son créneau (Black Sabbath
+// Tribute) — complète les 5 acceptées ci-dessus (#59) pour un historique
+// réaliste avec les deux issues possibles, visible côté "Reçue" du dashboard.
+$insertRefusedException = $pdo->prepare(
+    "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason, responded_by_user_id, responded_at)
+     VALUES (:slot_id, :occurrence_date, 'refusee', :requested_group, :requested_by, :reason, :responded_by, NOW())"
+);
+foreach ([
+    ['Rust Prophet', 'bob@rehearsalbox.test', '-9 days', 'Test matériel avant concert'],
+    ['Dead Kennedys Cover', 'chris@rehearsalbox.test', '-8 days', 'Créneau déjà pris par un autre groupe'],
+    ['Vacant Riot', 'bob@rehearsalbox.test', '-7 days', null],
+] as [$requestingGroup, $requesterEmail, $offset, $reason]) {
+    $insertRefusedException->execute([
         'slot_id' => $blackSabbathSlotId,
         'occurrence_date' => (new DateTimeImmutable($offset))->format('Y-m-d'),
         'requested_group' => $groupIds[$requestingGroup],

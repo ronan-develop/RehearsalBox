@@ -67,14 +67,16 @@
                             <p class="rb-slot-card-reason"><?= e($exception->requestReason()) ?></p>
                         <?php endif; ?>
                         <?php if ($isRecue && $exception->isEnAttente()): ?>
-                            <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
-                                    data-exception-id="<?= e((string) $exception->id()) ?>">
-                                Accepter
-                            </button>
-                            <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
-                                    data-exception-id="<?= e((string) $exception->id()) ?>">
-                                Refuser
-                            </button>
+                            <div class="rb-exception-card-actions">
+                                <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
+                                        data-exception-id="<?= e((string) $exception->id()) ?>">
+                                    Accepter
+                                </button>
+                                <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
+                                        data-exception-id="<?= e((string) $exception->id()) ?>">
+                                    Refuser
+                                </button>
+                            </div>
                         <?php elseif (!$isRecue && $exception->isEnAttente()): ?>
                             <form data-update-form data-exception-id="<?= e((string) $exception->id()) ?>">
                                 <div class="rb-field">
@@ -87,12 +89,14 @@
                                     <input type="text" id="request-reason-<?= e((string) $exception->id()) ?>" name="reason"
                                            class="rb-input" value="<?= e($exception->requestReason() ?? '') ?>">
                                 </div>
-                                <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
+                                <div class="rb-exception-card-actions">
+                                    <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
+                                    <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
+                                            data-exception-id="<?= e((string) $exception->id()) ?>">
+                                        Annuler
+                                    </button>
+                                </div>
                             </form>
-                            <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
-                                    data-exception-id="<?= e((string) $exception->id()) ?>">
-                                Annuler
-                            </button>
                         <?php endif; ?>
                     </article>
                 <?php endforeach; ?>

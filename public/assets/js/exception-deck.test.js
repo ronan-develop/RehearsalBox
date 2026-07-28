@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDeckSwipeController } from './exception-deck.js';
+import { createDeckSwipeController, computeCardState } from './exception-deck.js';
 
 test('createDeckSwipeController starts at index 0', () => {
   const controller = createDeckSwipeController({ count: 3 });
@@ -117,4 +117,25 @@ test('createDeckSwipeController.dragOffset() resets to 0 after drag ends', () =>
   controller.handleDragEnd(150);
 
   assert.equal(controller.dragOffset(), 0);
+});
+
+test('computeCardState() marks the active card (relativeIndex 0) as interactive', () => {
+  const state = computeCardState(0);
+
+  assert.equal(state.pointerEvents, 'auto');
+  assert.equal(state.hidden, false);
+});
+
+test('computeCardState() disables pointer-events on cards behind the active one', () => {
+  const state = computeCardState(1);
+
+  assert.equal(state.pointerEvents, 'none');
+  assert.equal(state.hidden, false);
+});
+
+test('computeCardState() disables pointer-events on cards already swiped away (negative relativeIndex)', () => {
+  const state = computeCardState(-1);
+
+  assert.equal(state.pointerEvents, 'none');
+  assert.equal(state.hidden, true);
 });

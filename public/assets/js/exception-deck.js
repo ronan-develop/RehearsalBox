@@ -58,6 +58,20 @@ export function createDeckSwipeController({ count, threshold = 80 }) {
   };
 }
 
+/**
+ * Neutralise les cartes hors du dessus de pile : sans ça, boutons et
+ * formulaires des cartes en profondeur restent cliquables/focusables malgré
+ * leur position visuelle en arrière-plan (transform + z-index seuls ne
+ * suffisent pas). Piloté ici plutôt qu'en CSS pour suivre la carte
+ * réellement active après un swipe, pas juste sa position dans le DOM.
+ */
+export function computeCardState(relativeIndex) {
+  return {
+    pointerEvents: relativeIndex === 0 ? 'auto' : 'none',
+    hidden: relativeIndex < 0,
+  };
+}
+
 export function initExceptionDeck(root = document) {
   const deck = root.querySelector('[data-exception-deck]');
   if (!deck) {
@@ -74,9 +88,11 @@ export function initExceptionDeck(root = document) {
   function render() {
     cards.forEach((card, cardPosition) => {
       const relativeIndex = cardPosition - controller.currentIndex();
+      const { pointerEvents, hidden } = computeCardState(relativeIndex);
       card.style.setProperty('--deck-index', relativeIndex < 0 ? '0' : String(relativeIndex));
       card.style.setProperty('--deck-drag-x', relativeIndex === 0 ? `${controller.dragOffset()}px` : '0px');
-      card.hidden = relativeIndex < 0;
+      card.style.pointerEvents = pointerEvents;
+      card.hidden = hidden;
     });
   }
 
