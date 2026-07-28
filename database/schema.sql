@@ -23,6 +23,8 @@ CREATE TABLE `groups` (
     genre           VARCHAR(60) NULL,
     color_hex       CHAR(7) NULL,
     contact_email   VARCHAR(190) NOT NULL,
+    lineup          JSON NULL,
+    upcoming_shows  JSON NULL,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_groups_name (name)
