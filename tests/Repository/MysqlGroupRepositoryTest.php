@@ -7,6 +7,8 @@ namespace App\Tests\Repository;
 use App\Entity\Enum\GroupUserRole;
 use App\Entity\Enum\UserRole;
 use App\Entity\Group;
+use App\Entity\LineupMember;
+use App\Entity\UpcomingShow;
 use App\Entity\User;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -181,6 +183,40 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         $groupRepository->demoteToMember($group->id(), $user->id());
 
         self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $user->id()));
+    }
+
+    public function testSaveThenFindByIdReturnsLineupAndUpcomingShows(): void
+    {
+        $repository = new MysqlGroupRepository($this->pdo);
+        $group = new Group(
+            0,
+            'Groupe Test',
+            null,
+            null,
+            'contact@example.test',
+            [new LineupMember('Alice', 'Guitare'), new LineupMember('Bob', 'Batterie')],
+            [new UpcomingShow('2026-09-12', 'Le Point Éphémère')],
+        );
+
+        $inserted = $repository->save($group);
+        $found = $repository->findById($inserted->id());
+
+        self::assertCount(2, $found->lineup());
+        self::assertSame('Alice', $found->lineup()[0]->name());
+        self::assertSame('Guitare', $found->lineup()[0]->instrument());
+        self::assertCount(1, $found->upcomingShows());
+        self::assertSame('Le Point Éphémère', $found->upcomingShows()[0]->venue());
+    }
+
+    public function testSaveWithoutLineupReturnsEmptyArrays(): void
+    {
+        $repository = new MysqlGroupRepository($this->pdo);
+
+        $inserted = $repository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $found = $repository->findById($inserted->id());
+
+        self::assertSame([], $found->lineup());
+        self::assertSame([], $found->upcomingShows());
     }
 
     public function testCountManagersCountsOnlyGestionnaireRole(): void
