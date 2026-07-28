@@ -44,6 +44,37 @@ final class GroupApiController
         return new JsonResponse(self::toArray($group), 201);
     }
 
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $this->authGuard->requireRole(UserRole::Admin);
+
+        $name = (string) $request->body('name', '');
+        $genre = $request->body('genre') !== null ? (string) $request->body('genre') : null;
+        $colorHex = $request->body('colorHex') !== null ? (string) $request->body('colorHex') : null;
+        $contactEmail = (string) $request->body('contactEmail', '');
+
+        if (filter_var($contactEmail, FILTER_VALIDATE_EMAIL) === false) {
+            return new JsonResponse(['error' => "L'email de contact est requis et doit être valide."], 422);
+        }
+
+        try {
+            $group = $this->groupService->update((int) $id, $name, $genre, $colorHex, $contactEmail);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 422);
+        }
+
+        return new JsonResponse(self::toArray($group));
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $this->authGuard->requireRole(UserRole::Admin);
+
+        $this->groupService->delete((int) $id);
+
+        return new JsonResponse([], 204);
+    }
+
     public function addMember(Request $request, string $id): JsonResponse
     {
         $this->authGuard->requireRole(UserRole::Admin);

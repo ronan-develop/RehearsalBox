@@ -99,6 +99,29 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    public function testDeleteThenFindByIdReturnsNull(): void
+    {
+        $repository = new MysqlGroupRepository($this->pdo);
+        $group = $repository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        $repository->delete($group->id());
+
+        self::assertNull($repository->findById($group->id()));
+    }
+
+    public function testDeleteCascadesToGroupMembers(): void
+    {
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $userRepository = new MysqlUserRepository($this->pdo);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $user = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+
+        $groupRepository->delete($group->id());
+
+        self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
+    }
+
     private function newUser(string $email): User
     {
         return new User(

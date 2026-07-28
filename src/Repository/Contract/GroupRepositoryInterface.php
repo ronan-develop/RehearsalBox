@@ -18,6 +18,8 @@ interface GroupRepositoryInterface
 
     public function save(Group $group): Group;
 
+    public function delete(int $id): void;
+
     public function addMember(int $groupId, int $userId): void;
 
     public function removeMember(int $groupId, int $userId): void;

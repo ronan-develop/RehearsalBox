@@ -78,6 +78,38 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    public function testUpdateChangesGroupFields(): void
+    {
+        [$service] = $this->makeService();
+        $group = $service->create('Groupe Test', 'metal', '#e63946', 'contact@example.test');
+
+        $updated = $service->update($group->id(), 'Nouveau Nom', 'punk', '#123456', 'nouveau@example.test');
+
+        self::assertSame('Nouveau Nom', $updated->name());
+        self::assertSame('punk', $updated->genre());
+        self::assertSame('#123456', $updated->colorHex());
+        self::assertSame('nouveau@example.test', $updated->contactEmail());
+    }
+
+    public function testUpdateWithUnknownGroupThrowsInvalidArgument(): void
+    {
+        [$service] = $this->makeService();
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $service->update(9999, 'Nom', null, null, 'contact@example.test');
+    }
+
+    public function testDeleteRemovesGroup(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+
+        $service->delete($group->id());
+
+        self::assertNull($groupRepository->findById($group->id()));
+    }
+
     public function testFindAllReturnsEveryGroup(): void
     {
         [$service] = $this->makeService();

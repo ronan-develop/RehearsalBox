@@ -73,6 +73,12 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         return $this->findById($group->id());
     }
 
+    public function delete(int $id): void
+    {
+        $statement = $this->pdo->prepare('DELETE FROM `groups` WHERE id = :id');
+        $statement->execute(['id' => $id]);
+    }
+
     public function addMember(int $groupId, int $userId): void
     {
         $statement = $this->pdo->prepare(

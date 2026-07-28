@@ -32,6 +32,8 @@ return [
         ['DELETE', '/api/admin/slots/{id}', [SlotApiController::class, 'destroy']],
         ['GET',    '/api/admin/groups', [GroupApiController::class, 'index']],
         ['POST',   '/api/admin/groups', [GroupApiController::class, 'store']],
+        ['PATCH',  '/api/admin/groups/{id}', [GroupApiController::class, 'update']],
+        ['DELETE', '/api/admin/groups/{id}', [GroupApiController::class, 'destroy']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
         ['POST',   '/api/groups/{id}/contact', [GroupContactApiController::class, 'send']],

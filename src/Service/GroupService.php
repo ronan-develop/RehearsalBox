@@ -22,6 +22,20 @@ final class GroupService implements GroupServiceInterface
         return $this->groupRepository->save(new Group(0, $name, $genre, $colorHex, $contactEmail));
     }
 
+    public function update(int $groupId, string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group
+    {
+        if ($this->groupRepository->findById($groupId) === null) {
+            throw new \InvalidArgumentException("Groupe {$groupId} introuvable.");
+        }
+
+        return $this->groupRepository->save(new Group($groupId, $name, $genre, $colorHex, $contactEmail));
+    }
+
+    public function delete(int $groupId): void
+    {
+        $this->groupRepository->delete($groupId);
+    }
+
     public function addMemberByEmail(int $groupId, string $email): void
     {
         $user = $this->userRepository->findByEmail($email);

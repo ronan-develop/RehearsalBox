@@ -116,6 +116,75 @@ final class GroupApiControllerTest extends RepositoryTestCase
         $controller->store(new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'contact@example.test'], []));
     }
 
+    public function testUpdateByAdminReturns200(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        $request = new Request('PATCH', "/api/admin/groups/{$group->id()}", [], ['name' => 'Nouveau Nom', 'genre' => 'punk', 'colorHex' => '#123456', 'contactEmail' => 'nouveau@example.test'], []);
+        $response = $controller->update($request, (string) $group->id());
+        $body = json_decode($response->body(), true);
+
+        self::assertSame(200, $response->statusCode());
+        self::assertSame('Nouveau Nom', $body['name']);
+        $saved = $groupRepository->findById($group->id());
+        self::assertSame('nouveau@example.test', $saved->contactEmail());
+    }
+
+    public function testUpdateWithUnknownGroupReturns422(): void
+    {
+        [$controller, , $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $request = new Request('PATCH', '/api/admin/groups/9999', [], ['name' => 'Nom', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'contact@example.test'], []);
+        $response = $controller->update($request, '9999');
+
+        self::assertSame(422, $response->statusCode());
+    }
+
+    public function testUpdateByNonAdminThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'musicien@rehearsalbox.test', UserRole::Musicien);
+        $authService->attempt('musicien@rehearsalbox.test', 'password');
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        $this->expectException(AccessDeniedException::class);
+
+        $controller->update(
+            new Request('PATCH', "/api/admin/groups/{$group->id()}", [], ['name' => 'Nom', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'contact@example.test'], []),
+            (string) $group->id(),
+        );
+    }
+
+    public function testDestroyByAdminReturns204(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        $response = $controller->destroy(new Request('DELETE', "/api/admin/groups/{$group->id()}", [], [], []), (string) $group->id());
+
+        self::assertSame(204, $response->statusCode());
+        self::assertNull($groupRepository->findById($group->id()));
+    }
+
+    public function testDestroyByNonAdminThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'musicien@rehearsalbox.test', UserRole::Musicien);
+        $authService->attempt('musicien@rehearsalbox.test', 'password');
+        $group = $groupRepository->save(new \App\Entity\Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        $this->expectException(AccessDeniedException::class);
+
+        $controller->destroy(new Request('DELETE', "/api/admin/groups/{$group->id()}", [], [], []), (string) $group->id());
+    }
+
     public function testAddMemberWithKnownEmailReturns200(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
