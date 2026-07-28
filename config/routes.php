@@ -21,6 +21,7 @@ return [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
         ['POST', '/api/auth/register', [AuthApiController::class, 'register']],
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
+        ['POST', '/api/auth/select-group', [AuthApiController::class, 'selectGroup']],
         ['GET',  '/api/availability/pending/{groupId}', [AvailabilityApiController::class, 'pendingForGroup']],
         ['GET',  '/api/availability/requested/{groupId}', [AvailabilityApiController::class, 'requestedByGroup']],
         ['POST', '/api/availability/{exceptionId}/respond', [AvailabilityApiController::class, 'respond']],
