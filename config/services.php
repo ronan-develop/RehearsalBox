@@ -7,6 +7,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\GroupContactApiController;
+use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
 use App\Database\ConnectionFactory;
@@ -129,6 +130,12 @@ return static function (array $config): Container {
 
     $container->set(GroupContactApiController::class, fn ($c) => new GroupContactApiController(
         $c->get(GroupContactService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(
+        $c->get(GroupServiceInterface::class),
+        $c->get(GroupRepositoryInterface::class),
         $c->get(AuthGuard::class),
     ));
 

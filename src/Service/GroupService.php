@@ -6,6 +6,8 @@ namespace App\Service;
 
 use App\Entity\Enum\GroupUserRole;
 use App\Entity\Group;
+use App\Entity\LineupMember;
+use App\Entity\UpcomingShow;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
@@ -76,6 +78,26 @@ final class GroupService implements GroupServiceInterface
         }
 
         $this->groupRepository->demoteToMember($groupId, $userId);
+    }
+
+    public function updateProfile(int $groupId, array $lineup, array $upcomingShows, int $actorUserId): Group
+    {
+        $this->assertActorIsManager($groupId, $actorUserId);
+
+        $existing = $this->groupRepository->findById($groupId);
+        if ($existing === null) {
+            throw new \InvalidArgumentException("Groupe {$groupId} introuvable.");
+        }
+
+        return $this->groupRepository->save(new Group(
+            $existing->id(),
+            $existing->name(),
+            $existing->genre(),
+            $existing->colorHex(),
+            $existing->contactEmail(),
+            $lineup,
+            $upcomingShows,
+        ));
     }
 
     private function assertActorIsManager(int $groupId, int $actorUserId): void
