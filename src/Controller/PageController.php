@@ -11,6 +11,7 @@ use App\Http\Response;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
+use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Service\Contract\SlotServiceInterface;
@@ -90,6 +91,28 @@ final class PageController
             'slots' => $this->slotService->findAllActive(),
             'groups' => $this->groupService->findAll(),
             'currentUserRole' => $user->role(),
+        ]));
+    }
+
+    public function groupSpace(string $id): Response
+    {
+        $user = $this->authGuard->requireLogin();
+        $groupId = (int) $id;
+
+        if (!$this->groupRepository->isMember($groupId, $user->id())) {
+            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
+        }
+
+        $group = $this->groupRepository->findById($groupId);
+        if ($group === null) {
+            throw new AccessDeniedException('Groupe introuvable.');
+        }
+
+        return new Response($this->renderer->render('group-space/index', [
+            'csrfToken' => $this->csrfTokenManager->getToken(),
+            'group' => $group,
+            'currentUserRole' => $user->role(),
+            'currentUserGroupRole' => $this->groupRepository->roleOf($groupId, $user->id()),
         ]));
     }
 

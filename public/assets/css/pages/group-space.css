@@ -1,0 +1,31 @@
+.rb-group-space-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--rb-space-4);
+  padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
+}
+
+.rb-group-space-back {
+  display: inline-block;
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-group-space-header h1 {
+  margin-bottom: var(--rb-space-1);
+}
+
+.rb-group-space-genre {
+  color: var(--rb-text-muted);
+}
+
+.rb-group-space-section {
+  margin-top: var(--rb-space-5);
+}
+
+.rb-group-space-lineup,
+.rb-group-space-shows {
+  display: grid;
+  gap: var(--rb-space-2);
+  list-style: none;
+  padding: 0;
+}

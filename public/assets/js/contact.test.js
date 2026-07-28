@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { openContactModal, closeContactModal, handleContactSubmit, initContact } from './contact.js';
+import { openContactModal, closeContactModal, handleContactSubmit, initContact, handlePlanningCardActivation } from './contact.js';
 
 function fakeOverlay() {
   const state = { hidden: true, titleText: '', groupIdInputValue: '', formReset: false };
@@ -171,3 +171,28 @@ test('initContact opens the modal when pressing Space on a planning card', () =>
 
   assert.equal(state.hidden, false);
 });
+
+test('handlePlanningCardActivation opens the contact modal when the user has no role on the group', () => {
+  const { state, overlay } = fakeOverlay();
+  const root = fakeRoot(overlay);
+  const card = { dataset: { contactGroupId: '5', contactGroupName: 'Groupe Tiers' } };
+  let navigated = null;
+
+  handlePlanningCardActivation(card, root, (url) => { navigated = url; });
+
+  assert.equal(state.hidden, false);
+  assert.equal(navigated, null);
+});
+
+test('handlePlanningCardActivation navigates to the group space when the user has a role on the group', () => {
+  const { state, overlay } = fakeOverlay();
+  const root = fakeRoot(overlay);
+  const card = { dataset: { contactGroupId: '5', contactGroupName: 'Mon Groupe', currentUserGroupRole: 'membre' } };
+  let navigated = null;
+
+  handlePlanningCardActivation(card, root, (url) => { navigated = url; });
+
+  assert.equal(navigated, '/groups/5/space');
+  assert.equal(state.hidden, true);
+});
+
