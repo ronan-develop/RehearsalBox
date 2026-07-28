@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository\Contract;
 
+use App\Entity\Enum\GroupUserRole;
 use App\Entity\Group;
 
 interface GroupRepositoryInterface
@@ -20,9 +21,17 @@ interface GroupRepositoryInterface
 
     public function delete(int $id): void;
 
-    public function addMember(int $groupId, int $userId): void;
+    public function addMember(int $groupId, int $userId, GroupUserRole $role = GroupUserRole::Membre): void;
 
     public function removeMember(int $groupId, int $userId): void;
 
     public function isMember(int $groupId, int $userId): bool;
+
+    public function roleOf(int $groupId, int $userId): ?GroupUserRole;
+
+    public function promoteToManager(int $groupId, int $userId): void;
+
+    public function demoteToMember(int $groupId, int $userId): void;
+
+    public function countManagers(int $groupId): int;
 }

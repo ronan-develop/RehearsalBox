@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Enum\GroupUserRole;
 use App\Entity\Group;
 use App\Repository\Contract\GroupRepositoryInterface;
 
@@ -79,12 +80,12 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         $statement->execute(['id' => $id]);
     }
 
-    public function addMember(int $groupId, int $userId): void
+    public function addMember(int $groupId, int $userId, GroupUserRole $role = GroupUserRole::Membre): void
     {
         $statement = $this->pdo->prepare(
-            'INSERT INTO group_user (group_id, user_id) VALUES (:group_id, :user_id)'
+            'INSERT INTO group_user (group_id, user_id, role) VALUES (:group_id, :user_id, :role)'
         );
-        $statement->execute(['group_id' => $groupId, 'user_id' => $userId]);
+        $statement->execute(['group_id' => $groupId, 'user_id' => $userId, 'role' => $role->value]);
     }
 
     public function removeMember(int $groupId, int $userId): void
@@ -103,6 +104,46 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         $statement->execute(['group_id' => $groupId, 'user_id' => $userId]);
 
         return $statement->fetchColumn() !== false;
+    }
+
+    public function roleOf(int $groupId, int $userId): ?GroupUserRole
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT role FROM group_user WHERE group_id = :group_id AND user_id = :user_id'
+        );
+        $statement->execute(['group_id' => $groupId, 'user_id' => $userId]);
+
+        $role = $statement->fetchColumn();
+
+        return $role === false ? null : GroupUserRole::from($role);
+    }
+
+    public function promoteToManager(int $groupId, int $userId): void
+    {
+        $this->updateRole($groupId, $userId, GroupUserRole::Gestionnaire);
+    }
+
+    public function demoteToMember(int $groupId, int $userId): void
+    {
+        $this->updateRole($groupId, $userId, GroupUserRole::Membre);
+    }
+
+    public function countManagers(int $groupId): int
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM group_user WHERE group_id = :group_id AND role = 'gestionnaire'"
+        );
+        $statement->execute(['group_id' => $groupId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    private function updateRole(int $groupId, int $userId, GroupUserRole $role): void
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE group_user SET role = :role WHERE group_id = :group_id AND user_id = :user_id'
+        );
+        $statement->execute(['role' => $role->value, 'group_id' => $groupId, 'user_id' => $userId]);
     }
 
     /** @param array<string, mixed> $row */
