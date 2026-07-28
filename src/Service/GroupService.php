@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Enum\GroupUserRole;
 use App\Entity\Group;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
+use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\GroupServiceInterface;
 
 final class GroupService implements GroupServiceInterface
@@ -54,5 +56,32 @@ final class GroupService implements GroupServiceInterface
     public function findAll(): array
     {
         return $this->groupRepository->findAll();
+    }
+
+    public function promoteMember(int $groupId, int $userId, int $actorUserId): void
+    {
+        $this->assertActorIsManager($groupId, $actorUserId);
+
+        $this->groupRepository->promoteToManager($groupId, $userId);
+    }
+
+    public function demoteMember(int $groupId, int $userId, int $actorUserId): void
+    {
+        $this->assertActorIsManager($groupId, $actorUserId);
+
+        if ($this->groupRepository->roleOf($groupId, $userId) === GroupUserRole::Gestionnaire
+            && $this->groupRepository->countManagers($groupId) <= 1
+        ) {
+            throw new \LogicException('Impossible de rétrograder le dernier gestionnaire du groupe.');
+        }
+
+        $this->groupRepository->demoteToMember($groupId, $userId);
+    }
+
+    private function assertActorIsManager(int $groupId, int $actorUserId): void
+    {
+        if ($this->groupRepository->roleOf($groupId, $actorUserId) !== GroupUserRole::Gestionnaire) {
+            throw new AccessDeniedException("Vous n'êtes pas gestionnaire de ce groupe.");
+        }
     }
 }

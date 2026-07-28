@@ -44,6 +44,11 @@ final class PageController
         $user = $this->authGuard->requireLogin();
         $groups = $this->groupRepository->findByMember($user->id());
 
+        $groupRoles = [];
+        foreach ($groups as $group) {
+            $groupRoles[$group->id()] = $this->groupRepository->roleOf($group->id(), $user->id());
+        }
+
         $items = [];
         $seenPendingIds = [];
         $seenRequestedIds = [];
@@ -72,6 +77,7 @@ final class PageController
             'planningSlots' => $this->slotService->findPlanningSlots(),
             'dashboardExceptions' => $items,
             'currentUserRole' => $user->role(),
+            'currentUserGroupRoles' => $groupRoles,
         ]));
     }
 

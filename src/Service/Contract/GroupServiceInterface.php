@@ -22,4 +22,13 @@ interface GroupServiceInterface
 
     /** @return list<Group> */
     public function findAll(): array;
+
+    /** @throws \App\Security\Exception\AccessDeniedException si $actorUserId n'est pas gestionnaire du groupe */
+    public function promoteMember(int $groupId, int $userId, int $actorUserId): void;
+
+    /**
+     * @throws \App\Security\Exception\AccessDeniedException si $actorUserId n'est pas gestionnaire du groupe
+     * @throws \LogicException si $userId est le dernier gestionnaire du groupe
+     */
+    public function demoteMember(int $groupId, int $userId, int $actorUserId): void;
 }
