@@ -276,7 +276,7 @@
    pile + un bout des suivantes en dessous, façon jeu de cartes à jouer. */
 .rb-exception-deck {
   position: relative;
-  height: 280px;
+  height: 420px;
   margin-bottom: var(--rb-space-4);
   /* Empêche le drag/swipe tactile de déclencher un scroll de page pendant
      la navigation manuelle dans la pile (borné, pas de boucle). */
@@ -296,10 +296,24 @@
   transform-origin: bottom center;
   transition: transform 0.25s ease;
   z-index: calc(100 - var(--deck-index));
+  box-shadow: 4px 4px 12px rgba(255, 255, 255, 0.15);
 }
 
 .rb-exception-card[data-dragging] {
   transition: none;
+}
+
+/* Actions (Accepter/Refuser, ou le bouton Modifier du formulaire + Annuler)
+   côte à côte plutôt qu'empilées — .rb-btn-primary est en width: 100% par
+   défaut (base.css), on le restreint ici au contexte de la carte. */
+.rb-exception-card-actions {
+  display: flex;
+  gap: var(--rb-space-2);
+}
+
+.rb-exception-card-actions .rb-btn {
+  width: auto;
+  flex: 1;
 }
 
 .rb-badge {
