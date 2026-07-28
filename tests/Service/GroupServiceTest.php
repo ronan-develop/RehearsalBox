@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\Entity\Enum\GroupUserRole;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
+use App\Security\Exception\AccessDeniedException;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 
@@ -117,5 +119,73 @@ final class GroupServiceTest extends RepositoryTestCase
         $service->create('Groupe B', null, null, 'contact@example.test');
 
         self::assertCount(2, $service->findAll());
+    }
+
+    public function testPromoteMemberByGestionnaireChangesRole(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $member = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $member->id());
+
+        $service->promoteMember($group->id(), $member->id(), $manager->id());
+
+        self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $member->id()));
+    }
+
+    public function testPromoteMemberByNonGestionnaireThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $actor = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $actor->id());
+        $member = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $member->id());
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->promoteMember($group->id(), $member->id(), $actor->id());
+    }
+
+    public function testDemoteMemberByGestionnaireChangesRole(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $otherManager = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $otherManager->id(), GroupUserRole::Gestionnaire);
+
+        $service->demoteMember($group->id(), $otherManager->id(), $manager->id());
+
+        self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $otherManager->id()));
+    }
+
+    public function testDemoteLastManagerThrowsLogicException(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+
+        $this->expectException(\LogicException::class);
+
+        $service->demoteMember($group->id(), $manager->id(), $manager->id());
+    }
+
+    public function testDemoteMemberByNonGestionnaireThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $actor = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $actor->id());
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->demoteMember($group->id(), $manager->id(), $actor->id());
     }
 }
