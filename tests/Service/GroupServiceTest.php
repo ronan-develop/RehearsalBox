@@ -6,6 +6,8 @@ namespace App\Tests\Service;
 
 use App\Entity\Enum\GroupUserRole;
 use App\Entity\Enum\UserRole;
+use App\Entity\LineupMember;
+use App\Entity\UpcomingShow;
 use App\Entity\User;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -187,5 +189,47 @@ final class GroupServiceTest extends RepositoryTestCase
         $this->expectException(AccessDeniedException::class);
 
         $service->demoteMember($group->id(), $manager->id(), $actor->id());
+    }
+
+    public function testUpdateProfileByGestionnaireSavesLineupAndShows(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+
+        $updated = $service->updateProfile(
+            $group->id(),
+            [new LineupMember('Alice', 'Guitare')],
+            [new UpcomingShow('2026-09-12', 'Le Point Éphémère')],
+            $manager->id(),
+        );
+
+        self::assertCount(1, $updated->lineup());
+        self::assertSame('Alice', $updated->lineup()[0]->name());
+        self::assertCount(1, $updated->upcomingShows());
+    }
+
+    public function testUpdateProfileByNonGestionnaireThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $member = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $member->id());
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->updateProfile($group->id(), [], [], $member->id());
+    }
+
+    public function testUpdateProfileByNonMemberThrowsAccessDenied(): void
+    {
+        [$service, , $userRepository] = $this->makeService();
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+        $stranger = $this->createUser($userRepository, 'chris@rehearsalbox.test');
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->updateProfile($group->id(), [], [], $stranger->id());
     }
 }

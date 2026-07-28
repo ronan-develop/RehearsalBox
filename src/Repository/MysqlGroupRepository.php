@@ -6,6 +6,8 @@ namespace App\Repository;
 
 use App\Entity\Enum\GroupUserRole;
 use App\Entity\Group;
+use App\Entity\LineupMember;
+use App\Entity\UpcomingShow;
 use App\Repository\Contract\GroupRepositoryInterface;
 
 final class MysqlGroupRepository implements GroupRepositoryInterface
@@ -46,22 +48,27 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
 
     public function save(Group $group): Group
     {
+        $lineup = json_encode(array_map(static fn (LineupMember $m): array => $m->toArray(), $group->lineup()), JSON_THROW_ON_ERROR);
+        $upcomingShows = json_encode(array_map(static fn (UpcomingShow $s): array => $s->toArray(), $group->upcomingShows()), JSON_THROW_ON_ERROR);
+
         if ($group->id() === 0) {
             $statement = $this->pdo->prepare(
-                'INSERT INTO `groups` (name, genre, color_hex, contact_email) VALUES (:name, :genre, :color_hex, :contact_email)'
+                'INSERT INTO `groups` (name, genre, color_hex, contact_email, lineup, upcoming_shows) VALUES (:name, :genre, :color_hex, :contact_email, :lineup, :upcoming_shows)'
             );
             $statement->execute([
                 'name' => $group->name(),
                 'genre' => $group->genre(),
                 'color_hex' => $group->colorHex(),
                 'contact_email' => $group->contactEmail(),
+                'lineup' => $lineup,
+                'upcoming_shows' => $upcomingShows,
             ]);
 
             return $this->findById((int) $this->pdo->lastInsertId());
         }
 
         $statement = $this->pdo->prepare(
-            'UPDATE `groups` SET name = :name, genre = :genre, color_hex = :color_hex, contact_email = :contact_email WHERE id = :id'
+            'UPDATE `groups` SET name = :name, genre = :genre, color_hex = :color_hex, contact_email = :contact_email, lineup = :lineup, upcoming_shows = :upcoming_shows WHERE id = :id'
         );
         $statement->execute([
             'id' => $group->id(),
@@ -69,6 +76,8 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
             'genre' => $group->genre(),
             'color_hex' => $group->colorHex(),
             'contact_email' => $group->contactEmail(),
+            'lineup' => $lineup,
+            'upcoming_shows' => $upcomingShows,
         ]);
 
         return $this->findById($group->id());
@@ -149,12 +158,17 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): Group
     {
+        $lineup = $row['lineup'] !== null ? json_decode((string) $row['lineup'], true, flags: JSON_THROW_ON_ERROR) : [];
+        $upcomingShows = $row['upcoming_shows'] !== null ? json_decode((string) $row['upcoming_shows'], true, flags: JSON_THROW_ON_ERROR) : [];
+
         return new Group(
             id: (int) $row['id'],
             name: (string) $row['name'],
             genre: $row['genre'] !== null ? (string) $row['genre'] : null,
             colorHex: $row['color_hex'] !== null ? (string) $row['color_hex'] : null,
             contactEmail: (string) $row['contact_email'],
+            lineup: array_map(static fn (array $m): LineupMember => LineupMember::fromArray($m), $lineup),
+            upcomingShows: array_map(static fn (array $s): UpcomingShow => UpcomingShow::fromArray($s), $upcomingShows),
         );
     }
 }

@@ -21,6 +21,16 @@ export function openContactModal(button, root = document) {
   overlay.hidden = false;
 }
 
+export function handlePlanningCardActivation(card, root = document, navigate = (url) => { window.location.href = url; }) {
+  const groupRole = card.dataset.currentUserGroupRole;
+  if (groupRole) {
+    navigate(`/groups/${card.dataset.contactGroupId}/space`);
+    return;
+  }
+
+  openContactModal(card, root);
+}
+
 export function closeContactModal(root = document) {
   const overlay = root.querySelector('[data-contact-modal-overlay]');
   if (!overlay) {
@@ -54,7 +64,7 @@ export function initContact(root = document) {
   root.addEventListener('click', (event) => {
     const contactButton = event.target.closest('[data-contact-group-id]');
     if (contactButton) {
-      openContactModal(contactButton, root);
+      handlePlanningCardActivation(contactButton, root);
     }
 
     if (event.target.closest('[data-contact-modal-cancel]')) {
@@ -79,7 +89,7 @@ export function initContact(root = document) {
       const contactCard = event.target.closest('[data-contact-group-id]');
       if (contactCard) {
         event.preventDefault();
-        openContactModal(contactCard, root);
+        handlePlanningCardActivation(contactCard, root);
       }
     }
   });

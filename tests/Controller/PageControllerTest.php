@@ -225,4 +225,28 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringNotContainsString('data-exception-deck', $response->body());
     }
+
+    public function testGroupSpaceByMemberShowsGroupName(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+
+        $response = $controller->groupSpace((string) $group->id());
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('Groupe Test', $response->body());
+    }
+
+    public function testGroupSpaceByNonMemberThrowsAccessDenied(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
+
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
+
+        $controller->groupSpace((string) $group->id());
+    }
 }

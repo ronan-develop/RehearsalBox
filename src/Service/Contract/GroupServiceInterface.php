@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Service\Contract;
 
 use App\Entity\Group;
+use App\Entity\LineupMember;
+use App\Entity\UpcomingShow;
 
 interface GroupServiceInterface
 {
@@ -31,4 +33,11 @@ interface GroupServiceInterface
      * @throws \LogicException si $userId est le dernier gestionnaire du groupe
      */
     public function demoteMember(int $groupId, int $userId, int $actorUserId): void;
+
+    /**
+     * @param list<LineupMember> $lineup
+     * @param list<UpcomingShow> $upcomingShows
+     * @throws \App\Security\Exception\AccessDeniedException si $actorUserId n'est pas gestionnaire du groupe
+     */
+    public function updateProfile(int $groupId, array $lineup, array $upcomingShows, int $actorUserId): Group;
 }
