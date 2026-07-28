@@ -20,8 +20,9 @@ function getCsrfToken() {
 
 export async function apiFetch(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {}),
   };
 
