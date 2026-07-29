@@ -25,12 +25,6 @@
     margin-inline: calc(50% - 50vw);
   }
 
-  .rb-exception-deck {
-    /* Moins oppressant sur grand écran (cf. retour utilisateur) : la
-       carte ne s'étire pas sur toute la largeur du container. */
-    max-width: 420px;
-    margin-inline: auto;
-  }
 }
 
 .rb-dashboard-header {
@@ -324,13 +318,100 @@
    dans un conteneur à hauteur fixe, décalée/tournée selon sa position dans
    la pile via --deck-index (posée en JS) — on ne voit que le dessus de la
    pile + un bout des suivantes en dessous, façon jeu de cartes à jouer. */
+/* Deck de cartes empilées (#42) : chaque carte est positionnée en absolute
+   dans un conteneur à hauteur fixe, décalée/tournée selon sa position dans
+   la pile via --deck-index (posée en JS) — on ne voit que le dessus de la
+   pile + un bout des suivantes en dessous, façon jeu de cartes à jouer. */
+.rb-exception-deck-wrapper {
+  position: relative;
+  margin-bottom: var(--rb-space-6);
+  padding: var(--rb-space-5);
+  /* Léger halo clair en bas-droite (cf. retour utilisateur) pour donner
+     du relief à la pierre — filter: drop-shadow() plutôt que box-shadow
+     car il suit la forme réelle après clip-path (box-shadow resterait
+     rectangulaire et casserait l'effet de bord irrégulier). filter:
+     drop-shadow() posé sur le MÊME élément qu'un clip-path ne se rend
+     jamais visuellement dans Chromium (même bug documenté sur
+     .rb-planning-card ci-dessus) : le filtre est donc porté par ce
+     wrapper SANS clip-path ; le fond pierre + la découpe irrégulière
+     sont déportés sur l'enfant .rb-exception-deck-stone ci-dessous. */
+  filter: drop-shadow(3px 3px 6px rgba(255, 255, 255, 0.08));
+}
+
+.rb-exception-deck-stone {
+  position: absolute;
+  inset: 0;
+  /* Effet pierre/roche (#96, référence hellfest.fr : fond texturé sur des
+     blocs spécifiques, pas sur toute la page). Asset local
+     (public/assets/img/pierre.jpg), pas de dépendance externe. */
+  background-color: var(--rb-bg);
+  background-image: url('/assets/img/pierre.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* Bords irréguliers façon roche cassée sur les 4 côtés (référence
+     hellfest.fr). clip-path: polygon() en pourcentages (pas path() en
+     pixels) : le wrapper suit maintenant la pleine largeur du viewport
+     (2rem de marge, cf. retour utilisateur), donc doit s'adapter à
+     n'importe quelle largeur — polygon() en % le permet, contrairement
+     à path() qui exige des coordonnées absolues. Contrepartie : pas de
+     coins arrondis natifs possibles en même temps qu'un clip-path
+     (border-radius + clip-path ne cohabitent pas). Amplitude 0.3-0.9%
+     sur 45 segments par bord : équilibre entre une découpe trop
+     grossière (dents visibles, cf. retour utilisateur "trop grossiers")
+     et une découpe trop fine devenue invisible à l'oeil (cf. retour
+     utilisateur "je ne vois rien"). Chaque bord garde son propre jitter
+     jusque dans les coins théoriques (pas de point figé exact à
+     0%/100%) pour éviter l'effet de pic net entre un point théorique
+     parfait et son voisin jitteré (cf. retour utilisateur "casse-moi
+     cet effet pic dans les coins") ; bord gauche calculé en miroir
+     horizontal du bord droit (même séquence d'amplitudes, cf. retour
+     utilisateur "applique l'inverse en face"). Tracé statique, pas de
+     variation aléatoire nécessaire (un seul wrapper par page). */
+  clip-path: polygon(
+    0% 0.761%, 2.222% 0.79%, 4.444% 0.683%, 6.667% 0.584%, 8.889% 0.746%, 11.111% 0.467%, 13.333% 0.423%, 15.556% 0.601%,
+    17.778% 0.433%, 20% 0.527%, 22.222% 0.605%, 24.444% 0.83%, 26.667% 0.546%, 28.889% 0.407%, 31.111% 0.71%, 33.333% 0.731%,
+    35.556% 0.857%, 37.778% 0.321%, 40% 0.731%, 42.222% 0.407%, 44.444% 0.514%, 46.667% 0.796%, 48.889% 0.505%, 51.111% 0.34%,
+    53.333% 0.576%, 55.556% 0.801%, 57.778% 0.647%, 60% 0.322%, 62.222% 0.347%, 64.444% 0.486%, 66.667% 0.883%, 68.889% 0.59%,
+    71.111% 0.707%, 73.333% 0.709%, 75.556% 0.583%, 77.778% 0.36%, 80% 0.65%, 82.222% 0.574%, 84.444% 0.895%, 86.667% 0.357%,
+    88.889% 0.813%, 91.111% 0.762%, 93.333% 0.679%, 95.556% 0.352%, 97.778% 0.811%, 100% 0.666%, 99.31% 0%, 99.157% 2.222%,
+    99.521% 4.444%, 99.638% 6.667%, 99.563% 8.889%, 99.244% 11.111%, 99.583% 13.333%, 99.504% 15.556%, 99.219% 17.778%, 99.497% 20%,
+    99.329% 22.222%, 99.194% 24.444%, 99.128% 26.667%, 99.389% 28.889%, 99.521% 31.111%, 99.428% 33.333%, 99.433% 35.556%, 99.35% 37.778%,
+    99.546% 40%, 99.213% 42.222%, 99.629% 44.444%, 99.232% 46.667%, 99.677% 48.889%, 99.511% 51.111%, 99.436% 53.333%, 99.375% 55.556%,
+    99.343% 57.778%, 99.307% 60%, 99.259% 62.222%, 99.477% 64.444%, 99.197% 66.667%, 99.677% 68.889%, 99.663% 71.111%, 99.456% 73.333%,
+    99.18% 75.556%, 99.649% 77.778%, 99.232% 80%, 99.318% 82.222%, 99.187% 84.444%, 99.476% 86.667%, 99.24% 88.889%, 99.227% 91.111%,
+    99.338% 93.333%, 99.297% 95.556%, 99.518% 97.778%, 99.168% 100%, 100% 99.225%, 97.778% 99.29%, 95.556% 99.222%, 93.333% 99.341%,
+    91.111% 99.657%, 88.889% 99.6%, 86.667% 99.159%, 84.444% 99.608%, 82.222% 99.646%, 80% 99.528%, 77.778% 99.394%, 75.556% 99.611%,
+    73.333% 99.498%, 71.111% 99.265%, 68.889% 99.143%, 66.667% 99.319%, 64.444% 99.47%, 62.222% 99.693%, 60% 99.242%, 57.778% 99.66%,
+    55.556% 99.111%, 53.333% 99.517%, 51.111% 99.485%, 48.889% 99.448%, 46.667% 99.192%, 44.444% 99.194%, 42.222% 99.152%, 40% 99.12%,
+    37.778% 99.639%, 35.556% 99.675%, 33.333% 99.548%, 31.111% 99.268%, 28.889% 99.465%, 26.667% 99.528%, 24.444% 99.531%, 22.222% 99.374%,
+    20% 99.309%, 17.778% 99.48%, 15.556% 99.651%, 13.333% 99.142%, 11.111% 99.363%, 8.889% 99.345%, 6.667% 99.276%, 4.444% 99.431%,
+    2.222% 99.308%, 0% 99.361%, 0.832% 100%, 0.482% 97.778%, 0.703% 95.556%, 0.662% 93.333%, 0.773% 91.111%, 0.76% 88.889%,
+    0.524% 86.667%, 0.813% 84.444%, 0.682% 82.222%, 0.768% 80%, 0.351% 77.778%, 0.82% 75.556%, 0.544% 73.333%, 0.337% 71.111%,
+    0.323% 68.889%, 0.803% 66.667%, 0.523% 64.444%, 0.741% 62.222%, 0.693% 60%, 0.657% 57.778%, 0.625% 55.556%, 0.564% 53.333%,
+    0.489% 51.111%, 0.323% 48.889%, 0.768% 46.667%, 0.371% 44.444%, 0.787% 42.222%, 0.454% 40%, 0.65% 37.778%, 0.567% 35.556%,
+    0.572% 33.333%, 0.479% 31.111%, 0.611% 28.889%, 0.872% 26.667%, 0.806% 24.444%, 0.671% 22.222%, 0.503% 20%, 0.781% 17.778%,
+    0.496% 15.556%, 0.417% 13.333%, 0.756% 11.111%, 0.437% 8.889%, 0.362% 6.667%, 0.479% 4.444%, 0.843% 2.222%, 0.69% 0%
+  );
+}
+
 .rb-exception-deck {
   position: relative;
   height: 420px;
-  margin-bottom: var(--rb-space-4);
   /* Empêche le drag/swipe tactile de déclencher un scroll de page pendant
      la navigation manuelle dans la pile (borné, pas de boucle). */
   touch-action: pan-y;
+}
+
+@media (min-width: 768px) {
+  .rb-exception-deck {
+    /* Moins oppressant sur grand écran (cf. retour utilisateur) : la
+       pile de cartes ne s'étire pas sur toute la largeur du wrapper
+       pierre (qui, lui, occupe toute la largeur du container avec 2rem
+       de marge du viewport, cf. .rb-dashboard-page). */
+    max-width: 420px;
+    margin-inline: auto;
+  }
 }
 
 .rb-exception-card {

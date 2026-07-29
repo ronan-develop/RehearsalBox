@@ -95,7 +95,9 @@
         </section>
 
         <?php if ($dashboardExceptions !== []): ?>
-            <section class="rb-exception-deck" data-exception-deck>
+            <section class="rb-exception-deck-wrapper">
+                <div class="rb-exception-deck-stone" aria-hidden="true"></div>
+                <div class="rb-exception-deck" data-exception-deck>
                 <?php foreach ($dashboardExceptions as $deckPosition => $item): ?>
                     <?php
                     $exception = $item->exception();
@@ -146,6 +148,7 @@
                         <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
+                </div>
             </section>
         <?php endif; ?>
 
