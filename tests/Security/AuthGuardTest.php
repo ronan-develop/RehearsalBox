@@ -95,4 +95,18 @@ final class AuthGuardTest extends TestCase
 
         $guard->requireRole(UserRole::Admin);
     }
+
+    public function testCurrentUserOrNullReturnsUserWhenAuthenticated(): void
+    {
+        $guard = new AuthGuard($this->authServiceReturning($this->user(UserRole::Musicien)));
+
+        self::assertNotNull($guard->currentUserOrNull());
+    }
+
+    public function testCurrentUserOrNullReturnsNullWhenNotAuthenticated(): void
+    {
+        $guard = new AuthGuard($this->authServiceReturning(null));
+
+        self::assertNull($guard->currentUserOrNull());
+    }
 }

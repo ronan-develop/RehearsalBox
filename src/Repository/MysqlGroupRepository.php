@@ -9,6 +9,7 @@ use App\Entity\Group;
 use App\Entity\LineupMember;
 use App\Entity\UpcomingShow;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Support\Slug;
 
 final class MysqlGroupRepository implements GroupRepositoryInterface
 {
@@ -24,6 +25,17 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
         return $row === false ? null : $this->hydrate($row);
+    }
+
+    public function findBySlug(string $slug): ?Group
+    {
+        foreach ($this->findAll() as $group) {
+            if (Slug::from($group->name()) === $slug) {
+                return $group;
+            }
+        }
+
+        return null;
     }
 
     public function findAll(): array

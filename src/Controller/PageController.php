@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\DashboardExceptionItem;
 use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
+use App\Http\Request;
 use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
@@ -96,26 +97,22 @@ final class PageController
         ]));
     }
 
-    public function groupSpace(string $id): Response
+    public function groupSpace(Request $request, string $slug): Response
     {
-        $user = $this->authGuard->requireLogin();
-        $groupId = (int) $id;
-
-        if (!$this->groupRepository->isMember($groupId, $user->id())) {
-            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
-        }
-
-        $group = $this->groupRepository->findById($groupId);
+        $group = $this->groupRepository->findBySlug($slug);
         if ($group === null) {
             throw new AccessDeniedException('Groupe introuvable.');
         }
 
+        $user = $this->authGuard->currentUserOrNull();
+        $isMember = $user !== null && $this->groupRepository->isMember($group->id(), $user->id());
+
         return new Response($this->renderer->render('group-space/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'group' => $group,
-            'currentUserRole' => $user->role(),
-            'currentUserGroupRole' => $this->groupRepository->roleOf($groupId, $user->id()),
-            'documents' => $this->groupDocumentRepository->findByGroup($groupId),
+            'currentUserRole' => $user?->role(),
+            'currentUserGroupRole' => $isMember ? $this->groupRepository->roleOf($group->id(), $user->id()) : null,
+            'documents' => $isMember ? $this->groupDocumentRepository->findByGroup($group->id()) : [],
         ]));
     }
 

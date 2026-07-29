@@ -33,9 +33,22 @@ export async function handleDocumentDelete(documentId, fetcher = apiFetch) {
   await fetcher(`/api/documents/${documentId}`, { method: 'DELETE' });
 }
 
+export function updateFileFieldName(input) {
+  const nameSpan = input.closest('.rb-file-field')?.querySelector('[data-file-field-name]');
+  if (!nameSpan) {
+    return;
+  }
+
+  nameSpan.textContent = input.files[0]?.name ?? 'Aucun fichier choisi';
+}
+
 export function initGroupDocuments(root = document) {
   root.querySelector('[data-document-upload-form]')?.addEventListener('submit', (event) => {
     handleDocumentUpload(event);
+  });
+
+  root.querySelector('.rb-file-field-input')?.addEventListener('change', (event) => {
+    updateFileFieldName(event.target);
   });
 
   root.addEventListener('click', async (event) => {

@@ -18,7 +18,7 @@ return [
         ['GET', '/register', [PageController::class, 'register']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
-        ['GET', '/groups/{id}/space', [PageController::class, 'groupSpace']],
+        ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
     ],
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],

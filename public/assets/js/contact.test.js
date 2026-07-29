@@ -184,15 +184,15 @@ test('handlePlanningCardActivation opens the contact modal when the user has no 
   assert.equal(navigated, null);
 });
 
-test('handlePlanningCardActivation navigates to the group space when the user has a role on the group', () => {
+test('handlePlanningCardActivation navigates to the group space by slug when the user has a role on the group', () => {
   const { state, overlay } = fakeOverlay();
   const root = fakeRoot(overlay);
-  const card = { dataset: { contactGroupId: '5', contactGroupName: 'Mon Groupe', currentUserGroupRole: 'membre' } };
+  const card = { dataset: { contactGroupId: '5', contactGroupName: 'Mon Groupe', contactGroupSlug: 'mon-groupe', currentUserGroupRole: 'membre' } };
   let navigated = null;
 
   handlePlanningCardActivation(card, root, (url) => { navigated = url; });
 
-  assert.equal(navigated, '/groups/5/space');
+  assert.equal(navigated, '/groups/mon-groupe/space');
   assert.equal(state.hidden, true);
 });
 

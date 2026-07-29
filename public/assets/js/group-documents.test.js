@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleDocumentUpload, handleDocumentDelete } from './group-documents.js';
+import { handleDocumentUpload, handleDocumentDelete, updateFileFieldName } from './group-documents.js';
 
 function fakeForm(endpoint, fileInputValue) {
   const listeners = {};
@@ -43,6 +43,26 @@ test('handleDocumentUpload posts the file as FormData to the form endpoint', asy
 
   delete globalThis.document;
   delete globalThis.window;
+});
+
+test('updateFileFieldName shows the selected file name', () => {
+  const nameSpan = { textContent: 'Aucun fichier choisi' };
+  const container = { querySelector: (selector) => (selector === '[data-file-field-name]' ? nameSpan : null) };
+  const input = { files: [{ name: 'fiche-technique.pdf' }], closest: () => container };
+
+  updateFileFieldName(input);
+
+  assert.equal(nameSpan.textContent, 'fiche-technique.pdf');
+});
+
+test('updateFileFieldName resets to the placeholder when no file is selected', () => {
+  const nameSpan = { textContent: 'fiche-technique.pdf' };
+  const container = { querySelector: (selector) => (selector === '[data-file-field-name]' ? nameSpan : null) };
+  const input = { files: [], closest: () => container };
+
+  updateFileFieldName(input);
+
+  assert.equal(nameSpan.textContent, 'Aucun fichier choisi');
 });
 
 test('handleDocumentDelete calls the API with DELETE on the document endpoint', async () => {

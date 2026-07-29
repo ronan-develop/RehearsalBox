@@ -20,7 +20,7 @@
                 $slot = $requestableSlot->slot();
                 $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
                 ?>
-                <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
+                <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
                         <?php if (!$requestableSlot->isRecurring()): ?>

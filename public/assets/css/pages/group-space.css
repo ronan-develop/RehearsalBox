@@ -7,7 +7,9 @@
 
 .rb-group-space-back {
   display: inline-block;
+  width: auto;
   margin-bottom: var(--rb-space-3);
+  text-decoration: none;
 }
 
 .rb-group-space-header h1 {
@@ -15,7 +17,7 @@
 }
 
 .rb-group-space-genre {
-  color: var(--rb-text-muted);
+  color: var(--rb-text-2);
 }
 
 .rb-group-space-section {
@@ -36,4 +38,20 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--rb-space-2);
+}
+
+.rb-group-space-editor-group {
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-group-space-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-2);
+}
+
+.rb-group-space-editor-row .rb-input {
+  flex: 1 1 auto;
+  min-width: 0;
 }

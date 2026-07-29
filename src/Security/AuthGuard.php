@@ -36,4 +36,9 @@ final class AuthGuard
 
         return $user;
     }
+
+    public function currentUserOrNull(): ?User
+    {
+        return $this->authService->currentUser();
+    }
 }

@@ -87,6 +87,7 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('data-planning-slider', $response->body());
         self::assertStringContainsString('Groupe Test', $response->body());
         self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
+        self::assertStringContainsString('data-contact-group-slug="groupe-test"', $response->body());
         self::assertStringNotContainsString('contact@example.test', $response->body());
     }
 
@@ -236,7 +237,7 @@ final class PageControllerTest extends RepositoryTestCase
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $groupRepository->addMember($group->id(), $user->id());
 
-        $response = $controller->groupSpace((string) $group->id());
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-test/space', [], [], []), 'groupe-test');
 
         self::assertSame(200, $response->statusCode());
         self::assertStringContainsString('Groupe Test', $response->body());
@@ -251,19 +252,115 @@ final class PageControllerTest extends RepositoryTestCase
         $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
         $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'fiche technique.pdf', 'abc123.pdf', 'application/pdf', 100, $user->id()));
 
-        $response = $controller->groupSpace((string) $group->id());
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-test/space', [], [], []), 'groupe-test');
 
         self::assertStringContainsString('fiche technique.pdf', $response->body());
     }
 
-    public function testGroupSpaceByNonMemberThrowsAccessDenied(): void
+    public function testGroupSpaceIsPubliclyAccessibleWithoutLogin(): void
+    {
+        [$controller, $groupRepository] = $this->makeController();
+        $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'contact@example.test'));
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public');
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('Groupe Public', $response->body());
+    }
+
+    public function testGroupSpaceResolvesGroupBySlug(): void
+    {
+        [$controller, $groupRepository] = $this->makeController();
+        $groupRepository->save(new Group(0, 'Black Sabbath Tribute', null, null, 'contact@example.test'));
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/black-sabbath-tribute/space', [], [], []), 'black-sabbath-tribute');
+
+        self::assertStringContainsString('Black Sabbath Tribute', $response->body());
+    }
+
+    public function testGroupSpaceHidesDocumentsSectionForNonMember(): void
     {
         [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
-        $this->createLoggedInUser($userRepository, $authService);
+        $manager = $this->createLoggedInUser($userRepository, $authService);
         $group = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
+        $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'confidentiel.pdf', 'abc123.pdf', 'application/pdf', 100, $manager->id()));
+
+        $stranger = $this->createUser($userRepository, 'stranger@rehearsalbox.test');
+        $authService->attempt('stranger@rehearsalbox.test', 'password');
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-tiers/space', [], [], []), 'groupe-tiers');
+
+        self::assertStringNotContainsString('confidentiel.pdf', $response->body());
+    }
+
+    public function testGroupSpaceHidesDocumentsSectionWhenNotAuthenticated(): void
+    {
+        [$controller, $groupRepository, , $userRepository] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'manager@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
+        $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'confidentiel.pdf', 'abc123.pdf', 'application/pdf', 100, $manager->id()));
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public');
+
+        self::assertStringNotContainsString('confidentiel.pdf', $response->body());
+    }
+
+    public function testGroupSpaceHidesDocumentsSectionEntirelyForVisitor(): void
+    {
+        [$controller, $groupRepository] = $this->makeController();
+        $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'contact@example.test'));
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public');
+
+        self::assertStringNotContainsString('data-documents-list', $response->body());
+    }
+
+    public function testGroupSpaceShowsContactButtonForVisitor(): void
+    {
+        [$controller, $groupRepository] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'contact@example.test'));
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public');
+
+        self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
+    }
+
+    public function testGroupSpaceHidesContactButtonForMember(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+
+        $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-test/space', [], [], []), 'groupe-test');
+
+        self::assertStringNotContainsString('Contacter ce groupe', $response->body());
+    }
+
+    public function testGroupSpaceByUnknownSlugThrowsAccessDenied(): void
+    {
+        [$controller] = $this->makeController();
 
         $this->expectException(\App\Security\Exception\AccessDeniedException::class);
 
-        $controller->groupSpace((string) $group->id());
+        $controller->groupSpace(new \App\Http\Request('GET', '/groups/inconnu/space', [], [], []), 'inconnu');
+    }
+
+    private function createUser(MysqlUserRepository $userRepository, string $email): User
+    {
+        return $userRepository->save(new User(
+            id: 0,
+            email: $email,
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: $email,
+            role: UserRole::Musicien,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
     }
 }
