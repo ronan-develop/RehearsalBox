@@ -30,6 +30,24 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame('contact@example.test', $found->contactEmail());
     }
 
+    public function testFindBySlugReturnsMatchingGroup(): void
+    {
+        $repository = new MysqlGroupRepository($this->pdo);
+        $repository->save(new Group(0, 'Black Sabbath Tribute', null, null, 'contact@example.test'));
+
+        $found = $repository->findBySlug('black-sabbath-tribute');
+
+        self::assertNotNull($found);
+        self::assertSame('Black Sabbath Tribute', $found->name());
+    }
+
+    public function testFindBySlugReturnsNullWhenNoMatch(): void
+    {
+        $repository = new MysqlGroupRepository($this->pdo);
+
+        self::assertNull($repository->findBySlug('groupe-inexistant'));
+    }
+
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);

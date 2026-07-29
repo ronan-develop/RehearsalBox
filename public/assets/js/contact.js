@@ -24,7 +24,7 @@ export function openContactModal(button, root = document) {
 export function handlePlanningCardActivation(card, root = document, navigate = (url) => { window.location.href = url; }) {
   const groupRole = card.dataset.currentUserGroupRole;
   if (groupRole) {
-    navigate(`/groups/${card.dataset.contactGroupId}/space`);
+    navigate(`/groups/${card.dataset.contactGroupSlug}/space`);
     return;
   }
 

@@ -11,6 +11,8 @@ interface GroupRepositoryInterface
 {
     public function findById(int $id): ?Group;
 
+    public function findBySlug(string $slug): ?Group;
+
     /** @return list<Group> */
     public function findAll(): array;
 
