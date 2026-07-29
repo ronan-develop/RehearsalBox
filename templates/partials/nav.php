@@ -11,5 +11,6 @@
 <?php elseif ($currentUserRole !== null): ?>
 <div class="rb-logout-only">
     <button type="button" class="rb-btn-logout-centered" data-logout>Déconnexion</button>
+    <span class="rb-scroll-hint" data-scroll-hint aria-hidden="true">↓</span>
 </div>
 <?php endif; ?>
