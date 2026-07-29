@@ -221,16 +221,16 @@ function randomizeCardTapes(root) {
   });
 }
 
-export function initPlanningSlider(root = document) {
-  const slider = root.querySelector('[data-planning-slider]');
-  const track = root.querySelector('[data-planning-track]');
-  if (!slider || !track) {
-    return;
-  }
+/**
+ * Mobile-first (#81) : le slider des créneaux exceptionnels ne défile
+ * automatiquement que si son contenu dépasse réellement la largeur visible
+ * — sur un écran large avec peu de cartes, pas de scroll inutile.
+ */
+export function shouldAutoScroll(slider, track) {
+  return track.scrollWidth > slider.clientWidth;
+}
 
-  randomizeCardWrinkles(root);
-  randomizeCardTapes(root);
-
+function attachAutoScroll(slider, track) {
   const controller = createAutoScrollController(track, { step: 1 });
   const intervalId = setInterval(controller.tick, 40);
 
@@ -245,4 +245,39 @@ export function initPlanningSlider(root = document) {
   slider.addEventListener('touchcancel', () => controller.resume());
 
   return { controller, intervalId };
+}
+
+export function initPlanningSlider(root = document) {
+  const slider = root.querySelector('[data-planning-slider]');
+  const track = root.querySelector('[data-planning-track]');
+  if (!slider || !track) {
+    return;
+  }
+
+  randomizeCardWrinkles(slider);
+  randomizeCardTapes(slider);
+
+  return attachAutoScroll(slider, track);
+}
+
+/**
+ * Second slider (#81) : créneaux exceptionnels, cartes non cliquables
+ * (pas de listener de contact posé dessus), défilement conditionnel via
+ * shouldAutoScroll — contrairement au planning fixe qui défile toujours.
+ */
+export function initExceptionalPlanningSlider(root = document) {
+  const slider = root.querySelector('[data-planning-slider-exceptional]');
+  const track = root.querySelector('[data-planning-track-exceptional]');
+  if (!slider || !track) {
+    return;
+  }
+
+  randomizeCardWrinkles(slider);
+  randomizeCardTapes(slider);
+
+  if (!shouldAutoScroll(slider, track)) {
+    return;
+  }
+
+  return attachAutoScroll(slider, track);
 }
