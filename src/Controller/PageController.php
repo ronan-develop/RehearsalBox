@@ -62,14 +62,18 @@ final class PageController
                     continue;
                 }
                 $seenPendingIds[$exception->id()] = true;
-                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue);
+                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+                \assert($requestingGroup !== null);
+                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue, $requestingGroup->name());
             }
             foreach ($this->availabilityService->findByRequestingGroup($group->id(), $user->id()) as $exception) {
                 if (isset($seenRequestedIds[$exception->id()])) {
                     continue;
                 }
                 $seenRequestedIds[$exception->id()] = true;
-                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee);
+                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+                \assert($requestingGroup !== null);
+                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee, $requestingGroup->name());
             }
         }
 
