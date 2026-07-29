@@ -6,6 +6,7 @@
  */
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
+import { refreshExceptionalPlanning } from './planning-slider.js';
 
 export function getCurrentGroupId(root = document) {
   const select = root.querySelector('[data-current-group-select]');
@@ -24,6 +25,10 @@ export async function handleRespond(button, root = document) {
 
     root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
     showToast(accepted ? 'Demande acceptée.' : 'Demande refusée.', 'success');
+
+    if (accepted) {
+      await refreshExceptionalPlanning(root);
+    }
   } catch (error) {
     showToast(error.message, 'error');
 

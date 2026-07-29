@@ -53,6 +53,9 @@ function fakeRootWithCard() {
         if (match) {
           return { remove: () => removed.push(match[1]) };
         }
+        if (selector === '[data-planning-track-exceptional]') {
+          return { innerHTML: '', querySelectorAll: () => [] };
+        }
         return null;
       },
     },
@@ -62,6 +65,9 @@ function fakeRootWithCard() {
 
 test('handleRespond posts accepted=true and removes the card on success', async () => {
   globalThis.fetch = async (url, options) => {
+    if (url === '/api/planning') {
+      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+    }
     assert.equal(url, '/api/availability/7/respond');
     assert.equal(JSON.parse(options.body).accepted, true);
     return { ok: true, json: async () => ({ id: 7, status: 'acceptee' }) };
@@ -72,6 +78,40 @@ test('handleRespond posts accepted=true and removes the card on success', async 
   await handleRespond(fakeButton('7', true), root);
 
   assert.deepEqual(removed, ['7']);
+});
+
+test('handleRespond refreshes the exceptional planning slider after a successful acceptance', async () => {
+  let planningFetched = false;
+  globalThis.fetch = async (url) => {
+    if (url === '/api/planning') {
+      planningFetched = true;
+      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+    }
+    return { ok: true, json: async () => ({ id: 7, status: 'acceptee' }) };
+  };
+  globalThis.document = fakeDocument();
+
+  const { root } = fakeRootWithCard();
+  await handleRespond(fakeButton('7', true), root);
+
+  assert.equal(planningFetched, true);
+});
+
+test('handleRespond does not refresh the exceptional planning slider on refusal', async () => {
+  let planningFetched = false;
+  globalThis.fetch = async (url) => {
+    if (url === '/api/planning') {
+      planningFetched = true;
+      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+    }
+    return { ok: true, json: async () => ({ id: 7, status: 'refusee' }) };
+  };
+  globalThis.document = fakeDocument();
+
+  const { root } = fakeRootWithCard();
+  await handleRespond(fakeButton('7', false), root);
+
+  assert.equal(planningFetched, false);
 });
 
 test('handleRespond removes the card on 409 (already responded)', async () => {
