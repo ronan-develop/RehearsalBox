@@ -4,20 +4,6 @@
   padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
 }
 
-@media (min-width: 768px) {
-  /* Confort desktop/tablette (cf. .claude/layout.md) : contenu centré,
-     pas de réorganisation profonde du layout mobile-first existant. */
-  .rb-dashboard-page {
-    max-width: 900px;
-    margin-inline: auto;
-  }
-
-  .rb-exception-deck {
-    max-width: 50%;
-    margin-inline: auto;
-  }
-}
-
 .rb-dashboard-header {
   display: flex;
   flex-direction: column;
