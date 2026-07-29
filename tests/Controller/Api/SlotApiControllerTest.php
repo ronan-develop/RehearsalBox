@@ -6,6 +6,7 @@ namespace App\Tests\Controller\Api;
 
 use App\Controller\Api\SlotApiController;
 use App\Entity\Enum\UserRole;
+use App\Entity\Enum\Weekday;
 use App\Entity\Group;
 use App\Entity\User;
 use App\Http\Request;
@@ -144,6 +145,60 @@ final class SlotApiControllerTest extends RepositoryTestCase
         );
 
         self::assertSame(200, $response->statusCode());
+    }
+
+    public function testPlanningReturnsFixedAndOccasionalSlotsSeparatelyForLoggedInUser(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $this->createUser($userRepository, 'musicien@rehearsalbox.test', UserRole::Musicien);
+        $authService->attempt('musicien@rehearsalbox.test', 'password');
+
+        $slotService = new SlotService(
+            new MysqlRecurringSlotRepository($this->pdo),
+            $groupRepository,
+            new MysqlSlotExceptionRepository($this->pdo),
+        );
+        $slotService->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $response = $controller->planning(new Request('GET', '/api/planning', [], [], []));
+
+        self::assertSame(200, $response->statusCode());
+        $body = json_decode($response->body(), true);
+        self::assertArrayHasKey('fixedSlots', $body);
+        self::assertArrayHasKey('occasionalSlots', $body);
+        self::assertCount(1, $body['fixedSlots']);
+        self::assertSame('Groupe Test', $body['fixedSlots'][0]['groupName']);
+        self::assertCount(0, $body['occasionalSlots']);
+    }
+
+    public function testPlanningIncludesAcceptedOccasionalExceptionWithOccurrenceDate(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $user = $this->createUser($userRepository, 'musicien@rehearsalbox.test', UserRole::Musicien);
+        $groupRepository->addMember($holderGroup->id(), $user->id());
+        $authService->attempt('musicien@rehearsalbox.test', 'password');
+
+        $slotService = new SlotService(
+            new MysqlRecurringSlotRepository($this->pdo),
+            $groupRepository,
+            new MysqlSlotExceptionRepository($this->pdo),
+        );
+        $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $exceptionRepository = new MysqlSlotExceptionRepository($this->pdo);
+        $occurrenceDate = (new \DateTimeImmutable('today'))->modify('tuesday this week');
+        $exception = $exceptionRepository->createRequest($slot->id(), $occurrenceDate, $requestingGroup->id(), $user->id(), null);
+        $exceptionRepository->respond($exception->id(), true, $user->id());
+
+        $response = $controller->planning(new Request('GET', '/api/planning', [], [], []));
+
+        $body = json_decode($response->body(), true);
+        self::assertCount(1, $body['occasionalSlots']);
+        self::assertSame('Groupe Demandeur', $body['occasionalSlots'][0]['groupName']);
+        self::assertSame($occurrenceDate->format('Y-m-d'), $body['occasionalSlots'][0]['occurrenceDate']);
     }
 
     public function testDestroyByAdminReturns204(): void

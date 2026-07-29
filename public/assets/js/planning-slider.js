@@ -12,6 +12,8 @@
  * Logique de tick extraite de tout DOM/timer pour rester testable en
  * environnement node --test (pas de window/requestAnimationFrame).
  */
+import { apiFetch } from './api.js';
+
 export function createAutoScrollController(track, { step = 1 } = {}) {
   let running = true;
   let offset = 0;
@@ -268,6 +270,79 @@ export function initPlanningSlider(root = document) {
  * (pas de listener de contact posé dessus), défilement conditionnel via
  * shouldAutoScroll — contrairement au planning fixe qui défile toujours.
  */
+const WEEKDAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
+}
+
+function formatTime(time) {
+  return time.slice(0, 5);
+}
+
+function formatOccurrenceDate(isoDate) {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Miroir JS de $renderExceptionalCard (templates/dashboard/index.php) —
+ * utilisé par refreshExceptionalPlanning() pour reconstruire le slider de
+ * créneaux exceptionnels sans reload après acceptation d'une demande (#79).
+ * Cartes non cliquables (#81) : pas de role/tabindex/data-contact-group-*.
+ */
+export function buildExceptionalCardMarkup(requestableSlot) {
+  const groupName = escapeHtml(requestableSlot.groupName);
+  const weekdayLabel = WEEKDAY_LABELS[requestableSlot.weekday];
+  const occurrenceDate = requestableSlot.occurrenceDate ? formatOccurrenceDate(requestableSlot.occurrenceDate) : '';
+
+  return `
+    <article class="rb-planning-card rb-planning-card--exceptional">
+      <span class="rb-planning-card-tape" aria-hidden="true"></span>
+      <div class="rb-planning-card-shape">
+        <span class="rb-planning-card-label--occasional" aria-hidden="true">Occasionnel</span>
+        <h3 class="rb-planning-card-group">${groupName}</h3>
+        <p class="rb-planning-card-weekday">${escapeHtml(weekdayLabel)}</p>
+        <p class="rb-planning-card-date">${escapeHtml(occurrenceDate)}</p>
+        <p class="rb-planning-card-time">${escapeHtml(formatTime(requestableSlot.startTime))} – ${escapeHtml(formatTime(requestableSlot.endTime))}</p>
+      </div>
+    </article>
+  `;
+}
+
+/**
+ * Recharge uniquement le slider de créneaux exceptionnels depuis
+ * /api/planning après une acceptation réussie (availability.js::handleRespond)
+ * — le planning fixe n'est pas affecté par une acceptation, pas besoin de
+ * le reconstruire (et data-current-user-group-role n'est pas exposé par
+ * l'API, donc pas reconstructible fidèlement côté client).
+ */
+export async function refreshExceptionalPlanning(root = document) {
+  const track = root.querySelector('[data-planning-track-exceptional]');
+  if (!track) {
+    return;
+  }
+
+  const data = await apiFetch('/api/planning');
+  track.innerHTML = data.occasionalSlots.map(buildExceptionalCardMarkup).join('');
+
+  randomizeCardWrinkles(track);
+  randomizeCardTapes(track);
+
+  const section = root.querySelector('[data-exceptional-planning-section]');
+  if (!section) {
+    return;
+  }
+
+  if (data.occasionalSlots.length > 0) {
+    section.removeAttribute('hidden');
+  } else {
+    section.setAttribute('hidden', '');
+  }
+}
+
 export function initExceptionalPlanningSlider(root = document, win = window) {
   const slider = root.querySelector('[data-planning-slider-exceptional]');
   const track = root.querySelector('[data-planning-track-exceptional]');

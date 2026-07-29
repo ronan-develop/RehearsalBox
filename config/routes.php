@@ -30,6 +30,7 @@ return [
         ['POST', '/api/availability/{exceptionId}/respond', [AvailabilityApiController::class, 'respond']],
         ['PATCH', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'update']],
         ['DELETE', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'destroy']],
+        ['GET',    '/api/planning', [SlotApiController::class, 'planning']],
         ['GET',    '/api/admin/slots', [SlotApiController::class, 'index']],
         ['POST',   '/api/admin/slots', [SlotApiController::class, 'store']],
         ['PATCH',  '/api/admin/slots/{id}', [SlotApiController::class, 'update']],

@@ -111,17 +111,24 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        self::assertStringNotContainsString('data-planning-slider', $response->body());
+        self::assertStringNotContainsString(' data-planning-slider>', $response->body());
     }
 
-    public function testDashboardShowsNoExceptionalSliderWhenNoOccasionalSlots(): void
+    public function testDashboardHidesExceptionalSliderWhenNoOccasionalSlots(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
         $this->createLoggedInUser($userRepository, $authService);
 
         $response = $controller->dashboard();
 
-        self::assertStringNotContainsString('data-planning-slider-exceptional', $response->body());
+        // La section reste dans le DOM (hidden) plutôt qu'absente : #79 a
+        // besoin de pouvoir la faire apparaître dynamiquement après une
+        // acceptation, sans reload complet.
+        self::assertStringContainsString('data-planning-slider-exceptional', $response->body());
+        $sliderPosition = strpos($response->body(), 'data-planning-slider-exceptional');
+        $sectionStart = strrpos(substr($response->body(), 0, $sliderPosition), '<section');
+        $sectionOpenTag = substr($response->body(), $sectionStart, $sliderPosition - $sectionStart);
+        self::assertStringContainsString('hidden', $sectionOpenTag);
     }
 
     public function testDashboardShowsExceptionalSliderWithNonClickableCardsForAcceptedOccasionalSlot(): void
