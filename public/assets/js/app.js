@@ -6,6 +6,7 @@ import { initPlanningSlider } from './planning-slider.js';
 import { initExceptionDeck } from './exception-deck.js';
 import { initContact } from './contact.js';
 import { initGroupDocuments } from './group-documents.js';
+import { initGroupSpaceEditor } from './group-space.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -16,4 +17,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initExceptionDeck();
   initContact();
   initGroupDocuments();
+  initGroupSpaceEditor();
 });
