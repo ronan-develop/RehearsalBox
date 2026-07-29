@@ -120,6 +120,7 @@
 
 .rb-planning-track {
   display: flex;
+  justify-content: flex-start;
   gap: var(--rb-space-3);
   width: max-content;
 }
