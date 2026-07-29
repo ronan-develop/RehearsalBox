@@ -162,7 +162,6 @@
             </div>
         </div>
     </div>
-    <span class="rb-scroll-hint" data-scroll-hint aria-hidden="true">↓</span>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
 </body>

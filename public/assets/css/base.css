@@ -378,12 +378,50 @@ button:active::after, .rb-btn:active::after {
   left: 0;
   right: 0;
   display: flex;
+  align-items: center;
   justify-content: center;
   background: var(--rb-surface);
   border-top: 1px solid var(--rb-border);
   box-shadow: var(--rb-elevation-2);
   padding: var(--rb-space-2) var(--rb-space-2) calc(var(--rb-space-2) + env(safe-area-inset-bottom));
   z-index: 900;
+}
+
+/* Indicateur discret invitant à scroller (#82) : n'apparaît que si le
+   contenu dépasse le viewport (cf. scroll-hint.js), masqué au premier
+   scroll ou si l'utilisateur est déjà en bas de page. En pied de page à
+   droite (absolute dans .rb-logout-only, pas fixed flottant sur le
+   contenu) pour ne jamais chevaucher le contenu scrollable au-dessus. */
+.rb-scroll-hint {
+  position: absolute;
+  right: var(--rb-space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--rb-surface-strong);
+  border: 1px solid var(--rb-border);
+  color: var(--rb-accent-2);
+  font-size: 1.125rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  animation: rb-scroll-hint-bounce 1.6s ease-in-out infinite;
+}
+
+.rb-scroll-hint--visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@keyframes rb-scroll-hint-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
 }
 
 .rb-btn-logout-centered {

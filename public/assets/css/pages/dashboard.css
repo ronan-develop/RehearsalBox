@@ -344,37 +344,3 @@
   border-color: var(--rb-accent-2);
 }
 
-/* Indicateur discret invitant à scroller (#82) : n'apparaît que si le
-   contenu dépasse le viewport (cf. scroll-hint.js), masqué au premier
-   scroll. Fixed bas-droite pour rester visible sans gêner le contenu. */
-.rb-scroll-hint {
-  position: fixed;
-  right: var(--rb-space-3);
-  bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--rb-surface-strong);
-  border: 1px solid var(--rb-border);
-  color: var(--rb-accent-2);
-  font-size: 1.125rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  animation: rb-scroll-hint-bounce 1.6s ease-in-out infinite;
-  z-index: 10;
-}
-
-.rb-scroll-hint--visible {
-  opacity: 1;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-@keyframes rb-scroll-hint-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
-}

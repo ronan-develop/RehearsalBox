@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shouldShowScrollHint, initScrollHint, isOverlappingExceptionalSlider } from './scroll-hint.js';
+import { shouldShowScrollHint, initScrollHint } from './scroll-hint.js';
 
 test('shouldShowScrollHint returns true when the page content overflows the viewport height', () => {
   const result = shouldShowScrollHint({ scrollHeight: 1200, innerHeight: 800 });
@@ -104,42 +104,4 @@ test('initScrollHint scrolls to the bottom of the page when the hint is clicked'
   clickHandler();
 
   assert.deepEqual(scrolledTo, { top: 1200, behavior: 'smooth' });
-});
-
-test('isOverlappingExceptionalSlider returns true when the exceptional slider rect intersects the hint rect', () => {
-  const hintRect = { top: 700, bottom: 736, left: 300, right: 336 };
-  const sliderRect = { top: 650, bottom: 780, left: 0, right: 400 };
-
-  assert.equal(isOverlappingExceptionalSlider(hintRect, sliderRect), true);
-});
-
-test('isOverlappingExceptionalSlider returns false when the exceptional slider is above the hint', () => {
-  const hintRect = { top: 700, bottom: 736, left: 300, right: 336 };
-  const sliderRect = { top: 200, bottom: 400, left: 0, right: 400 };
-
-  assert.equal(isOverlappingExceptionalSlider(hintRect, sliderRect), false);
-});
-
-test('initScrollHint hides the hint when it overlaps the visible exceptional slider', () => {
-  const hint = {
-    ...fakeHintElement(),
-    addEventListener: () => {},
-    getBoundingClientRect: () => ({ top: 700, bottom: 736, left: 300, right: 336 }),
-  };
-  const slider = {
-    getBoundingClientRect: () => ({ top: 650, bottom: 780, left: 0, right: 400 }),
-  };
-  const doc = {
-    querySelector: (selector) => {
-      if (selector === '[data-scroll-hint]') return hint;
-      if (selector === '[data-planning-slider-exceptional]') return slider;
-      return null;
-    },
-    documentElement: { scrollHeight: 1200 },
-    addEventListener: () => {},
-  };
-
-  initScrollHint(doc, { innerHeight: 800, addEventListener: () => {}, scrollY: 0 });
-
-  assert.equal(hint.classList.contains('rb-scroll-hint--visible'), false);
 });
