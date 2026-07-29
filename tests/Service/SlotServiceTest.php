@@ -177,7 +177,7 @@ final class SlotServiceTest extends RepositoryTestCase
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
-        $planning = $service->findPlanningSlots();
+        $planning = $service->findFixedPlanningSlots();
 
         self::assertCount(1, $planning);
         self::assertSame('Groupe Test', $planning[0]->groupName());
@@ -192,7 +192,7 @@ final class SlotServiceTest extends RepositoryTestCase
         $slot = $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
         $service->delete($slot->id());
 
-        $planning = $service->findPlanningSlots();
+        $planning = $service->findFixedPlanningSlots();
 
         self::assertCount(0, $planning);
     }
@@ -220,7 +220,7 @@ final class SlotServiceTest extends RepositoryTestCase
         $exceptionRepository->respond($exception->id(), true, $requestingUser->id());
     }
 
-    public function testFindPlanningSlotsIncludesAcceptedOccasionalExceptionForCurrentWeek(): void
+    public function testFindOccasionalPlanningSlotsIncludesAcceptedExceptionForCurrentWeek(): void
     {
         [$service, $groupRepository, , $exceptionRepository] = $this->makeService();
         $userRepository = new MysqlUserRepository($this->pdo);
@@ -232,51 +232,44 @@ final class SlotServiceTest extends RepositoryTestCase
         $monday = (new \DateTimeImmutable('today'))->modify('monday this week');
         $this->acceptExceptionForCurrentWeek($exceptionRepository, $userRepository, $holderSlot->id(), $requestingGroup->id(), $monday);
 
-        $planning = $service->findPlanningSlots();
+        $occasional = $service->findOccasionalPlanningSlots();
 
-        self::assertCount(2, $planning);
-        $occasional = array_values(array_filter($planning, static fn (\App\Entity\RequestableSlot $item): bool => !$item->isRecurring()));
         self::assertCount(1, $occasional);
         self::assertSame('Groupe Demandeur', $occasional[0]->groupName());
         self::assertSame($requestingGroup->id(), $occasional[0]->groupId());
         self::assertSame(Weekday::Tuesday, $occasional[0]->slot()->weekday());
+        self::assertFalse($occasional[0]->isRecurring());
+        self::assertSame($monday->format('Y-m-d'), $occasional[0]->occurrenceDate()?->format('Y-m-d'));
     }
 
-    public function testFindPlanningSlotsMarksFixedSlotsAsRecurring(): void
+    public function testFindFixedPlanningSlotsMarksSlotsAsRecurring(): void
     {
         [$service, $groupRepository] = $this->makeService();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $service->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
-        $planning = $service->findPlanningSlots();
+        $planning = $service->findFixedPlanningSlots();
 
         self::assertTrue($planning[0]->isRecurring());
     }
 
-    public function testFindPlanningSlotsSortsFixedAndOccasionalSlotsChronologically(): void
+    public function testFindOccasionalPlanningSlotsExcludesUnrelatedFixedSlots(): void
     {
         [$service, $groupRepository, , $exceptionRepository] = $this->makeService();
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        // Créneau fixe le jeudi.
         $thursdayGroup = $groupRepository->save(new Group(0, 'Groupe Jeudi', null, null, 'contact@example.test'));
         $service->create($thursdayGroup->id(), Weekday::Thursday, '18:00:00', '20:00:00');
 
-        // Créneau occasionnel le mardi (titulaire = groupe distinct, demandeur affiché).
         $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire Mardi', null, null, 'contact@example.test'));
         $holderSlot = $service->create($holderGroup->id(), Weekday::Tuesday, '10:00:00', '12:00:00');
         $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Occasionnel Mardi', null, null, 'contact@example.test'));
         $tuesday = (new \DateTimeImmutable('today'))->modify('monday this week')->modify('+1 day');
         $this->acceptExceptionForCurrentWeek($exceptionRepository, $userRepository, $holderSlot->id(), $requestingGroup->id(), $tuesday);
 
-        $planning = $service->findPlanningSlots();
+        $occasional = $service->findOccasionalPlanningSlots();
 
-        self::assertCount(3, $planning);
-        // Le créneau occasionnel du mardi doit précéder le fixe du jeudi.
-        $weekdays = array_map(static fn (\App\Entity\RequestableSlot $item): int => $item->slot()->weekday()->value, $planning);
-        self::assertSame($weekdays, array_values($weekdays));
-        $tuesdayIndex = array_search(Weekday::Tuesday->value, $weekdays, true);
-        $thursdayIndex = array_search(Weekday::Thursday->value, $weekdays, true);
-        self::assertLessThan($thursdayIndex, $tuesdayIndex);
+        self::assertCount(1, $occasional);
+        self::assertSame('Groupe Occasionnel Mardi', $occasional[0]->groupName());
     }
 }

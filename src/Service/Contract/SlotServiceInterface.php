@@ -28,5 +28,8 @@ interface SlotServiceInterface
     public function findAllActive(): array;
 
     /** @return list<RequestableSlot> */
-    public function findPlanningSlots(): array;
+    public function findFixedPlanningSlots(): array;
+
+    /** @return list<RequestableSlot> */
+    public function findOccasionalPlanningSlots(): array;
 }

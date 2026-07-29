@@ -11,6 +11,7 @@ final class RequestableSlot
         private readonly string $groupName,
         private readonly int $groupId,
         private readonly bool $isRecurring = true,
+        private readonly ?\DateTimeImmutable $occurrenceDate = null,
     ) {
     }
 
@@ -19,10 +20,12 @@ final class RequestableSlot
      * acceptée occupe ponctuellement le créneau du titulaire ce jour-là.
      * $slot reste celui du titulaire (même horaire/jour), seuls le nom et
      * l'id du groupe affiché changent — d'où group=demandeur, slot=titulaire.
+     * $occurrenceDate est affichée sur la carte (#81) pour lever toute
+     * ambiguïté avec un créneau fixe récurrent.
      */
-    public static function occasional(RecurringSlot $slot, string $requestingGroupName, int $requestingGroupId): self
+    public static function occasional(RecurringSlot $slot, string $requestingGroupName, int $requestingGroupId, \DateTimeImmutable $occurrenceDate): self
     {
-        return new self($slot, $requestingGroupName, $requestingGroupId, false);
+        return new self($slot, $requestingGroupName, $requestingGroupId, false, $occurrenceDate);
     }
 
     public function slot(): RecurringSlot
@@ -43,5 +46,10 @@ final class RequestableSlot
     public function isRecurring(): bool
     {
         return $this->isRecurring;
+    }
+
+    public function occurrenceDate(): ?\DateTimeImmutable
+    {
+        return $this->occurrenceDate;
     }
 }
