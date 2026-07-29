@@ -23,9 +23,6 @@
                 <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
-                        <?php if (!$requestableSlot->isRecurring()): ?>
-                            <span class="rb-planning-card-label--occasional" aria-hidden="true">Occasionnel</span>
-                        <?php endif; ?>
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
                         <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                         <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
@@ -45,6 +42,47 @@
                         <div aria-hidden="true" style="display: contents;">
                             <?php foreach ($planningSlots as $requestableSlot): ?>
                                 <?php $renderPlanningCard($requestableSlot); ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($exceptionalPlanningSlots !== []): ?>
+            <?php
+            /**
+             * Cartes non cliquables (#81) : contrairement au planning fixe,
+             * un créneau occasionnel n'ouvre pas la modale de contact — pas
+             * de role="button"/tabindex, pas de data-contact-group-*.
+             */
+            $renderExceptionalCard = static function ($requestableSlot) {
+                $slot = $requestableSlot->slot();
+                ?>
+                <article class="rb-planning-card rb-planning-card--exceptional">
+                    <span class="rb-planning-card-tape" aria-hidden="true"></span>
+                    <div class="rb-planning-card-shape">
+                        <span class="rb-planning-card-label--occasional" aria-hidden="true">Occasionnel</span>
+                        <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
+                        <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
+                        <p class="rb-planning-card-date"><?= e($requestableSlot->occurrenceDate()?->format('d/m/Y') ?? '') ?></p>
+                        <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
+                    </div>
+                </article>
+                <?php
+            };
+            ?>
+            <section class="rb-planning-section">
+                <h2>Créneaux exceptionnels :</h2>
+                <div class="rb-planning-slider rb-planning-slider--exceptional" data-planning-slider-exceptional>
+                    <div class="rb-planning-track" data-planning-track-exceptional>
+                        <?php foreach ($exceptionalPlanningSlots as $requestableSlot): ?>
+                            <?php $renderExceptionalCard($requestableSlot); ?>
+                        <?php endforeach; ?>
+                        <?php // Copie dupliquée pour boucler le défilement sans saut visuel, seulement utile si le contrôleur d'auto-scroll s'active (cf. planning-slider.js). ?>
+                        <div aria-hidden="true" style="display: contents;">
+                            <?php foreach ($exceptionalPlanningSlots as $requestableSlot): ?>
+                                <?php $renderExceptionalCard($requestableSlot); ?>
                             <?php endforeach; ?>
                         </div>
                     </div>

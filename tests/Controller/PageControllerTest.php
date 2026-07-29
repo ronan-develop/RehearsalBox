@@ -114,6 +114,54 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('data-planning-slider', $response->body());
     }
 
+    public function testDashboardShowsNoExceptionalSliderWhenNoOccasionalSlots(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->dashboard();
+
+        self::assertStringNotContainsString('data-planning-slider-exceptional', $response->body());
+    }
+
+    public function testDashboardShowsExceptionalSliderWithNonClickableCardsForAcceptedOccasionalSlot(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $holderSlot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $requester = $userRepository->save(new User(
+            id: 0,
+            email: 'requester@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Requester',
+            role: UserRole::Musicien,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $monday = (new \DateTimeImmutable('today'))->modify('monday this week');
+        $exception = $exceptionRepository->createRequest($holderSlot->id(), $monday, $requestingGroup->id(), $requester->id(), null);
+        $exceptionRepository->respond($exception->id(), true, $requester->id());
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('data-planning-slider-exceptional', $response->body());
+        self::assertStringContainsString('Groupe Demandeur', $response->body());
+        self::assertStringContainsString($monday->format('d/m/Y'), $response->body());
+
+        $exceptionalSection = substr(
+            $response->body(),
+            (int) strpos($response->body(), 'data-planning-slider-exceptional'),
+        );
+        $cardStart = strpos($exceptionalSection, 'Groupe Demandeur');
+        $cardOpenTag = substr($exceptionalSection, 0, $cardStart);
+        self::assertStringNotContainsString('role="button"', $cardOpenTag);
+    }
+
     public function testDashboardHidesNavLinksForNonAdmin(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
