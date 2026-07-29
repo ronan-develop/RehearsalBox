@@ -187,6 +187,7 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringContainsString('data-exception-deck', $response->body());
         self::assertStringContainsString('Concert samedi', $response->body());
+        self::assertStringContainsString('Groupe Demandeur', $response->body());
     }
 
     public function testDashboardMergesReceivedAndSentExceptionsSortedByCreatedAtDescending(): void

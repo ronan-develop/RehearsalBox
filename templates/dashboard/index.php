@@ -63,6 +63,9 @@
                              style="--deck-index: <?= e((string) $deckPosition) ?>">
                         <p class="rb-badge rb-badge-direction"><?= $isRecue ? 'Reçue' : 'Envoyée' ?></p>
                         <p class="rb-badge rb-badge-status"><?= e(formatExceptionStatus($exception->status())) ?></p>
+                        <?php if ($isRecue): ?>
+                            <p class="rb-slot-card-group" data-contact-group-name="<?= e($item->requestedByGroupName()) ?>"><?= e($item->requestedByGroupName()) ?></p>
+                        <?php endif; ?>
                         <p class="rb-slot-card-date"><?= e($exception->occurrenceDate()->format('d/m/Y')) ?></p>
                         <?php if ($exception->requestReason() !== null): ?>
                             <p class="rb-slot-card-reason"><?= e($exception->requestReason()) ?></p>
