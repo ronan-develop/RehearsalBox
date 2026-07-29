@@ -11,7 +11,7 @@
 <body>
     <div class="rb-group-space-page" data-group-space data-group-id="<?= e((string) $group->id()) ?>" data-current-user-group-role="<?= e($currentUserGroupRole?->value ?? '') ?>">
         <header class="rb-group-space-header">
-            <a href="/" class="rb-group-space-back">&larr; Retour</a>
+            <a href="/" class="rb-btn rb-btn-primary rb-group-space-back">&larr; Retour</a>
             <h1><?= e($group->name()) ?></h1>
             <?php if ($group->genre() !== null): ?>
                 <p class="rb-group-space-genre"><?= e($group->genre()) ?></p>
@@ -90,7 +90,11 @@
                     <form data-document-upload-form data-endpoint="/api/groups/<?= e((string) $group->id()) ?>/documents" enctype="multipart/form-data">
                         <div class="rb-field">
                             <label for="document">Ajouter un document (PDF, JPEG, PNG — 10 Mo max)</label>
-                            <input type="file" id="document" name="document" accept="application/pdf,image/jpeg,image/png" required>
+                            <div class="rb-file-field">
+                                <input type="file" id="document" name="document" accept="application/pdf,image/jpeg,image/png" class="rb-file-field-input" required>
+                                <label for="document" class="rb-btn rb-file-field-trigger">Choisir un fichier</label>
+                                <span class="rb-file-field-name" data-file-field-name>Aucun fichier choisi</span>
+                            </div>
                         </div>
                         <button type="submit" class="rb-btn rb-btn-primary">Envoyer</button>
                     </form>
