@@ -300,6 +300,7 @@
   width: 100%;
   --deck-index: 0;
   --deck-drag-x: 0px;
+  overflow: hidden;
   transform:
     translateX(calc(var(--deck-drag-x) + var(--deck-index) * 10px))
     translateY(calc(var(--deck-index) * 8px))
