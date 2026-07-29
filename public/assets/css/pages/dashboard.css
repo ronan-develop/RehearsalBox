@@ -120,8 +120,14 @@
 
 .rb-planning-track {
   display: flex;
+  /* Centre les cartes quand elles ne remplissent pas toute la largeur du
+     slider (pas assez de contenu pour défiler, cf. retour utilisateur) ;
+     sans effet quand le contenu déborde réellement (width: max-content
+     dépasse alors le slider, le scroll démarre au début du track). */
+  justify-content: center;
   gap: var(--rb-space-3);
   width: max-content;
+  min-width: 100%;
 }
 
 .rb-planning-card--hidden {
