@@ -17,6 +17,7 @@ use App\Service\AvailabilityService;
 use App\Service\Exception\OverlappingSlotException;
 use App\Service\SlotService;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class SlotServiceTest extends RepositoryTestCase
 {
@@ -30,6 +31,8 @@ final class SlotServiceTest extends RepositoryTestCase
         return [$service, $groupRepository, $slotRepository, $exceptionRepository];
     }
 
+    #[Test]
+
     public function testCreateAddsSlotToGroup(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -41,6 +44,8 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertTrue($slot->isActive());
     }
 
+    #[Test]
+
     public function testCreateWithEndBeforeStartThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -50,6 +55,8 @@ final class SlotServiceTest extends RepositoryTestCase
 
         $service->create($group->id(), Weekday::Tuesday, '20:00:00', '18:00:00');
     }
+
+    #[Test]
 
     public function testCreateWithEndTimeAtMaxCeilingSucceeds(): void
     {
@@ -61,6 +68,8 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertSame('23:30:00', $slot->endTime());
     }
 
+    #[Test]
+
     public function testCreateWithEndTimeAfterMaxCeilingThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -71,6 +80,8 @@ final class SlotServiceTest extends RepositoryTestCase
         $service->create($group->id(), Weekday::Tuesday, '22:00:00', '23:31:00');
     }
 
+    #[Test]
+
     public function testCreateWithEndTimeAtMidnightThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -80,6 +91,8 @@ final class SlotServiceTest extends RepositoryTestCase
 
         $service->create($group->id(), Weekday::Tuesday, '22:00:00', '00:00:00');
     }
+
+    #[Test]
 
     public function testCreateOverlappingSlotOnSameGroupAndDayThrows(): void
     {
@@ -92,6 +105,8 @@ final class SlotServiceTest extends RepositoryTestCase
         $service->create($group->id(), Weekday::Tuesday, '19:00:00', '21:00:00');
     }
 
+    #[Test]
+
     public function testCreateNonOverlappingSlotOnSameDaySucceeds(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -102,6 +117,8 @@ final class SlotServiceTest extends RepositoryTestCase
 
         self::assertSame('20:00:00', $slot->startTime());
     }
+
+    #[Test]
 
     public function testUpdateChangesSlotTimes(): void
     {
@@ -115,6 +132,8 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertSame('21:00:00', $updated->endTime());
     }
 
+    #[Test]
+
     public function testUpdateWithEndBeforeStartThrowsInvalidArgument(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -125,6 +144,8 @@ final class SlotServiceTest extends RepositoryTestCase
 
         $service->update($slot->id(), '20:00:00', '19:00:00');
     }
+
+    #[Test]
 
     public function testUpdateWithEndTimeAfterMaxCeilingThrowsInvalidArgument(): void
     {
@@ -137,6 +158,8 @@ final class SlotServiceTest extends RepositoryTestCase
         $service->update($slot->id(), '22:00:00', '23:45:00');
     }
 
+    #[Test]
+
     public function testUpdateOnUnknownSlotThrowsInvalidArgument(): void
     {
         [$service] = $this->makeService();
@@ -145,6 +168,8 @@ final class SlotServiceTest extends RepositoryTestCase
 
         $service->update(9999, '19:00:00', '21:00:00');
     }
+
+    #[Test]
 
     public function testDeleteDeactivatesSlot(): void
     {
@@ -157,6 +182,8 @@ final class SlotServiceTest extends RepositoryTestCase
         $found = $slotRepository->findById($slot->id());
         self::assertFalse($found->isActive());
     }
+
+    #[Test]
 
     public function testFindByGroupReturnsOnlySlotsOfThatGroup(): void
     {
@@ -171,6 +198,8 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertCount(1, $found);
     }
 
+    #[Test]
+
     public function testFindPlanningSlotsReturnsSlotWithGroupName(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -184,6 +213,8 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertSame(Weekday::Tuesday, $planning[0]->slot()->weekday());
         self::assertSame($group->id(), $planning[0]->groupId());
     }
+
+    #[Test]
 
     public function testFindPlanningSlotsExcludesInactiveSlots(): void
     {
@@ -220,6 +251,8 @@ final class SlotServiceTest extends RepositoryTestCase
         $exceptionRepository->respond($exception->id(), true, $requestingUser->id());
     }
 
+    #[Test]
+
     public function testFindOccasionalPlanningSlotsIncludesAcceptedExceptionForCurrentWeek(): void
     {
         [$service, $groupRepository, , $exceptionRepository] = $this->makeService();
@@ -242,6 +275,8 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertSame($monday->format('Y-m-d'), $occasional[0]->occurrenceDate()?->format('Y-m-d'));
     }
 
+    #[Test]
+
     public function testFindFixedPlanningSlotsMarksSlotsAsRecurring(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -252,6 +287,8 @@ final class SlotServiceTest extends RepositoryTestCase
 
         self::assertTrue($planning[0]->isRecurring());
     }
+
+    #[Test]
 
     public function testFindOccasionalPlanningSlotsExcludesUnrelatedFixedSlots(): void
     {

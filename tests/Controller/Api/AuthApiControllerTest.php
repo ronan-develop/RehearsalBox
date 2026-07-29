@@ -15,6 +15,7 @@ use App\Security\NativePasswordHasher;
 use App\Service\AuthService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class AuthApiControllerTest extends RepositoryTestCase
 {
@@ -29,6 +30,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
 
         return [$controller, $userRepository, $session, $groupRepository];
     }
+
+    #[Test]
 
     public function testRegisterCreatesUserAndReturns201(): void
     {
@@ -45,6 +48,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(201, $response->statusCode());
     }
 
+    #[Test]
+
     public function testRegisterWithInvalidEmailReturns422(): void
     {
         [$controller] = $this->makeController();
@@ -60,6 +65,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(422, $response->statusCode());
     }
 
+    #[Test]
+
     public function testRegisterWithShortPasswordReturns422(): void
     {
         [$controller] = $this->makeController();
@@ -74,6 +81,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
 
         self::assertSame(422, $response->statusCode());
     }
+
+    #[Test]
 
     public function testRegisterWithDuplicateEmailReturns422(): void
     {
@@ -100,6 +109,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(422, $response->statusCode());
     }
 
+    #[Test]
+
     public function testLoginWithValidCredentialsReturns200(): void
     {
         [$controller, $userRepository] = $this->makeController();
@@ -124,6 +135,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
     }
 
+    #[Test]
+
     public function testLoginWithInvalidCredentialsReturns401(): void
     {
         [$controller] = $this->makeController();
@@ -138,6 +151,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(401, $response->statusCode());
     }
 
+    #[Test]
+
     public function testLogoutReturns200(): void
     {
         [$controller] = $this->makeController();
@@ -146,6 +161,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
     }
+
+    #[Test]
 
     public function testLoginWithSingleGroupDoesNotRequireSelection(): void
     {
@@ -170,6 +187,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
         self::assertArrayNotHasKey('groupsToSelect', $body);
     }
+
+    #[Test]
 
     public function testLoginWithMultipleGroupsRequiresSelection(): void
     {
@@ -197,6 +216,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertCount(2, $body['groupsToSelect']);
     }
 
+    #[Test]
+
     public function testSelectGroupWithMembershipReturns200(): void
     {
         [$controller, $userRepository, , $groupRepository] = $this->makeController();
@@ -218,6 +239,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
     }
+
+    #[Test]
 
     public function testSelectGroupWithoutMembershipReturns403(): void
     {

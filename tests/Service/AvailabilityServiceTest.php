@@ -17,6 +17,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Service\AvailabilityService;
 use App\Service\Exception\RequestAlreadyRespondedException;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class AvailabilityServiceTest extends RepositoryTestCase
 {
@@ -77,6 +78,9 @@ final class AvailabilityServiceTest extends RepositoryTestCase
     }
 
 
+    #[Test]
+
+
     public function testRespondByMemberOfHolderGroupAcceptedSucceeds(): void
     {
         [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
@@ -89,6 +93,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         self::assertFalse($responded->isEnAttente());
     }
+
+    #[Test]
 
     public function testRespondByMemberOfHolderGroupRefusedSucceeds(): void
     {
@@ -109,6 +115,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
      * — c'était exactement le bug de conception de l'ancien claim() (qui
      * vérifiait le groupe revendicateur au lieu du groupe titulaire).
      */
+    #[Test]
     public function testRespondByMemberOfRequestingGroupThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
@@ -121,6 +128,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->respond($exception->id(), true, $requestingUserId);
     }
+
+    #[Test]
 
     public function testRespondOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
     {
@@ -137,6 +146,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $service->respond($exception->id(), true, $holderUserId);
     }
 
+    #[Test]
+
     public function testRespondOnUnknownExceptionThrowsRequestAlreadyResponded(): void
     {
         [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
@@ -146,6 +157,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->respond(9999, true, $holderUserId);
     }
+
+    #[Test]
 
     public function testFindPendingForHolderGroupDelegatesToRepositoryAfterMembershipCheck(): void
     {
@@ -160,6 +173,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         self::assertCount(1, $found);
     }
 
+    #[Test]
+
     public function testFindPendingForHolderGroupByNonMemberThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
@@ -170,6 +185,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->findPendingForHolderGroup($holderGroupId, $requestingUserId);
     }
+
+    #[Test]
 
     public function testFindByRequestingGroupDelegatesToRepositoryAfterMembershipCheck(): void
     {
@@ -183,6 +200,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         self::assertCount(1, $found);
     }
+
+    #[Test]
 
     public function testUpdateRequestByMemberOfRequestingGroupSucceeds(): void
     {
@@ -202,6 +221,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
      * IDOR : seul un membre du groupe DEMANDEUR (A) peut modifier sa propre
      * demande — ni le groupe titulaire (B), ni un tiers.
      */
+    #[Test]
     public function testUpdateRequestByMemberOfHolderGroupThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
@@ -214,6 +234,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
     }
+
+    #[Test]
 
     public function testUpdateRequestOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
     {
@@ -229,6 +251,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $requestingUserId);
     }
 
+    #[Test]
+
     public function testUpdateRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
     {
         [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
@@ -238,6 +262,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->updateRequest(9999, new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
     }
+
+    #[Test]
 
     public function testCancelRequestByMemberOfRequestingGroupSucceeds(): void
     {
@@ -256,6 +282,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
      * IDOR : seul un membre du groupe DEMANDEUR (A) peut annuler sa propre
      * demande — ni le groupe titulaire (B), ni un tiers.
      */
+    #[Test]
     public function testCancelRequestByMemberOfHolderGroupThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
@@ -268,6 +295,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->cancelRequest($exception->id(), $holderUserId);
     }
+
+    #[Test]
 
     public function testCancelRequestOnAlreadyRespondedThrowsRequestAlreadyResponded(): void
     {
@@ -282,6 +311,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $service->cancelRequest($exception->id(), $requestingUserId);
     }
+
+    #[Test]
 
     public function testCancelRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
     {

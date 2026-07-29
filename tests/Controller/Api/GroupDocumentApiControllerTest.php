@@ -19,6 +19,7 @@ use App\Service\AuthService;
 use App\Service\GroupDocumentService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupDocumentApiControllerTest extends RepositoryTestCase
 {
@@ -76,6 +77,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         return $tmpPath;
     }
 
+    #[Test]
+
     public function testStoreByGestionnaireReturns201(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -92,6 +95,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         self::assertSame(201, $response->statusCode());
     }
+
+    #[Test]
 
     public function testStoreByNonGestionnaireReturns403(): void
     {
@@ -110,6 +115,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         self::assertSame(403, $response->statusCode());
     }
 
+    #[Test]
+
     public function testStoreWithDisallowedMimeReturns422(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -127,6 +134,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         self::assertSame(422, $response->statusCode());
     }
 
+    #[Test]
+
     public function testStoreWithoutFileReturns422(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -141,6 +150,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         self::assertSame(422, $response->statusCode());
     }
+
+    #[Test]
 
     public function testIndexByMemberReturns200WithDocumentList(): void
     {
@@ -160,6 +171,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         self::assertCount(1, $body['documents']);
     }
 
+    #[Test]
+
     public function testIndexByNonMemberReturns403(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -171,6 +184,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         self::assertSame(403, $response->statusCode());
     }
+
+    #[Test]
 
     public function testDownloadByMemberReturns200WithFileContent(): void
     {
@@ -189,6 +204,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
         self::assertStringContainsString('%PDF-1.4', $response->body());
     }
+
+    #[Test]
 
     public function testDownloadByNonMemberReturns403(): void
     {
@@ -210,6 +227,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         self::assertSame(403, $response->statusCode());
     }
 
+    #[Test]
+
     public function testDestroyByGestionnaireReturns204(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -226,6 +245,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         self::assertSame(204, $response->statusCode());
     }
+
+    #[Test]
 
     public function testDestroyByNonGestionnaireReturns403(): void
     {

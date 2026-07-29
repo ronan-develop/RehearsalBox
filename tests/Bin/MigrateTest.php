@@ -7,6 +7,7 @@ namespace App\Tests\Bin;
 use App\Migration\Migrator;
 use App\Tests\TestDatabase;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class MigrateTest extends TestCase
 {
@@ -17,6 +18,8 @@ final class MigrateTest extends TestCase
         $this->pdo = TestDatabase::connection();
         TestDatabase::reset($this->pdo);
     }
+
+    #[Test]
 
     public function testRunAppliesEachMigrationFileOnce(): void
     {
@@ -39,6 +42,8 @@ final class MigrateTest extends TestCase
         self::assertContains('recurring_slots', $tables);
         self::assertContains('slot_exceptions', $tables);
     }
+
+    #[Test]
 
     public function testRunTwiceDoesNotReapplyAlreadyLoggedMigrations(): void
     {

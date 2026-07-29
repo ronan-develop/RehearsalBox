@@ -12,6 +12,7 @@ use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
 {
@@ -35,6 +36,8 @@ final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
         return [$group, $user];
     }
 
+    #[Test]
+
     public function testSaveThenFindByIdReturnsSameDocument(): void
     {
         $repository = new MysqlGroupDocumentRepository($this->pdo);
@@ -50,12 +53,16 @@ final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
         self::assertSame($group->id(), $found->groupId());
     }
 
+    #[Test]
+
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlGroupDocumentRepository($this->pdo);
 
         self::assertNull($repository->findById(9999));
     }
+
+    #[Test]
 
     public function testFindByGroupReturnsOnlyDocumentsOfThatGroup(): void
     {
@@ -73,6 +80,8 @@ final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
         self::assertSame('a.pdf', $found[0]->originalName());
     }
 
+    #[Test]
+
     public function testCountByGroupCountsOnlyThatGroup(): void
     {
         $repository = new MysqlGroupDocumentRepository($this->pdo);
@@ -82,6 +91,8 @@ final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
 
         self::assertSame(2, $repository->countByGroup($group->id()));
     }
+
+    #[Test]
 
     public function testDeleteThenFindByIdReturnsNull(): void
     {
@@ -93,6 +104,8 @@ final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
 
         self::assertNull($repository->findById($inserted->id()));
     }
+
+    #[Test]
 
     public function testDeleteCascadesWhenGroupIsDeleted(): void
     {

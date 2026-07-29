@@ -14,6 +14,7 @@ use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupServiceTest extends RepositoryTestCase
 {
@@ -40,6 +41,8 @@ final class GroupServiceTest extends RepositoryTestCase
         ));
     }
 
+    #[Test]
+
     public function testCreateAddsGroup(): void
     {
         [$service] = $this->makeService();
@@ -48,6 +51,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         self::assertSame('Black Sabbath Tribute', $group->name());
     }
+
+    #[Test]
 
     public function testAddMemberByEmailAddsExistingUser(): void
     {
@@ -60,6 +65,8 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertTrue($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    #[Test]
+
     public function testAddMemberByEmailWithUnknownEmailThrowsInvalidArgument(): void
     {
         [$service] = $this->makeService();
@@ -69,6 +76,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         $service->addMemberByEmail($group->id(), 'inconnu@rehearsalbox.test');
     }
+
+    #[Test]
 
     public function testRemoveMemberRemovesExistingMember(): void
     {
@@ -81,6 +90,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
+
+    #[Test]
 
     public function testUpdateChangesGroupFields(): void
     {
@@ -95,6 +106,8 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertSame('nouveau@example.test', $updated->contactEmail());
     }
 
+    #[Test]
+
     public function testUpdateWithUnknownGroupThrowsInvalidArgument(): void
     {
         [$service] = $this->makeService();
@@ -103,6 +116,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         $service->update(9999, 'Nom', null, null, 'contact@example.test');
     }
+
+    #[Test]
 
     public function testDeleteRemovesGroup(): void
     {
@@ -114,6 +129,8 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertNull($groupRepository->findById($group->id()));
     }
 
+    #[Test]
+
     public function testFindAllReturnsEveryGroup(): void
     {
         [$service] = $this->makeService();
@@ -122,6 +139,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         self::assertCount(2, $service->findAll());
     }
+
+    #[Test]
 
     public function testPromoteMemberByGestionnaireChangesRole(): void
     {
@@ -137,6 +156,8 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $member->id()));
     }
 
+    #[Test]
+
     public function testPromoteMemberByNonGestionnaireThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -150,6 +171,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         $service->promoteMember($group->id(), $member->id(), $actor->id());
     }
+
+    #[Test]
 
     public function testDemoteMemberByGestionnaireChangesRole(): void
     {
@@ -165,6 +188,8 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $otherManager->id()));
     }
 
+    #[Test]
+
     public function testDemoteLastManagerThrowsLogicException(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -176,6 +201,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         $service->demoteMember($group->id(), $manager->id(), $manager->id());
     }
+
+    #[Test]
 
     public function testDemoteMemberByNonGestionnaireThrowsAccessDenied(): void
     {
@@ -190,6 +217,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         $service->demoteMember($group->id(), $manager->id(), $actor->id());
     }
+
+    #[Test]
 
     public function testUpdateProfileByGestionnaireSavesLineupAndShows(): void
     {
@@ -210,6 +239,8 @@ final class GroupServiceTest extends RepositoryTestCase
         self::assertCount(1, $updated->upcomingShows());
     }
 
+    #[Test]
+
     public function testUpdateProfileByNonGestionnaireThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -221,6 +252,8 @@ final class GroupServiceTest extends RepositoryTestCase
 
         $service->updateProfile($group->id(), [], [], $member->id());
     }
+
+    #[Test]
 
     public function testUpdateProfileByNonMemberThrowsAccessDenied(): void
     {

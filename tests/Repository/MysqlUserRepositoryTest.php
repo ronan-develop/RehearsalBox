@@ -8,9 +8,11 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlUserRepositoryTest extends RepositoryTestCase
 {
+    #[Test]
     public function testSaveThenFindByIdReturnsSameUser(): void
     {
         $repository = new MysqlUserRepository($this->pdo);
@@ -25,12 +27,16 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
         self::assertTrue($found->hasRole(UserRole::Musicien));
     }
 
+    #[Test]
+
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlUserRepository($this->pdo);
 
         self::assertNull($repository->findById(9999));
     }
+
+    #[Test]
 
     public function testFindByEmailReturnsMatchingUser(): void
     {
@@ -43,12 +49,16 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
         self::assertSame('Bob', $found->displayName());
     }
 
+    #[Test]
+
     public function testFindByEmailReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlUserRepository($this->pdo);
 
         self::assertNull($repository->findByEmail('inconnu@rehearsalbox.test'));
     }
+
+    #[Test]
 
     public function testSaveTwiceWithSameEmailViolatesUniqueConstraint(): void
     {

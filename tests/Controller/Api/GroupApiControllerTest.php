@@ -17,6 +17,7 @@ use App\Service\AuthService;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupApiControllerTest extends RepositoryTestCase
 {
@@ -49,6 +50,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         ));
     }
 
+    #[Test]
+
     public function testIndexReturnsAllGroups(): void
     {
         [$controller, , $userRepository, $authService] = $this->makeController();
@@ -62,6 +65,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
         self::assertCount(1, json_decode($response->body(), true)['groups']);
     }
+
+    #[Test]
 
     public function testStoreByAdminReturns201(): void
     {
@@ -79,6 +84,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertSame('contact@example.test', $saved->contactEmail());
     }
 
+    #[Test]
+
     public function testStoreWithMissingContactEmailReturns422(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -91,6 +98,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertSame(422, $response->statusCode());
         self::assertCount(0, $groupRepository->findAll());
     }
+
+    #[Test]
 
     public function testStoreWithInvalidContactEmailReturns422(): void
     {
@@ -105,6 +114,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertCount(0, $groupRepository->findAll());
     }
 
+    #[Test]
+
     public function testStoreByNonAdminThrowsAccessDenied(): void
     {
         [$controller, , $userRepository, $authService] = $this->makeController();
@@ -115,6 +126,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
 
         $controller->store(new Request('POST', '/api/admin/groups', [], ['name' => 'Groupe Test', 'genre' => null, 'colorHex' => null, 'contactEmail' => 'contact@example.test'], []));
     }
+
+    #[Test]
 
     public function testUpdateByAdminReturns200(): void
     {
@@ -133,6 +146,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertSame('nouveau@example.test', $saved->contactEmail());
     }
 
+    #[Test]
+
     public function testUpdateWithUnknownGroupReturns422(): void
     {
         [$controller, , $userRepository, $authService] = $this->makeController();
@@ -144,6 +159,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
 
         self::assertSame(422, $response->statusCode());
     }
+
+    #[Test]
 
     public function testUpdateByNonAdminThrowsAccessDenied(): void
     {
@@ -160,6 +177,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         );
     }
 
+    #[Test]
+
     public function testDestroyByAdminReturns204(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -173,6 +192,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertNull($groupRepository->findById($group->id()));
     }
 
+    #[Test]
+
     public function testDestroyByNonAdminThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -184,6 +205,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
 
         $controller->destroy(new Request('DELETE', "/api/admin/groups/{$group->id()}", [], [], []), (string) $group->id());
     }
+
+    #[Test]
 
     public function testAddMemberWithKnownEmailReturns200(): void
     {
@@ -199,6 +222,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
     }
 
+    #[Test]
+
     public function testAddMemberWithUnknownEmailReturns422(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -211,6 +236,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
 
         self::assertSame(422, $response->statusCode());
     }
+
+    #[Test]
 
     public function testRemoveMemberReturns204(): void
     {

@@ -6,20 +6,26 @@ namespace App\Tests\View;
 
 use App\Entity\Enum\Weekday;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 require_once __DIR__ . '/../../src/View/helpers.php';
 
 final class HelpersTest extends TestCase
 {
+    #[Test]
     public function testFormatTimeStripsSecondsFromHhMmSs(): void
     {
         self::assertSame('18:00', formatTime('18:00:00'));
     }
 
+    #[Test]
+
     public function testFormatTimeHandlesMaxCeiling(): void
     {
         self::assertSame('23:30', formatTime('23:30:00'));
     }
+
+    #[Test]
 
     public function testFormatTimeIsIdempotentOnAlreadyShortFormat(): void
     {
@@ -41,6 +47,7 @@ final class HelpersTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('weekdayProvider')]
+    #[Test]
     public function testFormatWeekdayTranslatesToFrench(Weekday $weekday, string $expected): void
     {
         self::assertSame($expected, formatWeekday($weekday));

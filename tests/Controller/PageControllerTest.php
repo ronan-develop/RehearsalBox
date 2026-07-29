@@ -26,6 +26,7 @@ use App\Service\SlotService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
+use PHPUnit\Framework\Attributes\Test;
 
 final class PageControllerTest extends RepositoryTestCase
 {
@@ -75,6 +76,8 @@ final class PageControllerTest extends RepositoryTestCase
         return $user;
     }
 
+    #[Test]
+
     public function testDashboardIncludesPlanningSliderWithFixedSlots(): void
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
@@ -91,6 +94,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('contact@example.test', $response->body());
     }
 
+    #[Test]
+
     public function testDashboardExposesCurrentUserGroupRoleOnPlanningCard(): void
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
@@ -104,6 +109,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('data-current-user-group-role="gestionnaire"', $response->body());
     }
 
+    #[Test]
+
     public function testDashboardShowsNoPlanningSliderWhenNoFixedSlots(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
@@ -113,6 +120,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringNotContainsString(' data-planning-slider>', $response->body());
     }
+
+    #[Test]
 
     public function testDashboardHidesExceptionalSliderWhenNoOccasionalSlots(): void
     {
@@ -130,6 +139,8 @@ final class PageControllerTest extends RepositoryTestCase
         $sectionOpenTag = substr($response->body(), $sectionStart, $sliderPosition - $sectionStart);
         self::assertStringContainsString('hidden', $sectionOpenTag);
     }
+
+    #[Test]
 
     public function testDashboardShowsExceptionalSliderWithNonClickableCardsForAcceptedOccasionalSlot(): void
     {
@@ -169,6 +180,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('role="button"', $cardOpenTag);
     }
 
+    #[Test]
+
     public function testDashboardHidesNavLinksForNonAdmin(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
@@ -180,6 +193,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('href="/admin', $response->body());
         self::assertStringContainsString('data-logout', $response->body());
     }
+
+    #[Test]
 
     public function testDashboardKeepsNavForAdmin(): void
     {
@@ -203,6 +218,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('href="/admin/groups"', $response->body());
         self::assertStringContainsString('data-logout', $response->body());
     }
+
+    #[Test]
 
     public function testDashboardShowsPendingRequestsForAdminWhoIsAlsoGroupMember(): void
     {
@@ -245,6 +262,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Groupe Demandeur', $response->body());
     }
 
+    #[Test]
+
     public function testDashboardMergesReceivedAndSentExceptionsSortedByCreatedAtDescending(): void
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
@@ -276,6 +295,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertGreaterThan($recuePosition, $envoyeePosition, 'La demande la plus récente (envoyée en second) doit apparaître en premier.');
     }
 
+    #[Test]
+
     public function testDashboardHidesExceptionDeckSectionWhenListIsEmpty(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
@@ -285,6 +306,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringNotContainsString('data-exception-deck', $response->body());
     }
+
+    #[Test]
 
     public function testGroupSpaceByMemberShowsGroupName(): void
     {
@@ -298,6 +321,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
         self::assertStringContainsString('Groupe Test', $response->body());
     }
+
+    #[Test]
 
     public function testGroupSpaceListsGroupDocuments(): void
     {
@@ -313,6 +338,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('fiche technique.pdf', $response->body());
     }
 
+    #[Test]
+
     public function testGroupSpaceIsPubliclyAccessibleWithoutLogin(): void
     {
         [$controller, $groupRepository] = $this->makeController();
@@ -324,6 +351,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Groupe Public', $response->body());
     }
 
+    #[Test]
+
     public function testGroupSpaceResolvesGroupBySlug(): void
     {
         [$controller, $groupRepository] = $this->makeController();
@@ -333,6 +362,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringContainsString('Black Sabbath Tribute', $response->body());
     }
+
+    #[Test]
 
     public function testGroupSpaceHidesDocumentsSectionForNonMember(): void
     {
@@ -351,6 +382,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('confidentiel.pdf', $response->body());
     }
 
+    #[Test]
+
     public function testGroupSpaceHidesDocumentsSectionWhenNotAuthenticated(): void
     {
         [$controller, $groupRepository, , $userRepository] = $this->makeController();
@@ -365,6 +398,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('confidentiel.pdf', $response->body());
     }
 
+    #[Test]
+
     public function testGroupSpaceHidesDocumentsSectionEntirelyForVisitor(): void
     {
         [$controller, $groupRepository] = $this->makeController();
@@ -375,6 +410,8 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('data-documents-list', $response->body());
     }
 
+    #[Test]
+
     public function testGroupSpaceShowsContactButtonForVisitor(): void
     {
         [$controller, $groupRepository] = $this->makeController();
@@ -384,6 +421,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
     }
+
+    #[Test]
 
     public function testGroupSpaceHidesContactButtonForMember(): void
     {
@@ -396,6 +435,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringNotContainsString('Contacter ce groupe', $response->body());
     }
+
+    #[Test]
 
     public function testGroupSpaceByUnknownSlugThrowsAccessDenied(): void
     {

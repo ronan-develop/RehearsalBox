@@ -14,9 +14,11 @@ use App\Service\GroupContactService;
 use App\Tests\RepositoryTestCase;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupContactServiceTest extends RepositoryTestCase
 {
+    #[Test]
     public function testSendSendsEmailToGroupContactAddress(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
@@ -62,6 +64,8 @@ final class GroupContactServiceTest extends RepositoryTestCase
             $mailer->sent->getReplyTo(),
         ));
     }
+
+    #[Test]
 
     public function testSendWithUnknownGroupThrowsInvalidArgument(): void
     {

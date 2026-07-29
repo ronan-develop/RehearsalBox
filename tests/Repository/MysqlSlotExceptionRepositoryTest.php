@@ -14,9 +14,11 @@ use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 {
+    #[Test]
     public function testCreateRequestThenFindByIdReturnsEnAttenteStatus(): void
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -40,12 +42,16 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertInstanceOf(\DateTimeImmutable::class, $found->createdAt());
     }
 
+    #[Test]
+
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
         self::assertNull($repository->findById(9999));
     }
+
+    #[Test]
 
     public function testCreateRequestTwiceForSameOccurrenceViolatesUniqueConstraint(): void
     {
@@ -59,6 +65,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 
         $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
     }
+
+    #[Test]
 
     public function testFindPendingForHolderGroupReturnsOnlyPendingForThatGroupsSlots(): void
     {
@@ -74,6 +82,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(0, $pendingForRequester);
     }
 
+    #[Test]
+
     public function testFindByRequestingGroupReturnsRequestsMadeByThatGroup(): void
     {
         [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -88,6 +98,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(0, $requestedByHolder);
     }
 
+    #[Test]
+
     public function testFindPendingForHolderGroupExcludesPendingExceptionsWithPastOccurrenceDate(): void
     {
         [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -99,6 +111,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 
         self::assertCount(0, $pendingForHolder);
     }
+
+    #[Test]
 
     public function testFindPendingForHolderGroupIncludesPendingExceptionOccurringToday(): void
     {
@@ -112,6 +126,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(1, $pendingForHolder);
     }
 
+    #[Test]
+
     public function testFindByRequestingGroupExcludesPendingExceptionsWithPastOccurrenceDate(): void
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -124,6 +140,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(0, $requestedByRequester);
     }
 
+    #[Test]
+
     public function testFindByRequestingGroupIncludesPendingExceptionOccurringToday(): void
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -135,6 +153,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 
         self::assertCount(1, $requestedByRequester);
     }
+
+    #[Test]
 
     public function testFindByRequestingGroupIncludesPastAcceptedExceptionsAsHistory(): void
     {
@@ -149,6 +169,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(1, $requestedByRequester);
         self::assertSame($pastAccepted->id(), $requestedByRequester[0]->id());
     }
+
+    #[Test]
 
     public function testRespondAcceptedOnPendingExceptionSucceeds(): void
     {
@@ -165,6 +187,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertFalse($found->isEnAttente());
         self::assertSame($requestingUserId, $found->respondedByUserId());
     }
+
+    #[Test]
 
     public function testRespondRefusedOnPendingExceptionSucceeds(): void
     {
@@ -185,6 +209,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
      * être répondue une seconde fois — respond() doit renvoyer false, jamais
      * lever, pour rester un résultat métier normal en cas de concurrence.
      */
+    #[Test]
     public function testRespondOnAlreadyRespondedExceptionReturnsFalseWithoutThrowing(): void
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -199,12 +224,16 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertFalse($secondResponse);
     }
 
+    #[Test]
+
     public function testRespondOnUnknownExceptionReturnsFalse(): void
     {
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
         self::assertFalse($repository->respond(9999, true, 1));
     }
+
+    #[Test]
 
     public function testUpdateOnPendingExceptionSucceeds(): void
     {
@@ -222,6 +251,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertSame('Raison modifiée', $found->requestReason());
     }
 
+    #[Test]
+
     public function testUpdateOnAlreadyRespondedExceptionReturnsFalse(): void
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
@@ -236,12 +267,16 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertSame('2026-08-04', $repository->findById($exception->id())->occurrenceDate()->format('Y-m-d'));
     }
 
+    #[Test]
+
     public function testUpdateOnUnknownExceptionReturnsFalse(): void
     {
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
         self::assertFalse($repository->update(9999, new \DateTimeImmutable('2026-08-11'), null));
     }
+
+    #[Test]
 
     public function testDeleteOnPendingExceptionSucceeds(): void
     {
@@ -255,6 +290,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertTrue($deleted);
         self::assertNull($repository->findById($exception->id()));
     }
+
+    #[Test]
 
     public function testDeleteOnAlreadyRespondedExceptionReturnsFalse(): void
     {
@@ -270,12 +307,16 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertNotNull($repository->findById($exception->id()));
     }
 
+    #[Test]
+
     public function testDeleteOnUnknownExceptionReturnsFalse(): void
     {
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
         self::assertFalse($repository->delete(9999));
     }
+
+    #[Test]
 
     public function testFindAcceptedForCurrentWeekReturnsOnlyAcceptedExceptionsWithinMondayToSunday(): void
     {
@@ -300,6 +341,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(1, $results);
         self::assertSame($withinWeek->id(), $results[0]->id());
     }
+
+    #[Test]
 
     public function testFindAcceptedForCurrentWeekExcludesPendingAndRefusedExceptions(): void
     {

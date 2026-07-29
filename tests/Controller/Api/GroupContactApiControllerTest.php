@@ -22,6 +22,7 @@ use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupContactApiControllerTest extends RepositoryTestCase
 {
@@ -66,6 +67,8 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
         return $user;
     }
 
+    #[Test]
+
     public function testSendByLoggedInUserReturns200AndSendsEmail(): void
     {
         [$controller, $groupRepository, $userRepository, $authService, $mailer] = $this->makeController();
@@ -79,6 +82,8 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
         self::assertNotNull($mailer->sent);
     }
 
+    #[Test]
+
     public function testSendWithoutSessionThrowsUnauthenticated(): void
     {
         [$controller, $groupRepository] = $this->makeController();
@@ -90,6 +95,8 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
         $controller->send($request, (string) $group->id());
     }
 
+    #[Test]
+
     public function testSendWithUnknownGroupReturns404(): void
     {
         [$controller, , $userRepository, $authService] = $this->makeController();
@@ -100,6 +107,8 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
 
         self::assertSame(404, $response->statusCode());
     }
+
+    #[Test]
 
     public function testSendWithEmptyMessageReturns422(): void
     {

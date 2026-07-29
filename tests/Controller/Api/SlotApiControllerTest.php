@@ -21,6 +21,7 @@ use App\Service\AuthService;
 use App\Service\SlotService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class SlotApiControllerTest extends RepositoryTestCase
 {
@@ -55,6 +56,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
         ));
     }
 
+    #[Test]
+
     public function testIndexReturnsAllActiveSlots(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -71,6 +74,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
         self::assertCount(1, json_decode($response->body(), true)['slots']);
     }
+
+    #[Test]
 
     public function testStoreByAdminReturns201(): void
     {
@@ -91,6 +96,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
         self::assertSame(201, $response->statusCode());
     }
 
+    #[Test]
+
     public function testStoreByNonAdminThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -109,6 +116,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
         $controller->store($request);
     }
 
+    #[Test]
+
     public function testStoreWithOverlappingSlotReturns422(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -126,6 +135,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
 
         self::assertSame(422, $response->statusCode());
     }
+
+    #[Test]
 
     public function testUpdateByAdminReturns200(): void
     {
@@ -146,6 +157,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
     }
+
+    #[Test]
 
     public function testPlanningReturnsFixedAndOccasionalSlotsSeparatelyForLoggedInUser(): void
     {
@@ -171,6 +184,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
         self::assertSame('Groupe Test', $body['fixedSlots'][0]['groupName']);
         self::assertCount(0, $body['occasionalSlots']);
     }
+
+    #[Test]
 
     public function testPlanningIncludesAcceptedOccasionalExceptionWithOccurrenceDate(): void
     {
@@ -200,6 +215,8 @@ final class SlotApiControllerTest extends RepositoryTestCase
         self::assertSame('Groupe Demandeur', $body['occasionalSlots'][0]['groupName']);
         self::assertSame($occurrenceDate->format('Y-m-d'), $body['occasionalSlots'][0]['occurrenceDate']);
     }
+
+    #[Test]
 
     public function testDestroyByAdminReturns204(): void
     {

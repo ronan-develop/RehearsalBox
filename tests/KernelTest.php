@@ -14,6 +14,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class KernelTest extends TestCase
 {
@@ -21,6 +22,8 @@ final class KernelTest extends TestCase
     {
         return new Kernel($router, $container, new CsrfTokenManager(new InMemorySession()));
     }
+
+    #[Test]
 
     public function testHandleDispatchesToResolvedControllerMethod(): void
     {
@@ -42,6 +45,8 @@ final class KernelTest extends TestCase
         self::assertSame('{"status":"ok"}', $response->body());
     }
 
+    #[Test]
+
     public function testHandleReturnsJson404ForUnknownApiRoute(): void
     {
         $kernel = $this->kernel(new Router(), new Container());
@@ -51,6 +56,8 @@ final class KernelTest extends TestCase
         self::assertSame(404, $response->statusCode());
         self::assertStringContainsString('application/json', $response->headers()['Content-Type']);
     }
+
+    #[Test]
 
     public function testHandleReturnsHtml404ForUnknownPageRoute(): void
     {
@@ -62,6 +69,8 @@ final class KernelTest extends TestCase
         self::assertStringNotContainsString('application/json', $response->headers()['Content-Type'] ?? '');
     }
 
+    #[Test]
+
     public function testHandleReturnsJson405WhenMethodNotAllowedOnApiRoute(): void
     {
         $router = new Router();
@@ -72,6 +81,8 @@ final class KernelTest extends TestCase
 
         self::assertSame(405, $response->statusCode());
     }
+
+    #[Test]
 
     public function testHandleReturnsJson403WhenControllerThrowsAccessDeniedOnApiRoute(): void
     {
@@ -93,6 +104,8 @@ final class KernelTest extends TestCase
         self::assertStringContainsString('application/json', $response->headers()['Content-Type']);
     }
 
+    #[Test]
+
     public function testHandleReturnsHtml403WhenControllerThrowsAccessDeniedOnPageRoute(): void
     {
         $router = new Router();
@@ -112,6 +125,8 @@ final class KernelTest extends TestCase
         self::assertSame(403, $response->statusCode());
         self::assertStringNotContainsString('application/json', $response->headers()['Content-Type'] ?? '');
     }
+
+    #[Test]
 
     public function testHandleRedirectsToLoginWhenControllerThrowsUnauthenticatedOnPageRoute(): void
     {
@@ -133,6 +148,8 @@ final class KernelTest extends TestCase
         self::assertSame('/login', $response->headers()['Location']);
     }
 
+    #[Test]
+
     public function testHandleReturnsJson401WhenControllerThrowsUnauthenticatedOnApiRoute(): void
     {
         $router = new Router();
@@ -152,6 +169,8 @@ final class KernelTest extends TestCase
         self::assertSame(401, $response->statusCode());
         self::assertStringContainsString('application/json', $response->headers()['Content-Type']);
     }
+
+    #[Test]
 
     public function testHandleRejectsMutatingApiRequestWithoutCsrfTokenBeforeReachingController(): void
     {
@@ -182,6 +201,8 @@ final class KernelTest extends TestCase
         self::assertFalse($reached, 'le controller ne doit jamais être atteint sans token CSRF valide');
     }
 
+    #[Test]
+
     public function testHandleAcceptsMutatingApiRequestWithValidCsrfToken(): void
     {
         $router = new Router();
@@ -204,6 +225,8 @@ final class KernelTest extends TestCase
 
         self::assertSame(200, $response->statusCode());
     }
+
+    #[Test]
 
     public function testHandleDoesNotCheckCsrfOnGetApiRequests(): void
     {

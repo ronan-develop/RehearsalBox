@@ -10,9 +10,11 @@ use App\Entity\RecurringSlot;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlRecurringSlotRepositoryTest extends RepositoryTestCase
 {
+    #[Test]
     public function testSaveThenFindByIdReturnsSameSlot(): void
     {
         $groupId = $this->createGroup();
@@ -30,12 +32,16 @@ final class MysqlRecurringSlotRepositoryTest extends RepositoryTestCase
         self::assertSame('18:00:00', $found->startTime());
     }
 
+    #[Test]
+
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlRecurringSlotRepository($this->pdo);
 
         self::assertNull($repository->findById(9999));
     }
+
+    #[Test]
 
     public function testFindAllActiveExcludesInactiveSlots(): void
     {
@@ -51,6 +57,8 @@ final class MysqlRecurringSlotRepositoryTest extends RepositoryTestCase
         self::assertSame(Weekday::Monday, $active[0]->weekday());
     }
 
+    #[Test]
+
     public function testFindByGroupReturnsOnlySlotsOfThatGroup(): void
     {
         $groupA = $this->createGroup('Groupe A');
@@ -65,6 +73,8 @@ final class MysqlRecurringSlotRepositoryTest extends RepositoryTestCase
         self::assertCount(1, $slots);
         self::assertSame($groupA, $slots[0]->groupId());
     }
+
+    #[Test]
 
     public function testInvalidTimeRangeIsRejectedByDatabaseCheckConstraint(): void
     {

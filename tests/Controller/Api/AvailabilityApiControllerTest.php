@@ -21,6 +21,7 @@ use App\Service\AuthService;
 use App\Service\AvailabilityService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class AvailabilityApiControllerTest extends RepositoryTestCase
 {
@@ -55,6 +56,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         ));
     }
 
+    #[Test]
+
     public function testRespondAcceptedByMemberOfHolderGroupReturns200(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
@@ -78,6 +81,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
     }
 
+    #[Test]
+
     public function testRespondByMemberOfRequestingGroupThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
@@ -98,6 +103,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $request = new Request('POST', "/api/availability/{$exception->id()}/respond", [], ['accepted' => true], []);
         $controller->respond($request, (string) $exception->id());
     }
+
+    #[Test]
 
     public function testRespondOnAlreadyRespondedReturns409(): void
     {
@@ -123,6 +130,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(409, $response->statusCode());
     }
 
+    #[Test]
+
     public function testPendingForGroupReturnsOnlyPendingExceptions(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
@@ -144,6 +153,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
     }
 
+    #[Test]
+
     public function testRequestedByGroupReturnsRequestsForThatGroup(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
@@ -163,6 +174,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
     }
+
+    #[Test]
 
     public function testUpdateByMemberOfRequestingGroupReturns200(): void
     {
@@ -188,6 +201,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
     }
 
+    #[Test]
+
     public function testUpdateByMemberOfHolderGroupThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
@@ -210,6 +225,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $request = new Request('PATCH', "/api/availability/{$exception->id()}", [], ['occurrenceDate' => '2026-08-11'], []);
         $controller->update($request, (string) $exception->id());
     }
+
+    #[Test]
 
     public function testUpdateOnAlreadyRespondedReturns409(): void
     {
@@ -235,6 +252,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(409, $response->statusCode());
     }
 
+    #[Test]
+
     public function testDestroyByMemberOfRequestingGroupReturns204(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
@@ -255,6 +274,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
 
         self::assertSame(204, $response->statusCode());
     }
+
+    #[Test]
 
     public function testDestroyByMemberOfHolderGroupThrowsAccessDenied(): void
     {
@@ -278,6 +299,8 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $request = new Request('DELETE', "/api/availability/{$exception->id()}", [], [], []);
         $controller->destroy($request, (string) $exception->id());
     }
+
+    #[Test]
 
     public function testDestroyOnAlreadyRespondedReturns409(): void
     {
