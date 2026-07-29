@@ -331,6 +331,16 @@
   /* Empêche le drag/swipe tactile de déclencher un scroll de page pendant
      la navigation manuelle dans la pile (borné, pas de boucle). */
   touch-action: pan-y;
+  /* Effet pierre/roche (#96, référence hellfest.fr : fond texturé sur des
+     blocs spécifiques, pas sur toute la page) : asset local
+     (public/assets/img/pierre.jpg), visible autour/derrière la pile de
+     cartes. */
+  border-radius: var(--rb-radius-md);
+  background-color: var(--rb-bg);
+  background-image: url('/assets/img/pierre.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .rb-exception-card {
