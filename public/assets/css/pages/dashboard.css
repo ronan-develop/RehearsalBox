@@ -6,14 +6,12 @@
 
 @media (min-width: 768px) {
   /* Confort desktop/tablette (cf. .claude/layout.md) : contenu centré,
-     pas de réorganisation profonde du layout mobile-first existant. */
+     pas de réorganisation profonde du layout mobile-first existant.
+     Le planning slider et le deck de cartes gardent leur comportement
+     et leurs dimensions internes inchangés (cf. retour utilisateur) —
+     seul le container de page est contraint/centré. */
   .rb-dashboard-page {
     max-width: 900px;
-    margin-inline: auto;
-  }
-
-  .rb-exception-deck {
-    max-width: 50%;
     margin-inline: auto;
   }
 }
