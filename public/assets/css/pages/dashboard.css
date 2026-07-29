@@ -16,13 +16,20 @@
     padding-inline: max(2rem, 3vw);
   }
 
-  .rb-planning-slider,
-  .rb-exception-deck {
+  .rb-planning-slider {
     /* Full-bleed : sort du padding du parent pour occuper toute la
        largeur du viewport (le <h2> de section, lui, reste aligné dans
-       le padding du container). */
+       le padding du container). Le deck de demandes (.rb-exception-deck)
+       reste volontairement dans le container (cf. retour utilisateur). */
     width: 100vw;
     margin-inline: calc(50% - 50vw);
+  }
+
+  .rb-exception-deck {
+    /* Moins oppressant sur grand écran (cf. retour utilisateur) : la
+       carte ne s'étire pas sur toute la largeur du container. */
+    max-width: 420px;
+    margin-inline: auto;
   }
 }
 
