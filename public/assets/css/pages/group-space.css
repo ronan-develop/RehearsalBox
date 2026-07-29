@@ -8,6 +8,13 @@
 .rb-group-space-back {
   display: inline-block;
   margin-bottom: var(--rb-space-3);
+  color: var(--rb-text-2);
+  text-decoration: none;
+  transition: color var(--rb-motion-standard);
+}
+
+.rb-group-space-back:hover {
+  color: var(--rb-accent);
 }
 
 .rb-group-space-header h1 {
@@ -15,7 +22,7 @@
 }
 
 .rb-group-space-genre {
-  color: var(--rb-text-muted);
+  color: var(--rb-text-2);
 }
 
 .rb-group-space-section {
