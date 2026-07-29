@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoScrollController, generateWrinkleStyle, generateExtraWrinkles, pickTapePosition, generateTornEdgesPath } from './planning-slider.js';
+import { createAutoScrollController, generateWrinkleStyle, generateExtraWrinkles, pickTapePosition, generateTornEdgesPath, shouldAutoScroll } from './planning-slider.js';
 
 function makeFakeTrack(offsetWidth = 1000) {
   let translateX = 0;
@@ -303,4 +303,18 @@ test('generateTornEdgesPath produces a different path for each of the 4 edges (n
   assert.equal(segments.length, 4);
   const uniqueSegments = new Set(segments.map((s) => s.trim()));
   assert.equal(uniqueSegments.size, 4, 'the 4 edges must not share the same jitter sequence');
+});
+
+test('shouldAutoScroll returns true when the track overflows the slider width (mobile-first: only scroll if content is larger than the viewport)', () => {
+  const slider = { clientWidth: 300 };
+  const track = { scrollWidth: 600 };
+
+  assert.equal(shouldAutoScroll(slider, track), true);
+});
+
+test('shouldAutoScroll returns false when the track fits within the slider width', () => {
+  const slider = { clientWidth: 800 };
+  const track = { scrollWidth: 600 };
+
+  assert.equal(shouldAutoScroll(slider, track), false);
 });

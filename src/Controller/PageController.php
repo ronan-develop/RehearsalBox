@@ -82,7 +82,8 @@ final class PageController
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
-            'planningSlots' => $this->slotService->findPlanningSlots(),
+            'planningSlots' => $this->slotService->findFixedPlanningSlots(),
+            'exceptionalPlanningSlots' => $this->slotService->findOccasionalPlanningSlots(),
             'dashboardExceptions' => $items,
             'currentUserRole' => $user->role(),
             'currentUserGroupRoles' => $groupRoles,

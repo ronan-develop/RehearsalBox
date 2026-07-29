@@ -115,7 +115,12 @@
   transition: filter 0.15s ease, transform 0.15s ease;
 }
 
-.rb-planning-card:hover {
+/* Carte non cliquable (#81) : pas d'effet "bouton enfoncé", curseur normal. */
+.rb-planning-card--exceptional {
+  cursor: default;
+}
+
+.rb-planning-card:not(.rb-planning-card--exceptional):hover {
   /* Effet "bouton enfoncé" : décalage vers le bas-gauche + ombre effacée,
      la carte semble s'enfoncer dans la surface au lieu de s'élever. */
   transform: translate(-2px, 2px);
@@ -263,6 +268,12 @@
   margin: 0 0 var(--rb-space-1);
   font-weight: 600;
   color: #2a2620;
+}
+
+.rb-planning-card-date {
+  margin: 0 0 var(--rb-space-1);
+  font-size: 0.8125rem;
+  color: #5a5449;
 }
 
 .rb-planning-card-time {

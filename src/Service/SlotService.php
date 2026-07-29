@@ -95,12 +95,10 @@ final class SlotService implements SlotServiceInterface
     }
 
     /**
-     * Fusionne les créneaux fixes actifs et les occurrences occasionnelles
-     * (exceptions acceptées de la semaine en cours, cf. #34) en une seule
-     * liste triée chronologiquement (jour puis heure) — une répétition
-     * occasionnelle du mardi doit apparaître avant une fixe du jeudi.
+     * Créneaux fixes actifs, pour le planning principal (cliquable, ouvre
+     * la modale de contact) — cf. #81, séparé des occasionnels.
      */
-    public function findPlanningSlots(): array
+    public function findFixedPlanningSlots(): array
     {
         $fixed = array_map(
             function (RecurringSlot $slot): RequestableSlot {
@@ -112,6 +110,21 @@ final class SlotService implements SlotServiceInterface
             $this->slotRepository->findAllActive(),
         );
 
+        usort($fixed, static function (RequestableSlot $a, RequestableSlot $b): int {
+            return [$a->slot()->weekday()->value, $a->slot()->startTime()]
+                <=> [$b->slot()->weekday()->value, $b->slot()->startTime()];
+        });
+
+        return $fixed;
+    }
+
+    /**
+     * Occurrences occasionnelles (exceptions acceptées de la semaine en
+     * cours, cf. #34) — affichées dans un second slider dédié, non
+     * cliquable (cf. #81), séparé du planning fixe.
+     */
+    public function findOccasionalPlanningSlots(): array
+    {
         $occasional = array_map(
             function (\App\Entity\SlotException $exception): RequestableSlot {
                 $holderSlot = $this->slotRepository->findById($exception->recurringSlotId());
@@ -119,18 +132,16 @@ final class SlotService implements SlotServiceInterface
                 $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
                 \assert($requestingGroup !== null);
 
-                return RequestableSlot::occasional($holderSlot, $requestingGroup->name(), $requestingGroup->id());
+                return RequestableSlot::occasional($holderSlot, $requestingGroup->name(), $requestingGroup->id(), $exception->occurrenceDate());
             },
             $this->exceptionRepository->findAcceptedForCurrentWeek(),
         );
 
-        $planning = [...$fixed, ...$occasional];
-
-        usort($planning, static function (RequestableSlot $a, RequestableSlot $b): int {
+        usort($occasional, static function (RequestableSlot $a, RequestableSlot $b): int {
             return [$a->slot()->weekday()->value, $a->slot()->startTime()]
                 <=> [$b->slot()->weekday()->value, $b->slot()->startTime()];
         });
 
-        return $planning;
+        return $occasional;
     }
 }
