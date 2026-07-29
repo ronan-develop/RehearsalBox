@@ -6,20 +6,21 @@
 
 @media (min-width: 768px) {
   /* Confort desktop/tablette (cf. .claude/layout.md, #93) : le contenu
-     "statique" (header, titres) reste centré à largeur max ; les
-     sliders/deck en sortent explicitement en full-bleed ci-dessous
-     (référence : carousel du Hellfest Shop, cartes qui s'étendent
-     bord à bord de l'écran). */
+     "statique" (header, titres) suit la largeur du viewport avec un
+     padding proportionnel plutôt qu'une largeur maximale bornée
+     (référence : hellfest.fr .content__home-container, padding: 3vw 2rem
+     — pas de max-width fixe) ; les sliders/deck en sortent explicitement
+     en full-bleed ci-dessous (référence : carousel du Hellfest Shop,
+     cartes qui s'étendent bord à bord de l'écran). */
   .rb-dashboard-page {
-    max-width: 1200px;
-    margin-inline: auto;
+    padding-inline: max(2rem, 3vw);
   }
 
   .rb-planning-slider,
   .rb-exception-deck {
-    /* Full-bleed : sort de la largeur du parent contraint pour occuper
-       toute la largeur du viewport (le <h2> de section, lui, reste
-       aligné dans le container). */
+    /* Full-bleed : sort du padding du parent pour occuper toute la
+       largeur du viewport (le <h2> de section, lui, reste aligné dans
+       le padding du container). */
     width: 100vw;
     margin-inline: calc(50% - 50vw);
   }
