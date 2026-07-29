@@ -222,12 +222,15 @@ function randomizeCardTapes(root) {
 }
 
 /**
- * Mobile-first (#81) : le slider des créneaux exceptionnels ne défile
- * automatiquement que si son contenu dépasse réellement la largeur visible
- * — sur un écran large avec peu de cartes, pas de scroll inutile.
+ * Breakpoint desktop (#83) : au-delà, le slider exceptionnel ne défile pas
+ * automatiquement — règle simplifiée basée sur le viewport plutôt que sur
+ * les dimensions DOM post-rendu (scrollWidth/clientWidth, cf. #81), pour ne
+ * pas dépendre du layout déjà calculé.
  */
-export function shouldAutoScroll(slider, track) {
-  return track.scrollWidth > slider.clientWidth;
+const DESKTOP_BREAKPOINT = 768;
+
+export function shouldAutoScroll(viewportWidth) {
+  return viewportWidth < DESKTOP_BREAKPOINT;
 }
 
 function attachAutoScroll(slider, track) {
@@ -265,7 +268,7 @@ export function initPlanningSlider(root = document) {
  * (pas de listener de contact posé dessus), défilement conditionnel via
  * shouldAutoScroll — contrairement au planning fixe qui défile toujours.
  */
-export function initExceptionalPlanningSlider(root = document) {
+export function initExceptionalPlanningSlider(root = document, win = window) {
   const slider = root.querySelector('[data-planning-slider-exceptional]');
   const track = root.querySelector('[data-planning-track-exceptional]');
   if (!slider || !track) {
@@ -275,7 +278,7 @@ export function initExceptionalPlanningSlider(root = document) {
   randomizeCardWrinkles(slider);
   randomizeCardTapes(slider);
 
-  if (!shouldAutoScroll(slider, track)) {
+  if (!shouldAutoScroll(win.innerWidth)) {
     return;
   }
 

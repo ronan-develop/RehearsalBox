@@ -305,16 +305,10 @@ test('generateTornEdgesPath produces a different path for each of the 4 edges (n
   assert.equal(uniqueSegments.size, 4, 'the 4 edges must not share the same jitter sequence');
 });
 
-test('shouldAutoScroll returns true when the track overflows the slider width (mobile-first: only scroll if content is larger than the viewport)', () => {
-  const slider = { clientWidth: 300 };
-  const track = { scrollWidth: 600 };
-
-  assert.equal(shouldAutoScroll(slider, track), true);
+test('shouldAutoScroll returns true when the viewport is narrower than the desktop breakpoint (mobile-first)', () => {
+  assert.equal(shouldAutoScroll(767), true);
 });
 
-test('shouldAutoScroll returns false when the track fits within the slider width', () => {
-  const slider = { clientWidth: 800 };
-  const track = { scrollWidth: 600 };
-
-  assert.equal(shouldAutoScroll(slider, track), false);
+test('shouldAutoScroll returns false when the viewport is at least as wide as the desktop breakpoint', () => {
+  assert.equal(shouldAutoScroll(768), false);
 });
