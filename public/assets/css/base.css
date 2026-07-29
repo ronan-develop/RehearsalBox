@@ -25,11 +25,12 @@
   --rb-space-4: 2rem;
   --rb-space-5: 2.75rem;
   --rb-space-6: 4rem;
-  /* Arimo (#100) : métrique-compatible avec Arial, pas de dépendance
-     externe (fallback système, pas de fichier woff2 hébergé). Remplace
-     Fraunces/Inter (choix "direction Hellfest" antérieur, cf. #17/#21). */
-  --rb-font-display: Arimo, Arial, system-ui, -apple-system, sans-serif;
-  --rb-font-body: Arimo, Arial, system-ui, -apple-system, sans-serif;
+  /* Arimo (#100) servie réellement (asset local, licence Apache 2.0),
+     avec Arial/system-ui en repli si le chargement du fichier échoue
+     (métrique-compatible, rendu quasi identique). Remplace Fraunces/
+     Inter (choix "direction Hellfest" antérieur, cf. #17/#21). */
+  --rb-font-display: 'Arimo', Arial, system-ui, -apple-system, sans-serif;
+  --rb-font-body: 'Arimo', Arial, system-ui, -apple-system, sans-serif;
   --rb-radius-sm: 4px;
   --rb-radius-md: 8px;
   --rb-radius-lg: 16px;
@@ -40,6 +41,22 @@
   --rb-shadow: var(--rb-elevation-1);
   --rb-shadow-lg: var(--rb-elevation-3);
   --rb-motion-standard: 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@font-face {
+  font-family: 'Arimo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/arimo-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Arimo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/arimo-700.woff2') format('woff2');
 }
 
 *, *::before, *::after {
@@ -73,6 +90,11 @@ h1, h2, h3 {
   unicode-bidi: isolate;
 }
 
+/* Seuls Arimo Regular (400) et Bold (700) sont hébergés (source
+   1001fonts, licence Apache 2.0) — pas de variante 600/800 auto-
+   hébergée. Le navigateur retombe sur le poids le plus proche
+   disponible (700) pour h1/h3, rendu visuellement correct sans
+   nécessiter un jeu complet de graisses intermédiaires. */
 h1 {
   font-size: 2em;
   font-weight: 800;
