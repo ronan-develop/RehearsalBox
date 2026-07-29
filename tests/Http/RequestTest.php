@@ -6,15 +6,19 @@ namespace App\Tests\Http;
 
 use App\Http\Request;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class RequestTest extends TestCase
 {
+    #[Test]
     public function testFileReturnsNullWhenNoFileUploaded(): void
     {
         $request = new Request('POST', '/api/groups/1/documents', [], [], [], []);
 
         self::assertNull($request->file('document'));
     }
+
+    #[Test]
 
     public function testFileReturnsUploadedFileData(): void
     {

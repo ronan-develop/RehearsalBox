@@ -7,9 +7,11 @@ namespace App\Tests\Container;
 use App\Container\Container;
 use App\Container\Exception\ServiceNotFoundException;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class ContainerTest extends TestCase
 {
+    #[Test]
     public function testGetResolvesRegisteredService(): void
     {
         $container = new Container();
@@ -17,6 +19,8 @@ final class ContainerTest extends TestCase
 
         self::assertSame('hello', $container->get('greeting'));
     }
+
+    #[Test]
 
     public function testGetReturnsSameInstanceOnSecondCall(): void
     {
@@ -29,6 +33,8 @@ final class ContainerTest extends TestCase
         self::assertSame($first, $second);
     }
 
+    #[Test]
+
     public function testFactoryReceivesContainerToChainDependencies(): void
     {
         $container = new Container();
@@ -37,6 +43,8 @@ final class ContainerTest extends TestCase
 
         self::assertSame('valeur-a-b', $container->get('b'));
     }
+
+    #[Test]
 
     public function testGetThrowsWhenServiceIsUnknown(): void
     {

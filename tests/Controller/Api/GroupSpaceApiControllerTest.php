@@ -18,6 +18,7 @@ use App\Service\AuthService;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupSpaceApiControllerTest extends RepositoryTestCase
 {
@@ -50,6 +51,8 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         ));
     }
 
+    #[Test]
+
     public function testShowByMemberReturns200(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -63,6 +66,8 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
     }
 
+    #[Test]
+
     public function testShowByNonMemberReturns403(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
@@ -74,6 +79,8 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
 
         self::assertSame(403, $response->statusCode());
     }
+
+    #[Test]
 
     public function testUpdateProfileByGestionnaireReturns200(): void
     {
@@ -93,6 +100,8 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $response->statusCode());
         self::assertCount(1, $body['lineup']);
     }
+
+    #[Test]
 
     public function testUpdateProfileByNonGestionnaireReturns403(): void
     {

@@ -13,9 +13,11 @@ use App\Entity\User;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlGroupRepositoryTest extends RepositoryTestCase
 {
+    #[Test]
     public function testSaveThenFindByIdReturnsSameGroup(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -30,6 +32,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame('contact@example.test', $found->contactEmail());
     }
 
+    #[Test]
+
     public function testFindBySlugReturnsMatchingGroup(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -41,6 +45,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame('Black Sabbath Tribute', $found->name());
     }
 
+    #[Test]
+
     public function testFindBySlugReturnsNullWhenNoMatch(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -48,12 +54,16 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertNull($repository->findBySlug('groupe-inexistant'));
     }
 
+    #[Test]
+
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
 
         self::assertNull($repository->findById(9999));
     }
+
+    #[Test]
 
     public function testFindAllReturnsEveryGroup(): void
     {
@@ -65,6 +75,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertCount(2, $all);
     }
+
+    #[Test]
 
     public function testAddMemberThenIsMemberReturnsTrue(): void
     {
@@ -79,6 +91,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertTrue($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    #[Test]
+
     public function testIsMemberReturnsFalseWhenNotAMember(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
@@ -89,6 +103,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
+
+    #[Test]
 
     public function testFindByMemberReturnsOnlyGroupsTheUserBelongsTo(): void
     {
@@ -106,6 +122,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame($groupA->id(), $found[0]->id());
     }
 
+    #[Test]
+
     public function testRemoveMemberThenIsMemberReturnsFalse(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
@@ -120,6 +138,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    #[Test]
+
     public function testDeleteThenFindByIdReturnsNull(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -129,6 +149,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertNull($repository->findById($group->id()));
     }
+
+    #[Test]
 
     public function testDeleteCascadesToGroupMembers(): void
     {
@@ -143,6 +165,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
     }
 
+    #[Test]
+
     public function testAddMemberDefaultsToMembreRole(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
@@ -154,6 +178,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $user->id()));
     }
+
+    #[Test]
 
     public function testAddMemberWithExplicitGestionnaireRole(): void
     {
@@ -167,6 +193,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $user->id()));
     }
 
+    #[Test]
+
     public function testRoleOfReturnsNullWhenNotAMember(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
@@ -176,6 +204,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertNull($groupRepository->roleOf($group->id(), $user->id()));
     }
+
+    #[Test]
 
     public function testPromoteToManagerChangesRole(): void
     {
@@ -190,6 +220,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $user->id()));
     }
 
+    #[Test]
+
     public function testDemoteToMemberChangesRole(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
@@ -202,6 +234,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $user->id()));
     }
+
+    #[Test]
 
     public function testSaveThenFindByIdReturnsLineupAndUpcomingShows(): void
     {
@@ -226,6 +260,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame('Le Point Éphémère', $found->upcomingShows()[0]->venue());
     }
 
+    #[Test]
+
     public function testSaveWithoutLineupReturnsEmptyArrays(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -236,6 +272,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame([], $found->lineup());
         self::assertSame([], $found->upcomingShows());
     }
+
+    #[Test]
 
     public function testCountManagersCountsOnlyGestionnaireRole(): void
     {

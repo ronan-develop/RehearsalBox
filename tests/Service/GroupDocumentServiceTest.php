@@ -16,6 +16,7 @@ use App\Service\Exception\InvalidUploadException;
 use App\Service\Exception\StorageQuotaExceededException;
 use App\Service\GroupDocumentService;
 use App\Tests\RepositoryTestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class GroupDocumentServiceTest extends RepositoryTestCase
 {
@@ -67,6 +68,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         return $tmpPath;
     }
 
+    #[Test]
+
     public function testUploadByGestionnaireSavesFileAndRecord(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -85,6 +88,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         self::assertMatchesRegularExpression('/^[a-f0-9]{32}\.pdf$/', $document->storedName());
     }
 
+    #[Test]
+
     public function testUploadByNonGestionnaireThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -98,6 +103,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
         $service->upload($group->id(), $member->id(), $tmpPath, 'fiche.pdf', 12);
     }
+
+    #[Test]
 
     public function testUploadWithDisallowedMimeTypeThrowsInvalidUpload(): void
     {
@@ -113,6 +120,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         $service->upload($group->id(), $manager->id(), $tmpPath, 'script.pdf', 20);
     }
 
+    #[Test]
+
     public function testUploadExceedingMaxSizeThrowsInvalidUpload(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -127,6 +136,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
         $service->upload($group->id(), $manager->id(), $tmpPath, 'fiche.pdf', $tenMegabytesPlusOne);
     }
+
+    #[Test]
 
     public function testUploadWhenQuotaReachedThrowsStorageQuotaExceeded(): void
     {
@@ -145,6 +156,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         $service->upload($group->id(), $manager->id(), $tmpPath2, 'fiche2.pdf', 20);
     }
 
+    #[Test]
+
     public function testListByMemberReturnsGroupDocuments(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -159,6 +172,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         self::assertCount(1, $documents);
     }
 
+    #[Test]
+
     public function testListByNonMemberThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -169,6 +184,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
         $service->listForGroup($group->id(), $stranger->id());
     }
+
+    #[Test]
 
     public function testDeleteByGestionnaireRemovesFileAndRecord(): void
     {
@@ -184,6 +201,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         self::assertNull($documentRepository->findById($document->id()));
         self::assertFileDoesNotExist($this->storagePath . '/' . $document->storedName());
     }
+
+    #[Test]
 
     public function testDeleteByNonGestionnaireThrowsAccessDenied(): void
     {
@@ -201,6 +220,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         $service->delete($document->id(), $member->id());
     }
 
+    #[Test]
+
     public function testDownloadPathByNonMemberThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -215,6 +236,8 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
         $service->resolveDownloadPath($document->id(), $stranger->id());
     }
+
+    #[Test]
 
     public function testDownloadPathByMemberReturnsAbsolutePath(): void
     {

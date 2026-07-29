@@ -9,6 +9,7 @@ use App\Routing\Exception\MethodNotAllowedException;
 use App\Routing\Exception\RouteNotFoundException;
 use App\Routing\Router;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class RouterTest extends TestCase
 {
@@ -16,6 +17,8 @@ final class RouterTest extends TestCase
     {
         return new Request($method, $path, [], [], []);
     }
+
+    #[Test]
 
     public function testMatchNominalCaseReturnsHandlerAndEmptyParams(): void
     {
@@ -28,6 +31,8 @@ final class RouterTest extends TestCase
         self::assertSame([], $matched->params);
     }
 
+    #[Test]
+
     public function testMatchExtractsNamedParams(): void
     {
         $router = new Router();
@@ -39,6 +44,8 @@ final class RouterTest extends TestCase
         self::assertSame(['id' => '42'], $matched->params);
     }
 
+    #[Test]
+
     public function testMatchThrowsRouteNotFoundWhenNoPatternMatches(): void
     {
         $router = new Router();
@@ -49,6 +56,8 @@ final class RouterTest extends TestCase
         $router->match($this->request('GET', '/inexistant'));
     }
 
+    #[Test]
+
     public function testMatchThrowsMethodNotAllowedWhenPathMatchesButNotMethod(): void
     {
         $router = new Router();
@@ -58,6 +67,8 @@ final class RouterTest extends TestCase
 
         $router->match($this->request('POST', '/groups/42'));
     }
+
+    #[Test]
 
     public function testMatchDistinguishesMultipleNamedParams(): void
     {

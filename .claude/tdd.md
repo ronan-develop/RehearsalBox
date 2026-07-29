@@ -14,6 +14,11 @@ Ne jamais passer à GREEN sans avoir vu le test échouer en RED.
 - Tests des `Api\*Controller` : instancier un `Request` à la main ou taper l'endpoint via le serveur PHP built-in dans un `ApiTestCase` maison léger si le besoin s'en fait sentir
 - **`node --test`** pour `assets/js/*` (pas de bundler, pas besoin de Jest complet)
 
+## Convention de nommage (PHPUnit)
+
+- Chaque méthode de test porte l'attribut `#[Test]` (`PHPUnit\Framework\Attributes\Test`), pas de préfixe `test` imposé par la config — le préfixe `testXxx()` est conservé sur les méthodes existantes par cohérence historique, mais un nom libre est possible pour les nouveaux tests
+- `#[DataProvider('methodName')]` pour un jeu de données paramétré, si le besoin s'en présente (pas encore utilisé dans le projet)
+
 ## Ce qui ne se teste pas au sens RED/GREEN
 
 Classes purement structurelles sans branche logique (`Http/Request` value object, `Entity/*` sans comportement, templates PHP de vue) — mais tout ce qui les consomme (un `Service` qui les manipule) est testé.

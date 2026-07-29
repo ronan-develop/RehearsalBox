@@ -6,9 +6,11 @@ namespace App\Tests\Security;
 
 use App\Security\CsrfTokenManager;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class CsrfTokenManagerTest extends TestCase
 {
+    #[Test]
     public function testGetTokenGeneratesAndPersistsATokenInSession(): void
     {
         $session = new InMemorySession();
@@ -19,6 +21,8 @@ final class CsrfTokenManagerTest extends TestCase
         self::assertNotEmpty($token);
         self::assertSame($token, $session->get('csrf_token'));
     }
+
+    #[Test]
 
     public function testGetTokenReturnsSameTokenOnSecondCall(): void
     {
@@ -31,6 +35,8 @@ final class CsrfTokenManagerTest extends TestCase
         self::assertSame($first, $second);
     }
 
+    #[Test]
+
     public function testIsValidReturnsTrueForMatchingToken(): void
     {
         $session = new InMemorySession();
@@ -40,6 +46,8 @@ final class CsrfTokenManagerTest extends TestCase
         self::assertTrue($manager->isValid($token));
     }
 
+    #[Test]
+
     public function testIsValidReturnsFalseForWrongToken(): void
     {
         $session = new InMemorySession();
@@ -48,6 +56,8 @@ final class CsrfTokenManagerTest extends TestCase
 
         self::assertFalse($manager->isValid('token-invalide'));
     }
+
+    #[Test]
 
     public function testIsValidReturnsFalseWhenNoTokenInSession(): void
     {

@@ -11,6 +11,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
 use App\Service\Contract\AuthServiceInterface;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 final class AuthGuardTest extends TestCase
 {
@@ -51,6 +52,8 @@ final class AuthGuardTest extends TestCase
         };
     }
 
+    #[Test]
+
     public function testRequireLoginPassesWhenUserIsAuthenticated(): void
     {
         $guard = new AuthGuard($this->authServiceReturning($this->user(UserRole::Musicien)));
@@ -59,6 +62,8 @@ final class AuthGuardTest extends TestCase
 
         $this->expectNotToPerformAssertions();
     }
+
+    #[Test]
 
     public function testRequireLoginThrowsUnauthenticatedWhenNoUser(): void
     {
@@ -69,6 +74,8 @@ final class AuthGuardTest extends TestCase
         $guard->requireLogin();
     }
 
+    #[Test]
+
     public function testRequireRolePassesWhenUserHasRole(): void
     {
         $guard = new AuthGuard($this->authServiceReturning($this->user(UserRole::Admin)));
@@ -77,6 +84,8 @@ final class AuthGuardTest extends TestCase
 
         $this->expectNotToPerformAssertions();
     }
+
+    #[Test]
 
     public function testRequireRoleThrowsWhenUserHasWrongRole(): void
     {
@@ -87,6 +96,8 @@ final class AuthGuardTest extends TestCase
         $guard->requireRole(UserRole::Admin);
     }
 
+    #[Test]
+
     public function testRequireRoleThrowsUnauthenticatedWhenNoUser(): void
     {
         $guard = new AuthGuard($this->authServiceReturning(null));
@@ -96,12 +107,16 @@ final class AuthGuardTest extends TestCase
         $guard->requireRole(UserRole::Admin);
     }
 
+    #[Test]
+
     public function testCurrentUserOrNullReturnsUserWhenAuthenticated(): void
     {
         $guard = new AuthGuard($this->authServiceReturning($this->user(UserRole::Musicien)));
 
         self::assertNotNull($guard->currentUserOrNull());
     }
+
+    #[Test]
 
     public function testCurrentUserOrNullReturnsNullWhenNotAuthenticated(): void
     {

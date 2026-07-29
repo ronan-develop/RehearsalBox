@@ -15,6 +15,7 @@ use App\Security\NativePasswordHasher;
 use App\Service\AuthService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use PHPUnit\Framework\Attributes\Test;
 
 final class AuthServiceTest extends RepositoryTestCase
 {
@@ -42,6 +43,8 @@ final class AuthServiceTest extends RepositoryTestCase
         ));
     }
 
+    #[Test]
+
     public function testAttemptWithValidCredentialsReturnsUserAndRegeneratesSession(): void
     {
         [$service, $userRepository, $session] = $this->makeService();
@@ -54,6 +57,8 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertTrue($session->regenerated);
     }
 
+    #[Test]
+
     public function testAttemptWithWrongPasswordReturnsNull(): void
     {
         [$service, $userRepository] = $this->makeService();
@@ -64,6 +69,8 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertNull($user);
     }
 
+    #[Test]
+
     public function testAttemptWithUnknownEmailReturnsNull(): void
     {
         [$service] = $this->makeService();
@@ -72,6 +79,8 @@ final class AuthServiceTest extends RepositoryTestCase
 
         self::assertNull($user);
     }
+
+    #[Test]
 
     public function testAttemptLocksAccountAfterFiveFailedAttempts(): void
     {
@@ -88,6 +97,8 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertNull($result);
     }
 
+    #[Test]
+
     public function testAttemptResetsFailedAttemptsAfterSuccessfulLogin(): void
     {
         [$service, $userRepository] = $this->makeService();
@@ -101,12 +112,16 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertNotNull($reloaded);
     }
 
+    #[Test]
+
     public function testCurrentUserReturnsNullWhenNoUserInSession(): void
     {
         [$service] = $this->makeService();
 
         self::assertNull($service->currentUser());
     }
+
+    #[Test]
 
     public function testCurrentUserReturnsUserAfterSuccessfulAttempt(): void
     {
@@ -120,6 +135,8 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertSame('eve@rehearsalbox.test', $current->email());
     }
 
+    #[Test]
+
     public function testLogoutDestroysSession(): void
     {
         [$service, , $session] = $this->makeService();
@@ -128,6 +145,8 @@ final class AuthServiceTest extends RepositoryTestCase
 
         self::assertTrue($session->destroyed);
     }
+
+    #[Test]
 
     public function testGroupsRequiringSelectionReturnsEmptyWhenSingleGroup(): void
     {
@@ -139,6 +158,8 @@ final class AuthServiceTest extends RepositoryTestCase
 
         self::assertSame([], $service->groupsRequiringSelection());
     }
+
+    #[Test]
 
     public function testGroupsRequiringSelectionReturnsGroupsWhenMultiple(): void
     {
@@ -155,6 +176,8 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertCount(2, $groups);
     }
 
+    #[Test]
+
     public function testSelectActiveGroupSetsSessionWhenUserIsMember(): void
     {
         [$service, $userRepository, $session, $groupRepository] = $this->makeService();
@@ -168,6 +191,8 @@ final class AuthServiceTest extends RepositoryTestCase
         self::assertSame($group->id(), $session->get('active_group_id'));
     }
 
+    #[Test]
+
     public function testSelectActiveGroupThrowsAccessDeniedWhenUserIsNotMember(): void
     {
         [$service, $userRepository, , $groupRepository] = $this->makeService();
@@ -179,6 +204,8 @@ final class AuthServiceTest extends RepositoryTestCase
 
         $service->selectActiveGroup($otherGroup->id());
     }
+
+    #[Test]
 
     public function testAttemptAutoSelectsActiveGroupWhenUserHasExactlyOneGroup(): void
     {
