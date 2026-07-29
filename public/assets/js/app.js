@@ -3,6 +3,7 @@ import { initAvailability } from './availability.js';
 import { initAdminSlots } from './admin-slots.js';
 import { initAdminGroups } from './admin-groups.js';
 import { initPlanningSlider, initExceptionalPlanningSlider } from './planning-slider.js';
+import { initPlanningSearch } from './planning-search.js';
 import { initScrollHint } from './scroll-hint.js';
 import { initExceptionDeck } from './exception-deck.js';
 import { initContact } from './contact.js';
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminGroups();
   initPlanningSlider();
   initExceptionalPlanningSlider();
+  initPlanningSearch();
   initScrollHint();
   initExceptionDeck();
   initContact();

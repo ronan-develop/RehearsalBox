@@ -124,6 +124,10 @@
   width: max-content;
 }
 
+.rb-planning-card--hidden {
+  display: none;
+}
+
 .rb-planning-card {
   position: relative;
   flex: 0 0 auto;
