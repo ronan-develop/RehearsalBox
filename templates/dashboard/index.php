@@ -15,12 +15,17 @@
         </header>
 
         <?php if ($planningSlots !== []): ?>
+            <div class="rb-field">
+                <label for="planning-search" class="rb-visually-hidden">Rechercher un groupe ou un jour</label>
+                <input type="search" id="planning-search" class="rb-input" placeholder="Rechercher un groupe ou un jour…" data-planning-search>
+            </div>
+
             <?php
             $renderPlanningCard = static function ($requestableSlot) use ($currentUserGroupRoles) {
                 $slot = $requestableSlot->slot();
                 $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
                 ?>
-                <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
+                <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" data-weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
                     <span class="rb-planning-card-tape" aria-hidden="true"></span>
                     <div class="rb-planning-card-shape">
                         <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
