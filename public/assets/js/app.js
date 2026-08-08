@@ -1,3 +1,4 @@
+import { initParallax } from './parallax.js';
 import { initAuth } from './auth.js';
 import { initAvailability } from './availability.js';
 import { initAdminSlots } from './admin-slots.js';
@@ -11,6 +12,7 @@ import { initGroupDocuments } from './group-documents.js';
 import { initGroupSpaceEditor } from './group-space.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  initParallax();
   initAuth();
   initAvailability();
   initAdminSlots();

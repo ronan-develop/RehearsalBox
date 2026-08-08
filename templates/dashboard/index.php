@@ -9,9 +9,36 @@
     <link rel="stylesheet" href="/assets/css/pages/dashboard.css">
 </head>
 <body>
+    <div class="rb-page-bg" aria-hidden="true">
+        <span class="rb-page-bg-text" data-parallax="bg">#B27</span>
+    </div>
     <div class="rb-dashboard-page">
-        <header class="rb-dashboard-header" data-current-user-group-name="<?= e($currentUserGroupName ?? '') ?>" data-current-user-initials="<?= e($currentUserInitials ?? '') ?>">
-            <h1>#B27</h1>
+        <header class="rb-dashboard-header rb-stone-panel rb-stone-panel--ember">
+            <?php if ($currentUserGroupRole === \App\Entity\Enum\GroupUserRole::Gestionnaire): ?>
+                <button type="button" class="rb-group-photo rb-group-photo--editable"
+                        title="Modifier la photo du groupe" aria-label="Modifier la photo du groupe">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/>
+                        <path d="M8 5l1.5-2h5L16 5"/>
+                    </svg>
+                    <span class="rb-group-photo-edit-badge" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </span>
+                </button>
+            <?php elseif ($currentUserGroupId !== null): ?>
+                <span class="rb-group-photo" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/>
+                        <path d="M8 5l1.5-2h5L16 5"/>
+                    </svg>
+                </span>
+            <?php endif; ?>
+            <div class="rb-dashboard-header-user">
+                <span><?= e($currentUserGroupName ?? 'Admin local') ?></span>
+                <span class="rb-dashboard-avatar" aria-hidden="true"><?= e($currentUserInitials) ?></span>
+            </div>
         </header>
 
         <?php if ($planningSlots !== []): ?>

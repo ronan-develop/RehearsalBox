@@ -120,8 +120,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        self::assertStringContainsString('data-current-user-group-name="Groupe Test"', $response->body());
-        self::assertStringContainsString('data-current-user-initials="MT"', $response->body());
+        self::assertStringContainsString('<span>Groupe Test</span>', $response->body());
+        self::assertStringContainsString('rb-dashboard-avatar" aria-hidden="true">MT<', $response->body());
     }
 
     #[Test]
@@ -137,7 +137,7 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        self::assertStringContainsString('data-current-user-group-name="Alpha"', $response->body());
+        self::assertStringContainsString('<span>Alpha</span>', $response->body());
     }
 
     #[Test]
@@ -149,7 +149,7 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        self::assertStringContainsString('data-current-user-group-name=""', $response->body());
+        self::assertStringContainsString('<span>Admin local</span>', $response->body());
     }
 
     #[Test]

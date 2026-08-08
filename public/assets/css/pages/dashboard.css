@@ -27,32 +27,139 @@
 
 }
 
+/* Calque plein-page "#B27" en fond, indépendant du header (frère de
+   .rb-dashboard-page, cf. templates/dashboard/index.php). */
+.rb-page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--rb-bg);
+  pointer-events: none;
+}
+
+.rb-page-bg-text {
+  display: block;
+  padding-left: var(--rb-space-3);
+  font-family: 'ADrippingMarker', sans-serif;
+  color: var(--rb-accent);
+  opacity: 0.35;
+  line-height: 1;
+  white-space: nowrap;
+  font-size: 92px;
+  will-change: transform;
+}
+
+@media (min-width: 768px) {
+  .rb-page-bg-text {
+    font-size: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-page-bg-text {
+    transform: none !important;
+  }
+}
+
+body {
+  --rb-dashboard-header-h: 132px;
+}
+
+@media (min-width: 768px) {
+  body {
+    --rb-dashboard-header-h: 176px;
+  }
+}
+
 .rb-dashboard-header {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--rb-dashboard-header-h);
   gap: var(--rb-space-3);
   margin-bottom: var(--rb-space-4);
 }
 
-.rb-dashboard-header h1 {
-  margin: 0;
+/* Vignette photo du groupe — volontairement petite pour manger le moins
+   possible le "#B27" de fond. Éditable uniquement par le gestionnaire
+   (badge crayon) ; simple vignette en lecture seule sinon. */
+.rb-group-photo {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rb-radius-sm);
+  overflow: hidden;
+  background: var(--rb-surface-strong);
+  border: 1px solid var(--rb-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rb-text-3);
+  box-shadow: var(--rb-elevation-1);
 }
 
-.rb-dashboard-header .rb-input {
-  width: 100%;
+.rb-group-photo svg {
+  width: 18px;
+  height: 18px;
 }
 
-@media (min-width: 480px) {
-  .rb-dashboard-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+.rb-group-photo--editable {
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+}
 
-  .rb-dashboard-header .rb-input {
-    width: auto;
-  }
+.rb-group-photo--editable:hover {
+  border-color: var(--rb-accent);
+}
+
+.rb-group-photo-edit-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rb-accent);
+  border: 2px solid var(--rb-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rb-group-photo-edit-badge svg {
+  width: 9px;
+  height: 9px;
+  color: #fff;
+}
+
+.rb-dashboard-header-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+  font-size: 0.8125rem;
+  color: var(--rb-text-2);
+}
+
+.rb-dashboard-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--rb-surface-strong);
+  border: 1px solid var(--rb-accent);
+  color: var(--rb-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
 }
 
 .rb-visually-hidden {
