@@ -238,187 +238,95 @@ body {
 .rb-planning-card {
   position: relative;
   flex: 0 0 auto;
-  width: 220px;
-  height: 180px;
+  width: 176px;
+  min-height: 132px;
   scroll-snap-align: start;
+  padding: 22px 20px;
+  background: var(--rb-stone-chalk);
+  color: #1c1a17;
   cursor: pointer;
-  /* filter: drop-shadow() posé sur le MÊME élément qu'un clip-path ne se
-     rend jamais visuellement dans Chromium (constaté : getComputedStyle
-     renvoie bien la valeur, le style est appliqué, mais rien n'apparaît à
-     l'écran même en zoomant fort — confirmé en retirant clip-path pour
-     voir le halo réapparaître aussitôt). Le filtre est donc porté par ce
-     wrapper SANS clip-path ; la forme (fond + découpe) est déportée sur
-     l'enfant .rb-planning-card-shape ci-dessous.
-     Ombre visible en permanence ; au hover elle s'efface pour appuyer
-     l'effet "bouton enfoncé" (cf. retour utilisateur — c'était inversé). */
-  filter: drop-shadow(2px 2px 4px rgba(254, 248, 248, 0.55));
-  transition: filter 0.15s ease, transform 0.15s ease;
+  text-align: left;
+  /* Bord "déchiré" : filtre SVG TornPaper (feTurbulence + displacement),
+     instancié par carte avec un seed aléatoire — voir
+     assets/js/tornpaper.js et tornpaper-init.js. Ce clip-path est le repli
+     si JS est désactivé ou si le filtre ne charge pas ; une fois le filtre
+     appliqué en JS (style inline sur la carte), il s'efface via la règle
+     ci-dessous pour ne pas cumuler les deux découpes. */
+  clip-path: polygon(
+    0.0% 0.0%, 12.5% -5.3%, 25.0% -3.1%, 37.5% -2.8%, 50.0% -4.1%, 62.5% 4.3%, 75.0% -4.5%, 87.5% -4.4%,
+    100.0% 0.0%, 102.6% 12.5%, 107.9% 25.0%, 104.0% 37.5%, 95.5% 50.0%, 95.4% 62.5%, 90.7% 75.0%, 103.7% 87.5%,
+    100.0% 100.0%, 87.5% 96.9%, 75.0% 103.9%, 62.5% 96.2%, 50.0% 107.3%, 37.5% 97.5%, 25.0% 97.1%, 12.5% 97.3%,
+    0.0% 100.0%, 5.5% 87.5%, -8.7% 75.0%, 2.5% 62.5%, -7.7% 50.0%, -8.8% 37.5%, 4.8% 25.0%, -7.8% 12.5%
+  );
+  transition: transform var(--rb-motion-standard);
 }
 
-/* Carte non cliquable (#81) : pas d'effet "bouton enfoncé", curseur normal. */
+.rb-planning-card[style*="filter"] {
+  clip-path: none;
+}
+
+/* Carte non cliquable (#81) : pas d'effet hover, curseur normal. */
 .rb-planning-card--exceptional {
   cursor: default;
 }
 
-.rb-planning-card:not(.rb-planning-card--exceptional):hover {
-  /* Effet "bouton enfoncé" : décalage vers le bas-gauche + ombre effacée,
-     la carte semble s'enfoncer dans la surface au lieu de s'élever. */
-  transform: translate(-2px, 2px);
-  filter: drop-shadow(0 0 0 rgba(254, 248, 248, 0));
-}
-
-.rb-planning-card-shape {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  /* Rupture assumée avec le fond sombre du reste de l'app : effet
-     "flyer merch" en papier blanc cassé posé sur le dashboard. Coins
-     haut/bas largement arrondis (cf. référence merch) avec une fine
-     déchirure irrégulière, portée par un seul tracé en coordonnées
-     absolues (d'où la taille fixe du parent). Tracé statique ci-dessous =
-     fallback no-JS/avant DOMContentLoaded (déchirure uniquement en haut,
-     historique) ; en usage normal, chaque carte reçoit son propre tracé
-     4 côtés via clip-path inline (generateTornEdgesPath, planning-slider.js,
-     cf. ticket #51) pour ne pas être uniforme entre cartes. */
-  /* Angles/positions par défaut (repris par --wrinkle-* si le JS n'a pas
-     encore tourné, ex: no-JS ou avant DOMContentLoaded) : valeurs neutres
-     identiques à l'ancienne version fixe. */
-  --wrinkle-angle-1: 115deg;
-  --wrinkle-angle-2: 25deg;
-  --wrinkle-angle-3: 200deg;
-  --wrinkle-pos-1: 20% 15%;
-  --wrinkle-pos-2: 80% 85%;
-  --wrinkle-pos-3: 70% 20%;
-  /* Plis courts supplémentaires (0, 1 ou 2 par carte, cf. retour
-     utilisateur "pour ne pas être uniforme") : contrairement aux 3 plis
-     ci-dessus qui traversent toute la carte, ceux-là sont confinés à une
-     zone rectangulaire via background-size + no-repeat. Invisibles par
-     défaut (taille 0), activés par planning-slider.js. */
-  --wrinkle-extra-1-angle: 0deg;
-  --wrinkle-extra-1-pos: 50% 50%;
-  --wrinkle-extra-1-size: 0% 0%;
-  --wrinkle-extra-2-angle: 0deg;
-  --wrinkle-extra-2-pos: 50% 50%;
-  --wrinkle-extra-2-size: 0% 0%;
-  background-color: #ece9e2;
-  /* Effet papier froissé : superposition de dégradés en niveaux de gris
-     (plis diagonaux + zones d'ombre/lumière irrégulières) fondus sur la
-     couleur papier via overlay — pas de texture externe, cohérent avec
-     la contrainte "pas de dépendance externe" du projet. Angles/positions
-     pilotés par des variables CSS randomisées par carte (planning-slider.js,
-     randomizeCardWrinkles) pour éviter que toutes les cartes soient
-     visuellement identiques (cf. retour utilisateur). */
-  background-image:
-    linear-gradient(var(--wrinkle-angle-1), transparent 40%, rgba(0, 0, 0, 0.06) 41%, transparent 43%),
-    linear-gradient(var(--wrinkle-angle-2), transparent 60%, rgba(255, 255, 255, 0.5) 61%, transparent 64%),
-    linear-gradient(var(--wrinkle-angle-3), transparent 30%, rgba(0, 0, 0, 0.05) 32%, transparent 35%),
-    radial-gradient(ellipse at var(--wrinkle-pos-1), rgba(255, 255, 255, 0.45) 0%, transparent 45%),
-    radial-gradient(ellipse at var(--wrinkle-pos-2), rgba(0, 0, 0, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at var(--wrinkle-pos-3), rgba(0, 0, 0, 0.05) 0%, transparent 40%),
-    linear-gradient(var(--wrinkle-extra-1-angle), transparent 42%, rgba(255, 255, 255, 0.65) 47%, rgba(0, 0, 0, 0.22) 52%, transparent 57%),
-    linear-gradient(var(--wrinkle-extra-2-angle), transparent 42%, rgba(255, 255, 255, 0.65) 47%, rgba(0, 0, 0, 0.22) 52%, transparent 57%),
-    /* Ellipses fines superposées à chaque pli court : cassent la ligne
-       droite du linear-gradient pour un aspect moins géométrique
-       (cf. retour utilisateur "moins linéaire, plus réaliste"). */
-    radial-gradient(ellipse 70% 20% at 50% 50%, rgba(0, 0, 0, 0.15) 0%, transparent 65%),
-    radial-gradient(ellipse 70% 20% at 50% 50%, rgba(0, 0, 0, 0.15) 0%, transparent 65%),
-    /* Taches d'usure éparses (café/manipulation répétée) : effet "dirty"
-       en plus du froissé, positions fixes (pas besoin de variation par
-       carte, contrairement aux plis ci-dessus). */
-    radial-gradient(ellipse 18% 10% at 12% 78%, rgba(90, 70, 40, 0.10) 0%, transparent 70%),
-    radial-gradient(ellipse 12% 8% at 85% 22%, rgba(90, 70, 40, 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 22% 14% at 65% 92%, rgba(60, 45, 25, 0.07) 0%, transparent 75%);
-  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, var(--wrinkle-extra-1-pos), var(--wrinkle-extra-2-pos), var(--wrinkle-extra-1-pos), var(--wrinkle-extra-2-pos), 0 0, 0 0, 0 0;
-  background-size: cover, cover, cover, cover, cover, cover, var(--wrinkle-extra-1-size), var(--wrinkle-extra-2-size), var(--wrinkle-extra-1-size), var(--wrinkle-extra-2-size), cover, cover, cover;
-  background-repeat: no-repeat;
-  background-blend-mode: overlay, overlay, overlay, normal, normal, normal, overlay, overlay, multiply, multiply, multiply, multiply, multiply;
-  color: #2a2620;
-  clip-path: path('M 0 22 A 22 22 0 0 1 22 0 L 23.9 0.29 L 25.6 1.37 L 28.3 1.55 L 30.1 1.26 L 32.4 1.45 L 34.7 0.87 L 37.6 0.13 L 40.1 2.14 L 44.4 0.05 L 48.8 0.03 L 51.2 0.16 L 55.6 1.67 L 59.1 0.74 L 60.9 0.37 L 62.6 0.89 L 64.7 0.85 L 68.8 0.97 L 71.7 0.13 L 73.5 0.24 L 77.6 0.3 L 81 1.11 L 85.2 1.47 L 87.9 1.88 L 89.9 1.12 L 93.2 2.33 L 96.3 0.83 L 99.1 2.19 L 103 2.18 L 105 0.32 L 107.4 0.92 L 111.7 2.47 L 115.6 1.74 L 117.4 0.39 L 121 0.79 L 124.2 2.44 L 127.1 1.77 L 131.1 0.2 L 133 0.65 L 136.2 0.03 L 139.7 1.5 L 142.1 2.18 L 144.2 1.11 L 146.8 1.25 L 149.6 0.27 L 153.8 1.78 L 156.9 1.01 L 159.9 1.82 L 164.1 1.76 L 166 0.24 L 169.8 1.08 L 172.7 2.22 L 177.1 1.29 L 179 0.95 L 182.6 0.7 L 184.3 1.31 L 188.6 0.94 L 192 0.36 L 195.8 2.48 A 22 22 0 0 1 220 22 L 219.25 24.4 L 219.49 28.7 L 218.39 32.6 L 218.74 34.6 L 219.59 38.5 L 218.61 41.7 L 218.75 45.1 L 219.86 46.6 L 218.15 50.2 L 217.66 52.3 L 217.96 55.4 L 219.66 58.7 L 217.75 60.6 L 218.78 63.5 L 218.04 66.7 L 219.11 70.6 L 219.36 74 L 218.07 77.4 L 218.81 81.6 L 219.29 84.5 L 219.95 87.8 L 218.52 90.9 L 217.54 93.8 L 219.1 97.1 L 218.66 100.5 L 219.56 104.5 L 219.96 107.9 L 219.32 111.1 L 217.58 113.1 L 218.36 116.8 L 219.01 118.4 L 217.8 122 L 218.01 125.3 L 219 127.8 L 217.56 129.5 L 219.17 133.1 L 217.92 135 L 219.7 136.9 L 219.4 139.2 L 219.8 141 L 219.38 143.1 L 219.79 146.8 L 219.03 149 L 218.73 153.1 A 22 22 0 0 1 198 180 L 195.7 179.09 L 191.3 179.66 L 189.3 179.55 L 187.5 179.97 L 185.7 179.96 L 183.5 177.68 L 180.3 177.78 L 177.4 177.6 L 175.3 178.55 L 173 178.51 L 170.8 179.22 L 168 179.16 L 164.4 177.96 L 161.7 178.84 L 159.3 177.97 L 155.2 178.9 L 153.2 178.83 L 149.8 179.45 L 146.8 179.48 L 144.1 179.8 L 140.2 178.32 L 137.1 179.97 L 135.6 179.36 L 134 179.4 L 130.4 178.36 L 126.1 179.34 L 122.7 179.47 L 119.9 178.47 L 118.4 178.28 L 116.4 179.24 L 113.8 179.45 L 110.6 177.59 L 107.2 179.13 L 103.1 178.36 L 99.7 179.65 L 96.5 177.73 L 93.1 177.71 L 90.1 179.03 L 86 177.5 L 84.4 179 L 82.3 179.74 L 79.5 179.02 L 76.4 179.77 L 73.6 179.48 L 70.7 177.9 L 68.3 178.49 L 65.8 178.74 L 63.7 178.96 L 59.7 178.4 L 56.3 179.85 L 54.6 179.98 L 52.4 177.86 L 50.5 179.86 L 48.6 178.01 L 46.3 179.28 L 42.5 179.25 L 40.6 178.45 L 38.2 179.45 L 36.3 177.66 L 32.8 177.75 L 29.9 178.76 L 26.4 177.51 L 24.4 179.04 A 22 22 0 0 1 22 180 L 1.51 155.7 L 1.77 152.5 L 0.73 148.2 L 0.66 145.5 L 0.44 142.5 L 0.16 139.6 L 1.98 135.2 L 1.86 133.3 L 0.04 129.8 L 0.4 126.2 L 1.21 122.6 L 2.43 121 L 1.91 116.7 L 0.1 112.5 L 1.56 108 L 1.69 104.1 L 0.1 99.6 L 1.26 97.3 L 2.31 95.3 L 1.29 93.7 L 0.98 89.6 L 1.22 85.6 L 2.01 81.2 L 1.74 79 L 1.94 75.3 L 1.08 72.9 L 2.38 70.1 L 1.64 66.4 L 0.71 62.9 L 1.58 60.6 L 2.43 56.4 L 1.45 53.6 L 1.19 50 L 0.46 45.9 L 2.44 44.4 L 2.19 41.8 L 1.04 37.4 L 2.26 35 L 0.07 32.1 L 0.93 29.4 L 0.86 26.3 Z');
-  padding: var(--rb-space-3);
-}
-
-/* Bout de scotch semi-transparent façon flyer punaisé — position choisie
-   aléatoirement par carte parmi 3 variantes (planning-slider.js,
-   pickTapePosition), toujours présent (pas d'aléatoire sur la présence,
-   cf. retour utilisateur). */
-.rb-planning-card-tape {
-  position: absolute;
-  top: -10px;
-  width: 56px;
-  height: 26px;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  /* Bords courts (gauche/droite) légèrement déchirés, comme arraché d'un
-     rouleau de scotch — les bords longs (haut/bas) restent nets. */
-  clip-path: polygon(0% 0%, 1.2% 0%, 1.6% 21.8%, 1.7% 42.7%, 0.1% 58.6%, 2.9% 72%, 0.4% 88.7%, 0% 100%, 100% 100%, 98.5% 100%, 99.7% 78.6%, 97.6% 59.8%, 99.4% 43.2%, 99.4% 27.9%, 97.3% 8.4%, 100% 0%);
-}
-
-.rb-planning-card-tape--corner-left {
-  left: -14px;
-  transform: rotate(-45deg);
-}
-
-.rb-planning-card-tape--corner-right {
-  right: -14px;
-  transform: rotate(45deg);
-}
-
-.rb-planning-card-tape--top-center {
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Label "Occasionnel" (#34) : bande jaune pâle façon post-it/correcteur,
-   posée en bas-droite de la carte — signale qu'un créneau n'est pas un fixe
-   récurrent mais une occurrence ponctuelle (exception acceptée cette
-   semaine). Couleur volontairement contrastée avec le papier crème de la
-   carte (cf. retour utilisateur : le blanc cassé s'y fondait). Bords en
-   clip-path pour casser la ligne droite, cohérent avec l'esthétique
-   "papier" du reste de la carte. */
-.rb-planning-card-label--occasional {
-  position: absolute;
-  bottom: 8px;
-  right: 14px;
-  z-index: 1;
-  display: inline-block;
-  padding: 2px 12px;
-  background: #f4d35e;
-  box-shadow: 0 1px 2px rgba(21, 21, 26, 0.35);
-  transform: rotate(-3deg);
-  clip-path: polygon(0% 15%, 4% 0%, 22% 8%, 41% 0%, 58% 10%, 76% 2%, 93% 12%, 100% 0%, 100% 85%, 96% 100%, 79% 90%, 61% 100%, 43% 92%, 24% 100%, 7% 88%, 0% 100%);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #5c4a1a;
+.rb-planning-card:not(.rb-planning-card--exceptional):hover,
+.rb-planning-card:not(.rb-planning-card--exceptional):focus-visible {
+  transform: translateY(-3px) rotate(-0.6deg);
 }
 
 .rb-planning-card-group {
-  margin: 0 0 var(--rb-space-2);
-  /* Couleur locale à la carte (pas --rb-accent, réutilisé ailleurs pour les
-     boutons/bordures) : même famille terracotta que le thème, mais plus
-     sombre/désaturée pour rester lisible sur le fond papier clair sans
-     virer au saumon (cf. retour utilisateur). */
-  color: #9c5540;
-  text-shadow: 0 1px 1px rgba(21, 21, 26, 0.45);
+  margin: 0 0 var(--rb-space-1);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1c1a17;
 }
 
 .rb-planning-card-weekday {
-  margin: 0 0 var(--rb-space-1);
-  font-weight: 600;
-  color: #2a2620;
+  margin: 0 0 2px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b6660;
 }
 
 .rb-planning-card-date {
-  margin: 0 0 var(--rb-space-1);
+  margin: 0 0 2px;
   font-size: 0.8125rem;
-  color: #5a5449;
+  color: #6b6660;
 }
 
 .rb-planning-card-time {
   margin: 0;
-  color: #5a5449;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--rb-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Label "Occasionnel" (#34) : signale qu'un créneau n'est pas un fixe
+   récurrent mais une occurrence ponctuelle (exception acceptée cette
+   semaine). */
+.rb-planning-card--exceptional .rb-badge {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  font-size: 0.625rem;
+  padding: 1px 6px;
+  background: transparent;
+  border-color: var(--rb-accent-2);
+  color: #6b6660;
+}
+
+.rb-planning-card--exceptional .rb-planning-card-group {
+  padding-right: var(--rb-space-4);
+}
+
+@media (min-width: 768px) {
+  .rb-planning-card {
+    width: 204px;
+  }
 }
 
 /* Deck de cartes empilées (#42) : chaque carte est positionnée en absolute

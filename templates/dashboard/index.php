@@ -53,12 +53,9 @@
                 $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
                 ?>
                 <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" data-weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
-                    <span class="rb-planning-card-tape" aria-hidden="true"></span>
-                    <div class="rb-planning-card-shape">
-                        <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
-                        <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
-                        <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
-                    </div>
+                    <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
+                    <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
+                    <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
                 </article>
                 <?php
             };
@@ -91,14 +88,11 @@
             $slot = $requestableSlot->slot();
             ?>
             <article class="rb-planning-card rb-planning-card--exceptional">
-                <span class="rb-planning-card-tape" aria-hidden="true"></span>
-                <div class="rb-planning-card-shape">
-                    <span class="rb-planning-card-label--occasional" aria-hidden="true">Occasionnel</span>
-                    <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
-                    <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
-                    <p class="rb-planning-card-date"><?= e($requestableSlot->occurrenceDate()?->format('d/m/Y') ?? '') ?></p>
-                    <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
-                </div>
+                <span class="rb-badge" aria-hidden="true">Occasionnel</span>
+                <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
+                <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
+                <p class="rb-planning-card-date"><?= e($requestableSlot->occurrenceDate()?->format('d/m/Y') ?? '') ?></p>
+                <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
             </article>
             <?php
         };
