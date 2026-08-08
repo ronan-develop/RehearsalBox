@@ -40,3 +40,12 @@ test('renderGroupCard escapes the group name in the edit form value', () => {
 
   assert.ok(!html.includes('<script>'));
 });
+
+test('renderGroupCard renders action buttons as icons with accessible labels', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null });
+
+  assert.ok(html.includes('aria-label="Modifier"'));
+  assert.ok(html.includes('aria-label="Supprimer"'));
+  assert.ok(html.includes('aria-label="Ajouter"'));
+  assert.match(html, /<svg[^>]*aria-hidden="true"/);
+});

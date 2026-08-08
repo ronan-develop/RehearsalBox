@@ -30,8 +30,11 @@ export function renderSlotRow(slot) {
       <td>${WEEKDAY_LABELS[slot.weekday]}</td>
       <td>${formatTime(slot.startTime)} – ${formatTime(slot.endTime)}</td>
       <td>
-        <button type="button" class="rb-btn rb-btn-danger" data-delete-slot-button data-slot-id="${slot.id}">
-          Supprimer
+        <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-slot-button data-slot-id="${slot.id}" aria-label="Supprimer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
         </button>
       </td>
     </tr>

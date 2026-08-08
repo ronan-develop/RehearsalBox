@@ -11,6 +11,7 @@
 <body>
     <div class="rb-admin-page">
         <h1>Créneaux récurrents</h1>
+        <p class="rb-admin-subtitle">Attribution hebdomadaire fixe du local par groupe.</p>
 
         <form data-async data-endpoint="/api/admin/slots" data-method="POST" class="rb-admin-form rb-card">
             <div class="rb-field">
@@ -56,9 +57,12 @@
                             <td><?= e(formatWeekday($slot->weekday())) ?></td>
                             <td><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></td>
                             <td>
-                                <button type="button" class="rb-btn rb-btn-danger" data-delete-slot-button
-                                        data-slot-id="<?= e((string) $slot->id()) ?>">
-                                    Supprimer
+                                <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-slot-button
+                                        data-slot-id="<?= e((string) $slot->id()) ?>" aria-label="Supprimer">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                    </svg>
                                 </button>
                             </td>
                         </tr>
