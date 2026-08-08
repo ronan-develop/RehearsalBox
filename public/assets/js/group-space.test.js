@@ -62,12 +62,17 @@ test('collectUpcomingShows reads date/venue from each row in the list', () => {
 
 function fakeDomRoot() {
   return {
-    createElement: () => ({
-      dataset: {},
-      classList: { add: () => {} },
-      children: [],
-      appendChild(child) { this.children.push(child); },
-    }),
+    createElement: () => {
+      const attributes = {};
+      return {
+        dataset: {},
+        classList: { add: () => {} },
+        children: [],
+        appendChild(child) { this.children.push(child); },
+        setAttribute(name, value) { attributes[name] = value; },
+        attributes,
+      };
+    },
   };
 }
 
@@ -87,6 +92,17 @@ test('addShowRow appends a new row to the list', () => {
   addShowRow(list, fakeDomRoot());
 
   assert.equal(rows.length, 1);
+});
+
+test('addLineupRow appends a remove button with an accessible label instead of raw text', () => {
+  const rows = [];
+  const list = fakeList(rows);
+
+  addLineupRow(list, fakeDomRoot());
+
+  const removeButton = rows[0].children.at(-1);
+
+  assert.equal(removeButton.attributes['aria-label'], 'Retirer');
 });
 
 test('removeRow removes the row from the DOM', () => {

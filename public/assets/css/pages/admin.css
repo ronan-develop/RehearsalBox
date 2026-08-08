@@ -70,20 +70,6 @@
   gap: 2px;
 }
 
-.rb-btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--rb-space-1);
-  min-width: 44px;
-  min-height: 44px;
-}
-
-.rb-btn-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
 .rb-group-list {
   display: grid;
   gap: var(--rb-space-3);

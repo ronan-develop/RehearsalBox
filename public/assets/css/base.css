@@ -217,6 +217,23 @@ button:active::after, .rb-btn:active::after {
   color: #fff;
 }
 
+/* Bouton icône seule (pas de texte visible) — zone tactile ≥44px garantie,
+   réutilisé sur toutes les pages avec des actions Modifier/Supprimer/Ajouter
+   en SVG (admin, group-space). */
+.rb-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rb-space-1);
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.rb-btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Carte générique — socle commun repris par les cartes de créneau, groupe,
    formulaire admin, modale, etc. (évite de redéfinir surface/bordure/radius
    à chaque écran). */
