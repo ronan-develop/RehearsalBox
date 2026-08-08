@@ -41,6 +41,23 @@ export function renderSlotRow(slot) {
   `;
 }
 
+export function renderSlotCard(slot) {
+  return `
+    <article class="rb-slot-card rb-card" data-slot-row data-slot-id="${slot.id}">
+      <div class="rb-slot-card-body">
+        <strong>${WEEKDAY_LABELS[slot.weekday]}</strong>
+        <span>${formatTime(slot.startTime)} – ${formatTime(slot.endTime)}</span>
+      </div>
+      <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-slot-button data-slot-id="${slot.id}" aria-label="Supprimer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        </svg>
+      </button>
+    </article>
+  `;
+}
+
 async function handleDelete(button, root) {
   const confirmed = await confirmAction('Supprimer ce créneau ?');
   if (!confirmed) {
@@ -51,7 +68,7 @@ async function handleDelete(button, root) {
 
   try {
     await apiFetch(`/api/admin/slots/${slotId}`, { method: 'DELETE' });
-    root.querySelector(`[data-slot-row][data-slot-id="${slotId}"]`)?.remove();
+    root.querySelectorAll(`[data-slot-row][data-slot-id="${slotId}"]`).forEach((el) => el.remove());
     showToast('Créneau supprimé.', 'success');
   } catch (error) {
     showToast(error.message, 'error');
@@ -64,6 +81,7 @@ export function initAdminSlots(root = document) {
   const slotForm = root.querySelector('form[data-async][data-endpoint="/api/admin/slots"]');
   slotForm?.addEventListener('async-success', (event) => {
     root.querySelector('[data-slot-list-body]')?.insertAdjacentHTML('beforeend', renderSlotRow(event.detail));
+    root.querySelector('[data-slot-list-cards]')?.insertAdjacentHTML('beforeend', renderSlotCard(event.detail));
     event.target.reset();
     showToast('Créneau créé.', 'success');
   });

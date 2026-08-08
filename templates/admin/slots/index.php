@@ -70,6 +70,23 @@
                 </tbody>
             </table>
         </div>
+        <div class="rb-admin-cards" data-slot-list-cards>
+            <?php foreach ($slots as $slot): ?>
+                <article class="rb-slot-card rb-card" data-slot-row data-slot-id="<?= e((string) $slot->id()) ?>">
+                    <div class="rb-slot-card-body">
+                        <strong><?= e(formatWeekday($slot->weekday())) ?></strong>
+                        <span><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></span>
+                    </div>
+                    <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-slot-button
+                            data-slot-id="<?= e((string) $slot->id()) ?>" aria-label="Supprimer">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        </svg>
+                    </button>
+                </article>
+            <?php endforeach; ?>
+        </div>
     </div>
     <?php require __DIR__ . '/../../partials/nav.php'; ?>
     <rb-confirm-modal></rb-confirm-modal>
