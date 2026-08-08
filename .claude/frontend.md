@@ -26,7 +26,7 @@ Dark mode : le projet est nativement sombre (pas de mode clair prévu au départ
 
 Arimo pour tout texte lu/fonctionnel (titres h1/h2/h3 et corps). **Toujours self-hosted (woff2)** — jamais de CDN externe (cohérent avec la CSP `default-src 'self'` et l'hébergement mutualisé).
 
-Exception strictement circonscrite : "A Dripping Marker" (`public/assets/fonts/a-dripping-marker.woff2`) sert uniquement le watermark décoratif `#B27` du dashboard (`aria-hidden="true"`, jamais du texte lu) — ne pas la présenter comme une deuxième police "display" généralisée.
+Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/assets/fonts/a-dripping-marker.woff2`) sert le watermark décoratif du dashboard (`aria-hidden="true"`) et le logo `.rb-auth-logo` des pages login/register — toujours et uniquement pour le graffiti "#B27" lui-même, jamais pour un autre titre ou texte lu générique.
 
 ## Règles
 

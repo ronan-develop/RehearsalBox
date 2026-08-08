@@ -13,7 +13,7 @@
         <div class="rb-auth-card rb-card">
             <div class="rb-auth-logo-wrap rb-stone-panel">
                 <span class="rb-auth-logo">#B<span>27</span></span>
-                <p class="rb-auth-tagline">Local de répétition</p>
+                <p class="rb-auth-tagline">Local</p>
             </div>
             <form data-async data-endpoint="/api/auth/login" data-method="POST">
                 <div class="rb-field">
