@@ -17,6 +17,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Service\Contract\SlotServiceInterface;
+use App\Support\Initials;
 use App\View\TemplateRendererInterface;
 
 final class PageController
@@ -80,6 +81,13 @@ final class PageController
         usort($items, static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
             $b->exception()->createdAt() <=> $a->exception()->createdAt());
 
+        // Limite connue : si l'utilisateur appartient à plusieurs groupes, le premier
+        // (par ordre alphabétique de nom, cf. GroupRepository::findByMember) est affiché
+        // arbitrairement dans le header. Pas de concept de "groupe principal" en base —
+        // cf. issue à ouvrir si ce cas devient fréquent en usage réel.
+        $primaryGroup = $groups[0] ?? null;
+        $primaryGroupRole = $primaryGroup !== null ? $groupRoles[$primaryGroup->id()] : null;
+
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'planningSlots' => $this->slotService->findFixedPlanningSlots(),
@@ -87,6 +95,10 @@ final class PageController
             'dashboardExceptions' => $items,
             'currentUserRole' => $user->role(),
             'currentUserGroupRoles' => $groupRoles,
+            'currentUserGroupName' => $primaryGroup?->name(),
+            'currentUserGroupRole' => $primaryGroupRole,
+            'currentUserGroupId' => $primaryGroup?->id(),
+            'currentUserInitials' => Initials::from($user->displayName()),
         ]));
     }
 

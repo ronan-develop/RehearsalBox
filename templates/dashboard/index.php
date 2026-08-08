@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="rb-dashboard-page">
-        <header class="rb-dashboard-header">
+        <header class="rb-dashboard-header" data-current-user-group-name="<?= e($currentUserGroupName ?? '') ?>" data-current-user-initials="<?= e($currentUserInitials ?? '') ?>">
             <h1>#B27</h1>
         </header>
 
