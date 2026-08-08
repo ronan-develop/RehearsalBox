@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="rb-group-space-page" data-group-space data-group-id="<?= e((string) $group->id()) ?>" data-current-user-group-role="<?= e($currentUserGroupRole?->value ?? '') ?>">
-        <header class="rb-group-space-header">
+        <header class="rb-group-space-header rb-stone-surface">
             <a href="/" class="rb-btn rb-btn-primary rb-group-space-back">&larr; Retour</a>
             <h1><?= e($group->name()) ?></h1>
             <?php if ($group->genre() !== null): ?>
