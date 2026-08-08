@@ -187,7 +187,7 @@
             };
             ?>
             <section class="rb-exceptions-section">
-                <h2>Demandes de créneau</h2>
+                <h2 data-parallax-target>Demandes de créneau</h2>
                 <div class="rb-exceptions-tabs" role="tablist">
                     <button type="button" class="rb-exceptions-tab" role="tab" aria-selected="true" data-tab-target="received">
                         Reçues<?php if ($receivedExceptions !== []): ?> <span class="rb-badge rb-badge-warn"><?= e((string) count($receivedExceptions)) ?></span><?php endif; ?>

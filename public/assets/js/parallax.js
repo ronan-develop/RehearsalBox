@@ -2,16 +2,17 @@
  * Parallax du calque "#B27" en fond de dashboard.
  *
  * Au chargement (scroll 0), le calque est décalé vers le premier tiers
- * horizontal et centré verticalement dans le header (--rb-dashboard-header-h)
- * plutôt que dans son coin haut-gauche par défaut. Cet offset (--wm-x/--wm-y)
- * s'interpole progressivement vers 0 — sa position par défaut — au fur et à
- * mesure du scroll, jusqu'à atteindre 0 une fois la zone planning dépassée
- * (repérée via [data-parallax-scroll-end], typiquement le deck d'exceptions).
- * Par-dessus cet offset, une translation verticale classique suit le scroll
- * (effet parallax habituel, cf. --wm-scroll-y). Respecte prefers-reduced-motion.
+ * horizontal du header et centré verticalement dans sa hauteur plutôt que
+ * dans son coin haut-gauche par défaut. Cet offset (--wm-x/--wm-y) s'interpole
+ * progressivement, au fur et à mesure du scroll, vers une position finale
+ * centrée horizontalement sous le titre "Demandes de créneau"
+ * ([data-parallax-target]) — atteinte une fois la zone planning dépassée
+ * (repérée via [data-parallax-scroll-end]). Par-dessus cet offset, une
+ * translation verticale classique suit le scroll (effet parallax habituel,
+ * cf. --wm-scroll-y). Respecte prefers-reduced-motion.
  *
- * Le calcul géométrique (computeStartOffset/computeScrollProgress) est extrait
- * du DOM réel pour rester testable en environnement node --test.
+ * Le calcul géométrique est extrait du DOM réel (fonctions pures ci-dessous)
+ * pour rester testable en environnement node --test.
  */
 
 /**
@@ -23,6 +24,27 @@ export function computeStartOffset(headerRect, bgTextRect) {
   return {
     x: headerRect.width / 3,
     y: headerRect.top - bgTextRect.top + headerRect.height / 2 - bgTextRect.height / 2,
+  };
+}
+
+/** Marge sous la cible (typiquement le titre "Demandes de créneau") avant de
+ * stabiliser le watermark — le fait descendre sous les tabs Reçues/Envoyées/
+ * Archivées plutôt que de coller juste sous le titre. */
+const END_OFFSET_MARGIN_PX = 140;
+
+/**
+ * Décalage final (progress 1) : centré horizontalement sous le titre cible
+ * (typiquement "Demandes de créneau"), relatif à la position par défaut du
+ * texte. `null` si aucune cible n'est trouvée (deck vide, pas de section) —
+ * l'offset final retombe alors sur {0, 0}, la position par défaut du calque.
+ */
+export function computeEndOffset(targetRect, bgTextRect) {
+  if (!targetRect) {
+    return { x: 0, y: 0 };
+  }
+  return {
+    x: targetRect.left + targetRect.width / 2 - bgTextRect.width / 2 - bgTextRect.left,
+    y: targetRect.bottom - bgTextRect.top + END_OFFSET_MARGIN_PX,
   };
 }
 
@@ -38,6 +60,11 @@ export function computeScrollProgress(scrollY, markerTopAbsolute) {
   return Math.min(Math.max(scrollY / markerTopAbsolute, 0), 1);
 }
 
+/** Interpolation linéaire simple entre deux valeurs. */
+function lerp(from, to, progress) {
+  return from + (to - from) * progress;
+}
+
 export function initParallax(root = document, windowRef = window) {
   const bg = root.querySelector('[data-parallax="bg"]');
   if (!bg) return;
@@ -46,24 +73,29 @@ export function initParallax(root = document, windowRef = window) {
 
   const header = root.querySelector('.rb-dashboard-header');
   const scrollEndMarker = root.querySelector('[data-parallax-scroll-end]');
+  const target = root.querySelector('[data-parallax-target]');
 
   let ticking = false;
 
   function update() {
     const y = windowRef.scrollY;
+    const bgTextRect = bg.getBoundingClientRect();
 
     const start = header
-      ? computeStartOffset(header.getBoundingClientRect(), bg.getBoundingClientRect())
+      ? computeStartOffset(header.getBoundingClientRect(), bgTextRect)
       : { x: 0, y: 0 };
+
+    const end = computeEndOffset(target ? target.getBoundingClientRect() : null, bgTextRect);
 
     const markerTopAbsolute = scrollEndMarker
       ? scrollEndMarker.getBoundingClientRect().top + y
       : null;
     const progress = computeScrollProgress(y, markerTopAbsolute);
 
-    bg.style.setProperty('--wm-x', `${start.x * (1 - progress)}px`);
-    bg.style.setProperty('--wm-y', `${start.y * (1 - progress)}px`);
+    bg.style.setProperty('--wm-x', `${lerp(start.x, end.x, progress)}px`);
+    bg.style.setProperty('--wm-y', `${lerp(start.y, end.y, progress)}px`);
     bg.style.setProperty('--wm-scroll-y', `${y * 0.35}px`);
+    bg.classList.toggle('rb-page-bg-text--neon', progress === 1);
     ticking = false;
   }
 

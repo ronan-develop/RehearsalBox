@@ -48,11 +48,23 @@
   white-space: nowrap;
   font-size: 92px;
   will-change: transform;
+  transition: text-shadow 0.4s ease;
   /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
      interpole entre une position centrée dans le header au chargement
-     (scroll 0) et 0 (position par défaut ci-dessus, en haut à gauche) une
-     fois la zone planning dépassée. */
+     (scroll 0) et une position centrée sous le titre "Demandes de créneau"
+     une fois la zone planning dépassée. */
   transform: translate(var(--wm-x, 0px), calc(var(--wm-y, 0px) + var(--wm-scroll-y, 0px)));
+}
+
+/* Contour néon léger — seulement une fois le watermark stabilisé en bas de
+   sa course (cf. parallax.js), pas de glow plein en continu. Empilement de
+   text-shadow à faible rayon plutôt qu'un halo diffus, pour un liseré net
+   sur les contours du tracé plutôt qu'une lueur qui mangerait le contenu. */
+.rb-page-bg-text--neon {
+  text-shadow:
+    0 0 2px var(--rb-stone-flame),
+    0 0 5px var(--rb-stone-flame),
+    0 0 1px var(--rb-accent);
 }
 
 @media (min-width: 768px) {
@@ -308,8 +320,8 @@ body {
   font-size: 0.625rem;
   padding: 1px 6px;
   background: transparent;
-  border-color: var(--rb-accent-2);
-  color: #6b6660;
+  border-color: var(--rb-stone-flame);
+  color: #8a6d1a;
 }
 
 .rb-planning-card--exceptional .rb-planning-card-group {

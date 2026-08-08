@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initParallax, computeStartOffset, computeScrollProgress } from './parallax.js';
+import { initParallax, computeStartOffset, computeEndOffset, computeScrollProgress } from './parallax.js';
 
 test('computeStartOffset positions the watermark in the first third of the header width', () => {
   const headerRect = { top: 0, height: 132, width: 300 };
@@ -18,6 +18,33 @@ test('computeStartOffset centers the watermark vertically within the header heig
   const offset = computeStartOffset(headerRect, bgTextRect);
 
   assert.equal(offset.y, 0 - 0 + 66 - 46);
+});
+
+test('computeEndOffset returns {0, 0} when there is no target (e.g. empty deck section)', () => {
+  const bgTextRect = { top: 0, left: 0, width: 300 };
+
+  const offset = computeEndOffset(null, bgTextRect);
+
+  assert.deepEqual(offset, { x: 0, y: 0 });
+});
+
+test('computeEndOffset centers the watermark horizontally under the target', () => {
+  const targetRect = { left: 100, width: 200, bottom: 500 };
+  const bgTextRect = { top: 0, left: 0, width: 300 };
+
+  const offset = computeEndOffset(targetRect, bgTextRect);
+
+  // Centre du target (100 + 200/2 = 200) moins la moitié de la largeur du texte (150).
+  assert.equal(offset.x, 50);
+});
+
+test('computeEndOffset positions the watermark below the target with a margin (past the tabs)', () => {
+  const targetRect = { left: 100, width: 200, bottom: 500 };
+  const bgTextRect = { top: 20, left: 0, width: 300 };
+
+  const offset = computeEndOffset(targetRect, bgTextRect);
+
+  assert.equal(offset.y, 500 - 20 + 140);
 });
 
 test('computeScrollProgress returns 0 at the top of the page', () => {
@@ -38,24 +65,28 @@ test('computeScrollProgress returns 1 when no end marker is present (nothing to 
 });
 
 function fakeRect(overrides = {}) {
-  return { top: 0, left: 0, width: 0, height: 0, ...overrides };
+  return { top: 0, left: 0, width: 0, height: 0, bottom: 0, ...overrides };
 }
 
 function fakeBgElement() {
   const properties = {};
+  const classes = new Set();
   return {
     style: { setProperty: (name, value) => { properties[name] = value; } },
+    classList: { toggle: (name, force) => { force ? classes.add(name) : classes.delete(name); } },
     getBoundingClientRect: () => fakeRect({ height: 92 }),
     properties,
+    classes,
   };
 }
 
-function fakeDocumentWithBg(bg, { header = null, scrollEndMarker = null } = {}) {
+function fakeDocumentWithBg(bg, { header = null, scrollEndMarker = null, target = null } = {}) {
   return {
     querySelector: (selector) => {
       if (selector === '[data-parallax="bg"]') return bg;
       if (selector === '.rb-dashboard-header') return header;
       if (selector === '[data-parallax-scroll-end]') return scrollEndMarker;
+      if (selector === '[data-parallax-target]') return target;
       return null;
     },
   };
@@ -136,7 +167,33 @@ test('initParallax applies the full start offset at scroll 0 when a header and e
   assert.equal(bg.properties['--wm-x'], '100px');
 });
 
-test('initParallax reduces the start offset to 0 once scrolled past the end marker', () => {
+test('initParallax reaches the end offset (centered under the target) once scrolled past the end marker', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 - 900 }) };
+  const target = { getBoundingClientRect: () => fakeRect({ left: 0, width: 200, bottom: 400 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollEndMarker, target });
+  const win = fakeWindow();
+  win.scrollY = 900;
+
+  initParallax(doc, win);
+
+  assert.equal(bg.properties['--wm-x'], '100px');
+});
+
+test('initParallax adds the neon class only once fully scrolled to the end position', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 - 400 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollEndMarker });
+  const win = fakeWindow();
+
+  win.scrollY = 200;
+  initParallax(doc, win);
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false);
+});
+
+test('initParallax falls back to {0,0} at the end when there is no target (empty deck section)', () => {
   const bg = fakeBgElement();
   const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
   const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 - 900 }) };
