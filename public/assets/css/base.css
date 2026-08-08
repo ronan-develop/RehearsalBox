@@ -66,6 +66,17 @@
   src: url('../fonts/arimo-700.woff2') format('woff2');
 }
 
+/* Police décorative isolée au watermark #B27 du dashboard (aria-hidden,
+   jamais du texte lu) — Arimo reste la seule police pour tout texte
+   fonctionnel. */
+@font-face {
+  font-family: 'ADrippingMarker';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/a-dripping-marker.woff2') format('woff2');
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
