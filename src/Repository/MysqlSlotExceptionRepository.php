@@ -52,6 +52,20 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    public function findArchivedForGroup(int $groupId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT se.* FROM slot_exceptions se
+             INNER JOIN recurring_slots rs ON rs.id = se.recurring_slot_id
+             WHERE (rs.group_id = :group_id_holder OR se.requested_by_group_id = :group_id_requester)
+               AND se.status != 'en_attente'
+             ORDER BY se.occurrence_date DESC"
+        );
+        $statement->execute(['group_id_holder' => $groupId, 'group_id_requester' => $groupId]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
     public function findAcceptedForCurrentWeek(): array
     {
         $monday = (new \DateTimeImmutable('today'))->modify('monday this week')->format('Y-m-d');

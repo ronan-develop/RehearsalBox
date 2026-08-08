@@ -17,6 +17,13 @@ interface SlotExceptionRepositoryInterface
     public function findByRequestingGroup(int $groupId): array;
 
     /**
+     * @return list<SlotException> Exceptions déjà traitées (statut != en_attente) où
+     *         $groupId est titulaire du créneau ou demandeur, tous confondus, triées
+     *         par date d'occurrence décroissante (les plus récentes en premier).
+     */
+    public function findArchivedForGroup(int $groupId): array;
+
+    /**
      * @return list<SlotException> Exceptions acceptées dont l'occurrence tombe dans la
      *         semaine en cours (lundi-dimanche) — cf. planning "créneaux occasionnels" #34.
      */

@@ -54,9 +54,17 @@ final class PageController
             $groupRoles[$group->id()] = $this->groupRepository->roleOf($group->id(), $user->id());
         }
 
-        $items = [];
+        $slotsById = [];
+        foreach ($this->slotService->findAllActive() as $slot) {
+            $slotsById[$slot->id()] = $slot;
+        }
+
+        $receivedItems = [];
+        $sentItems = [];
+        $archivedItems = [];
         $seenPendingIds = [];
         $seenRequestedIds = [];
+        $seenArchivedIds = [];
         foreach ($groups as $group) {
             foreach ($this->availabilityService->findPendingForHolderGroup($group->id(), $user->id()) as $exception) {
                 if (isset($seenPendingIds[$exception->id()])) {
@@ -65,7 +73,7 @@ final class PageController
                 $seenPendingIds[$exception->id()] = true;
                 $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
                 \assert($requestingGroup !== null);
-                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue, $requestingGroup->name());
+                $receivedItems[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue, $requestingGroup->name(), $requestingGroup->colorHex(), $slotsById[$exception->recurringSlotId()] ?? null);
             }
             foreach ($this->availabilityService->findByRequestingGroup($group->id(), $user->id()) as $exception) {
                 if (isset($seenRequestedIds[$exception->id()])) {
@@ -74,12 +82,25 @@ final class PageController
                 $seenRequestedIds[$exception->id()] = true;
                 $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
                 \assert($requestingGroup !== null);
-                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee, $requestingGroup->name());
+                $sentItems[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee, $requestingGroup->name(), $requestingGroup->colorHex(), $slotsById[$exception->recurringSlotId()] ?? null);
+            }
+            foreach ($this->availabilityService->findArchivedForGroup($group->id(), $user->id()) as $exception) {
+                if (isset($seenArchivedIds[$exception->id()])) {
+                    continue;
+                }
+                $seenArchivedIds[$exception->id()] = true;
+                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+                \assert($requestingGroup !== null);
+                $direction = $exception->requestedByGroupId() === $group->id() ? ExceptionDirection::Envoyee : ExceptionDirection::Recue;
+                $archivedItems[] = new DashboardExceptionItem($exception, $direction, $requestingGroup->name(), $requestingGroup->colorHex(), $slotsById[$exception->recurringSlotId()] ?? null);
             }
         }
 
-        usort($items, static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
-            $b->exception()->createdAt() <=> $a->exception()->createdAt());
+        $sortByCreatedAtDescending = static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
+            $b->exception()->createdAt() <=> $a->exception()->createdAt();
+        usort($receivedItems, $sortByCreatedAtDescending);
+        usort($sentItems, $sortByCreatedAtDescending);
+        usort($archivedItems, $sortByCreatedAtDescending);
 
         // Limite connue : si l'utilisateur appartient à plusieurs groupes, le premier
         // (par ordre alphabétique de nom, cf. GroupRepository::findByMember) est affiché
@@ -92,7 +113,9 @@ final class PageController
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'planningSlots' => $this->slotService->findFixedPlanningSlots(),
             'exceptionalPlanningSlots' => $this->slotService->findOccasionalPlanningSlots(),
-            'dashboardExceptions' => $items,
+            'receivedExceptions' => $receivedItems,
+            'sentExceptions' => $sentItems,
+            'archivedExceptions' => $archivedItems,
             'currentUserRole' => $user->role(),
             'currentUserGroupRoles' => $groupRoles,
             'currentUserGroupName' => $primaryGroup?->name(),

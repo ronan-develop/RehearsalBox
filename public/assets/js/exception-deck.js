@@ -58,6 +58,12 @@ export function createDeckSwipeController({ count, threshold = 80 }) {
   };
 }
 
+/** Profondeur de pile visible : au-delà, les cartes suivantes restent
+ * superposées exactement sur la dernière visible plutôt que de creuser
+ * indéfiniment l'offset (translateY/rotate) — un deck avec beaucoup de
+ * cartes (historique archivé, ex. 12+) ne doit pas déborder du cadre. */
+const MAX_VISIBLE_DEPTH = 2;
+
 /**
  * Neutralise les cartes hors du dessus de pile : sans ça, boutons et
  * formulaires des cartes en profondeur restent cliquables/focusables malgré
@@ -69,15 +75,12 @@ export function computeCardState(relativeIndex) {
   return {
     pointerEvents: relativeIndex === 0 ? 'auto' : 'none',
     hidden: relativeIndex < 0,
+    visualIndex: Math.min(Math.max(relativeIndex, 0), MAX_VISIBLE_DEPTH),
   };
 }
 
-export function initExceptionDeck(root = document) {
-  const deck = root.querySelector('[data-exception-deck]');
-  if (!deck) {
-    return;
-  }
-
+/** Initialise un deck indépendant (swipe borné, une pile de cartes). */
+function initSingleDeck(deck) {
   const cards = Array.from(deck.querySelectorAll('.rb-exception-card'));
   if (cards.length === 0) {
     return;
@@ -88,11 +91,12 @@ export function initExceptionDeck(root = document) {
   function render() {
     cards.forEach((card, cardPosition) => {
       const relativeIndex = cardPosition - controller.currentIndex();
-      const { pointerEvents, hidden } = computeCardState(relativeIndex);
-      card.style.setProperty('--deck-index', relativeIndex < 0 ? '0' : String(relativeIndex));
+      const { pointerEvents, hidden, visualIndex } = computeCardState(relativeIndex);
+      card.style.setProperty('--deck-index', String(visualIndex));
       card.style.setProperty('--deck-drag-x', relativeIndex === 0 ? `${controller.dragOffset()}px` : '0px');
       card.style.pointerEvents = pointerEvents;
       card.hidden = hidden;
+      card.classList.toggle('rb-exception-card--active', relativeIndex === 0);
     });
   }
 
@@ -152,4 +156,50 @@ export function initExceptionDeck(root = document) {
   render();
 
   return controller;
+}
+
+/** Initialise chaque deck présent sur la page (reçues / envoyées / archivées) indépendamment. */
+export function initExceptionDeck(root = document) {
+  return Array.from(root.querySelectorAll('[data-exception-deck]'))
+    .map(initSingleDeck)
+    .filter((controller) => controller !== undefined);
+}
+
+/**
+ * Renumérote --deck-index sur les cartes restantes après le retrait d'une
+ * carte du DOM (accept/refuse/annulation) et révèle l'état vide si le deck
+ * n'a plus aucune carte. À appeler après tout `.remove()` sur une
+ * `.rb-exception-card` (cf. availability.js).
+ */
+export function renumberDeck(deck) {
+  const cards = deck.querySelectorAll('.rb-exception-card');
+  cards.forEach((card, position) => {
+    card.style.setProperty('--deck-index', String(Math.min(position, MAX_VISIBLE_DEPTH)));
+    card.classList.toggle('rb-exception-card--active', position === 0);
+  });
+
+  if (cards.length === 0) {
+    deck.querySelector('.rb-exception-empty')?.removeAttribute('hidden');
+  }
+}
+
+/** Bascule Reçues/Envoyées/Archivées : un seul deck visible à la fois. */
+export function initExceptionTabs(root = document) {
+  const tabs = Array.from(root.querySelectorAll('.rb-exceptions-tab'));
+  const decks = Array.from(root.querySelectorAll('[data-exception-deck]'));
+  if (tabs.length === 0 || decks.length === 0) {
+    return;
+  }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
+      tab.setAttribute('aria-selected', 'true');
+
+      const target = tab.dataset.tabTarget;
+      decks.forEach((deck) => {
+        deck.hidden = deck.dataset.deck !== target;
+      });
+    });
+  });
 }

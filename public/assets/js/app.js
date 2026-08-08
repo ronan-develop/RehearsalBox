@@ -7,7 +7,7 @@ import { initPlanningSlider, initExceptionalPlanningSlider } from './planning-sl
 import { initTornPaper } from './tornpaper-init.js';
 import { initPlanningSearch } from './planning-search.js';
 import { initScrollHint } from './scroll-hint.js';
-import { initExceptionDeck } from './exception-deck.js';
+import { initExceptionDeck, initExceptionTabs } from './exception-deck.js';
 import { initContact } from './contact.js';
 import { initGroupDocuments } from './group-documents.js';
 import { initGroupSpaceEditor } from './group-space.js';
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlanningSearch();
   initScrollHint();
   initExceptionDeck();
+  initExceptionTabs();
   initContact();
   initGroupDocuments();
   initGroupSpaceEditor();

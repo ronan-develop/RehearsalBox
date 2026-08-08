@@ -49,3 +49,15 @@ if (!function_exists('formatExceptionStatus')) {
         };
     }
 }
+
+if (!function_exists('formatExceptionStatusBadgeClass')) {
+    /** Classe .rb-badge-* (dashboard.css) associée au statut, pour la carte du deck d'exceptions. */
+    function formatExceptionStatusBadgeClass(SlotExceptionStatus $status): string
+    {
+        return match ($status) {
+            SlotExceptionStatus::EnAttente => 'rb-badge-warn',
+            SlotExceptionStatus::Acceptee => 'rb-badge-ok',
+            SlotExceptionStatus::Refusee, SlotExceptionStatus::Expiree => 'rb-badge-err',
+        };
+    }
+}

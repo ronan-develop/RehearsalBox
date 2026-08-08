@@ -203,6 +203,35 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testFindArchivedForGroupDelegatesToRepositoryAfterMembershipCheck(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, $holderGroupId, $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exceptionRepository->respond($exception->id(), true, $holderUserId);
+
+        $found = $service->findArchivedForGroup($holderGroupId, $holderUserId);
+
+        self::assertCount(1, $found);
+    }
+
+    #[Test]
+
+    public function testFindArchivedForGroupByNonMemberThrowsAccessDenied(): void
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [, $holderGroupId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->findArchivedForGroup($holderGroupId, $requestingUserId);
+    }
+
+    #[Test]
+
     public function testUpdateRequestByMemberOfRequestingGroupSucceeds(): void
     {
         [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();

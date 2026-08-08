@@ -39,6 +39,15 @@ final class AvailabilityService implements AvailabilityServiceInterface
         return $this->slotExceptionRepository->findByRequestingGroup($groupId);
     }
 
+    public function findArchivedForGroup(int $groupId, int $userId): array
+    {
+        if (!$this->groupRepository->isMember($groupId, $userId)) {
+            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
+        }
+
+        return $this->slotExceptionRepository->findArchivedForGroup($groupId);
+    }
+
     public function respond(int $exceptionId, bool $accepted, int $userId): SlotException
     {
         $exception = $this->slotExceptionRepository->findById($exceptionId);

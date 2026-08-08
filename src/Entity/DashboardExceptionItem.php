@@ -12,6 +12,8 @@ final class DashboardExceptionItem
         private readonly SlotException $exception,
         private readonly ExceptionDirection $direction,
         private readonly string $requestedByGroupName,
+        private readonly ?string $requestedByGroupColorHex = null,
+        private readonly ?RecurringSlot $slot = null,
     ) {
     }
 
@@ -28,5 +30,15 @@ final class DashboardExceptionItem
     public function requestedByGroupName(): string
     {
         return $this->requestedByGroupName;
+    }
+
+    public function requestedByGroupColorHex(): ?string
+    {
+        return $this->requestedByGroupColorHex;
+    }
+
+    public function slot(): ?RecurringSlot
+    {
+        return $this->slot;
     }
 }
