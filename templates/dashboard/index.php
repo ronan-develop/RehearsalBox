@@ -115,6 +115,10 @@
             </div>
         </section>
 
+        <?php // Marqueur invisible : repère la fin de la zone planning pour le
+        // recentrage progressif du watermark #B27 au scroll (cf. parallax.js). ?>
+        <div data-parallax-scroll-end aria-hidden="true"></div>
+
         <?php if ($receivedExceptions !== [] || $sentExceptions !== [] || $archivedExceptions !== []): ?>
             <?php
             $renderExceptionCard = static function (\App\Entity\DashboardExceptionItem $item, int $deckPosition) {

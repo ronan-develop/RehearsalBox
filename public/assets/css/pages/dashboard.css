@@ -48,6 +48,11 @@
   white-space: nowrap;
   font-size: 92px;
   will-change: transform;
+  /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
+     interpole entre une position centrée dans le header au chargement
+     (scroll 0) et 0 (position par défaut ci-dessus, en haut à gauche) une
+     fois la zone planning dépassée. */
+  transform: translate(var(--wm-x, 0px), calc(var(--wm-y, 0px) + var(--wm-scroll-y, 0px)));
 }
 
 @media (min-width: 768px) {
