@@ -127,7 +127,9 @@ mv -T current.new current
 link="$HOME/$docroot_link"
 if [ -L "$link" ]; then
     ln -sfn "$HOME/$base/current/public" "$link"
-elif [ -d "$link" ] && [ -z "$(ls -A "$link")" ]; then
+elif [ -d "$link" ] && { [ -z "$(ls -A "$link")" ] || [ "$(ls -A "$link")" = "cgi-bin" ] && [ -z "$(ls -A "$link/cgi-bin")" ]; }; then
+    # dossier créé par cPanel : vide, ou ne contenant qu'un cgi-bin vide
+    rm -rf "$link/cgi-bin" 2>/dev/null || true
     rmdir "$link"
     ln -s "$HOME/$base/current/public" "$link"
 elif [ ! -e "$link" ]; then
