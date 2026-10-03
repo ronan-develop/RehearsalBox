@@ -1,4 +1,14 @@
+Options -Indexes
+
 RewriteEngine On
+
+# HTTPS forcé (derrière le proxy LiteSpeed ou en direct)
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTPS} !on
+RewriteRule ^(.*) https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Fichiers cachés inaccessibles (sauf .well-known pour le certificat)
+RewriteRule (^|/)\.(?!well-known/) - [F]
 
 # Fichiers/dossiers réels (assets) servis directement
 RewriteCond %{REQUEST_FILENAME} -f [OR]
