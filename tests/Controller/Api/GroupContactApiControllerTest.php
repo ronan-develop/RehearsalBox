@@ -43,7 +43,7 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
                 $this->sent = $message;
             }
         };
-        $contactService = new GroupContactService($mailer, $groupRepository);
+        $contactService = new GroupContactService($mailer, $groupRepository, 'no-reply@rehearsalbox.test');
 
         $controller = new GroupContactApiController($contactService, $authGuard);
 

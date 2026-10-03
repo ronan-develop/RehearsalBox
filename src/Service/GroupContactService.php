@@ -13,6 +13,7 @@ final class GroupContactService
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly GroupRepositoryInterface $groupRepository,
+        private readonly string $fromAddress,
     ) {
     }
 
@@ -24,7 +25,7 @@ final class GroupContactService
         }
 
         $email = (new Email())
-            ->from($senderEmail)
+            ->from($this->fromAddress)
             ->to($group->contactEmail())
             ->replyTo($senderEmail)
             ->subject('RehearsalBox — demande de contact')

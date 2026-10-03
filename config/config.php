@@ -13,6 +13,7 @@ $defaults = [
     ],
     'mailer' => [
         'dsn' => 'smtp://127.0.0.1:1025',
+        'from' => 'no-reply@rehearsalbox.local',
     ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',

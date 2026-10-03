@@ -97,6 +97,7 @@ return static function (array $config): Container {
     $container->set(GroupContactService::class, fn ($c) => new GroupContactService(
         $c->get(MailerInterface::class),
         $c->get(GroupRepositoryInterface::class),
+        $config['mailer']['from'],
     ));
 
     $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
