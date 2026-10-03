@@ -105,7 +105,8 @@ if [ "$tables" -gt 0 ]; then
 else
     echo "Base vide : pas de sauvegarde nécessaire."
 fi
-ls -1t "$HOME/$base/backups/"*.sql.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm --
+# Rotation : aucune sauvegarde existante n'est normale au premier déploiement
+ls -1t "$HOME/$base/backups/"*.sql.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -- || true
 REMOTE
 
 # --- 6. Migrations, test à blanc, bascule ---------------------------------
