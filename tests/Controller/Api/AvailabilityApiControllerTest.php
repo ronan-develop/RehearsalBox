@@ -71,7 +71,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('alice@rehearsalbox.test', 'password');
 
@@ -94,7 +94,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('bob@rehearsalbox.test', 'password');
 
@@ -119,7 +119,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
         $exceptionRepository->respond($exception->id(), true, $alice->id());
 
         $authService->attempt('alice@rehearsalbox.test', 'password');
@@ -143,7 +143,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
 
         $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('alice@rehearsalbox.test', 'password');
 
@@ -165,7 +165,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
-        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('bob@rehearsalbox.test', 'password');
 
@@ -188,7 +188,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), 'Raison initiale');
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), 'Raison initiale');
 
         $authService->attempt('bob@rehearsalbox.test', 'password');
 
@@ -216,7 +216,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('alice@rehearsalbox.test', 'password');
 
@@ -241,7 +241,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
         $exceptionRepository->respond($exception->id(), true, $alice->id());
 
         $authService->attempt('bob@rehearsalbox.test', 'password');
@@ -265,7 +265,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('bob@rehearsalbox.test', 'password');
 
@@ -290,7 +290,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
 
         $authService->attempt('alice@rehearsalbox.test', 'password');
 
@@ -315,7 +315,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
         $groupRepository->addMember($requestingGroup->id(), $bob->id());
 
-        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $bob->id(), null);
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), null);
         $exceptionRepository->respond($exception->id(), true, $alice->id());
 
         $authService->attempt('bob@rehearsalbox.test', 'password');

@@ -26,7 +26,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 
         $created = $repository->createRequest(
             $holderSlotId,
-            new \DateTimeImmutable('2026-08-04'),
+            new \DateTimeImmutable('+7 days'),
             $requestingGroupId,
             $requestingUserId,
             'Concert samedi',
@@ -57,7 +57,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
     {
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
-        $date = new \DateTimeImmutable('2026-08-04');
+        $date = new \DateTimeImmutable('+7 days');
 
         $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
 
@@ -73,7 +73,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $pendingForHolder = $repository->findPendingForHolderGroup($holderGroupId);
         $pendingForRequester = $repository->findPendingForHolderGroup($requestingGroupId);
@@ -89,7 +89,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $requestedByRequester = $repository->findByRequestingGroup($requestingGroupId);
         $requestedByHolder = $repository->findByRequestingGroup($holderGroupId);
@@ -177,7 +177,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $responded = $repository->respond($exception->id(), true, $requestingUserId);
 
@@ -195,7 +195,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $responded = $repository->respond($exception->id(), false, $requestingUserId);
 
@@ -215,7 +215,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $firstResponse = $repository->respond($exception->id(), true, $requestingUserId);
         $secondResponse = $repository->respond($exception->id(), false, $requestingUserId);
@@ -240,14 +240,14 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Raison initiale');
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, 'Raison initiale');
 
-        $updated = $repository->update($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Raison modifiée');
+        $updated = $repository->update($exception->id(), new \DateTimeImmutable('+14 days'), 'Raison modifiée');
 
         self::assertTrue($updated);
 
         $found = $repository->findById($exception->id());
-        self::assertSame('2026-08-11', $found->occurrenceDate()->format('Y-m-d'));
+        self::assertSame((new \DateTimeImmutable('+14 days'))->format('Y-m-d'), $found->occurrenceDate()->format('Y-m-d'));
         self::assertSame('Raison modifiée', $found->requestReason());
     }
 
@@ -258,13 +258,13 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
         $repository->respond($exception->id(), true, $requestingUserId);
 
-        $updated = $repository->update($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Nouvelle raison');
+        $updated = $repository->update($exception->id(), new \DateTimeImmutable('+14 days'), 'Nouvelle raison');
 
         self::assertFalse($updated);
-        self::assertSame('2026-08-04', $repository->findById($exception->id())->occurrenceDate()->format('Y-m-d'));
+        self::assertSame((new \DateTimeImmutable('+7 days'))->format('Y-m-d'), $repository->findById($exception->id())->occurrenceDate()->format('Y-m-d'));
     }
 
     #[Test]
@@ -273,7 +273,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
     {
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        self::assertFalse($repository->update(9999, new \DateTimeImmutable('2026-08-11'), null));
+        self::assertFalse($repository->update(9999, new \DateTimeImmutable('+14 days'), null));
     }
 
     #[Test]
@@ -283,7 +283,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $deleted = $repository->delete($exception->id());
 
@@ -298,7 +298,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
         $repository = new MysqlSlotExceptionRepository($this->pdo);
 
-        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
         $repository->respond($exception->id(), true, $requestingUserId);
 
         $deleted = $repository->delete($exception->id());
