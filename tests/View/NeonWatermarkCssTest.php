@@ -76,6 +76,24 @@ final class NeonWatermarkCssTest extends TestCase
     }
 
     #[Test]
+    public function testNeonStaysDiscreetSoTheTextStaysReadableAndScrollSmooth(): void
+    {
+        $neon = $this->block($this->baseRules(), '.rb-page-bg-text--neon');
+
+        preg_match('/text-shadow:(.*?);/s', $neon, $shadow);
+        self::assertNotEmpty($shadow, 'text-shadow attendu');
+        $layers = array_filter(array_map('trim', explode(',', preg_replace('/\([^)]*\)/', '', $shadow[1]) ?? '')));
+        self::assertLessThanOrEqual(2, count($layers), 'Au plus deux couches de lueur : coût de rendu et lisibilité.');
+
+        preg_match_all('/0 0 (\d+)px/', $shadow[1], $blurs);
+        self::assertNotEmpty($blurs[1]);
+        self::assertLessThanOrEqual(10, max(array_map('intval', $blurs[1])), 'Halo court : un halo large est coûteux et éblouissant.');
+
+        preg_match('/-webkit-text-stroke:\s*([\d.]+)px/', $neon, $stroke);
+        self::assertLessThanOrEqual(1.5, (float) ($stroke[1] ?? 99), 'Contour fin.');
+    }
+
+    #[Test]
     public function testThereIsNoPulseAnimationAnywhere(): void
     {
         self::assertStringNotContainsString('@keyframes', $this->css);

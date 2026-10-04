@@ -81,21 +81,20 @@
   }
 }
 
-/* Contour néon renforcé, statique — seulement quand le
-   logo est passé sous la barre de recherche (cf. parallax.js,
-   isLogoBelowSearchBar), pas de glow permanent. Empilement de text-shadow (contour net + halo plus large)
-   plutôt qu'un filter: drop-shadow() unique, pour garder un liseré marqué
-   sur le tracé en plus de la lueur diffuse. */
+/* Effet néon, statique — seulement quand le logo est passé sous la barre de
+   recherche (cf. parallax.js, isLogoBelowSearchBar), pas de glow permanent.
+   Empilement de text-shadow plutôt qu'un filter: drop-shadow() unique, pour
+   garder un liseré net sur le tracé en plus d'une lueur courte. */
 .rb-page-bg-text--neon {
-  opacity: 1;
+  opacity: 0.9;
   color: var(--rb-accent);
-  -webkit-text-stroke: 2px var(--rb-stone-flame);
-  /* Néon statique, sur tous les écrans : pas de pulsation (ni repaint du
-     text-shadow en boucle). */
+  /* Néon discret : contour fin et halo court (2 couches), pour rester lisible
+     et garder un défilement fluide (un halo large sur un texte de 150 px est
+     coûteux à rendre). Statique : pas de pulsation, quel que soit l'écran. */
+  -webkit-text-stroke: 1px var(--rb-stone-flame);
   text-shadow:
-    0 0 3px var(--rb-stone-flame),
-    0 0 8px var(--rb-stone-flame),
-    0 0 16px var(--rb-accent);
+    0 0 4px var(--rb-stone-flame),
+    0 0 10px var(--rb-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
