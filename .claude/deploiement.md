@@ -86,6 +86,12 @@ L'hébergeur valide OPcache sur le chemin du lien `current` (`opcache.revalidate
 
 Si le contrôle échoue : `bin/rollback.sh`, ou purger à la main puis relancer `bin/verify-release.sh <url>/login <empreinte>`.
 
+## Mon compte : nom affiché et adresse e-mail (#161, #164)
+
+Page **Mon compte** (entrée « Compte » de la navigation) : nom affiché modifiable, changement d'**adresse e-mail** et changement de mot de passe.
+
+**Changement d'e-mail** en deux temps : (1) l'utilisateur saisit la nouvelle adresse et son **mot de passe actuel** ; un lien de confirmation (1 heure, usage unique, jeton haché dans `email_changes`) part vers la **nouvelle** adresse, la réponse est identique que l'adresse soit libre ou déjà utilisée (pas d'énumération de comptes) ; limite de 3 demandes par heure et par compte. (2) Le clic ouvre `/account/email/confirm` (publique, ne fait rien sur un simple GET), un bouton confirme : l'adresse change, **toutes les sessions sont fermées** (reconnexion avec la nouvelle adresse) et l'**ancienne adresse reçoit une alerte** (nouvelle adresse masquée, sans lien). Recours si ce n'est pas la bonne personne : un administrateur. La migration `013_create_email_changes_table.sql` est appliquée par `bin/deploy.sh`.
+
 ## Délivrabilité des e-mails (#132)
 
 Les e-mails sortent par `sendmail://default` (Exim de l'hébergeur), expéditeur fixe `no-reply@<domaine>`. État constaté lors d'un test réel vers Gmail (en-têtes « Afficher l'original ») :

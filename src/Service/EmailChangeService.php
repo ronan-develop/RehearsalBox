@@ -54,17 +54,7 @@ final class EmailChangeService
 
         $user = $this->userRepository->findById($userId) ?? throw new \InvalidArgumentException('Utilisateur introuvable.');
 
-        // Compte verrouillé : refusé même avec le bon mot de passe, comme à la connexion.
-        if ($user->isLocked($now)) {
-            throw new UserValidationException(['currentPassword' => 'Compte temporairement verrouillé. Réessayez plus tard.']);
-        }
-
-        // Un mot de passe actuel faux compte comme une tentative de connexion échouée.
-        if (!$this->passwordHasher->verify($currentPassword, $user->passwordHash())) {
-            $this->userRepository->save($user->withFailedLoginAttempt(AuthService::MAX_FAILED_ATTEMPTS, $now, AuthService::LOCK_DURATION));
-
-            throw new UserValidationException(['currentPassword' => 'Mot de passe actuel incorrect.']);
-        }
+        (new CurrentPasswordVerifier($this->userRepository, $this->passwordHasher))->assertMatches($user, $currentPassword, $now);
 
         if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL) || strlen($newEmail) > self::MAX_EMAIL_LENGTH) {
             throw new UserValidationException(['email' => 'Adresse email invalide.']);
