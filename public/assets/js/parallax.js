@@ -23,7 +23,8 @@
  *
  * La couleur (rouge → jaune néon) bascule quand le logo a dépassé la barre de
  * recherche, c'est-à-dire qu'il est passé en dessous (isLogoBelowSearchBar),
- * dans les deux sens.
+ * dans les deux sens ; plus le logo descend, plus il est brillant (--wm-glow,
+ * computeGlowLevel).
  *
  * Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
  * DOM réel (fonctions pures ci-dessous) pour rester testables en
@@ -96,6 +97,18 @@ export function computeScrollProgress(scrollY, maxScrollY) {
  */
 export function isLogoBelowSearchBar(logo, searchRect) {
   return logo.top >= searchRect.bottom;
+}
+
+/**
+ * Brillance du jaune, de 0 à 1 : 0 quand le haut du logo est au niveau du bas
+ * de la barre de recherche, 1 à la position finale, linéaire entre les deux.
+ * Vaut 1 si la position finale n'est pas sous la barre (rien à descendre).
+ */
+export function computeGlowLevel(logoTop, searchBottom, finalTop) {
+  if (finalTop <= searchBottom) {
+    return 1;
+  }
+  return Math.min(Math.max((logoTop - searchBottom) / (finalTop - searchBottom), 0), 1);
 }
 
 /** Interpolation linéaire simple entre deux valeurs. */
@@ -180,13 +193,20 @@ export function initParallax(root = document, windowRef = window) {
     // (position à l'écran calculée depuis le repos + décalages de cette frame,
     // sans relire un rect déjà transformé). Sans barre de recherche : ancien
     // critère, la progression a atteint 1.
+    const logoTop = bgTextRectAtRest.top + wmY + scrollOffsetY;
     const neon = search
-      ? isLogoBelowSearchBar(
-          { top: bgTextRectAtRest.top + wmY + scrollOffsetY, height: bgTextRectAtRest.height },
-          search.getBoundingClientRect(),
-        )
+      ? isLogoBelowSearchBar({ top: logoTop, height: bgTextRectAtRest.height }, search.getBoundingClientRect())
       : progress === 1;
     bg.classList.toggle('rb-page-bg-text--neon', neon);
+    // Brillance du jaune : plus le logo descend (de la barre de recherche à sa
+    // position finale), plus elle monte, de 0 à 1. Seule l'opacité d'une couche
+    // de lueur CSS suit cette valeur (compositeur) : pas de text-shadow à
+    // redessiner à chaque image, donc pas de lag au défilement.
+    const finalTop = bgTextRectAtRest.top + end.y;
+    const glow = neon
+      ? (search ? computeGlowLevel(logoTop, search.getBoundingClientRect().bottom, finalTop) : 1)
+      : 0;
+    bg.style.setProperty('--wm-glow', glow.toFixed(3));
     ticking = false;
   }
 

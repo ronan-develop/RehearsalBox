@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="rb-page-bg" aria-hidden="true">
-        <span class="rb-page-bg-text" data-parallax="bg">#B27</span>
+        <span class="rb-page-bg-text" data-parallax="bg" data-text="#B27">#B27</span>
     </div>
     <div class="rb-dashboard-page">
         <header class="rb-dashboard-header rb-stone-panel rb-stone-panel--ember">

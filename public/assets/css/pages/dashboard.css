@@ -66,6 +66,7 @@
   line-height: 1;
   white-space: nowrap;
   font-size: 56px;
+  position: relative;
   will-change: transform;
   transition: text-shadow 0.4s ease;
   /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
@@ -81,44 +82,46 @@
   }
 }
 
-/* Contour néon renforcé + léger vacillement façon flamme — seulement quand le
-   logo est passé sous la barre de recherche (cf. parallax.js,
-   isLogoBelowSearchBar), pas de glow permanent. Empilement de text-shadow (contour net + halo plus large)
-   plutôt qu'un filter: drop-shadow() unique, pour garder un liseré marqué
-   sur le tracé en plus de la lueur diffuse. */
+/* Effet néon, statique — seulement quand le logo est passé sous la barre de
+   recherche (cf. parallax.js, isLogoBelowSearchBar), pas de glow permanent.
+   Empilement de text-shadow plutôt qu'un filter: drop-shadow() unique, pour
+   garder un liseré net sur le tracé en plus d'une lueur courte. */
 .rb-page-bg-text--neon {
-  opacity: 1;
+  opacity: 0.9;
   color: var(--rb-accent);
-  -webkit-text-stroke: 2px var(--rb-stone-flame);
-  animation: rb-page-bg-text-flame 2.4s ease-in-out infinite;
+  /* Néon discret : contour fin et halo court (2 couches), pour rester lisible
+     et garder un défilement fluide (un halo large sur un texte de 150 px est
+     coûteux à rendre). Statique : pas de pulsation, quel que soit l'écran. */
+  -webkit-text-stroke: 1px var(--rb-stone-flame);
+  text-shadow:
+    0 0 4px var(--rb-stone-flame),
+    0 0 10px var(--rb-accent);
 }
 
-@keyframes rb-page-bg-text-flame {
-  0%, 100% {
-    text-shadow:
-      0 0 3px var(--rb-stone-flame),
-      0 0 8px var(--rb-stone-flame),
-      0 0 16px var(--rb-accent),
-      0 0 2px var(--rb-stone-chalk);
-  }
-  50% {
-    text-shadow:
-      0 0 4px var(--rb-stone-flame),
-      0 0 14px var(--rb-stone-flame),
-      0 0 26px var(--rb-accent),
-      0 0 3px var(--rb-stone-chalk);
-  }
+/* Brillance progressive : plus le logo descend (parallax.js, --wm-glow de 0 à
+   1), plus le jaune est brillant. Couche de lueur superposée au texte, dont
+   SEULE l'opacité varie avec le scroll : opération du compositeur, pas de
+   text-shadow redessiné à chaque image. Le texte de la couche reste rouge
+   (l'ombre est dessinée derrière lui) : le rouge garde l'intérieur des lettres,
+   rouge néon pétant en son cœur façon tube néon (un soupçon de blanc, halo rouge), le
+   jaune reste un liseré fin sur le contour, sans baver. Halo court et
+   intensité maximale atténuée pour rester lisible. */
+.rb-page-bg-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: color-mix(in srgb, var(--rb-neon-red) 80%, white);
+  -webkit-text-stroke: 1px var(--rb-stone-flame);
+  text-shadow:
+    0 0 4px var(--rb-stone-flame),
+    0 0 9px var(--rb-neon-red),
+    0 0 15px var(--rb-neon-red);
+  opacity: calc(var(--wm-glow, 0) * 0.7);
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rb-page-bg-text--neon {
-    animation: none;
-    text-shadow:
-      0 0 3px var(--rb-stone-flame),
-      0 0 8px var(--rb-stone-flame),
-      0 0 16px var(--rb-accent);
-  }
-
   .rb-page-bg-text {
     transform: none !important;
   }
