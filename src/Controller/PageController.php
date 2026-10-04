@@ -128,8 +128,10 @@ final class PageController
             }
         }
 
+        // Plus récent d'abord ; à created_at égal (même seconde), l'id le plus grand
+        // (créé en dernier) passe en premier, pour un ordre déterministe.
         $sortByCreatedAtDescending = static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
-            $b->exception()->createdAt() <=> $a->exception()->createdAt();
+            [$b->exception()->createdAt(), $b->exception()->id()] <=> [$a->exception()->createdAt(), $a->exception()->id()];
         usort($receivedItems, $sortByCreatedAtDescending);
         usort($sentItems, $sortByCreatedAtDescending);
         usort($archivedItems, $sortByCreatedAtDescending);
