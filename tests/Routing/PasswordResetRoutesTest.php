@@ -40,4 +40,11 @@ final class PasswordResetRoutesTest extends TestCase
         self::assertContains(['POST', '/api/auth/change-password', [AccountApiController::class, 'changePassword']], $this->allRoutes());
         self::assertContains(['POST', '/api/auth/secure-account', [AccountApiController::class, 'secureAccount']], $this->allRoutes());
     }
+
+    #[Test]
+    public function testAccountPagesAreRegisteredAsGetRoutes(): void
+    {
+        self::assertContains(['GET', '/account/password', [PageController::class, 'accountPassword']], $this->allRoutes());
+        self::assertContains(['GET', '/account/secure', [PageController::class, 'secureAccount']], $this->allRoutes());
+    }
 }

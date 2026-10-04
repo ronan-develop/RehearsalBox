@@ -63,6 +63,33 @@ final class PageController
         );
     }
 
+    /** Page « Mon mot de passe » : réservée aux utilisateurs connectés. */
+    public function accountPassword(): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        return new Response($this->renderer->render('account/password', [
+            'csrfToken' => $this->csrfTokenManager->getToken(),
+            'currentUserRole' => $user->role(),
+        ]));
+    }
+
+    /**
+     * Cible du bouton « Ce n'est pas moi » du mail d'alerte. Un simple GET n'agit jamais (les scanners
+     * de mails suivent les liens) : la page demande une confirmation explicite. Le jeton est dans l'URL :
+     * pas de Referer sortant, pas de mise en cache.
+     */
+    public function secureAccount(Request $request): Response
+    {
+        return new Response(
+            $this->renderer->render('auth/secure-account', [
+                'csrfToken' => $this->csrfTokenManager->getToken(),
+                'token' => (string) $request->query('token', ''),
+            ]),
+            headers: ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'],
+        );
+    }
+
     public function register(): Response
     {
         return new Response($this->renderer->render('auth/register', ['csrfToken' => $this->csrfTokenManager->getToken()]));
