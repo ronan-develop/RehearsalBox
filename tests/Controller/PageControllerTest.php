@@ -528,16 +528,20 @@ final class PageControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testAdminGroupsPageLinksToTheUsersPage(): void
+    public function testAdminGroupsPageHasGroupsAndUsersTabsWithGroupsCurrent(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
-        $admin = $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
+        $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
         $authService->attempt('admin@rehearsalbox.test', 'password');
 
         $body = $controller->adminGroups()->body();
 
-        // La barre du bas garde ses 5 liens (pas de 6e lien qui déborderait sur mobile) : accès via la page Groupes.
-        self::assertStringContainsString('href="/admin/users"', $body);
+        // Onglets Groupes | Utilisateurs (#155) : l'onglet courant est marqué, l'autre mène à la page Utilisateurs.
+        self::assertStringContainsString('class="rb-admin-tabs"', $body);
+        self::assertMatchesRegularExpression('/<a href="\/admin\/groups" class="rb-admin-tab" aria-current="page">\s*Groupes\s*<\/a>/u', $body);
+        self::assertMatchesRegularExpression('/<a href="\/admin\/users" class="rb-admin-tab">\s*Utilisateurs\s*<\/a>/u', $body);
+        self::assertStringNotContainsString('Gérer les utilisateurs', $body, 'plus de petit lien pris pour un « retour »');
+        // La barre du bas garde ses 5 entrées (pas de 6e lien qui déborderait sur mobile).
         self::assertSame(5, substr_count($body, 'rb-bottom-nav-link'), 'la navigation du bas reste à 5 entrées');
     }
 }

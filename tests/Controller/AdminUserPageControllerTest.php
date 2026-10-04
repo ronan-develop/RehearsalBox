@@ -144,13 +144,16 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testPageLinksBackToGroupsAndShowsTheAdminNavigation(): void
+    public function testPageHasGroupsAndUsersTabsWithUsersCurrentAndShowsTheAdminNavigation(): void
     {
         $this->loginAsAdmin();
 
         $body = $this->controller->index()->body();
 
-        self::assertStringContainsString('href="/admin/groups"', $body);
+        self::assertStringContainsString('class="rb-admin-tabs"', $body);
+        self::assertMatchesRegularExpression('/<a href="\/admin\/groups" class="rb-admin-tab">\s*Groupes\s*<\/a>/u', $body);
+        self::assertMatchesRegularExpression('/<a href="\/admin\/users" class="rb-admin-tab" aria-current="page">\s*Utilisateurs\s*<\/a>/u', $body);
+        self::assertStringNotContainsString('← Groupes', $body, 'plus de lien « retour » : les onglets suffisent');
         self::assertStringContainsString('rb-bottom-nav', $body);
     }
 }
