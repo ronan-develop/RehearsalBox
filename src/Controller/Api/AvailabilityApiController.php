@@ -54,7 +54,10 @@ final class AvailabilityApiController
     public function update(Request $request, string $exceptionId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $occurrenceDate = new \DateTimeImmutable((string) $request->body('occurrenceDate', ''));
+        $occurrenceDate = self::parseDate($request->body('occurrenceDate'));
+        if ($occurrenceDate === null) {
+            return new JsonResponse(['error' => 'Date invalide (format AAAA-MM-JJ attendu).'], 422);
+        }
         $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
 
         try {
@@ -77,6 +80,22 @@ final class AvailabilityApiController
         }
 
         return new JsonResponse([], 204);
+    }
+
+    /** Date stricte AAAA-MM-JJ : rejette le vide, les types inattendus et les dates impossibles (30 février). */
+    private static function parseDate(mixed $value): ?\DateTimeImmutable
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        $errors = \DateTimeImmutable::getLastErrors();
+        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            return null;
+        }
+
+        return $date;
     }
 
     /** @return array<string, mixed> */
