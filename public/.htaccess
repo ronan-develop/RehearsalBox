@@ -7,6 +7,15 @@ RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteCond %{HTTPS} !on
 RewriteRule ^(.*) https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# CSS et JS revalidés à chaque chargement (Last-Modified change à chaque release :
+# 200 avec le nouveau fichier, sinon 304). app.js importe d'autres modules par chemin
+# relatif : on ne peut pas les versionner un par un, donc pas de cache aveugle (#150).
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|mjs)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
 # Fichiers cachés inaccessibles (sauf .well-known pour le certificat)
 RewriteRule (^|/)\.(?!well-known/) - [F]
 
