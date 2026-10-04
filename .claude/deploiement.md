@@ -55,6 +55,14 @@ Le mot de passe passe par l'environnement (jamais en argument). La connexion se 
 - Premier déploiement de la fonctionnalité : `APP_URL` doit être dans le fichier de secrets et la configuration serveur régénérée (`RB_REGEN_CONFIG=1 ./bin/deploy.sh`) ; la migration 010 est appliquée par le déploiement (sauvegarde préalable automatique).
 - Limite connue : les sessions déjà ouvertes ne sont pas fermées après un changement de mot de passe (sessions PHP natives).
 
+## Changement de mot de passe, sessions et alerte (#108)
+
+- Page « Mon mot de passe » (`/account/password`, lien « Compte » dans la barre du bas) ; `POST /api/auth/change-password`. L'utilisateur visé est celui de la **session**, jamais un identifiant de la requête. Un mot de passe actuel faux compte comme un échec de connexion (mêmes limites : 5 échecs, verrouillage 15 min).
+- **Sessions versionnées** : `users.session_version` (migration 011), copiée dans la session à la connexion et comparée à chaque requête. Un changement de mot de passe (ou « Ce n'est pas moi ») incrémente la version : les autres appareils sont déconnectés à leur prochaine requête, l'appareil courant reste connecté (session régénérée). Les sessions ouvertes avant la migration valent 0 : personne n'est déconnecté au déploiement.
+- **Alerte** envoyée après un changement, avec un lien « Ce n'est pas moi » (jeton de 24 h, à usage unique, stocké haché dans `password_resets` avec `purpose = 'alert'`, migration 012). Le lien ouvre une page de **confirmation** (`/account/secure`) ; l'action n'a lieu qu'au `POST /api/auth/secure-account`, jamais sur un GET.
+- « Ce n'est pas moi » **verrouille** le compte (7 jours), ferme toutes les sessions et envoie un lien de réinitialisation. L'ancien mot de passe n'est **pas** restauré : l'auteur du changement le connaît forcément.
+- Déploiement : les migrations 011 et 012 sont appliquées automatiquement (sauvegarde préalable).
+
 ## Retour arrière
 
 ```bash
