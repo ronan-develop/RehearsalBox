@@ -8,6 +8,7 @@ use App\Controller\Api\GroupApiController;
 use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
+use App\Controller\Api\PasswordResetApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
 
@@ -23,6 +24,8 @@ return [
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
         ['POST', '/api/auth/register', [AuthApiController::class, 'register']],
+        ['POST', '/api/auth/forgot-password', [PasswordResetApiController::class, 'forgotPassword']],
+        ['POST', '/api/auth/reset-password', [PasswordResetApiController::class, 'resetPassword']],
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
         ['POST', '/api/auth/select-group', [AuthApiController::class, 'selectGroup']],
         ['GET',  '/api/availability/pending/{groupId}', [AvailabilityApiController::class, 'pendingForGroup']],

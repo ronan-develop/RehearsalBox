@@ -11,14 +11,18 @@ use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\PageController;
+use App\Controller\Api\PasswordResetApiController;
 use App\Database\ConnectionFactory;
+use App\Database\TransactionRunner;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
+use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
@@ -38,6 +42,7 @@ use App\Service\Contract\SlotServiceInterface;
 use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
+use App\Service\PasswordResetService;
 use App\Service\SlotService;
 use App\Service\UserProvisioningService;
 use App\View\PhpTemplateRenderer;
@@ -117,10 +122,28 @@ return static function (array $config): Container {
 
     $container->set(PasswordPolicy::class, fn () => new PasswordPolicy());
 
+    $container->set(TransactionRunner::class, fn ($c) => new TransactionRunner($c->get(PDO::class)));
+    $container->set(PasswordResetRepositoryInterface::class, fn ($c) => new MysqlPasswordResetRepository($c->get(PDO::class)));
+
     $container->set(UserProvisioningService::class, fn ($c) => new UserProvisioningService(
         $c->get(UserRepositoryInterface::class),
         $c->get(PasswordHasherInterface::class),
         $c->get(PasswordPolicy::class),
+    ));
+
+    $container->set(PasswordResetService::class, fn ($c) => new PasswordResetService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(PasswordResetRepositoryInterface::class),
+        $c->get(PasswordHasherInterface::class),
+        $c->get(PasswordPolicy::class),
+        $c->get(MailerInterface::class),
+        $c->get(TransactionRunner::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+    ));
+
+    $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(
+        $c->get(PasswordResetService::class),
     ));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
