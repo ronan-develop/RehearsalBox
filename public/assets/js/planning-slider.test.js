@@ -1,90 +1,201 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoScrollController, shouldAutoScroll, buildExceptionalCardMarkup, refreshExceptionalPlanning } from './planning-slider.js';
+import { createAutoScrollController, initPlanningSlider, shouldAutoScroll, buildExceptionalCardMarkup, refreshExceptionalPlanning } from './planning-slider.js';
 
 function makeFakeTrack(offsetWidth = 1000) {
-  let translateX = 0;
+  const reads = { offsetWidth: 0 };
+  const classes = new Set();
+  const properties = {};
   return {
-    offsetWidth,
-    style: {
-      set transform(value) {
-        const match = /translateX\((-?\d+(?:\.\d+)?)px\)/.exec(value);
-        translateX = match ? Number(match[1]) : 0;
-      },
-      get transform() {
-        return `translateX(${translateX}px)`;
-      },
+    get offsetWidth() {
+      reads.offsetWidth += 1;
+      return offsetWidth;
     },
-    get translateX() {
-      return translateX;
+    reads,
+    classes,
+    properties,
+    classList: {
+      add: (name) => { classes.add(name); },
+      toggle: (name, force) => { force ? classes.add(name) : classes.delete(name); },
     },
+    style: { setProperty: (name, value) => { properties[name] = value; } },
   };
 }
 
-test('createAutoScrollController translates the track further left on each tick while running', () => {
-  const track = makeFakeTrack();
-  const controller = createAutoScrollController(track, { step: 2 });
-
-  controller.tick();
-  controller.tick();
-
-  assert.equal(track.translateX, -4);
-});
-
-test('createAutoScrollController does not move the track while paused', () => {
-  const track = makeFakeTrack();
-  const controller = createAutoScrollController(track, { step: 2 });
-
-  controller.pause();
-  controller.tick();
-  controller.tick();
-
-  assert.equal(track.translateX, 0);
-});
-
-test('createAutoScrollController resumes advancing after resume() following a pause()', () => {
-  const track = makeFakeTrack();
-  const controller = createAutoScrollController(track, { step: 2 });
-
-  controller.pause();
-  controller.tick();
-  controller.resume();
-  controller.tick();
-
-  assert.equal(track.translateX, -2);
-});
-
-test('createAutoScrollController wraps back to 0 once past half the track width (duplicated content)', () => {
-  // Le track contient le contenu dupliqué une fois (2x offsetWidth réel de la
-  // liste source) pour boucler sans saut visible ; on doit donc revenir à 0
-  // dès qu'on a défilé la moitié de offsetWidth, pas la totalité.
-  const track = makeFakeTrack(1000);
-  const controller = createAutoScrollController(track, { step: 2 });
-
-  for (let i = 0; i < 250; i += 1) {
-    controller.tick();
-  }
-
-  assert.equal(track.translateX, 0);
-});
+// --- Contrôleur : raisons de pause et durée de l'animation CSS (compositeur, zéro JS par image) ---
 
 test('createAutoScrollController starts running by default', () => {
-  const track = makeFakeTrack();
-  const controller = createAutoScrollController(track, { step: 2 });
+  const controller = createAutoScrollController(makeFakeTrack());
 
   assert.equal(controller.isRunning(), true);
 });
 
 test('createAutoScrollController pause() is idempotent under concurrent mouseenter/manual pause', () => {
-  const track = makeFakeTrack();
-  const controller = createAutoScrollController(track, { step: 2 });
+  const controller = createAutoScrollController(makeFakeTrack());
 
   controller.pause();
   controller.pause();
-  controller.tick();
 
-  assert.equal(track.translateX, 0);
   assert.equal(controller.isRunning(), false);
+});
+
+test('createAutoScrollController resumes after resume() following a pause()', () => {
+  const controller = createAutoScrollController(makeFakeTrack());
+
+  controller.pause();
+  controller.resume();
+
+  assert.equal(controller.isRunning(), true);
+});
+
+test('createAutoScrollController stays paused until EVERY pause reason is lifted', () => {
+  const controller = createAutoScrollController(makeFakeTrack());
+
+  controller.pause('hover');
+  controller.pause('touch');
+  controller.resume('hover');
+  assert.equal(controller.isRunning(), false, 'le toucher retient encore le défilement');
+
+  controller.resume('touch');
+  assert.equal(controller.isRunning(), true);
+});
+
+test('createAutoScrollController notifies only when the running state actually flips', () => {
+  const states = [];
+  const controller = createAutoScrollController(makeFakeTrack(), { onChange: (running) => states.push(running) });
+
+  controller.pause('hover');
+  controller.pause('touch');
+  controller.resume('hover');
+  controller.resume('touch');
+
+  assert.deepEqual(states, [false, true]);
+});
+
+test('createAutoScrollController sets the animation duration to half the track width over the speed (loop on the duplicated content)', () => {
+  // Largeur 1000 : on boucle à 500 px ; à 25 px/s, un tour dure 20 s.
+  const track = makeFakeTrack(1000);
+  const controller = createAutoScrollController(track, { speed: 25 });
+
+  const duration = controller.measure();
+
+  assert.equal(duration, 20);
+  assert.equal(track.properties['--rb-planning-duration'], '20s');
+});
+
+test('createAutoScrollController does not start an animation on a track with no measurable width', () => {
+  const track = makeFakeTrack(0);
+  const controller = createAutoScrollController(track);
+
+  assert.equal(controller.measure(), null);
+  assert.equal(track.properties['--rb-planning-duration'], undefined);
+});
+
+// --- Pilotage : animation CSS, pauses (toucher, survol, hors écran, onglet caché), aucun JS par image ---
+
+function makeDriver({ reducedMotion = false, offsetWidth = 1000 } = {}) {
+  const winListeners = {};
+  const sliderListeners = {};
+  const rootListeners = {};
+  let observerCallback = null;
+  const track = makeFakeTrack(offsetWidth);
+  const slider = { addEventListener: (event, cb) => { sliderListeners[event] = cb; } };
+  const root = {
+    visibilityState: 'visible',
+    addEventListener: (event, cb) => { rootListeners[event] = cb; },
+    querySelector: (selector) => (selector === '[data-planning-slider]' ? slider : selector === '[data-planning-track]' ? track : null),
+  };
+  const win = {
+    innerWidth: 390,
+    matchMedia: () => ({ matches: reducedMotion }),
+    requestAnimationFrame: () => { throw new Error('aucune boucle JS par image attendue'); },
+    addEventListener: (event, cb) => { winListeners[event] = cb; },
+    IntersectionObserver: class {
+      constructor(cb) { observerCallback = cb; }
+      observe() {}
+    },
+  };
+
+  return {
+    track, win, root, winListeners, sliderListeners, rootListeners,
+    intersect: (isIntersecting) => observerCallback([{ isIntersecting }]),
+    isPaused: () => track.classes.has('rb-planning-track--paused'),
+  };
+}
+
+test('initPlanningSlider starts the CSS animation: no JS per frame, no scroll listener', () => {
+  const d = makeDriver();
+
+  initPlanningSlider(d.root, d.win);
+
+  assert.ok(d.track.classes.has('rb-planning-track--auto'), 'animation CSS activée');
+  assert.equal(d.track.properties['--rb-planning-duration'], '20s');
+  assert.equal(d.isPaused(), false);
+  assert.equal(d.winListeners.scroll, undefined, 'plus de pause au scroll : le compositeur n\'utilise pas le thread principal');
+});
+
+test('initPlanningSlider pauses the animation on touch and resumes on release', () => {
+  const d = makeDriver();
+  initPlanningSlider(d.root, d.win);
+
+  d.sliderListeners.touchstart();
+  assert.equal(d.isPaused(), true);
+
+  d.sliderListeners.touchend();
+  assert.equal(d.isPaused(), false);
+});
+
+test('initPlanningSlider pauses the animation on hover and resumes on leave', () => {
+  const d = makeDriver();
+  initPlanningSlider(d.root, d.win);
+
+  d.sliderListeners.mouseenter();
+  assert.equal(d.isPaused(), true);
+
+  d.sliderListeners.mouseleave();
+  assert.equal(d.isPaused(), false);
+});
+
+test('initPlanningSlider pauses when the timeline is out of view and resumes when it comes back', () => {
+  const d = makeDriver();
+  initPlanningSlider(d.root, d.win);
+
+  d.intersect(false);
+  assert.equal(d.isPaused(), true);
+
+  d.intersect(true);
+  assert.equal(d.isPaused(), false);
+});
+
+test('initPlanningSlider pauses when the tab is hidden and resumes when it is visible again', () => {
+  const d = makeDriver();
+  initPlanningSlider(d.root, d.win);
+
+  d.root.visibilityState = 'hidden';
+  d.rootListeners.visibilitychange();
+  assert.equal(d.isPaused(), true);
+
+  d.root.visibilityState = 'visible';
+  d.rootListeners.visibilitychange();
+  assert.equal(d.isPaused(), false);
+});
+
+test('initPlanningSlider measures the track width once, then again only on resize', () => {
+  const d = makeDriver();
+  initPlanningSlider(d.root, d.win);
+  assert.equal(d.track.reads.offsetWidth, 1);
+
+  d.winListeners.resize();
+
+  assert.equal(d.track.reads.offsetWidth, 2);
+});
+
+test('initPlanningSlider does not auto-scroll with prefers-reduced-motion (native swipe stays available)', () => {
+  const d = makeDriver({ reducedMotion: true });
+
+  initPlanningSlider(d.root, d.win);
+
+  assert.equal(d.track.classes.has('rb-planning-track--auto'), false);
 });
 
 test('shouldAutoScroll returns true when the viewport is narrower than the desktop breakpoint (mobile-first)', () => {

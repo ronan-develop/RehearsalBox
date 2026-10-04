@@ -294,6 +294,32 @@ body {
   gap: var(--rb-space-3);
   width: max-content;
   min-width: 100%;
+  /* Calque de compositeur propre : les cartes (filtre SVG « papier déchiré »,
+     coûteux) sont rastérisées une fois, l'auto-défilement ne fait que déplacer
+     le calque au lieu de les repeindre à chaque image (#149). */
+  will-change: transform;
+}
+
+/* Auto-défilement : animation CSS sur le compositeur, aucun JS par image
+   (planning-slider.js ne pose que la durée --rb-planning-duration et les
+   pauses). De 0 à -50 % : la piste contient le contenu dupliqué une fois, la
+   boucle est donc sans saut (#149). */
+@keyframes rb-planning-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.rb-planning-track--auto {
+  animation: rb-planning-scroll var(--rb-planning-duration, 60s) linear infinite;
+}
+
+.rb-planning-track--paused {
+  animation-play-state: paused;
 }
 
 .rb-planning-card--hidden {
