@@ -147,4 +147,37 @@ final class MysqlPasswordResetRepositoryTest extends RepositoryTestCase
 
         $repository->create($alice->id(), $this->hash('a'), $now->modify('+1 hour'), $now);
     }
+
+    #[Test]
+    public function testTokensOfDifferentPurposesAreIsolated(): void
+    {
+        $repository = new MysqlPasswordResetRepository($this->pdo);
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $now = new \DateTimeImmutable('2026-10-04 12:00:00');
+        $repository->create($alice->id(), $this->hash('reset'), $now->modify('+1 hour'), $now);
+        $repository->create($alice->id(), $this->hash('alert'), $now->modify('+24 hours'), $now, 'alert');
+
+        // Un jeton d'alerte ne peut pas servir à réinitialiser, ni l'inverse.
+        self::assertNull($repository->consume($this->hash('alert'), $now));
+        self::assertNull($repository->consume($this->hash('reset'), $now, 'alert'));
+        self::assertSame($alice->id(), $repository->consume($this->hash('alert'), $now, 'alert'));
+        self::assertSame($alice->id(), $repository->consume($this->hash('reset'), $now));
+    }
+
+    #[Test]
+    public function testInvalidateAndCountOnlyConcernTheGivenPurpose(): void
+    {
+        $repository = new MysqlPasswordResetRepository($this->pdo);
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $now = new \DateTimeImmutable('2026-10-04 12:00:00');
+        $repository->create($alice->id(), $this->hash('reset'), $now->modify('+1 hour'), $now);
+        $repository->create($alice->id(), $this->hash('alert'), $now->modify('+24 hours'), $now, 'alert');
+
+        $repository->invalidateAllForUser($alice->id(), $now);
+
+        self::assertNull($repository->consume($this->hash('reset'), $now));
+        self::assertSame($alice->id(), $repository->consume($this->hash('alert'), $now, 'alert'));
+        self::assertSame(1, $repository->countCreatedSince($alice->id(), $now->modify('-1 hour'), 'alert'));
+        self::assertSame(1, $repository->countCreatedSince($alice->id(), $now->modify('-1 hour')));
+    }
 }
