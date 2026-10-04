@@ -27,6 +27,7 @@ use App\Security\CsrfTokenManager;
 use App\Security\NativePasswordHasher;
 use App\Security\NativeSession;
 use App\Security\PasswordHasherInterface;
+use App\Security\PasswordPolicy;
 use App\Security\SessionInterface;
 use App\Service\AuthService;
 use App\Service\AvailabilityService;
@@ -114,9 +115,12 @@ return static function (array $config): Container {
         $c->get(GroupDocumentRepositoryInterface::class),
     ));
 
+    $container->set(PasswordPolicy::class, fn () => new PasswordPolicy());
+
     $container->set(UserProvisioningService::class, fn ($c) => new UserProvisioningService(
         $c->get(UserRepositoryInterface::class),
         $c->get(PasswordHasherInterface::class),
+        $c->get(PasswordPolicy::class),
     ));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(

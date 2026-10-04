@@ -11,6 +11,7 @@ use App\Database\ConnectionFactory;
 use App\Entity\Enum\UserRole;
 use App\Repository\MysqlUserRepository;
 use App\Security\NativePasswordHasher;
+use App\Security\PasswordPolicy;
 use App\Service\UserProvisioningService;
 
 $config = require __DIR__ . '/../config/config.php';
@@ -25,7 +26,7 @@ if ($email === null || $displayName === null || $role === null || $password === 
 }
 
 $pdo = (new ConnectionFactory($config['db']))->create();
-$service = new UserProvisioningService(new MysqlUserRepository($pdo), new NativePasswordHasher());
+$service = new UserProvisioningService(new MysqlUserRepository($pdo), new NativePasswordHasher(), new PasswordPolicy());
 
 try {
     $user = $service->create($email, $displayName, $role, $password);

@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Enum\UserRole;
 use App\Repository\MysqlUserRepository;
 use App\Security\NativePasswordHasher;
+use App\Security\PasswordPolicy;
 use App\Service\Exception\UserValidationException;
 use App\Service\UserProvisioningService;
 use App\Tests\RepositoryTestCase;
@@ -16,7 +17,7 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
 {
     private function service(): UserProvisioningService
     {
-        return new UserProvisioningService(new MysqlUserRepository($this->pdo), new NativePasswordHasher());
+        return new UserProvisioningService(new MysqlUserRepository($this->pdo), new NativePasswordHasher(), new PasswordPolicy());
     }
 
     #[Test]
