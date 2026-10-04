@@ -129,6 +129,20 @@ final class NeonWatermarkCssTest extends TestCase
     }
 
     #[Test]
+    public function testReducedMotionKeepsTheWatermarkInsideTheHeaderFrame(): void
+    {
+        // Mouvement réduit : pas d'animation, mais le décalage de départ (dans le
+        // cadre du header) doit s'appliquer : le transform n'est plus supprimé (#145).
+        // Le bloc peut ne plus exister ; s'il existe, il ne touche pas au transform du watermark.
+        if (str_contains($this->css, '@media (prefers-reduced-motion: reduce)')) {
+            $reduced = $this->block($this->css, '@media (prefers-reduced-motion: reduce)');
+            self::assertStringNotContainsString('transform: none', $reduced);
+            self::assertStringNotContainsString('animation', $reduced);
+        }
+        self::assertStringNotContainsString('.rb-page-bg-text {' . "\n" . '    transform: none', $this->css);
+    }
+
+    #[Test]
     public function testThereIsNoPulseAnimationAnywhere(): void
     {
         self::assertStringNotContainsString('@keyframes', $this->css);

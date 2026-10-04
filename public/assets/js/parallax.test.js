@@ -141,14 +141,30 @@ test('initParallax does nothing when the background element is absent from the p
   assert.doesNotThrow(() => initParallax(doc, fakeWindow()));
 });
 
-test('initParallax does nothing when prefers-reduced-motion is set', () => {
+test('initParallax with prefers-reduced-motion still places the watermark inside the header frame, without any parallax', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ top: 32, left: 0, width: 300, height: 132 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollHeight: 2000 });
+  const win = fakeWindow({ reducedMotion: true });
+  const listeners = [];
+  win.addEventListener = (event) => listeners.push(event);
+
+  initParallax(doc, win);
+
+  const start = computeStartOffset(fakeRect({ top: 32, left: 0, width: 300, height: 132 }), bg.getBoundingClientRect());
+  assert.equal(bg.properties['--wm-x'], `${start.x}px`);
+  assert.equal(bg.properties['--wm-y'], `${start.y}px`, 'dans le cadre du header au démarrage');
+  assert.equal(bg.properties['--wm-scroll-y'], '0px', 'pas de parallax de scroll');
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false);
+  assert.ok(!listeners.includes('scroll'), 'aucun écouteur de scroll : pas de mouvement');
+});
+
+test('initParallax with prefers-reduced-motion does nothing without a header to place the watermark in', () => {
   const bg = fakeBgElement();
   const doc = fakeDocumentWithBg(bg);
   const win = fakeWindow({ reducedMotion: true });
 
-  initParallax(doc, win);
-
-  assert.equal(bg.properties['--wm-scroll-y'], undefined);
+  assert.doesNotThrow(() => initParallax(doc, win));
 });
 
 test('initParallax applies the full start offset at scroll 0 when the page has scroll room', () => {

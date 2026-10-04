@@ -120,7 +120,7 @@ export function initParallax(root = document, windowRef = window) {
   const bg = root.querySelector('[data-parallax="bg"]');
   if (!bg) return;
 
-  if (windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const reducedMotion = windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const anchor = root.querySelector('[data-parallax-anchor]');
   const header = root.querySelector('.rb-dashboard-header');
@@ -152,6 +152,20 @@ export function initParallax(root = document, windowRef = window) {
         bgTextRectAtRest,
       )
     : { x: 0, y: 0 };
+
+  // Mouvement réduit (réglage de l'appareil, ex. « Réduire les animations » sur
+  // iPhone) : pas de parallax ni de néon au scroll, mais le logo doit toujours
+  // être dans le cadre du header au démarrage : on applique le décalage de
+  // départ une fois, sans aucun écouteur (sinon il restait au repos CSS, en haut
+  // de l'écran, hors du cadre).
+  if (reducedMotion) {
+    if (header) {
+      bg.style.setProperty('--wm-x', `${start.x}px`);
+      bg.style.setProperty('--wm-y', `${start.y}px`);
+      bg.style.setProperty('--wm-scroll-y', '0px');
+    }
+    return;
+  }
 
   // Mesures en coordonnées du DOCUMENT (indépendantes du scroll), prises une
   // fois puis refaites seulement au redimensionnement ou quand la taille du
