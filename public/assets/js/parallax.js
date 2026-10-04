@@ -71,12 +71,14 @@ const END_SCROLL_RATIO = 0.6;
 /**
  * Progression 0→1 de scroll entre le haut de page et le seuil de fin (une
  * fraction du scroll maximal atteignable, cf. END_SCROLL_RATIO) — clampée,
- * et 1 par défaut si maxScrollY est nul (page sans scroll possible).
+ * et 0 si maxScrollY est nul : une page sans scroll possible garde le
+ * watermark dans le cadre du header (position de départ), au-dessus de la
+ * barre de recherche, au lieu de le projeter sur l'ancre du bas de page.
  */
 export function computeScrollProgress(scrollY, maxScrollY) {
   const threshold = maxScrollY * END_SCROLL_RATIO;
   if (threshold <= 0) {
-    return 1;
+    return 0;
   }
   return Math.min(Math.max(scrollY / threshold, 0), 1);
 }
