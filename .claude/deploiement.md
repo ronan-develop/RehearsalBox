@@ -27,7 +27,7 @@ Déploiement par **releases** en SSH depuis le poste de dev, sans démon ni bina
 - Clé SSH dédiée générée en local, **clé publique** importée et autorisée dans le cPanel, adresse IPv4 du poste autorisée. Fichier `ssh_config` local avec un alias (hors dépôt).
 - SPF/DKIM valides pour le domaine d'envoi (cPanel › Email Deliverability).
 - Certificat Let's Encrypt par AutoSSL (sans wildcard).
-- `.secrets` : `PROD_DB_HOST`, `PROD_DB_PORT`, `PROD_DB_DATABASE`, `PROD_DB_USER`, `PROD_DB_PASSWORD`, `MAILER_DSN` (`sendmail://default`), `MAILER_FROM` (adresse `no-reply@<domaine>`).
+- `.secrets` : `PROD_DB_HOST`, `PROD_DB_PORT`, `PROD_DB_DATABASE`, `PROD_DB_USER`, `PROD_DB_PASSWORD`, `MAILER_DSN` (`sendmail://default`), `MAILER_FROM` (adresse `no-reply@<domaine>`), `APP_URL` (URL publique `https://<domaine>`, utilisée pour les liens envoyés par e-mail).
 
 ## Déployer
 
@@ -45,6 +45,15 @@ RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> <admin|m
 ```
 
 Le mot de passe passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. Les groupes sont créés ensuite depuis l'interface admin. Changer les mots de passe provisoires dès la première connexion.
+
+## Réinitialisation de mot de passe
+
+- Pages publiques `/forgot-password` et `/reset-password?token=…` ; API `POST /api/auth/forgot-password` et `/api/auth/reset-password`.
+- Jeton aléatoire de 256 bits, **stocké haché** (SHA-256) dans `password_resets` (migration 010), valable 1 heure, **à usage unique** (`UPDATE … WHERE used_at IS NULL AND expires_at > :now`). Un nouveau jeton annule les précédents ; 3 demandes par heure et par compte au maximum.
+- Réponse **identique** que le compte existe ou non (pas d'énumération). Le lien du mail est construit depuis `APP_URL` (`app.base_url`), **jamais** depuis l'en-tête `Host`.
+- La page de réinitialisation envoie `Referrer-Policy: no-referrer` et `Cache-Control: no-store` (le jeton est dans l'URL).
+- Premier déploiement de la fonctionnalité : `APP_URL` doit être dans le fichier de secrets et la configuration serveur régénérée (`RB_REGEN_CONFIG=1 ./bin/deploy.sh`) ; la migration 010 est appliquée par le déploiement (sauvegarde préalable automatique).
+- Limite connue : les sessions déjà ouvertes ne sont pas fermées après un changement de mot de passe (sessions PHP natives).
 
 ## Retour arrière
 

@@ -41,6 +41,7 @@ final class MigrateTest extends TestCase
         self::assertContains('group_user', $tables);
         self::assertContains('recurring_slots', $tables);
         self::assertContains('slot_exceptions', $tables);
+        self::assertContains('password_resets', $tables);
     }
 
     #[Test]

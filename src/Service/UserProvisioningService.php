@@ -8,6 +8,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\PasswordHasherInterface;
+use App\Security\PasswordPolicy;
 use App\Service\Exception\UserValidationException;
 
 final class UserProvisioningService
@@ -15,6 +16,7 @@ final class UserProvisioningService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordHasherInterface $passwordHasher,
+        private readonly PasswordPolicy $passwordPolicy,
     ) {
     }
 
@@ -25,8 +27,9 @@ final class UserProvisioningService
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
             $errors['email'] = 'Adresse email invalide.';
         }
-        if (strlen($plainPassword) < 8) {
-            $errors['password'] = 'Le mot de passe doit faire au moins 8 caractères.';
+        $passwordViolation = $this->passwordPolicy->violation($plainPassword);
+        if ($passwordViolation !== null) {
+            $errors['password'] = $passwordViolation;
         }
         if ($displayName === '' || strlen($displayName) > 100) {
             $errors['displayName'] = 'Nom affiché requis (100 caractères maximum).';

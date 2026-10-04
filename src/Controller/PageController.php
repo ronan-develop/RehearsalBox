@@ -41,6 +41,28 @@ final class PageController
         return new Response($this->renderer->render('auth/login', ['csrfToken' => $this->csrfTokenManager->getToken()]));
     }
 
+    public function forgotPassword(): Response
+    {
+        return new Response($this->renderer->render('auth/forgot-password', ['csrfToken' => $this->csrfTokenManager->getToken()]));
+    }
+
+    /**
+     * Le jeton voyage dans l'URL : la page interdit le Referer sortant et toute mise en cache.
+     * Le jeton n'est validé qu'à l'envoi du formulaire (API), jamais ici.
+     */
+    public function resetPassword(Request $request): Response
+    {
+        $token = (string) $request->query('token', '');
+
+        return new Response(
+            $this->renderer->render('auth/reset-password', [
+                'csrfToken' => $this->csrfTokenManager->getToken(),
+                'token' => $token,
+            ]),
+            headers: ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'],
+        );
+    }
+
     public function register(): Response
     {
         return new Response($this->renderer->render('auth/register', ['csrfToken' => $this->csrfTokenManager->getToken()]));

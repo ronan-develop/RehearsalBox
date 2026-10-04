@@ -101,4 +101,19 @@ final class User
             null,
         );
     }
+
+    /** Nouveau mot de passe (déjà haché) : remet aussi à zéro les échecs de connexion et le verrouillage. */
+    public function withPasswordHash(string $passwordHash): self
+    {
+        return new self(
+            $this->id,
+            $this->email,
+            $passwordHash,
+            $this->displayName,
+            $this->role,
+            $this->isActive,
+            0,
+            null,
+        );
+    }
 }

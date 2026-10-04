@@ -15,6 +15,10 @@ $defaults = [
         'dsn' => 'smtp://127.0.0.1:1025',
         'from' => 'no-reply@rehearsalbox.local',
     ],
+    'app' => [
+        // URL publique, utilisée pour les liens envoyés par e-mail (jamais dérivée de la requête).
+        'base_url' => 'http://localhost:8001',
+    ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',
     ],
