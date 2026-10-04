@@ -36,6 +36,13 @@ Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requ�
 - Laisser un `Service` construire du SQL — cette responsabilité reste entièrement dans `Repository/`
 - Interpoler un nom de colonne/table venant de `$_GET`/`$_POST` (passer par une whitelist statique)
 
+## Contrôles d'accès (IDOR)
+
+- **Où** : dans le `Service/` (jamais dans le contrôleur ni le template), à partir de l'utilisateur de la session. Le groupe ou le propriétaire d'une ressource est **toujours déduit de la base** (créneau, demande, document), jamais d'un paramètre ou du corps de la requête.
+- **Quoi** : appartenance (`isMember`) pour lire, rôle gestionnaire (`roleOf`) pour modifier un groupe ou ses documents, rôle admin (`AuthGuard::requireRole`) pour l'administration. Un membre du groupe demandeur ne répond pas à sa propre demande.
+- **Réponse** : un objet interdit et un objet inexistant renvoient la **même réponse** (403, même message) pour les ressources de groupe, document et demande ; 401 si anonyme. Ne jamais distinguer « n'existe pas » de « pas à vous » (énumération des identifiants). Les routes admin gardent leurs codes propres.
+- **Test** : toute nouvelle route à identifiant s'ajoute à `tests/Security/IdorMatrixTest.php` (acteurs refusés, identifiant inexistant, cas limites).
+
 ## Point clé — concurrence sur les créneaux libérés
 
 `MysqlSlotExceptionRepository::claim()` porte un `UPDATE ... WHERE status='liberee'` atomique, jamais un `SELECT` puis `UPDATE` séparés. Un `rowCount() === 0` signifie "déjà pris par quelqu'un d'autre" → 409, pas d'exception. C'est le test le plus important du projet.

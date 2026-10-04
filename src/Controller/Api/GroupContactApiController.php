@@ -29,7 +29,7 @@ final class GroupContactApiController
         try {
             $this->groupContactService->send((int) $id, $user->id(), $user->email(), $message);
         } catch (\InvalidArgumentException) {
-            return new JsonResponse(['error' => 'Groupe introuvable.'], 404);
+            // Même réponse que pour un groupe existant : ne pas révéler quels groupes existent.
         }
 
         return new JsonResponse(['status' => 'ok']);

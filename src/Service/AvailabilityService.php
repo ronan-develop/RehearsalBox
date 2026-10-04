@@ -52,7 +52,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
     {
         $exception = $this->slotExceptionRepository->findById($exceptionId);
         if ($exception === null) {
-            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+            throw $this->accessDenied();
         }
 
         $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
@@ -63,7 +63,13 @@ final class AvailabilityService implements AvailabilityServiceInterface
         // d'un paramètre client) qui répond à la demande du groupe
         // demandeur — pas l'inverse.
         if (!$this->groupRepository->isMember($slot->groupId(), $userId)) {
-            throw new AccessDeniedException("Vous n'appartenez pas au groupe titulaire de ce créneau.");
+            throw $this->accessDenied();
+        }
+
+        // Un membre du groupe demandeur ne répond pas à sa propre demande, même
+        // s'il appartient aussi au groupe titulaire : c'est un échange entre deux groupes.
+        if ($this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+            throw $this->accessDenied();
         }
 
         if (!$this->slotExceptionRepository->respond($exceptionId, $accepted, $userId)) {
@@ -80,13 +86,13 @@ final class AvailabilityService implements AvailabilityServiceInterface
     {
         $exception = $this->slotExceptionRepository->findById($exceptionId);
         if ($exception === null) {
-            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+            throw $this->accessDenied();
         }
 
         // IDOR : seul le groupe DEMANDEUR (A), déduit de l'exception en base
         // et jamais d'un paramètre client, peut modifier sa propre demande.
         if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
-            throw new AccessDeniedException("Vous n'appartenez pas au groupe demandeur de cette demande.");
+            throw $this->accessDenied();
         }
 
         if (!$this->slotExceptionRepository->update($exceptionId, $occurrenceDate, $reason)) {
@@ -103,15 +109,24 @@ final class AvailabilityService implements AvailabilityServiceInterface
     {
         $exception = $this->slotExceptionRepository->findById($exceptionId);
         if ($exception === null) {
-            throw new RequestAlreadyRespondedException('Cette demande n’existe plus.');
+            throw $this->accessDenied();
         }
 
         if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
-            throw new AccessDeniedException("Vous n'appartenez pas au groupe demandeur de cette demande.");
+            throw $this->accessDenied();
         }
 
         if (!$this->slotExceptionRepository->delete($exceptionId)) {
             throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
         }
+    }
+
+    /**
+     * Réponse unique pour une demande interdite ET pour une demande inexistante :
+     * l'existence d'un identifiant ne doit pas se déduire de la réponse (IDOR, #118).
+     */
+    private function accessDenied(): AccessDeniedException
+    {
+        return new AccessDeniedException('Accès refusé.');
     }
 }
