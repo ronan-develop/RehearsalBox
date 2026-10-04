@@ -265,6 +265,14 @@ export function initParallax(root = document, windowRef = window) {
     }
   }
 
+  // Lissage : activé seulement une fois le logo en place (deux images après le
+  // premier rendu), sinon il glisserait depuis le haut de l'écran au chargement.
+  // Sans lui, sur une page peu scrollable (mobile), le logo saute du header à sa
+  // position finale en quelques pixels de scroll.
+  windowRef.requestAnimationFrame(() => {
+    windowRef.requestAnimationFrame(() => bg.classList.add('rb-page-bg-text--smooth'));
+  });
+
   windowRef.addEventListener('resize', remeasure, { passive: true });
   if (typeof windowRef.ResizeObserver === 'function') {
     new windowRef.ResizeObserver(remeasure).observe(root.documentElement ?? root.body);
