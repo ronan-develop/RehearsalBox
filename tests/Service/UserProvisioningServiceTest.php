@@ -161,4 +161,22 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
 
         $this->service()->createWithoutPassword('a@example.test', 'Autre', UserRole::Musicien);
     }
+
+    #[Test]
+    public function testCreateAppliesTheSameDisplayNameRulesAsTheProfilePage(): void
+    {
+        // Une seule politique (DisplayNamePolicy) : un nom qu'un utilisateur ne pourrait pas se donner
+        // lui-même n'est pas non plus accepté à la création d'un compte.
+        foreach (["Ali\nce", "Ali\x00ce", "Ali\u{202E}ce", str_repeat('é', 101)] as $name) {
+            try {
+                $this->service()->createWithoutPassword('x@example.test', $name, UserRole::Musicien);
+                self::fail('UserValidationException attendue : ' . json_encode($name));
+            } catch (UserValidationException $e) {
+                self::assertArrayHasKey('displayName', $e->fields());
+            }
+        }
+
+        $user = $this->service()->createWithoutPassword('ok@example.test', '  ' . str_repeat('é', 100) . '  ', UserRole::Musicien);
+        self::assertSame(str_repeat('é', 100), $user->displayName(), '100 caractères accentués acceptés, espaces rognés');
+    }
 }
