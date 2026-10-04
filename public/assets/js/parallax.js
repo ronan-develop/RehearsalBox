@@ -21,8 +21,9 @@
  * seuil END_SCROLL_RATIO du scroll réel de la page (scrollHeight/innerHeight,
  * pas un seuil arbitraire en px).
  *
- * La couleur (rouge → jaune néon) bascule quand le logo passe au niveau de la
- * barre de recherche (isLogoAtSearchBar), dans les deux sens.
+ * La couleur (rouge → jaune néon) bascule quand le logo a dépassé la barre de
+ * recherche, c'est-à-dire qu'il est passé en dessous (isLogoBelowSearchBar),
+ * dans les deux sens.
  *
  * Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
  * DOM réel (fonctions pures ci-dessous) pour rester testables en
@@ -87,13 +88,14 @@ export function computeScrollProgress(scrollY, maxScrollY) {
 }
 
 /**
- * Le logo est "au niveau" de la barre de recherche quand le milieu vertical de
- * son texte atteint le haut de la barre (positions à l'écran, même repère).
- * Critère purement géométrique : indépendant de la taille d'écran et de la
- * quantité de contenu, et réversible (il suit la position réelle à chaque frame).
+ * Le logo a "dépassé" la barre de recherche quand le haut de son texte est au
+ * niveau du bas de la barre, ou en dessous (positions à l'écran, même repère) :
+ * il est alors entièrement sous la barre. Critère purement géométrique,
+ * indépendant de la taille d'écran et de la quantité de contenu, et réversible
+ * (il suit la position réelle à chaque frame).
  */
-export function isLogoAtSearchBar(logo, searchRect) {
-  return logo.top + logo.height / 2 >= searchRect.top;
+export function isLogoBelowSearchBar(logo, searchRect) {
+  return logo.top >= searchRect.bottom;
 }
 
 /** Interpolation linéaire simple entre deux valeurs. */
@@ -174,12 +176,12 @@ export function initParallax(root = document, windowRef = window) {
     // le déplacement voulu, et le watermark ne doit plus bouger une fois
     // stabilisé (progress = 1).
     bg.style.setProperty('--wm-scroll-y', `${scrollOffsetY}px`);
-    // Couleur : néon quand le logo passe au niveau de la barre de recherche
+    // Couleur : néon quand le logo est passé sous la barre de recherche
     // (position à l'écran calculée depuis le repos + décalages de cette frame,
     // sans relire un rect déjà transformé). Sans barre de recherche : ancien
     // critère, la progression a atteint 1.
     const neon = search
-      ? isLogoAtSearchBar(
+      ? isLogoBelowSearchBar(
           { top: bgTextRectAtRest.top + wmY + scrollOffsetY, height: bgTextRectAtRest.height },
           search.getBoundingClientRect(),
         )

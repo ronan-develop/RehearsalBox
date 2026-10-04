@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoAtSearchBar } from './parallax.js';
+import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoBelowSearchBar } from './parallax.js';
 
 test('computeStartOffset puts the watermark in the first third of the header, relative to its centered resting position', () => {
   const headerRect = { top: 0, left: 0, height: 132, width: 300 };
@@ -347,23 +347,24 @@ test('initParallax adds the neon class once the scroll ratio threshold is reache
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
 });
 
-// --- Bascule rouge -> jaune néon au niveau de la barre de recherche (#121) ---
+// --- Bascule rouge -> jaune néon une fois sous la barre de recherche (#121) ---
 
-test('isLogoAtSearchBar is false while the logo middle is above the top of the search bar', () => {
-  assert.equal(isLogoAtSearchBar({ top: 100, height: 92 }, { top: 300 }), false);
+test('isLogoBelowSearchBar is false while the logo still overlaps or sits above the search bar', () => {
+  // barre : 300 -> 348. Logo au-dessus, puis à cheval sur la barre.
+  assert.equal(isLogoBelowSearchBar({ top: 100, height: 92 }, { top: 300, bottom: 348 }), false);
+  assert.equal(isLogoBelowSearchBar({ top: 320, height: 92 }, { top: 300, bottom: 348 }), false);
 });
 
-test('isLogoAtSearchBar is true once the logo middle reaches the top of the search bar', () => {
-  // milieu du logo : 254 + 46 = 300 = haut de la barre.
-  assert.equal(isLogoAtSearchBar({ top: 254, height: 92 }, { top: 300 }), true);
-  assert.equal(isLogoAtSearchBar({ top: 400, height: 92 }, { top: 300 }), true);
+test('isLogoBelowSearchBar is true once the top of the logo is at or below the bottom of the search bar', () => {
+  assert.equal(isLogoBelowSearchBar({ top: 348, height: 92 }, { top: 300, bottom: 348 }), true);
+  assert.equal(isLogoBelowSearchBar({ top: 500, height: 92 }, { top: 300, bottom: 348 }), true);
 });
 
 function neonScenario({ searchTop }) {
   const bg = fakeBgElement();
   const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
   const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
-  const search = { getBoundingClientRect: () => fakeRect({ top: searchTop() }) };
+  const search = { getBoundingClientRect: () => fakeRect({ top: searchTop() - 48, bottom: searchTop() }) };
   const doc = fakeDocumentWithBg(bg, { header, anchor, search, scrollHeight: 2000 });
   const win = fakeWindow({ innerHeight: 800 });
   let scrollCallback;
@@ -379,21 +380,22 @@ function neonScenario({ searchTop }) {
   return { bg, scrollTo };
 }
 
-test('initParallax switches to neon when the logo reaches the search bar, not at the progress threshold', () => {
-  // scrollY 360 : progression 0.5 (seuil 720) -> logo à top 477, milieu 523.
+test('initParallax switches to neon once the logo has passed below the search bar, not at the progress threshold', () => {
+  // scrollY 360 : progression 0.5 (seuil 720) -> haut du logo à 477.
+  // searchTop() est ici le BAS de la barre de recherche.
   let searchTop = 600;
   const { bg, scrollTo } = neonScenario({ searchTop: () => searchTop });
 
   scrollTo(360);
-  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false, 'logo encore au-dessus de la barre');
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false, 'logo encore au-dessus ou à cheval sur la barre');
 
-  searchTop = 500;
+  searchTop = 470;
   scrollTo(360);
-  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true, 'logo au niveau de la barre, avant même le seuil de progression');
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true, 'logo passé sous la barre, avant même le seuil de progression');
 });
 
 test('initParallax switches back to red when scrolling up above the search bar again', () => {
-  let searchTop = 500;
+  let searchTop = 470;
   const { bg, scrollTo } = neonScenario({ searchTop: () => searchTop });
 
   scrollTo(360);
