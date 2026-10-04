@@ -66,6 +66,7 @@
   line-height: 1;
   white-space: nowrap;
   font-size: 56px;
+  position: relative;
   will-change: transform;
   transition: text-shadow 0.4s ease;
   /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
@@ -95,6 +96,26 @@
   text-shadow:
     0 0 4px var(--rb-stone-flame),
     0 0 10px var(--rb-accent);
+}
+
+/* Brillance progressive : plus le logo descend (parallax.js, --wm-glow de 0 à
+   1), plus le jaune est brillant. Couche de lueur forte superposée au texte
+   (texte transparent : seule l'ombre est dessinée), dont SEULE l'opacité varie
+   avec le scroll : opération du compositeur, pas de text-shadow redessiné à
+   chaque image. */
+.rb-page-bg-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--rb-stone-flame);
+  text-shadow:
+    0 0 8px var(--rb-stone-flame),
+    0 0 18px var(--rb-stone-flame),
+    0 0 30px var(--rb-accent);
+  opacity: var(--wm-glow, 0);
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoBelowSearchBar } from './parallax.js';
+import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoBelowSearchBar, computeGlowLevel } from './parallax.js';
 
 test('computeStartOffset puts the watermark in the first third of the header, relative to its centered resting position', () => {
   const headerRect = { top: 0, left: 0, height: 132, width: 300 };
@@ -417,4 +417,53 @@ test('initParallax keeps the former progress-based switch when the search bar is
   initParallax(doc, win);
 
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
+});
+
+// --- Plus le logo descend, plus le jaune est brillant (--wm-glow, 0 -> 1) ---
+
+test('computeGlowLevel is 0 at the bottom of the search bar and 1 at the final position', () => {
+  assert.equal(computeGlowLevel(100, 100, 808), 0);
+  assert.equal(computeGlowLevel(808, 100, 808), 1);
+});
+
+test('computeGlowLevel grows linearly with the logo position and is clamped to [0, 1]', () => {
+  assert.equal(computeGlowLevel(454, 100, 808), 0.5);
+  assert.equal(computeGlowLevel(20, 100, 808), 0);
+  assert.equal(computeGlowLevel(1200, 100, 808), 1);
+});
+
+test('computeGlowLevel is 1 when the final position is not below the search bar (nothing left to descend)', () => {
+  assert.equal(computeGlowLevel(300, 100, 100), 1);
+  assert.equal(computeGlowLevel(300, 100, 50), 1);
+});
+
+test('initParallax: --wm-glow is 0 outside the neon zone, then grows as the logo descends, up to 1 at the end', () => {
+  const { bg, scrollTo } = neonScenario({ searchTop: () => 100 });
+  const glow = () => Number(bg.properties['--wm-glow']);
+
+  scrollTo(0);
+  assert.equal(glow(), 0, 'logo dans le header : pas de brillance');
+
+  scrollTo(180);
+  const early = glow();
+  scrollTo(360);
+  const middle = glow();
+  scrollTo(720);
+  const end = glow();
+
+  assert.ok(early > 0 && early < middle && middle < end, `brillance croissante : ${early} < ${middle} < ${end}`);
+  assert.equal(end, 1);
+});
+
+test('initParallax: --wm-glow decreases again when scrolling back up', () => {
+  const { bg, scrollTo } = neonScenario({ searchTop: () => 100 });
+
+  scrollTo(720);
+  assert.equal(Number(bg.properties['--wm-glow']), 1);
+
+  scrollTo(360);
+  assert.ok(Number(bg.properties['--wm-glow']) < 1);
+
+  scrollTo(0);
+  assert.equal(Number(bg.properties['--wm-glow']), 0);
 });

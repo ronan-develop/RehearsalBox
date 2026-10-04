@@ -94,6 +94,23 @@ final class NeonWatermarkCssTest extends TestCase
     }
 
     #[Test]
+    public function testGlowLayerIsDrivenByOpacityNotByRepaintingTheShadow(): void
+    {
+        $neon = $this->block($this->baseRules(), '.rb-page-bg-text--neon');
+        $glow = $this->block($this->baseRules(), '.rb-page-bg-text::after');
+
+        // Couche de lueur forte, dont seule l'opacité varie avec --wm-glow (compositeur).
+        self::assertStringContainsString('opacity: var(--wm-glow', $glow);
+        self::assertStringContainsString('text-shadow', $glow);
+        self::assertStringNotContainsString('animation', $glow);
+        self::assertStringNotContainsString('transition: text-shadow', $glow);
+
+        preg_match_all('/0 0 (\d+)px/', $glow, $glowBlurs);
+        preg_match_all('/0 0 (\d+)px/', $neon, $neonBlurs);
+        self::assertGreaterThan(max(array_map('intval', $neonBlurs[1])), max(array_map('intval', $glowBlurs[1])), 'La couche de lueur est plus brillante que le néon discret.');
+    }
+
+    #[Test]
     public function testThereIsNoPulseAnimationAnywhere(): void
     {
         self::assertStringNotContainsString('@keyframes', $this->css);
