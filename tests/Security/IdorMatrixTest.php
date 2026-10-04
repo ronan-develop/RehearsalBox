@@ -145,6 +145,11 @@ final class IdorMatrixTest extends TestCase
             ['DELETE', '/api/admin/groups/{groupA}', [], ['anon', 'stranger', 'memberA', 'managerA']],
             ['POST', '/api/admin/groups/{groupA}/members', ['email' => 'stranger@rehearsalbox.test'], ['anon', 'stranger', 'memberA', 'managerA']],
             ['DELETE', '/api/admin/groups/{groupA}/members/{userMemberA}', [], ['anon', 'stranger', 'memberA', 'managerA']],
+            // Admin : utilisateurs (#138) — comptes, désactivation, déblocage
+            ['GET', '/api/admin/users', [], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['POST', '/api/admin/users', ['email' => 'intrus@rehearsalbox.test', 'displayName' => 'Intrus', 'role' => 'admin'], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['PATCH', '/api/admin/users/{userMemberA}', ['active' => false], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['POST', '/api/admin/users/{userMemberA}/unlock', [], ['anon', 'stranger', 'memberA', 'managerA']],
             // Espace groupe
             ['GET', '/api/groups/{groupA}/space', [], ['anon', 'stranger', 'outsiderB']],
             ['PATCH', '/api/groups/{groupA}/space', ['lineup' => [], 'upcomingShows' => []], ['anon', 'stranger', 'outsiderB', 'memberA']],
@@ -187,6 +192,8 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/availability/{id}/respond', ['accepted' => true], 'excBA'],
             ['PATCH', '/api/availability/{id}', ['occurrenceDate' => $future], 'excBA'],
             ['DELETE', '/api/availability/{id}', [], 'excBA'],
+            ['PATCH', '/api/admin/users/{id}', ['active' => false], 'userMemberA'],
+            ['POST', '/api/admin/users/{id}/unlock', [], 'userMemberA'],
             ['GET', '/api/groups/{id}/space', [], 'groupA'],
             ['PATCH', '/api/groups/{id}/space', ['lineup' => [], 'upcomingShows' => []], 'groupA'],
             ['GET', '/api/groups/{id}/documents', [], 'groupA'],

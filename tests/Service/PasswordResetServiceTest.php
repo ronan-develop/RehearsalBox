@@ -284,4 +284,25 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM password_resets WHERE used_at IS NULL')->fetchColumn());
         self::assertTrue((new NativePasswordHasher())->verify('ancien-mdp', $this->users->findById($user->id())->passwordHash()));
     }
+
+    #[Test]
+    public function testAnAccountCreatedWithoutPasswordChoosesItsOwnThroughForgotPassword(): void
+    {
+        // Parcours voulu pour une première connexion (#138) : l'admin crée le compte sans
+        // mot de passe, l'utilisateur passe par « Mot de passe oublié » et choisit le sien.
+        $hasher = new NativePasswordHasher();
+        $user = (new \App\Service\UserProvisioningService($this->users, $hasher, new PasswordPolicy()))
+            ->createWithoutPassword('younasse@rehearsalbox.test', 'Younasse', UserRole::Musicien);
+        $mailer = $this->recordingMailer();
+        $service = $this->service($mailer);
+
+        $service->requestReset('younasse@rehearsalbox.test', $this->now);
+        self::assertCount(1, $mailer->sent, 'un mail de réinitialisation est envoyé au compte créé sans mot de passe');
+
+        $chosen = 'Pw-' . bin2hex(random_bytes(6));
+        $service->resetPassword($this->tokenFrom($mailer->sent[0]), $chosen, $this->now);
+
+        $found = $this->users->findById($user->id());
+        self::assertTrue($hasher->verify($chosen, $found->passwordHash()));
+    }
 }

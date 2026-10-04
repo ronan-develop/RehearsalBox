@@ -281,4 +281,30 @@ final class AuthServiceTest extends RepositoryTestCase
 
         self::assertNull($service->currentUser());
     }
+
+    #[Test]
+
+    public function testAttemptRefusesAnInactiveAccountEvenWithTheRightPassword(): void
+    {
+        [$service, $userRepository, $session] = $this->makeService();
+        $user = $this->createUser($userRepository, 'alice@rehearsalbox.test', 'password123');
+        $userRepository->save($user->withActive(false));
+
+        self::assertNull($service->attempt('alice@rehearsalbox.test', 'password123'));
+        self::assertNull($session->get('user_id'), 'aucune session ouverte pour un compte désactivé');
+    }
+
+    #[Test]
+
+    public function testCurrentUserIsNullOnceTheAccountIsDeactivated(): void
+    {
+        [$service, $userRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'alice@rehearsalbox.test', 'password123');
+        $service->attempt('alice@rehearsalbox.test', 'password123');
+        self::assertNotNull($service->currentUser());
+
+        $userRepository->save($userRepository->findById($user->id())->withActive(false));
+
+        self::assertNull($service->currentUser(), 'une session ouverte avant la désactivation ne doit plus être valide');
+    }
 }

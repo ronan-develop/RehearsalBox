@@ -111,4 +111,54 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
             self::assertSame(['email' => 'Un compte existe déjà avec cet email.'], $e->fields());
         }
     }
+
+    #[Test]
+    public function testCreateWithoutPasswordPersistsAnActiveAccountNobodyCanLogInto(): void
+    {
+        $user = $this->service()->createWithoutPassword('younasse@example.test', 'Younasse', UserRole::Musicien);
+
+        $found = (new MysqlUserRepository($this->pdo))->findByEmail('younasse@example.test');
+        self::assertNotNull($found);
+        self::assertSame($user->id(), $found->id());
+        self::assertTrue($found->isActive());
+        self::assertSame(UserRole::Musicien, $found->role());
+        self::assertNotSame('', $found->passwordHash());
+        // Le secret est aléatoire et inconnu : aucun mot de passe plausible ne le vérifie.
+        $hasher = new NativePasswordHasher();
+        foreach (['', 'younasse@example.test', 'Younasse', bin2hex(random_bytes(8))] as $guess) {
+            self::assertFalse($hasher->verify($guess, $found->passwordHash()));
+        }
+    }
+
+    #[Test]
+    public function testCreateWithoutPasswordGivesEveryAccountADifferentSecret(): void
+    {
+        $first = $this->service()->createWithoutPassword('a@example.test', 'A', UserRole::Musicien);
+        $second = $this->service()->createWithoutPassword('b@example.test', 'B', UserRole::Musicien);
+
+        self::assertNotSame($first->passwordHash(), $second->passwordHash());
+    }
+
+    #[Test]
+    public function testCreateWithoutPasswordValidatesEmailAndNameButNotAPassword(): void
+    {
+        try {
+            $this->service()->createWithoutPassword('pas-un-email', '', UserRole::Musicien);
+            self::fail('UserValidationException attendue.');
+        } catch (UserValidationException $e) {
+            self::assertArrayHasKey('email', $e->fields());
+            self::assertArrayHasKey('displayName', $e->fields());
+            self::assertArrayNotHasKey('password', $e->fields());
+        }
+    }
+
+    #[Test]
+    public function testCreateWithoutPasswordRejectsAnExistingEmail(): void
+    {
+        $this->service()->createWithoutPassword('a@example.test', 'A', UserRole::Musicien);
+
+        $this->expectException(UserValidationException::class);
+
+        $this->service()->createWithoutPassword('a@example.test', 'Autre', UserRole::Musicien);
+    }
 }

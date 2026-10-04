@@ -12,6 +12,7 @@
     <div class="rb-admin-page">
         <h1>Groupes</h1>
         <p class="rb-admin-subtitle">Création et gestion des membres.</p>
+        <p class="rb-admin-crosslink"><a href="/admin/users">Gérer les utilisateurs →</a></p>
 
         <form data-async data-endpoint="/api/admin/groups" data-method="POST" class="rb-admin-form rb-card">
             <div class="rb-field">

@@ -38,15 +38,18 @@ export RB_SSH_CONFIG=<chemin/ssh_config> RB_DOCROOT_LINK=<dossier-domaine>/publi
 
 Étapes : contrôles locaux → envoi de la release → `composer install --no-dev` avec le PHP CLI **explicite** + vérification `Nothing to install` → génération de `config.local.php` si absent (`RB_REGEN_CONFIG=1` pour forcer) → dump si la base contient des tables → `bin/migrate.php` → rendu à blanc de `GET /login` en CLI → bascule de `current` → purge d'OPcache → contrôle de la release servie. Si une étape échoue, `current` n'est pas modifié. **Jamais** `database/seed.php` en production.
 
-## Comptes initiaux (sans fixtures)
+## Comptes (sans fixtures)
+
+**Page admin « Utilisateurs »** (#138) : onglet **Groupes**, puis le lien « Gérer les utilisateurs → » en haut de la page (la barre du bas reste à 5 entrées). On y crée un compte (e-mail, nom, rôle, groupe facultatif), on désactive/réactive un compte et on débloque un compte verrouillé. **Aucun mot de passe n'est choisi ni affiché** : le compte reçoit un secret aléatoire inutilisable, et la personne utilise « Mot de passe oublié » sur la page de connexion pour définir le sien à sa première connexion. On ne peut ni se désactiver soi-même ni désactiver le dernier admin actif ; un compte désactivé ne peut plus se connecter et ses sessions sont fermées.
+
+En ligne de commande (premier admin, ou sans accès à la page) :
 
 ```bash
-RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> <admin|musicien>
+php bin/create-user.php <email> <nom> <admin|musicien>                       # sans mot de passe connu (cas normal)
+RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> admin  # avec un mot de passe provisoire
 ```
 
-Le mot de passe passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. Les groupes sont créés ensuite depuis l'interface admin. Changer les mots de passe provisoires dès la première connexion.
-
-**Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Tout compte est créé par un admin ; en attendant la page admin des utilisateurs (#138), c'est `bin/create-user.php` sur le serveur (les mots de passe provisoires sont ensuite changés par l'utilisateur, ou remplacés via « Mot de passe oublié »).
+Le mot de passe, s'il y en a un, passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. **Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Les groupes sont créés depuis l'écran Groupes.
 
 ## Réinitialisation de mot de passe
 

@@ -146,6 +146,25 @@ final class User
         );
     }
 
+    /**
+     * Active ou désactive le compte. La désactivation ferme aussi toutes les
+     * sessions ouvertes (version incrémentée) ; la réactivation ne change rien d'autre.
+     */
+    public function withActive(bool $isActive): self
+    {
+        return new self(
+            $this->id,
+            $this->email,
+            $this->passwordHash,
+            $this->displayName,
+            $this->role,
+            $isActive,
+            $this->failedLoginAttempts,
+            $this->lockedUntil,
+            $isActive ? $this->sessionVersion : $this->sessionVersion + 1,
+        );
+    }
+
     public function withLockedUntil(\DateTimeImmutable $lockedUntil): self
     {
         return new self(

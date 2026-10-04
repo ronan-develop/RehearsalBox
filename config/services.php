@@ -6,7 +6,9 @@ use App\Container\Container;
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminUserPageController;
 use App\Controller\Api\GroupApiController;
+use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
@@ -40,6 +42,8 @@ use App\Service\AvailabilityService;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
+use App\Service\Contract\UserAdminServiceInterface;
+use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
 use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
@@ -184,6 +188,25 @@ return static function (array $config): Container {
 
     $container->set(SlotApiController::class, fn ($c) => new SlotApiController(
         $c->get(SlotServiceInterface::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(UserAdminServiceInterface::class, fn ($c) => new UserAdminService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(UserProvisioningService::class),
+    ));
+
+    $container->set(AdminUserPageController::class, fn ($c) => new AdminUserPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(UserAdminServiceInterface::class),
+        $c->get(GroupServiceInterface::class),
+    ));
+
+    $container->set(UserAdminApiController::class, fn ($c) => new UserAdminApiController(
+        $c->get(UserAdminServiceInterface::class),
         $c->get(AuthGuard::class),
     ));
 
