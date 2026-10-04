@@ -9,6 +9,16 @@ export function revealConfirmation(form) {
   form.parentElement?.querySelector('[data-confirmation]')?.removeAttribute('hidden');
 }
 
+/** Après une modification du nom : le champ reprend le nom normalisé par le serveur ; retourne le message de confirmation. */
+export function applyProfileResult(form, result) {
+  const input = form.querySelector('[name="displayName"]');
+  if (input && typeof result?.displayName === 'string') {
+    input.value = result.displayName;
+  }
+
+  return 'Nom mis à jour.';
+}
+
 /** Vrai quand la page de connexion arrive après une réinitialisation réussie (?reset=1). */
 export function isPasswordResetAnnouncement(search) {
   return new URLSearchParams(search).get('reset') === '1';
@@ -23,6 +33,11 @@ export function initAuth() {
 
   document.querySelectorAll('form[data-async][data-endpoint*="/auth/forgot-password"]').forEach((form) => {
     form.addEventListener('async-success', () => revealConfirmation(form));
+    form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
+  });
+
+  document.querySelectorAll('form[data-async][data-endpoint*="/account/profile"]').forEach((form) => {
+    form.addEventListener('async-success', (event) => showToast(applyProfileResult(form, event.detail), 'success'));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 

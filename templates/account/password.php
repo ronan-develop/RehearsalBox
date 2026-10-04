@@ -4,14 +4,28 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= e($csrfToken ?? '') ?>">
-    <title>Mon mot de passe — RehearsalBox</title>
+    <title>Mon compte — RehearsalBox</title>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/pages/auth.css">
 </head>
 <body>
     <div class="rb-auth-page rb-account-page">
+        <div class="rb-account-stack">
         <div class="rb-auth-card rb-card">
-            <h1 class="rb-auth-title">Mon mot de passe</h1>
+            <h1 class="rb-auth-title">Mon compte</h1>
+            <h2 class="rb-account-section-title">Mes informations</h2>
+            <p class="rb-auth-intro">Votre adresse e-mail est votre identifiant de connexion : <strong><?= e($email) ?></strong>.</p>
+            <form data-async data-endpoint="/api/account/profile" data-method="PATCH">
+                <div class="rb-field">
+                    <label for="displayName">Nom affiché</label>
+                    <input type="text" id="displayName" name="displayName" class="rb-input" value="<?= e($displayName) ?>" required maxlength="100" autocomplete="name">
+                    <span class="rb-field-error" data-field-error="displayName"></span>
+                </div>
+                <button type="submit" class="rb-btn-primary">Enregistrer mon nom</button>
+            </form>
+        </div>
+        <div class="rb-auth-card rb-card">
+            <h2 class="rb-account-section-title">Mot de passe</h2>
             <p class="rb-auth-intro">Pour changer de mot de passe, saisissez l'actuel puis le nouveau (8 caractères minimum). Vos autres appareils seront déconnectés.</p>
             <form data-async data-endpoint="/api/auth/change-password" data-method="POST">
                 <div class="rb-field">
@@ -31,6 +45,7 @@
                 </div>
                 <button type="submit" class="rb-btn-primary">Changer le mot de passe</button>
             </form>
+        </div>
         </div>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
