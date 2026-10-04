@@ -37,6 +37,10 @@ final class AuthGuardTest extends TestCase
                 return $this->user;
             }
 
+            public function refreshSession(User $user): void
+            {
+            }
+
             public function logout(): void
             {
             }

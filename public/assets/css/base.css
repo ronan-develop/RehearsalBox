@@ -385,6 +385,7 @@ button:active::after, .rb-btn:active::after {
 }
 
 .rb-logout-only {
+  gap: var(--rb-space-3);
   position: fixed;
   bottom: 0;
   left: 0;
@@ -451,6 +452,15 @@ button:active::after, .rb-btn:active::after {
 .rb-btn-logout-centered:active {
   background: var(--rb-accent);
   color: #fff;
+}
+
+/* Variante lien (« Compte ») : même gabarit que le bouton de déconnexion, teinte discrète. */
+.rb-btn-logout-centered--secondary {
+  display: inline-flex;
+  align-items: center;
+  border-color: var(--rb-border);
+  color: var(--rb-text-2);
+  text-decoration: none;
 }
 
 .rb-toast-container {

@@ -218,4 +218,67 @@ final class AuthServiceTest extends RepositoryTestCase
 
         self::assertSame($group->id(), $session->get('active_group_id'));
     }
+
+    #[Test]
+    public function testCurrentUserRejectsASessionWhoseVersionIsStale(): void
+    {
+        [$service, $userRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'fred@rehearsalbox.test', 'password123');
+        $service->attempt('fred@rehearsalbox.test', 'password123');
+
+        $userRepository->save($user->withSessionsRevoked());
+
+        self::assertNull($service->currentUser());
+    }
+
+    #[Test]
+    public function testAnotherDeviceSessionIsRejectedAfterThePasswordChanged(): void
+    {
+        [$service, $userRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'gina@rehearsalbox.test', 'password123');
+        $otherDeviceSession = new InMemorySession();
+        $otherDevice = new AuthService($userRepository, new NativePasswordHasher(), $otherDeviceSession, new MysqlGroupRepository($this->pdo));
+        $service->attempt('gina@rehearsalbox.test', 'password123');
+        $otherDevice->attempt('gina@rehearsalbox.test', 'password123');
+
+        $updated = $userRepository->save($userRepository->findById($user->id())->withPasswordHash((new NativePasswordHasher())->hash('nouveau-mdp-1')));
+        $service->refreshSession($updated);
+
+        self::assertNotNull($service->currentUser());
+        self::assertNull($otherDevice->currentUser());
+    }
+
+    #[Test]
+    public function testRefreshSessionRegeneratesTheSessionId(): void
+    {
+        [$service, $userRepository, $session] = $this->makeService();
+        $user = $this->createUser($userRepository, 'hugo@rehearsalbox.test', 'password123');
+        $service->attempt('hugo@rehearsalbox.test', 'password123');
+        $session->regenerated = false;
+
+        $service->refreshSession($user);
+
+        self::assertTrue($session->regenerated);
+    }
+
+    #[Test]
+    public function testASessionCreatedBeforeVersioningStaysValidWhileTheVersionIsZero(): void
+    {
+        [$service, $userRepository, $session] = $this->makeService();
+        $user = $this->createUser($userRepository, 'ines@rehearsalbox.test', 'password123');
+        $session->set('user_id', $user->id());
+
+        self::assertNotNull($service->currentUser());
+    }
+
+    #[Test]
+    public function testAnUnversionedSessionIsRejectedOnceTheVersionMoved(): void
+    {
+        [$service, $userRepository, $session] = $this->makeService();
+        $user = $this->createUser($userRepository, 'jade@rehearsalbox.test', 'password123');
+        $userRepository->save($user->withSessionsRevoked());
+        $session->set('user_id', $user->id());
+
+        self::assertNull($service->currentUser());
+    }
 }

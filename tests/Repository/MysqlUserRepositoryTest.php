@@ -85,4 +85,16 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
 
         return $repository->save($user);
     }
+
+    #[Test]
+    public function testSessionVersionDefaultsToZeroAndIsPersistedOnUpdate(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $user = $this->insertUser($repository, 'carole@rehearsalbox.test', 'Carole');
+        self::assertSame(0, $user->sessionVersion());
+
+        $repository->save($user->withSessionsRevoked());
+
+        self::assertSame(1, $repository->findById($user->id())->sessionVersion());
+    }
 }

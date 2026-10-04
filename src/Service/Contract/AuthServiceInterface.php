@@ -14,6 +14,9 @@ interface AuthServiceInterface
 
     public function currentUser(): ?User;
 
+    /** Garde l'appareil courant connecté après un changement de version de session : nouvel identifiant de session, version resynchronisée. */
+    public function refreshSession(User $user): void;
+
     public function logout(): void;
 
     /** @return list<Group> groupes du dernier utilisateur connecté, vide si un seul groupe (ou aucun) — pas de sélection nécessaire */

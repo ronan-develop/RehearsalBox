@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
@@ -19,6 +20,8 @@ return [
         ['GET', '/register', [PageController::class, 'register']],
         ['GET', '/forgot-password', [PageController::class, 'forgotPassword']],
         ['GET', '/reset-password', [PageController::class, 'resetPassword']],
+        ['GET', '/account/password', [PageController::class, 'accountPassword']],
+        ['GET', '/account/secure', [PageController::class, 'secureAccount']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
@@ -28,6 +31,8 @@ return [
         ['POST', '/api/auth/register', [AuthApiController::class, 'register']],
         ['POST', '/api/auth/forgot-password', [PasswordResetApiController::class, 'forgotPassword']],
         ['POST', '/api/auth/reset-password', [PasswordResetApiController::class, 'resetPassword']],
+        ['POST', '/api/auth/change-password', [AccountApiController::class, 'changePassword']],
+        ['POST', '/api/auth/secure-account', [AccountApiController::class, 'secureAccount']],
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
         ['POST', '/api/auth/select-group', [AuthApiController::class, 'selectGroup']],
         ['GET',  '/api/availability/pending/{groupId}', [AvailabilityApiController::class, 'pendingForGroup']],

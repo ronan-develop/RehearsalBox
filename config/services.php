@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Container\Container;
+use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
@@ -33,6 +34,7 @@ use App\Security\NativeSession;
 use App\Security\PasswordHasherInterface;
 use App\Security\PasswordPolicy;
 use App\Security\SessionInterface;
+use App\Service\AccountSecurityService;
 use App\Service\AuthService;
 use App\Service\AvailabilityService;
 use App\Service\Contract\AuthServiceInterface;
@@ -42,6 +44,7 @@ use App\Service\Contract\SlotServiceInterface;
 use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
+use App\Service\PasswordChangeService;
 use App\Service\PasswordResetService;
 use App\Service\SlotService;
 use App\Service\UserProvisioningService;
@@ -140,6 +143,30 @@ return static function (array $config): Container {
         $c->get(TransactionRunner::class),
         $config['mailer']['from'],
         $config['app']['base_url'],
+    ));
+
+    $container->set(AccountSecurityService::class, fn ($c) => new AccountSecurityService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(PasswordResetRepositoryInterface::class),
+        $c->get(MailerInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(PasswordResetService::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+    ));
+
+    $container->set(PasswordChangeService::class, fn ($c) => new PasswordChangeService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(PasswordHasherInterface::class),
+        $c->get(PasswordPolicy::class),
+        $c->get(AccountSecurityService::class),
+    ));
+
+    $container->set(AccountApiController::class, fn ($c) => new AccountApiController(
+        $c->get(AuthGuard::class),
+        $c->get(AuthServiceInterface::class),
+        $c->get(PasswordChangeService::class),
+        $c->get(AccountSecurityService::class),
     ));
 
     $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(

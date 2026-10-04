@@ -57,7 +57,7 @@ final class MysqlUserRepository implements UserRepositoryInterface
         $statement = $this->pdo->prepare(
             'UPDATE users SET email = :email, password_hash = :password_hash, display_name = :display_name,
              role = :role, is_active = :is_active, failed_login_attempts = :failed_login_attempts,
-             locked_until = :locked_until WHERE id = :id'
+             locked_until = :locked_until, session_version = :session_version WHERE id = :id'
         );
         $statement->execute([
             'id' => $user->id(),
@@ -68,6 +68,7 @@ final class MysqlUserRepository implements UserRepositoryInterface
             'is_active' => (int) $user->isActive(),
             'failed_login_attempts' => $user->failedLoginAttempts(),
             'locked_until' => $user->lockedUntil()?->format('Y-m-d H:i:s'),
+            'session_version' => $user->sessionVersion(),
         ]);
 
         return $this->findById($user->id());
@@ -85,6 +86,7 @@ final class MysqlUserRepository implements UserRepositoryInterface
             isActive: (bool) $row['is_active'],
             failedLoginAttempts: (int) $row['failed_login_attempts'],
             lockedUntil: $row['locked_until'] !== null ? new \DateTimeImmutable((string) $row['locked_until']) : null,
+            sessionVersion: (int) $row['session_version'],
         );
     }
 }
