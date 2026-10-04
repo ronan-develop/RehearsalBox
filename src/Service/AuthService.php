@@ -37,6 +37,12 @@ final class AuthService implements AuthServiceInterface
             return null;
         }
 
+        // Compte désactivé : refus indiscernable d'un mauvais mot de passe (même réponse),
+        // sans compter d'échec ni ouvrir de session.
+        if (!$user->isActive()) {
+            return null;
+        }
+
         if ($user->isLocked($now)) {
             return null;
         }
@@ -71,7 +77,7 @@ final class AuthService implements AuthServiceInterface
         }
 
         $user = $this->userRepository->findById($userId);
-        if ($user === null) {
+        if ($user === null || !$user->isActive()) {
             return null;
         }
 

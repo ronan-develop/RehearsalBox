@@ -101,4 +101,39 @@ final class UserTest extends TestCase
         self::assertSame('ancien-hash', $locked->passwordHash());
         self::assertSame(0, $locked->failedLoginAttempts());
     }
+
+    #[Test]
+    public function testWithActiveFalseDeactivatesAndRevokesEveryOpenSession(): void
+    {
+        $user = $this->lockedUser();
+
+        $deactivated = $user->withActive(false);
+
+        self::assertFalse($deactivated->isActive());
+        self::assertSame($user->sessionVersion() + 1, $deactivated->sessionVersion(), 'les sessions ouvertes sont périmées');
+    }
+
+    #[Test]
+    public function testWithActiveTrueReactivatesWithoutTouchingTheRest(): void
+    {
+        $inactive = $this->lockedUser()->withActive(false);
+
+        $reactivated = $inactive->withActive(true);
+
+        self::assertTrue($reactivated->isActive());
+        self::assertSame($inactive->email(), $reactivated->email());
+        self::assertSame($inactive->passwordHash(), $reactivated->passwordHash());
+        self::assertSame($inactive->role(), $reactivated->role());
+        self::assertSame($inactive->displayName(), $reactivated->displayName());
+    }
+
+    #[Test]
+    public function testWithActiveDoesNotMutateTheOriginalUser(): void
+    {
+        $user = $this->lockedUser();
+
+        $user->withActive(false);
+
+        self::assertTrue($user->isActive());
+    }
 }
