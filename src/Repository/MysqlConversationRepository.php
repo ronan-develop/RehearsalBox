@@ -91,7 +91,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         );
         $statement->execute(['conversation_id' => $conversationId]);
 
-        return array_map(fn (array $row): ConversationMessage => $this->hydrateMessage($row), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(fn (array $row): ConversationMessage => $this->hydrateMessage($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function listFor(int $userId, string $box): array
@@ -139,8 +139,8 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
                 $this->hydrateConversation($row),
                 (string) $row['initiator_name'],
                 (string) $row['target_name'],
-                new ConversationMessage((int) $row['last_id'], (int) $row['id'], (int) $row['last_author_id'], (string) $row['last_author_name'], (string) $row['last_body'], new \DateTimeImmutable($row['last_created_at'])),
-                $row['mine_id'] === null ? null : new ConversationMessage((int) $row['mine_id'], (int) $row['id'], (int) $row['mine_author_id'], (string) $row['mine_author_name'], (string) $row['mine_body'], new \DateTimeImmutable($row['mine_created_at'])),
+                $this->hydrateMessage($row, (int) $row['id'], 'last_'),
+                $row['mine_id'] === null ? null : $this->hydrateMessage($row, (int) $row['id'], 'mine_'),
                 (bool) $row['unread'],
             ),
             $statement->fetchAll(\PDO::FETCH_ASSOC),
@@ -197,16 +197,19 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         );
     }
 
-    /** @param array<string, mixed> $row */
-    private function hydrateMessage(array $row): ConversationMessage
+    /**
+     * @param array<string, mixed> $row    colonnes id, author_id, author_name, body, created_at, éventuellement préfixées
+     * @param string               $prefix préfixe des colonnes du message dans la ligne (ex. « last_ »)
+     */
+    private function hydrateMessage(array $row, int $conversationId, string $prefix = ''): ConversationMessage
     {
         return new ConversationMessage(
-            (int) $row['id'],
-            (int) $row['conversation_id'],
-            (int) $row['author_id'],
-            (string) $row['author_name'],
-            (string) $row['body'],
-            new \DateTimeImmutable($row['created_at']),
+            (int) $row[$prefix . 'id'],
+            $conversationId,
+            (int) $row[$prefix . 'author_id'],
+            (string) $row[$prefix . 'author_name'],
+            (string) $row[$prefix . 'body'],
+            new \DateTimeImmutable($row[$prefix . 'created_at']),
         );
     }
 }
