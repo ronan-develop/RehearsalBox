@@ -38,11 +38,11 @@
 }
 
 /* Calque plein-page "#B27" en fond, indépendant du header (frère de
-   .rb-dashboard-page, cf. templates/dashboard/index.php). Mobile et desktop
-   glissent tous deux du header vers une position finale stabilisée sous le
-   deck d'exceptions (cf. parallax.js) ; seule l'amplitude du décalage
-   horizontal diffère (aucun décalage en x sur mobile, pas assez de largeur
-   disponible — cf. retour utilisateur). */
+   .rb-dashboard-page, cf. templates/dashboard/index.php). Au repos il est
+   centré horizontalement dans la page, quel que soit l'écran ; parallax.js
+   n'ajoute qu'un décalage par rapport à ce centre : vers le premier tiers du
+   header au chargement, tendant vers 0 une fois le watermark stabilisé sous
+   le deck d'exceptions (cf. parallax.js). */
 .rb-page-bg {
   position: fixed;
   inset: 0;
