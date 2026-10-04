@@ -83,6 +83,10 @@ L'hébergeur valide OPcache sur le chemin du lien `current` (`opcache.revalidate
 
 Si le contrôle échoue : `bin/rollback.sh`, ou purger à la main puis relancer `bin/verify-release.sh <url>/login <empreinte>`.
 
+## Cache des assets (#150)
+
+`public/.htaccess` envoie `Cache-Control: no-cache` sur `*.css`, `*.js` et `*.mjs` : le navigateur revalide à chaque chargement (`Last-Modified` change à chaque release : 200 avec le nouveau fichier, sinon 304). Pas de `?v=` : `app.js` importe 13 modules par chemin relatif, que l'on ne peut pas versionner un par un sans build. Vérification après déploiement : `curl -sI https://<domaine>/assets/js/app.js | grep -i cache-control` doit afficher `no-cache`. Un navigateur qui avait déjà mis un fichier en cache **avant** ce réglage le garde jusqu'à l'expiration de sa fraîcheur heuristique (rechargement forcé une fois).
+
 ## Points d'attention o2switch
 
 - Pas de démon, pas de process > 420 s CPU, < 20 000 fichiers par dossier.

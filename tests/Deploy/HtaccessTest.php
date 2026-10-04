@@ -52,4 +52,26 @@ final class HtaccessTest extends TestCase
         self::assertStringContainsString('RewriteCond %{REQUEST_FILENAME} -f [OR]', $content);
         self::assertStringContainsString('RewriteRule ^ index.php [L]', $content);
     }
+
+    #[Test]
+    public function testStylesheetsAndScriptsAreRevalidatedOnEveryLoad(): void
+    {
+        $content = $this->htaccess();
+
+        // app.js importe d'autres modules par chemin relatif : on ne peut pas les versionner
+        // un par un, donc CSS et JS sont revalidés à chaque chargement (#150).
+        self::assertMatchesRegularExpression(
+            '/<IfModule mod_headers\.c>\s*<FilesMatch "\\\.\(css\|js\|mjs\)\$">\s*Header set Cache-Control "no-cache"\s*<\/FilesMatch>\s*<\/IfModule>/',
+            $content,
+        );
+    }
+
+    #[Test]
+    public function testCacheHeadersDoNotTouchFontsOrImages(): void
+    {
+        $content = $this->htaccess();
+
+        self::assertStringNotContainsString('woff2', $content);
+        self::assertStringNotContainsString('png', $content);
+    }
 }
