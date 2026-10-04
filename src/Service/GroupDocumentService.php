@@ -82,14 +82,24 @@ final class GroupDocumentService
         return $this->documentRepository->findByGroup($groupId);
     }
 
-    public function resolveDownloadPath(int $documentId, int $actorUserId): string
+    public function resolveDownload(int $documentId, int $actorUserId): GroupDocument
     {
         $document = $this->documentRepository->findById($documentId);
         if ($document === null || !$this->groupRepository->isMember($document->groupId(), $actorUserId)) {
             throw $this->documentAccessDenied();
         }
 
+        return $document;
+    }
+
+    public function pathOf(GroupDocument $document): string
+    {
         return $this->storagePath . '/' . $document->storedName();
+    }
+
+    public function resolveDownloadPath(int $documentId, int $actorUserId): string
+    {
+        return $this->pathOf($this->resolveDownload($documentId, $actorUserId));
     }
 
     public function delete(int $documentId, int $actorUserId): void
