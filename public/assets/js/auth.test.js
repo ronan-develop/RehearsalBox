@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { revealForgotPasswordConfirmation, isPasswordResetAnnouncement } from './auth.js';
+import { revealConfirmation, isPasswordResetAnnouncement } from './auth.js';
 
 function fakeForm() {
   const confirmation = {
@@ -9,23 +9,23 @@ function fakeForm() {
       if (name === 'hidden') this.hidden = false;
     },
   };
-  const container = { querySelector: (selector) => (selector === '[data-forgot-confirmation]' ? confirmation : null) };
+  const container = { querySelector: (selector) => (selector === '[data-confirmation]' ? confirmation : null) };
   return { form: { hidden: false, parentElement: container }, confirmation };
 }
 
-test('revealForgotPasswordConfirmation hides the form and shows the confirmation message', () => {
+test('revealConfirmation hides the form and shows the confirmation message', () => {
   const { form, confirmation } = fakeForm();
 
-  revealForgotPasswordConfirmation(form);
+  revealConfirmation(form);
 
   assert.equal(form.hidden, true);
   assert.equal(confirmation.hidden, false);
 });
 
-test('revealForgotPasswordConfirmation tolerates a page without confirmation block', () => {
+test('revealConfirmation tolerates a page without confirmation block', () => {
   const form = { hidden: false, parentElement: { querySelector: () => null } };
 
-  revealForgotPasswordConfirmation(form);
+  revealConfirmation(form);
 
   assert.equal(form.hidden, true);
 });

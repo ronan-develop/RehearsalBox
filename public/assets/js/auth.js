@@ -3,10 +3,10 @@ import { initAsyncForms } from './forms.js';
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
 
-/** Remplace le formulaire de demande par le message de confirmation (identique que le compte existe ou non). */
-export function revealForgotPasswordConfirmation(form) {
+/** Remplace un formulaire par son message de confirmation ([data-confirmation] dans le même bloc). */
+export function revealConfirmation(form) {
   form.hidden = true;
-  form.parentElement?.querySelector('[data-forgot-confirmation]')?.removeAttribute('hidden');
+  form.parentElement?.querySelector('[data-confirmation]')?.removeAttribute('hidden');
 }
 
 /** Vrai quand la page de connexion arrive après une réinitialisation réussie (?reset=1). */
@@ -22,7 +22,20 @@ export function initAuth() {
   }
 
   document.querySelectorAll('form[data-async][data-endpoint*="/auth/forgot-password"]').forEach((form) => {
-    form.addEventListener('async-success', () => revealForgotPasswordConfirmation(form));
+    form.addEventListener('async-success', () => revealConfirmation(form));
+    form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
+  });
+
+  document.querySelectorAll('form[data-async][data-endpoint*="/auth/change-password"]').forEach((form) => {
+    form.addEventListener('async-success', () => {
+      form.reset();
+      showToast('Mot de passe modifié. Vos autres appareils ont été déconnectés.', 'success');
+    });
+    form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
+  });
+
+  document.querySelectorAll('form[data-async][data-endpoint*="/auth/secure-account"]').forEach((form) => {
+    form.addEventListener('async-success', () => revealConfirmation(form));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 

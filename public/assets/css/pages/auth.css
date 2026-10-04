@@ -67,3 +67,13 @@
 .rb-auth-link a {
   color: var(--rb-accent);
 }
+
+.rb-auth-title {
+  margin: 0 0 var(--rb-space-2);
+  font-size: 1.25rem;
+}
+
+/* La barre de navigation du bas est fixe : on réserve sa hauteur sous la carte. */
+.rb-account-page {
+  padding-bottom: calc(var(--rb-space-6) + 72px);
+}
