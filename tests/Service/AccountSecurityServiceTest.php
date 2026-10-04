@@ -130,4 +130,18 @@ final class AccountSecurityServiceTest extends RepositoryTestCase
 
         self::assertSame(hash('sha256', $token), $this->pdo->query("SELECT token_hash FROM password_resets WHERE purpose = 'alert'")->fetchColumn());
     }
+
+    #[Test]
+    public function testTheAlertMailIsMultipartWithTheBrandedHtmlAndThePlainTextVersion(): void
+    {
+        $user = $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('x', PASSWORD_DEFAULT), 'Alice', UserRole::Musicien, true, 0, null));
+
+        $this->service->sendPasswordChangedAlert($user, new \DateTimeImmutable('2026-10-04 12:00:00'));
+
+        $email = $this->mailer->sent[0];
+        self::assertStringContainsString('#B27', (string) $email->getHtmlBody());
+        self::assertStringContainsString('Ce n\'est pas moi', (string) $email->getHtmlBody());
+        self::assertMatchesRegularExpression('#/account/secure\?token=[0-9a-f]{64}#', (string) $email->getHtmlBody());
+        self::assertMatchesRegularExpression('#/account/secure\?token=[0-9a-f]{64}#', (string) $email->getTextBody());
+    }
 }

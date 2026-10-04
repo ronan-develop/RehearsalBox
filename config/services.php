@@ -42,6 +42,7 @@ use App\Service\AvailabilityService;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
+use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
@@ -104,6 +105,8 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
     ));
 
+    $container->set(MailRenderer::class, fn ($c) => new MailRenderer($c->get(TemplateRendererInterface::class)));
+
     $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(
         Transport::fromDsn($config['mailer']['dsn']),
     ));
@@ -112,6 +115,7 @@ return static function (array $config): Container {
         $c->get(MailerInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $config['mailer']['from'],
+        $c->get(MailRenderer::class),
     ));
 
     $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
@@ -147,6 +151,7 @@ return static function (array $config): Container {
         $c->get(TransactionRunner::class),
         $config['mailer']['from'],
         $config['app']['base_url'],
+        $c->get(MailRenderer::class),
     ));
 
     $container->set(AccountSecurityService::class, fn ($c) => new AccountSecurityService(
@@ -157,6 +162,7 @@ return static function (array $config): Container {
         $c->get(PasswordResetService::class),
         $config['mailer']['from'],
         $config['app']['base_url'],
+        $c->get(MailRenderer::class),
     ));
 
     $container->set(PasswordChangeService::class, fn ($c) => new PasswordChangeService(

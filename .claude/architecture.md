@@ -17,8 +17,13 @@ src/
 ├── Entity/          ← entités simples, sans comportement DB (pas de Doctrine)
 ├── Security/        ← PasswordHasher, Session, CsrfTokenManager, AuthGuard
 ├── View/            ← TemplateRendererInterface / PhpTemplateRenderer (include PHP natif)
+├── Mail/            ← MailRenderer : e-mail en HTML + texte (templates/mail/, gabarit commun layout.php)
 └── Database/        ← ConnectionFactory (PDO), TransactionRunner
 ```
+
+## E-mails (#157)
+
+Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, inséré dans `layout.php`) et `<nom>.txt.php` (version texte). `MailRenderer::render('<nom>', $data)` retourne `['html' => …, 'text' => …]`. Règles : tables et **styles en ligne** (clients de messagerie), aucune police web ni image distante, **tout contenu dynamique échappé** avec `e()` (le message de contact est saisi par un utilisateur), liens construits depuis `app.base_url`. Ajouter un e-mail = deux gabarits + un test dans `tests/Mail/MailRendererTest.php`.
 
 ## Principes appliqués
 

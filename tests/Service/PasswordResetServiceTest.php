@@ -305,4 +305,20 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         $found = $this->users->findById($user->id());
         self::assertTrue($hasher->verify($chosen, $found->passwordHash()));
     }
+
+    #[Test]
+    public function testTheResetMailIsMultipartWithTheBrandedHtmlAndThePlainTextVersion(): void
+    {
+        $this->insertUser();
+        $mailer = $this->recordingMailer();
+
+        $this->service($mailer)->requestReset('alice@rehearsalbox.test', $this->now);
+
+        $email = $mailer->sent[0];
+        $token = $this->tokenFrom($email);
+        $link = 'https://rehearsalbox.example/reset-password?token=' . $token;
+        self::assertStringContainsString('href="' . $link . '"', (string) $email->getHtmlBody(), 'bouton dans la version HTML');
+        self::assertStringContainsString('#B27', (string) $email->getHtmlBody());
+        self::assertStringContainsString($link, (string) $email->getTextBody(), 'lien aussi dans la version texte');
+    }
 }

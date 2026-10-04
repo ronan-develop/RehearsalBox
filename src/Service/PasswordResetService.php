@@ -12,6 +12,7 @@ use App\Security\PasswordPolicy;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\UserValidationException;
+use App\Mail\MailRenderer;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
@@ -31,6 +32,7 @@ final class PasswordResetService
         private readonly TransactionRunner $transactions,
         private readonly string $fromAddress,
         private readonly string $baseUrl,
+        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -102,16 +104,16 @@ final class PasswordResetService
     {
         $link = rtrim($this->baseUrl, '/') . '/reset-password?token=' . $token;
 
+        $mail = ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->render('password-reset', [
+            'link' => $link,
+            'preheader' => 'Choisissez un nouveau mot de passe (lien valable 1 heure).',
+        ]);
+
         return (new Email())
             ->from($this->fromAddress)
             ->to($to)
             ->subject('RehearsalBox — réinitialisation de votre mot de passe')
-            ->text(
-                "Bonjour,\n\n"
-                . "Une réinitialisation du mot de passe de votre compte RehearsalBox a été demandée.\n"
-                . "Pour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure, à usage unique) :\n\n"
-                . $link . "\n\n"
-                . "Si vous n'êtes pas à l'origine de cette demande, ignorez simplement ce message : votre mot de passe actuel reste valable.\n"
-            );
+            ->html($mail['html'])
+            ->text($mail['text']);
     }
 }
