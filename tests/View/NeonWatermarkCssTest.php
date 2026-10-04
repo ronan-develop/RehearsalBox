@@ -105,6 +105,8 @@ final class NeonWatermarkCssTest extends TestCase
         self::assertStringContainsString('text-shadow', $glow);
         self::assertStringNotContainsString('animation', $glow);
         self::assertStringNotContainsString('transition: text-shadow', $glow);
+        // Couche de compositeur propre : l'opacité varie sans repeindre le texte ni son ombre (#143).
+        self::assertStringContainsString('will-change: opacity', $glow);
 
         preg_match_all('/0 0 (\d+)px/', $glow, $glowBlurs);
         preg_match_all('/0 0 (\d+)px/', $neon, $neonBlurs);

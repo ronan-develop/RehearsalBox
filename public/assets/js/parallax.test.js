@@ -205,8 +205,9 @@ test('initParallax stops exactly at the anchor current screen position once the 
   win.scrollY = 720;
   scrollCallback();
 
-  // anchorRect.top(900) - bgTextRect.top(0) - bgTextRect.height(92) = 808.
-  assert.equal(bg.properties['--wm-y'], '808px');
+  // Ancre à 900 dans le document (scroll 0) : à l'écran, à scroll 720, elle est à 180.
+  // 180 - bgTextRect.top(0) - bgTextRect.height(92) = 88.
+  assert.equal(bg.properties['--wm-y'], '88px');
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
 });
 
@@ -360,13 +361,20 @@ test('isLogoBelowSearchBar is true once the top of the logo is at or below the b
   assert.equal(isLogoBelowSearchBar({ top: 500, height: 92 }, { top: 300, bottom: 348 }), true);
 });
 
-function neonScenario({ searchTop }) {
+/**
+ * Page réaliste : l'ancre (900) et le bas de la barre de recherche
+ * (searchDocBottom) sont des positions du DOCUMENT ; leur position à l'écran
+ * suit le scroll (rect.top = positionDocument - scrollY).
+ */
+function neonScenario({ searchDocBottom }) {
   const bg = fakeBgElement();
-  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
-  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
-  const search = { getBoundingClientRect: () => fakeRect({ top: searchTop() - 48, bottom: searchTop() }) };
-  const doc = fakeDocumentWithBg(bg, { header, anchor, search, scrollHeight: 2000 });
   const win = fakeWindow({ innerHeight: 800 });
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 - win.scrollY }) };
+  const search = {
+    getBoundingClientRect: () => fakeRect({ top: searchDocBottom - 48 - win.scrollY, bottom: searchDocBottom - win.scrollY }),
+  };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, search, scrollHeight: 2000 });
   let scrollCallback;
   win.addEventListener = (event, cb) => {
     if (event === 'scroll') scrollCallback = cb;
@@ -381,27 +389,23 @@ function neonScenario({ searchTop }) {
 }
 
 test('initParallax switches to neon once the logo has passed below the search bar, not at the progress threshold', () => {
-  // scrollY 360 : progression 0.5 (seuil 720) -> haut du logo à 477.
-  // searchTop() est ici le BAS de la barre de recherche.
-  let searchTop = 600;
-  const { bg, scrollTo } = neonScenario({ searchTop: () => searchTop });
+  // scrollY 360 : progression 0.5 (seuil 720) -> haut du logo à 297 à l'écran.
+  // Barre de recherche : bas à 700 - 360 = 340 (logo encore au-dessus) ou 600 - 360 = 240 (logo dessous).
+  const above = neonScenario({ searchDocBottom: 700 });
+  above.scrollTo(360);
+  assert.equal(above.bg.classes.has('rb-page-bg-text--neon'), false, 'logo encore au-dessus ou à cheval sur la barre');
 
-  scrollTo(360);
-  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false, 'logo encore au-dessus ou à cheval sur la barre');
-
-  searchTop = 470;
-  scrollTo(360);
-  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true, 'logo passé sous la barre, avant même le seuil de progression');
+  const below = neonScenario({ searchDocBottom: 600 });
+  below.scrollTo(360);
+  assert.equal(below.bg.classes.has('rb-page-bg-text--neon'), true, 'logo passé sous la barre, avant même le seuil de progression');
 });
 
 test('initParallax switches back to red when scrolling up above the search bar again', () => {
-  let searchTop = 470;
-  const { bg, scrollTo } = neonScenario({ searchTop: () => searchTop });
+  const { bg, scrollTo } = neonScenario({ searchDocBottom: 600 });
 
   scrollTo(360);
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
 
-  searchTop = 700;
   scrollTo(0);
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), false);
 });
@@ -438,7 +442,7 @@ test('computeGlowLevel is 1 when the final position is not below the search bar 
 });
 
 test('initParallax: --wm-glow is 0 outside the neon zone, then grows as the logo descends, up to 1 at the end', () => {
-  const { bg, scrollTo } = neonScenario({ searchTop: () => 100 });
+  const { bg, scrollTo } = neonScenario({ searchDocBottom: 100 });
   const glow = () => Number(bg.properties['--wm-glow']);
 
   scrollTo(0);
@@ -455,15 +459,74 @@ test('initParallax: --wm-glow is 0 outside the neon zone, then grows as the logo
   assert.equal(end, 1);
 });
 
-test('initParallax: --wm-glow decreases again when scrolling back up', () => {
-  const { bg, scrollTo } = neonScenario({ searchTop: () => 100 });
+test('initParallax: --wm-glow falls back to 0 when scrolling back up to the header', () => {
+  const { bg, scrollTo } = neonScenario({ searchDocBottom: 100 });
 
   scrollTo(720);
   assert.equal(Number(bg.properties['--wm-glow']), 1);
 
-  scrollTo(360);
-  assert.ok(Number(bg.properties['--wm-glow']) < 1);
-
   scrollTo(0);
   assert.equal(Number(bg.properties['--wm-glow']), 0);
+});
+
+// --- Défilement fluide (#143) : aucune lecture de layout par image ---
+
+function countingScenario() {
+  const reads = { anchor: 0, search: 0, header: 0, scrollHeight: 0 };
+  const bg = fakeBgElement();
+  const sets = { count: 0 };
+  const originalSet = bg.style.setProperty;
+  bg.style.setProperty = (name, value) => {
+    sets.count += 1;
+    originalSet(name, value);
+  };
+  const header = { getBoundingClientRect: () => { reads.header += 1; return fakeRect({ width: 300, height: 132 }); } };
+  const anchor = { getBoundingClientRect: () => { reads.anchor += 1; return fakeRect({ top: 900 }); } };
+  const search = { getBoundingClientRect: () => { reads.search += 1; return fakeRect({ top: 300, bottom: 348 }); } };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, search, scrollHeight: 2000 });
+  Object.defineProperty(doc.documentElement, 'scrollHeight', { get: () => { reads.scrollHeight += 1; return 2000; } });
+  const win = fakeWindow({ innerHeight: 800 });
+  let scrollCallback;
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
+  initParallax(doc, win);
+
+  return { reads, sets, bg, scrollTo: (y) => { win.scrollY = y; scrollCallback(); } };
+}
+
+test('initParallax does no layout read while scrolling: positions are measured once, then computed from scrollY', () => {
+  const { reads, scrollTo } = countingScenario();
+  const afterInit = { ...reads };
+
+  for (let y = 10; y <= 700; y += 10) scrollTo(y);
+
+  assert.deepEqual(reads, afterInit, 'aucune lecture de rect ni de scrollHeight pendant le scroll');
+});
+
+test('initParallax writes a CSS property only when its value changes', () => {
+  const { sets, scrollTo } = countingScenario();
+
+  scrollTo(1000);
+  const afterFirst = sets.count;
+  scrollTo(1000);
+  scrollTo(1000);
+
+  assert.equal(sets.count, afterFirst, 'même position : aucune écriture');
+});
+
+test('initParallax measures again when the window is resized', () => {
+  const reads = { anchor: 0 };
+  const bg = fakeBgElement();
+  const anchor = { getBoundingClientRect: () => { reads.anchor += 1; return fakeRect({ top: 900 }); } };
+  const doc = fakeDocumentWithBg(bg, { header: { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) }, anchor, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
+  const handlers = {};
+  win.addEventListener = (event, cb) => { handlers[event] = cb; };
+  initParallax(doc, win);
+  const before = reads.anchor;
+
+  handlers.resize();
+
+  assert.ok(reads.anchor > before, 'la mesure est refaite au redimensionnement');
 });

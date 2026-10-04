@@ -118,6 +118,9 @@
     0 0 9px var(--rb-neon-red),
     0 0 15px var(--rb-neon-red);
   opacity: calc(var(--wm-glow, 0) * 0.7);
+  /* Couche de compositeur propre : le texte et son ombre floue sont rastérisés
+     une fois, seule l'opacité change ensuite (pas de repaint par image). */
+  will-change: opacity;
   pointer-events: none;
 }
 

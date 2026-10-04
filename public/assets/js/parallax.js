@@ -153,6 +153,24 @@ export function initParallax(root = document, windowRef = window) {
       )
     : { x: 0, y: 0 };
 
+  // Mesures en coordonnées du DOCUMENT (indépendantes du scroll), prises une
+  // fois puis refaites seulement au redimensionnement ou quand la taille du
+  // contenu change : à chaque image de scroll, plus aucune lecture de layout
+  // (getBoundingClientRect / scrollHeight), qui forçait un recalcul de layout
+  // après chaque écriture de style de l'image précédente (saccades, #143).
+  let maxScrollY = 0;
+  let anchorDocTop = null;
+  let searchDocBottom = null;
+
+  function measure() {
+    const scrollY = windowRef.scrollY;
+    maxScrollY = computeMaxScrollY(root.documentElement?.scrollHeight ?? 0, windowRef.innerHeight ?? 0);
+    anchorDocTop = anchor ? anchor.getBoundingClientRect().top + scrollY : null;
+    searchDocBottom = search ? search.getBoundingClientRect().bottom + scrollY : null;
+  }
+
+  measure();
+
   let ticking = false;
   // L'ancre continue de remonter tant qu'on scrolle, même après
   // stabilisation (progress = 1) — figée au moment où progress atteint 1
@@ -161,19 +179,31 @@ export function initParallax(root = document, windowRef = window) {
   // tremblement, pas de sortie d'écran").
   let frozenEnd = null;
 
+  // N'écrit que ce qui change : pas de recalcul de style inutile quand la
+  // position ne bouge pas (repos, position finale).
+  const written = new Map();
+  function setProp(name, value) {
+    if (written.get(name) !== value) {
+      written.set(name, value);
+      bg.style.setProperty(name, value);
+    }
+  }
+  let neonOn = null;
+  function setNeon(on) {
+    if (neonOn !== on) {
+      neonOn = on;
+      bg.classList.toggle('rb-page-bg-text--neon', on);
+    }
+  }
+
   function update() {
     const y = windowRef.scrollY;
-    // Recalculé à chaque frame (pas juste au chargement) : scrollHeight
-    // peut changer après coup (contenu chargé en XHR, ex. acceptation d'une
-    // exception qui révèle la section planning occasionnel) et innerHeight
-    // varie si l'utilisateur redimensionne/tourne son appareil.
-    const maxScrollY = computeMaxScrollY(root.documentElement?.scrollHeight ?? 0, windowRef.innerHeight ?? 0);
     const progress = computeScrollProgress(y, maxScrollY);
 
     let end = start;
     if (anchor) {
       if (frozenEnd === null) {
-        end = computeAnchorEndOffset(anchor.getBoundingClientRect(), bgTextRectAtRest);
+        end = computeAnchorEndOffset({ top: anchorDocTop - y }, bgTextRectAtRest);
         if (progress === 1) frozenEnd = end;
       } else {
         end = frozenEnd;
@@ -182,32 +212,48 @@ export function initParallax(root = document, windowRef = window) {
 
     const wmY = lerp(start.y, end.y, progress);
     const scrollOffsetY = y * 0.35 * (1 - progress);
-    bg.style.setProperty('--wm-x', `${lerp(start.x, end.x, progress)}px`);
-    bg.style.setProperty('--wm-y', `${wmY}px`);
+    setProp('--wm-x', `${lerp(start.x, end.x, progress)}px`);
+    setProp('--wm-y', `${wmY}px`);
     // Le parallax de scroll (translateY continu) s'estompe au fur et à
     // mesure de la progression : l'interpolation --wm-x/--wm-y pilote déjà
     // le déplacement voulu, et le watermark ne doit plus bouger une fois
     // stabilisé (progress = 1).
-    bg.style.setProperty('--wm-scroll-y', `${scrollOffsetY}px`);
+    setProp('--wm-scroll-y', `${scrollOffsetY}px`);
     // Couleur : néon quand le logo est passé sous la barre de recherche
     // (position à l'écran calculée depuis le repos + décalages de cette frame,
     // sans relire un rect déjà transformé). Sans barre de recherche : ancien
     // critère, la progression a atteint 1.
     const logoTop = bgTextRectAtRest.top + wmY + scrollOffsetY;
+    const searchBottom = search ? searchDocBottom - y : null;
     const neon = search
-      ? isLogoBelowSearchBar({ top: logoTop, height: bgTextRectAtRest.height }, search.getBoundingClientRect())
+      ? isLogoBelowSearchBar({ top: logoTop, height: bgTextRectAtRest.height }, { bottom: searchBottom })
       : progress === 1;
-    bg.classList.toggle('rb-page-bg-text--neon', neon);
+    setNeon(neon);
     // Brillance du jaune : plus le logo descend (de la barre de recherche à sa
     // position finale), plus elle monte, de 0 à 1. Seule l'opacité d'une couche
     // de lueur CSS suit cette valeur (compositeur) : pas de text-shadow à
     // redessiner à chaque image, donc pas de lag au défilement.
     const finalTop = bgTextRectAtRest.top + end.y;
     const glow = neon
-      ? (search ? computeGlowLevel(logoTop, search.getBoundingClientRect().bottom, finalTop) : 1)
+      ? (search ? computeGlowLevel(logoTop, searchBottom, finalTop) : 1)
       : 0;
-    bg.style.setProperty('--wm-glow', glow.toFixed(3));
+    setProp('--wm-glow', glow.toFixed(3));
     ticking = false;
+  }
+
+  // Nouvelle mesure quand la taille de la fenêtre ou du contenu change (ex.
+  // contenu chargé en XHR qui révèle une section) ; une seule fois par image.
+  function remeasure() {
+    measure();
+    if (!ticking) {
+      ticking = true;
+      windowRef.requestAnimationFrame(update);
+    }
+  }
+
+  windowRef.addEventListener('resize', remeasure, { passive: true });
+  if (typeof windowRef.ResizeObserver === 'function') {
+    new windowRef.ResizeObserver(remeasure).observe(root.documentElement ?? root.body);
   }
 
   windowRef.addEventListener(
