@@ -11,6 +11,7 @@ use App\Entity\ConversationSummary;
 use App\Entity\ConversationThread;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Security\ConversationInputPolicy;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
@@ -23,14 +24,13 @@ final class ConversationService
 {
     public const MAX_MESSAGES_PER_HOUR = 30;
 
-    private const MAX_SUBJECT_LENGTH = 150;
-    private const MAX_BODY_LENGTH = 5000;
     private const DENIED = 'Accès refusé.';
 
     public function __construct(
         private readonly ConversationRepositoryInterface $conversations,
         private readonly GroupRepositoryInterface $groups,
         private readonly TransactionRunner $transactions,
+        private readonly ConversationInputPolicy $inputPolicy = new ConversationInputPolicy(),
     ) {
     }
 
@@ -49,8 +49,8 @@ final class ConversationService
             throw new AccessDeniedException(self::DENIED);
         }
 
-        $subject = trim($subject);
-        $body = trim($body);
+        $subject = $this->inputPolicy->normalize($subject);
+        $body = $this->inputPolicy->normalize($body);
         $this->assertValid($subject, $body);
         $this->assertWithinRateLimit($userId, $now);
 
@@ -68,7 +68,7 @@ final class ConversationService
         $now ??= new \DateTimeImmutable();
         $this->participantConversation($userId, $conversationId);
 
-        $body = trim($body);
+        $body = $this->inputPolicy->normalize($body);
         $this->assertValid(null, $body);
         $this->assertWithinRateLimit($userId, $now);
 
@@ -128,22 +128,7 @@ final class ConversationService
 
     private function assertValid(?string $subject, string $body): void
     {
-        $errors = [];
-        if ($subject !== null) {
-            if ($subject === '') {
-                $errors['subject'] = 'Le sujet est requis.';
-            } elseif (mb_strlen($subject) > self::MAX_SUBJECT_LENGTH) {
-                $errors['subject'] = 'Le sujet ne doit pas dépasser ' . self::MAX_SUBJECT_LENGTH . ' caractères.';
-            } elseif (preg_match('/[\p{Cc}\p{Cf}]/u', $subject) === 1) {
-                $errors['subject'] = 'Le sujet contient des caractères non autorisés.';
-            }
-        }
-        if ($body === '') {
-            $errors['message'] = 'Le message est requis.';
-        } elseif (mb_strlen($body) > self::MAX_BODY_LENGTH) {
-            $errors['message'] = 'Le message ne doit pas dépasser ' . self::MAX_BODY_LENGTH . ' caractères.';
-        }
-
+        $errors = $this->inputPolicy->violations($subject, $body);
         if ($errors !== []) {
             throw new ConversationValidationException($errors);
         }
