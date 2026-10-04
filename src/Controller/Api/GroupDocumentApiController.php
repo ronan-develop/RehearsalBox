@@ -68,19 +68,24 @@ final class GroupDocumentApiController
         $user = $this->authGuard->requireLogin();
 
         try {
-            $path = $this->documentService->resolveDownloadPath((int) $id, $user->id());
+            $document = $this->documentService->resolveDownload((int) $id, $user->id());
         } catch (AccessDeniedException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 403);
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 404);
         }
 
+        $path = $this->documentService->pathOf($document);
         $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
 
         return new Response(
             body: (string) file_get_contents($path),
             statusCode: 200,
-            headers: ['Content-Type' => $mimeType],
+            headers: [
+                'Content-Type' => $mimeType,
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Disposition' => self::inlineDisposition($document->originalName()),
+            ],
         );
     }
 
@@ -97,6 +102,19 @@ final class GroupDocumentApiController
         }
 
         return new JsonResponse([], 204);
+    }
+
+    /**
+     * Affichage en ligne (PDF, JPEG, PNG validés par finfo, avec nosniff : le navigateur ne réinterprète pas le type). Le nom d'origine vient de
+     * l'utilisateur : repli ASCII sans guillemet, antislash ni saut de ligne, et
+     * forme RFC 5987 (filename*) encodée pour les accents.
+     */
+    private static function inlineDisposition(string $originalName): string
+    {
+        $fallback = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $originalName) ?? '';
+        $fallback = trim($fallback) !== '' ? $fallback : 'document';
+
+        return sprintf('inline; filename="%s"; filename*=UTF-8\'\'%s', $fallback, rawurlencode($originalName));
     }
 
     /** @return array<string, mixed> */

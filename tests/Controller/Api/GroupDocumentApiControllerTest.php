@@ -207,6 +207,32 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testDownloadDisablesContentSniffingAndSanitizesTheFilename(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $authService->attempt('gaby@rehearsalbox.test', 'password');
+        $tmpPath = $this->uploadedTmpFile('%PDF-1.4 contenu test');
+        $files = ['document' => ['name' => "fiche \"été\"\r\nX-Evil: 1.pdf", 'type' => 'application/pdf', 'tmp_name' => $tmpPath, 'error' => UPLOAD_ERR_OK, 'size' => 20]];
+        $storeResponse = $controller->store(new Request('POST', "/api/groups/{$group->id()}/documents", [], [], [], $files), (string) $group->id());
+        $documentId = json_decode($storeResponse->body(), true)['id'];
+
+        $headers = $controller->download(new Request('GET', "/api/documents/{$documentId}", [], [], []), (string) $documentId)->headers();
+
+        self::assertSame('nosniff', $headers['X-Content-Type-Options'] ?? null);
+        $disposition = $headers['Content-Disposition'] ?? '';
+        self::assertStringStartsWith('inline; filename="', $disposition);
+        self::assertStringContainsString("filename*=UTF-8''", $disposition);
+        // Pas d'injection d'en-tête ni de guillemet non échappé via le nom d'origine.
+        self::assertStringNotContainsString("\r", $disposition);
+        self::assertStringNotContainsString("\n", $disposition);
+        self::assertSame(1, preg_match('/^inline; filename="[^"\\\r\n]*"; filename\*=UTF-8\'\'[A-Za-z0-9%._~-]+$/', $disposition));
+    }
+
+    #[Test]
+
     public function testDownloadByNonMemberReturns403(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
