@@ -34,10 +34,6 @@ final class PasswordResetApiController
         $token = (string) $request->body('token', '');
         $password = (string) $request->body('password', '');
 
-        if ($token === '') {
-            return new JsonResponse(['error' => (new InvalidResetTokenException())->getMessage()], 422);
-        }
-
         try {
             $this->passwordReset->resetPassword($token, $password);
         } catch (UserValidationException $e) {

@@ -14,31 +14,20 @@ use App\Repository\MysqlUserRepository;
 use App\Security\NativePasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\PasswordResetService;
+use App\Tests\Support\RecordingMailer;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
-use Symfony\Component\Mailer\Envelope;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
-use Symfony\Component\Mime\RawMessage;
 
 final class PasswordResetApiControllerTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;
-    private object $mailer;
+    private RecordingMailer $mailer;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
-        $this->mailer = new class implements MailerInterface {
-            /** @var list<Email> */
-            public array $sent = [];
-
-            public function send(RawMessage $message, ?Envelope $envelope = null): void
-            {
-                $this->sent[] = $message;
-            }
-        };
+        $this->mailer = new RecordingMailer();
     }
 
     private function controller(): PasswordResetApiController

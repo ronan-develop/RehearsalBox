@@ -16,11 +16,10 @@ use App\Service\Exception\UserValidationException;
 use App\Service\PasswordResetService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
-use Symfony\Component\Mailer\Envelope;
-use Symfony\Component\Mailer\Exception\TransportException;
+use App\Tests\Support\FailingMailer;
+use App\Tests\Support\RecordingMailer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
-use Symfony\Component\Mime\RawMessage;
 
 final class PasswordResetServiceTest extends RepositoryTestCase
 {
@@ -48,27 +47,14 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         ));
     }
 
-    private function recordingMailer(): object
+    private function recordingMailer(): RecordingMailer
     {
-        return new class implements MailerInterface {
-            /** @var list<Email> */
-            public array $sent = [];
-
-            public function send(RawMessage $message, ?Envelope $envelope = null): void
-            {
-                $this->sent[] = $message;
-            }
-        };
+        return new RecordingMailer();
     }
 
     private function failingMailer(): MailerInterface
     {
-        return new class implements MailerInterface {
-            public function send(RawMessage $message, ?Envelope $envelope = null): void
-            {
-                throw new TransportException('SMTP indisponible');
-            }
-        };
+        return new FailingMailer();
     }
 
     private function service(MailerInterface $mailer): PasswordResetService
