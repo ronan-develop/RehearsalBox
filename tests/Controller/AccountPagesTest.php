@@ -93,6 +93,41 @@ final class AccountPagesTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testAccountPageGroupsTheProfileFormAndThePasswordFormOnOnePage(): void
+    {
+        $controller = $this->controller();
+        $this->logIn(UserRole::Musicien);
+
+        $body = $controller->accountPassword()->body();
+
+        self::assertStringContainsString('<title>Mon compte', $body);
+        self::assertStringContainsString('Mes informations', $body);
+        // Formulaire du nom affiché : PATCH async, prérempli avec le nom actuel, 100 caractères max.
+        self::assertStringContainsString('data-endpoint="/api/account/profile"', $body);
+        self::assertStringContainsString('data-method="PATCH"', $body);
+        self::assertMatchesRegularExpression('/<input[^>]*name="displayName"[^>]*value="' . preg_quote('Alice', '/') . '"[^>]*maxlength="100"|<input[^>]*name="displayName"[^>]*maxlength="100"[^>]*value="' . preg_quote('Alice', '/') . '"/', $body);
+        self::assertStringContainsString('data-field-error="displayName"', $body);
+        // L'e-mail s'affiche (lecture seule) : on ne le modifie pas ici.
+        self::assertStringContainsString('alice@rehearsalbox.test', $body);
+        self::assertStringNotContainsString('name="email"', $body);
+        // Le formulaire du mot de passe est toujours là.
+        self::assertStringContainsString('data-endpoint="/api/auth/change-password"', $body);
+    }
+
+    #[Test]
+    public function testAccountPageEscapesTheCurrentDisplayName(): void
+    {
+        $controller = $this->controller();
+        $this->logIn(UserRole::Musicien);
+        $this->users->save($this->users->findByEmail('alice@rehearsalbox.test')->withDisplayName('"><script>alert(1)</script>'));
+
+        $body = $controller->accountPassword()->body();
+
+        self::assertStringNotContainsString('<script>alert(1)</script>', $body);
+        self::assertStringContainsString('&lt;script&gt;', $body);
+    }
+
+    #[Test]
     public function testSecureAccountPageAsksForAnExplicitConfirmationAndNeverActsOnGet(): void
     {
         $token = str_repeat('ab', 32);

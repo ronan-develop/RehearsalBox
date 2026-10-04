@@ -73,6 +73,19 @@
   font-size: 1.25rem;
 }
 
+/* Page « Mon compte » : deux cartes (informations, mot de passe) l'une sous l'autre. */
+.rb-account-stack {
+  display: grid;
+  gap: var(--rb-space-4);
+  justify-items: center;
+  width: 100%;
+}
+
+.rb-account-section-title {
+  margin: 0 0 var(--rb-space-2);
+  font-size: 1.125rem;
+}
+
 /* La barre de navigation du bas est fixe : on réserve sa hauteur sous la carte. */
 .rb-account-page {
   padding-bottom: calc(var(--rb-space-6) + 72px);

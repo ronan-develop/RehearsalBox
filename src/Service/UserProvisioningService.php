@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\Contract\UserRepositoryInterface;
+use App\Security\DisplayNamePolicy;
 use App\Security\PasswordHasherInterface;
 use App\Security\PasswordPolicy;
 use App\Service\Exception\UserValidationException;
@@ -17,6 +18,7 @@ final class UserProvisioningService
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordHasherInterface $passwordHasher,
         private readonly PasswordPolicy $passwordPolicy,
+        private readonly DisplayNamePolicy $displayNamePolicy = new DisplayNamePolicy(),
     ) {
     }
 
@@ -31,8 +33,9 @@ final class UserProvisioningService
         if ($passwordViolation !== null) {
             $errors['password'] = $passwordViolation;
         }
-        if ($displayName === '' || strlen($displayName) > 100) {
-            $errors['displayName'] = 'Nom affiché requis (100 caractères maximum).';
+        $nameViolation = $this->displayNamePolicy->violation($displayName);
+        if ($nameViolation !== null) {
+            $errors['displayName'] = $nameViolation;
         }
         if ($errors === [] && $this->userRepository->findByEmail($email) !== null) {
             $errors['email'] = 'Un compte existe déjà avec cet email.';
@@ -43,6 +46,7 @@ final class UserProvisioningService
 
     public function create(string $email, string $displayName, UserRole $role, string $plainPassword): User
     {
+        $displayName = $this->displayNamePolicy->normalize($displayName);
         $errors = $this->validate($email, $displayName, $plainPassword);
         if ($errors !== []) {
             throw new UserValidationException($errors);
@@ -68,6 +72,7 @@ final class UserProvisioningService
      */
     public function createWithoutPassword(string $email, string $displayName, UserRole $role): User
     {
+        $displayName = $this->displayNamePolicy->normalize($displayName);
         $errors = $this->validate($email, $displayName, null);
         if ($errors !== []) {
             throw new UserValidationException($errors);

@@ -32,6 +32,7 @@ return [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
         ['POST', '/api/auth/forgot-password', [PasswordResetApiController::class, 'forgotPassword']],
         ['POST', '/api/auth/reset-password', [PasswordResetApiController::class, 'resetPassword']],
+        ['PATCH', '/api/account/profile', [AccountApiController::class, 'updateProfile']],
         ['POST', '/api/auth/change-password', [AccountApiController::class, 'changePassword']],
         ['POST', '/api/auth/secure-account', [AccountApiController::class, 'secureAccount']],
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],

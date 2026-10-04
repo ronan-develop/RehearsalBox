@@ -50,6 +50,7 @@ use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
 use App\Service\PasswordChangeService;
+use App\Service\ProfileService;
 use App\Service\PasswordResetService;
 use App\Service\SlotService;
 use App\Service\UserProvisioningService;
@@ -177,7 +178,10 @@ return static function (array $config): Container {
         $c->get(AuthServiceInterface::class),
         $c->get(PasswordChangeService::class),
         $c->get(AccountSecurityService::class),
+        $c->get(ProfileService::class),
     ));
+
+    $container->set(ProfileService::class, fn ($c) => new ProfileService($c->get(UserRepositoryInterface::class)));
 
     $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(
         $c->get(PasswordResetService::class),

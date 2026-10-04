@@ -68,7 +68,7 @@ final class UserAdminApiController
         $groupIdValue = ($groupId === null || $groupId === '') ? null : (int) $groupId;
 
         try {
-            $user = $this->userAdminService->create(trim((string) $email), trim((string) $displayName), $role, $groupIdValue);
+            $user = $this->userAdminService->create(trim((string) $email), (string) $displayName, $role, $groupIdValue);
         } catch (UserValidationException $e) {
             return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
         }

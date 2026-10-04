@@ -63,7 +63,7 @@ final class PageController
         );
     }
 
-    /** Page « Mon mot de passe » : réservée aux utilisateurs connectés. */
+    /** Page « Mon compte » (nom affiché et mot de passe) : réservée aux utilisateurs connectés. */
     public function accountPassword(): Response
     {
         $user = $this->authGuard->requireLogin();
@@ -71,6 +71,8 @@ final class PageController
         return new Response($this->renderer->render('account/password', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'currentUserRole' => $user->role(),
+            'displayName' => $user->displayName(),
+            'email' => $user->email(),
         ]));
     }
 

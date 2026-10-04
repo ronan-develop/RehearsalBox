@@ -57,4 +57,10 @@ final class PasswordResetRoutesTest extends TestCase
         self::assertContains(['PATCH', '/api/admin/users/{id}', [\App\Controller\Api\UserAdminApiController::class, 'update']], $this->allRoutes());
         self::assertContains(['POST', '/api/admin/users/{id}/unlock', [\App\Controller\Api\UserAdminApiController::class, 'unlock']], $this->allRoutes());
     }
+
+    #[Test]
+    public function testProfileEndpointIsAPatchApiRoute(): void
+    {
+        self::assertContains(['PATCH', '/api/account/profile', [AccountApiController::class, 'updateProfile']], $this->allRoutes());
+    }
 }
