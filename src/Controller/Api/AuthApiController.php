@@ -6,20 +6,18 @@ namespace App\Controller\Api;
 
 use App\Entity\Enum\UserRole;
 use App\Entity\Group;
-use App\Entity\User;
 use App\Http\JsonResponse;
 use App\Http\Request;
-use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
-use App\Security\PasswordHasherInterface;
 use App\Service\Contract\AuthServiceInterface;
+use App\Service\Exception\UserValidationException;
+use App\Service\UserProvisioningService;
 
 final class AuthApiController
 {
     public function __construct(
         private readonly AuthServiceInterface $authService,
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly PasswordHasherInterface $passwordHasher,
+        private readonly UserProvisioningService $userProvisioning,
     ) {
     }
 
@@ -29,34 +27,11 @@ final class AuthApiController
         $password = (string) $request->body('password', '');
         $displayName = (string) $request->body('displayName', '');
 
-        $errors = [];
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
-            $errors['email'] = 'Adresse email invalide.';
+        try {
+            $user = $this->userProvisioning->create($email, $displayName, UserRole::Musicien, $password);
+        } catch (UserValidationException $e) {
+            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
         }
-        if (strlen($password) < 8) {
-            $errors['password'] = 'Le mot de passe doit faire au moins 8 caractères.';
-        }
-        if ($displayName === '' || strlen($displayName) > 100) {
-            $errors['displayName'] = 'Nom affiché requis (100 caractères maximum).';
-        }
-        if ($errors === [] && $this->userRepository->findByEmail($email) !== null) {
-            $errors['email'] = 'Un compte existe déjà avec cet email.';
-        }
-
-        if ($errors !== []) {
-            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $errors], 422);
-        }
-
-        $user = $this->userRepository->save(new User(
-            id: 0,
-            email: $email,
-            passwordHash: $this->passwordHasher->hash($password),
-            displayName: $displayName,
-            role: UserRole::Musicien,
-            isActive: true,
-            failedLoginAttempts: 0,
-            lockedUntil: null,
-        ));
 
         return new JsonResponse(['id' => $user->id(), 'email' => $user->email()], 201);
     }
