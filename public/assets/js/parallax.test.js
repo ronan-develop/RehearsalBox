@@ -52,8 +52,9 @@ test('computeScrollProgress interpolates linearly up to the threshold', () => {
   assert.equal(computeScrollProgress(300, 1000), 0.5);
 });
 
-test('computeScrollProgress returns 1 when the page has no scroll available (maxScrollY = 0)', () => {
-  assert.equal(computeScrollProgress(0, 0), 1);
+test('computeScrollProgress stays at 0 when the page has no scroll available (maxScrollY = 0)', () => {
+  // Sans scroll possible, le watermark reste dans le cadre du header (position de départ).
+  assert.equal(computeScrollProgress(0, 0), 0);
 });
 
 test('computeAnchorEndOffset adds no horizontal offset: the CSS keeps the watermark centered, whatever the screen', () => {
@@ -303,6 +304,22 @@ test('initParallax freezes the scroll-driven translateY once fully stabilized (p
   scrollCallback();
 
   assert.equal(bg.properties['--wm-scroll-y'], '0px');
+});
+
+test('initParallax keeps the watermark in the header, without neon, when the page cannot scroll', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ top: 47, left: 0, width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 600 }) };
+  // scrollHeight = innerHeight : aucun scroll possible.
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 800 });
+  const win = fakeWindow({ innerHeight: 800 });
+
+  initParallax(doc, win);
+
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false);
+  // Décalage de départ (dans le header), pas la position finale calée sur l'ancre.
+  const start = computeStartOffset(fakeRect({ top: 47, left: 0, width: 300, height: 132 }), bg.getBoundingClientRect());
+  assert.equal(bg.properties['--wm-y'], `${start.y}px`);
 });
 
 test('initParallax adds the neon class only once the scroll ratio threshold is reached', () => {
