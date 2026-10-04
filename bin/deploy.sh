@@ -9,7 +9,7 @@
 # Variables optionnelles :
 #   RB_SSH_HOST (rehearsalbox), RB_REMOTE_BASE (rehearsalbox), RB_SECRETS_FILE (.secrets),
 #   RB_REMOTE_PHP (/usr/local/bin/php), RB_REMOTE_COMPOSER (/usr/local/bin/composer),
-#   RB_MAILER_DSN, RB_MAILER_FROM (sinon MAILER_DSN / MAILER_FROM du fichier de secrets),
+#   RB_MAILER_DSN, RB_MAILER_FROM, RB_APP_URL (sinon MAILER_DSN / MAILER_FROM / APP_URL du fichier de secrets),
 #   RB_REGEN_CONFIG=1 (régénère config.local.php), RB_SKIP_CHECKS=1 (saute phpunit/npm/audit)
 set -euo pipefail
 
@@ -83,6 +83,7 @@ if [ "${RB_REGEN_CONFIG:-0}" = "1" ] || ! rb_ssh "test -f \"\$HOME/$BASE/shared/
         done
         printf 'MAILER_DSN=%s\n' "$(printf '%s' "$mailer_dsn" | base64 -w0)"
         printf 'MAILER_FROM=%s\n' "$(printf '%s' "$mailer_from" | base64 -w0)"
+        printf 'APP_URL=%s\n' "$(printf '%s' "${RB_APP_URL:-$(secret APP_URL)}" | base64 -w0)"
     } | rb_ssh "cd \"\$HOME/$BASE/releases/$release\" && $REMOTE_PHP bin/generate-config.php \"\$HOME/$BASE/shared/config.local.php\""
 fi
 

@@ -29,6 +29,7 @@ final class LocalConfigGeneratorTest extends TestCase
             'PROD_DB_PASSWORD' => $this->password,
             'MAILER_DSN' => 'sendmail://default',
             'MAILER_FROM' => 'no-reply@example.test',
+            'APP_URL' => 'https://app.example.test',
         ];
     }
 
@@ -55,6 +56,19 @@ final class LocalConfigGeneratorTest extends TestCase
         self::assertSame('user_test', $config['db']['user']);
         self::assertSame('sendmail://default', $config['mailer']['dsn']);
         self::assertSame('no-reply@example.test', $config['mailer']['from']);
+        self::assertSame('https://app.example.test', $config['app']['base_url']);
+    }
+
+    #[Test]
+    public function testRenderRequiresTheApplicationUrl(): void
+    {
+        $env = $this->env();
+        unset($env['APP_URL']);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('APP_URL');
+
+        (new LocalConfigGenerator())->render($env);
     }
 
     #[Test]

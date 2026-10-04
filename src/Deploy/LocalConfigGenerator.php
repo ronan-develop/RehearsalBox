@@ -14,6 +14,7 @@ final class LocalConfigGenerator
         'PROD_DB_PASSWORD',
         'MAILER_DSN',
         'MAILER_FROM',
+        'APP_URL',
     ];
 
     /** @param array<string, string> $env */
@@ -37,6 +38,9 @@ final class LocalConfigGenerator
             'mailer' => [
                 'dsn' => $env['MAILER_DSN'],
                 'from' => $env['MAILER_FROM'],
+            ],
+            'app' => [
+                'base_url' => $env['APP_URL'],
             ],
         ];
 
