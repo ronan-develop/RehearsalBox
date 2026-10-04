@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminUserPageController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupContactApiController;
@@ -24,7 +25,7 @@ return [
         ['GET', '/account/secure', [PageController::class, 'secureAccount']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
-        ['GET', '/admin/users', [PageController::class, 'adminUsers']],
+        ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
     ],
     'api' => [

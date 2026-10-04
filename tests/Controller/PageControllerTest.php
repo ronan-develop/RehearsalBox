@@ -525,4 +525,19 @@ final class PageControllerTest extends RepositoryTestCase
             lockedUntil: null,
         ));
     }
+
+    #[Test]
+
+    public function testAdminGroupsPageLinksToTheUsersPage(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $admin = $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $body = $controller->adminGroups()->body();
+
+        // La barre du bas garde ses 5 liens (pas de 6e lien qui déborderait sur mobile) : accès via la page Groupes.
+        self::assertStringContainsString('href="/admin/users"', $body);
+        self::assertSame(5, substr_count($body, 'rb-bottom-nav-link'), 'la navigation du bas reste à 5 entrées');
+    }
 }

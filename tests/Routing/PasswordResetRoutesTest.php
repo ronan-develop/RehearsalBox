@@ -51,7 +51,7 @@ final class PasswordResetRoutesTest extends TestCase
     #[Test]
     public function testAdminUsersRoutesAreRegistered(): void
     {
-        self::assertContains(['GET', '/admin/users', [PageController::class, 'adminUsers']], $this->allRoutes());
+        self::assertContains(['GET', '/admin/users', [\App\Controller\AdminUserPageController::class, 'index']], $this->allRoutes());
         self::assertContains(['GET', '/api/admin/users', [\App\Controller\Api\UserAdminApiController::class, 'index']], $this->allRoutes());
         self::assertContains(['POST', '/api/admin/users', [\App\Controller\Api\UserAdminApiController::class, 'store']], $this->allRoutes());
         self::assertContains(['PATCH', '/api/admin/users/{id}', [\App\Controller\Api\UserAdminApiController::class, 'update']], $this->allRoutes());

@@ -6,6 +6,7 @@ use App\Container\Container;
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminUserPageController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupContactApiController;
@@ -194,6 +195,14 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(UserProvisioningService::class),
+    ));
+
+    $container->set(AdminUserPageController::class, fn ($c) => new AdminUserPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(UserAdminServiceInterface::class),
+        $c->get(GroupServiceInterface::class),
     ));
 
     $container->set(UserAdminApiController::class, fn ($c) => new UserAdminApiController(
