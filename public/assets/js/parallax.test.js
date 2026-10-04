@@ -2,18 +2,27 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset } from './parallax.js';
 
-test('computeStartOffset positions the watermark in the first third of the header width', () => {
-  const headerRect = { top: 0, height: 132, width: 300 };
-  const bgTextRect = { top: 0, height: 92 };
+test('computeStartOffset puts the watermark in the first third of the header, relative to its centered resting position', () => {
+  const headerRect = { top: 0, left: 0, height: 132, width: 300 };
+  // Au repos, le calque est centré par le CSS : son bord gauche est à 400.
+  const bgTextRect = { top: 0, left: 400, height: 92 };
 
   const offset = computeStartOffset(headerRect, bgTextRect);
 
-  assert.equal(offset.x, 100);
+  // Bord gauche visé : 0 + 300/3 = 100 ; décalage à appliquer : 100 - 400.
+  assert.equal(offset.x, -300);
+});
+
+test('computeStartOffset takes the header left edge into account', () => {
+  const headerRect = { top: 0, left: 50, height: 132, width: 300 };
+  const bgTextRect = { top: 0, left: 150, height: 92 };
+
+  assert.equal(computeStartOffset(headerRect, bgTextRect).x, 0);
 });
 
 test('computeStartOffset centers the watermark vertically within the header height', () => {
-  const headerRect = { top: 0, height: 132, width: 300 };
-  const bgTextRect = { top: 0, height: 92 };
+  const headerRect = { top: 0, left: 0, height: 132, width: 300 };
+  const bgTextRect = { top: 0, left: 0, height: 92 };
 
   const offset = computeStartOffset(headerRect, bgTextRect);
 
@@ -47,20 +56,23 @@ test('computeScrollProgress returns 1 when the page has no scroll available (max
   assert.equal(computeScrollProgress(0, 0), 1);
 });
 
-test('computeAnchorEndOffset keeps the given startX unchanged (no extra horizontal shift)', () => {
-  const anchorRect = { top: 900 };
-  const bgTextRect = { top: 40, height: 92 };
+test('computeAnchorEndOffset adds no horizontal offset: the CSS keeps the watermark centered, whatever the screen', () => {
+  const bgTextRect = { top: 40, left: 400, width: 100, height: 92 };
 
-  const end = computeAnchorEndOffset(anchorRect, bgTextRect, 100);
-
-  assert.equal(end.x, 100);
+  for (const anchorRect of [
+    { top: 900, left: 20, width: 300 },
+    { top: 900, left: 57, width: 1666 },
+    { top: 900, left: 0, width: 0 },
+  ]) {
+    assert.equal(computeAnchorEndOffset(anchorRect, bgTextRect).x, 0);
+  }
 });
 
 test('computeAnchorEndOffset returns the delta needed for a fixed element to stop at the anchor current screen position', () => {
-  const anchorRect = { top: 900 };
-  const bgTextRect = { top: 40, height: 92 };
+  const anchorRect = { top: 900, left: 0, width: 300 };
+  const bgTextRect = { top: 40, left: 0, width: 100, height: 92 };
 
-  const end = computeAnchorEndOffset(anchorRect, bgTextRect, 0);
+  const end = computeAnchorEndOffset(anchorRect, bgTextRect);
 
   // 900 - 40 - 92 = 768.
   assert.equal(end.y, 768);
@@ -194,6 +206,25 @@ test('initParallax stops exactly at the anchor current screen position once the 
   // anchorRect.top(900) - bgTextRect.top(0) - bgTextRect.height(92) = 808.
   assert.equal(bg.properties['--wm-y'], '808px');
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
+});
+
+test('initParallax ends at --wm-x 0 (centered by the CSS) whatever the anchor geometry', () => {
+  const bg = fakeBgElement();
+  bg.getBoundingClientRect = () => fakeRect({ top: 0, left: 400, width: 100, height: 92 });
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900, left: 57, width: 1666 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  let scrollCallback;
+  const win = fakeWindow({ innerHeight: 800 });
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
+
+  initParallax(doc, win);
+  win.scrollY = 720;
+  scrollCallback();
+
+  assert.equal(bg.properties['--wm-x'], '0px');
 });
 
 test('initParallax freezes the end offset once progress reaches 1, ignoring further anchor movement', () => {

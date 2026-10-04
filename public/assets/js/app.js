@@ -13,7 +13,9 @@ import { initGroupDocuments } from './group-documents.js';
 import { initGroupSpaceEditor } from './group-space.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  initParallax();
+  // Après le chargement de la police du watermark : la position de repos
+  // (centrée par le CSS) dépend de la largeur réelle du texte.
+  (document.fonts?.ready ?? Promise.resolve()).then(() => initParallax());
   initAuth();
   initAvailability();
   initAdminSlots();

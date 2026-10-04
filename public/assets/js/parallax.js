@@ -1,24 +1,25 @@
 /**
  * Parallax du calque "#B27" en fond de dashboard.
  *
- * Au chargement (scroll 0), le calque est décalé vers le premier tiers
- * horizontal du header et centré verticalement dans sa hauteur plutôt que
- * dans son coin haut-gauche par défaut. Cet offset (--wm-x/--wm-y) s'interpole
- * progressivement, au fur et à mesure du scroll, vers une position finale —
- * le watermark s'y stabilise une fois qu'on approche la fin réelle du
- * scroll de la page (calculée depuis scrollHeight/innerHeight, pas un seuil
- * arbitraire) et n'en bouge plus au-delà.
+ * RÈGLE GÉNÉRALE (valable pour tous les écrans) : au repos, le CSS centre le
+ * calque horizontalement dans la page (.rb-page-bg en flex centré). Le JS
+ * n'ajoute qu'un décalage par rapport à ce centre :
+ *  - au chargement (scroll 0), un décalage de départ qui place le texte dans
+ *    le premier tiers horizontal du header, centré verticalement dans sa
+ *    hauteur ;
+ *  - ce décalage tend vers 0 à mesure qu'on scrolle : la position finale est
+ *    donc centrée sans qu'aucune largeur d'écran, d'ancre ou de texte ne soit
+ *    mesurée pour la calculer.
  *
- * Position finale calée sur une ancre dans le flow normal
- * ([data-parallax-anchor], juste au-dessus du titre "Demandes de créneau",
- * cf. templates/dashboard/index.php) plutôt qu'une valeur fixe en px devinée
- * — identique en desktop et mobile. La position de l'ancre à l'écran
- * (getBoundingClientRect().top) est recalculée à chaque frame de scroll (pas
- * sa position absolue dans le document comparée à scrollY, qui ne tient pas
- * compte de la hauteur du viewport et se désynchronise selon la taille
- * d'écran), puis figée dès que la progression atteint 1 pour que le
- * watermark s'arrête net plutôt que de continuer à suivre l'ancre qui
- * remonte au fil du scroll.
+ * Verticalement, la position finale est calée sur une ancre dans le flow
+ * normal ([data-parallax-anchor], juste au-dessus du titre "Demandes de
+ * créneau", cf. templates/dashboard/index.php) : le bas du watermark
+ * coïncide avec la position à l'écran de l'ancre (getBoundingClientRect().top,
+ * recalculé à chaque frame de scroll), puis figée dès que la progression
+ * atteint 1 pour que le watermark s'arrête net plutôt que de continuer à
+ * suivre l'ancre qui remonte au fil du scroll. La progression atteint 1 au
+ * seuil END_SCROLL_RATIO du scroll réel de la page (scrollHeight/innerHeight,
+ * pas un seuil arbitraire en px).
  *
  * Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
  * DOM réel (fonctions pures ci-dessous) pour rester testables en
@@ -26,28 +27,29 @@
  */
 
 /**
- * Décalage de départ (scroll 0) : premier tiers horizontal du header, centré
- * verticalement dans sa hauteur, relatif à la position par défaut du texte
- * (padding-left: var(--rb-space-3), en haut du calque plein-page).
+ * Décalage de départ (scroll 0), relatif à la position de repos centrée du
+ * calque : amène son bord gauche au premier tiers horizontal du header, et
+ * le centre verticalement dans la hauteur du header.
  */
 export function computeStartOffset(headerRect, bgTextRect) {
   return {
-    x: headerRect.width / 3,
+    x: headerRect.left + headerRect.width / 3 - bgTextRect.left,
     y: headerRect.top - bgTextRect.top + headerRect.height / 2 - bgTextRect.height / 2,
   };
 }
 
 /**
- * Position finale (progress 1) : calée sur la position actuelle à l'écran
- * de l'ancre — bg étant fixed (top constant à l'écran), le delta
- * (anchorRect.top - bgTextRect.top) donne directement le --wm-y nécessaire
- * pour que le bas du watermark coïncide avec l'ancre actuellement affichée.
- * x reste celui du départ (aucun décalage horizontal supplémentaire) : le
- * watermark descend simplement à la verticale jusqu'à l'ancre.
+ * Position finale (progress 1).
+ *  - x : 0 — le CSS centre déjà le calque, aucun décalage horizontal
+ *    supplémentaire (identique en mobile et en desktop, quelle que soit la
+ *    largeur de l'écran, du contenu ou du texte).
+ *  - y : bg étant fixed (top constant à l'écran), le delta
+ *    (anchorRect.top - bgTextRect.top) donne directement le --wm-y nécessaire
+ *    pour que le bas du watermark coïncide avec l'ancre actuellement affichée.
  */
-export function computeAnchorEndOffset(anchorRect, bgTextRect, startX) {
+export function computeAnchorEndOffset(anchorRect, bgTextRect) {
   return {
-    x: startX,
+    x: 0,
     y: anchorRect.top - bgTextRect.top - bgTextRect.height,
   };
 }
@@ -112,6 +114,7 @@ export function initParallax(root = document, windowRef = window) {
     ? computeStartOffset(
         {
           top: header.getBoundingClientRect().top + initialScrollY,
+          left: header.getBoundingClientRect().left,
           width: header.getBoundingClientRect().width,
           height: header.getBoundingClientRect().height,
         },
@@ -139,7 +142,7 @@ export function initParallax(root = document, windowRef = window) {
     let end = start;
     if (anchor) {
       if (frozenEnd === null) {
-        end = computeAnchorEndOffset(anchor.getBoundingClientRect(), bgTextRectAtRest, start.x);
+        end = computeAnchorEndOffset(anchor.getBoundingClientRect(), bgTextRectAtRest);
         if (progress === 1) frozenEnd = end;
       } else {
         end = frozenEnd;
