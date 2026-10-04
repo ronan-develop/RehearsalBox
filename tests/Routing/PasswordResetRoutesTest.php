@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Routing;
 
 use App\Controller\Api\PasswordResetApiController;
+use App\Controller\PageController;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -16,6 +17,13 @@ final class PasswordResetRoutesTest extends TestCase
         $groups = require __DIR__ . '/../../config/routes.php';
 
         return [...$groups['pages'], ...$groups['api']];
+    }
+
+    #[Test]
+    public function testPasswordResetPagesAreRegisteredAsGetRoutes(): void
+    {
+        self::assertContains(['GET', '/forgot-password', [PageController::class, 'forgotPassword']], $this->allRoutes());
+        self::assertContains(['GET', '/reset-password', [PageController::class, 'resetPassword']], $this->allRoutes());
     }
 
     #[Test]

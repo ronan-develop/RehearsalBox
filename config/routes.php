@@ -17,6 +17,8 @@ return [
         ['GET', '/', [PageController::class, 'dashboard']],
         ['GET', '/login', [PageController::class, 'login']],
         ['GET', '/register', [PageController::class, 'register']],
+        ['GET', '/forgot-password', [PageController::class, 'forgotPassword']],
+        ['GET', '/reset-password', [PageController::class, 'resetPassword']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
