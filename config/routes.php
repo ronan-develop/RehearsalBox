@@ -17,7 +17,6 @@ return [
     'pages' => [
         ['GET', '/', [PageController::class, 'dashboard']],
         ['GET', '/login', [PageController::class, 'login']],
-        ['GET', '/register', [PageController::class, 'register']],
         ['GET', '/forgot-password', [PageController::class, 'forgotPassword']],
         ['GET', '/reset-password', [PageController::class, 'resetPassword']],
         ['GET', '/account/password', [PageController::class, 'accountPassword']],
@@ -28,7 +27,6 @@ return [
     ],
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],
-        ['POST', '/api/auth/register', [AuthApiController::class, 'register']],
         ['POST', '/api/auth/forgot-password', [PasswordResetApiController::class, 'forgotPassword']],
         ['POST', '/api/auth/reset-password', [PasswordResetApiController::class, 'resetPassword']],
         ['POST', '/api/auth/change-password', [AccountApiController::class, 'changePassword']],

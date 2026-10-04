@@ -1,4 +1,4 @@
-/** Login/Register/Logout en XHR — cf. plan §5bis. */
+/** Login/Logout en XHR — cf. plan §5bis. */
 import { initAsyncForms } from './forms.js';
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
@@ -46,7 +46,7 @@ export function initAuth() {
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/auth/login"], form[data-async][data-endpoint*="/auth/register"]')
+  document.querySelectorAll('form[data-async][data-endpoint*="/auth/login"]')
     .forEach((form) => {
       form.addEventListener('async-success', () => {
         window.location.href = '/';

@@ -175,7 +175,6 @@ return static function (array $config): Container {
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
         $c->get(AuthServiceInterface::class),
-        $c->get(UserProvisioningService::class),
     ));
 
     $container->set(AvailabilityApiController::class, fn ($c) => new AvailabilityApiController(
