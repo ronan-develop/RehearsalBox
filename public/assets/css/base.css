@@ -48,6 +48,8 @@
   --rb-stone-ember: #9c5540;
   --rb-stone-chalk: #ece9e2;
   --rb-stone-flame: #f4d35e;
+  /* Rouge néon pétant, réservé à l'effet du watermark (dashboard.css). */
+  --rb-neon-red: #ff2a3c;
 }
 
 @font-face {

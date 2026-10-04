@@ -103,7 +103,7 @@
    SEULE l'opacité varie avec le scroll : opération du compositeur, pas de
    text-shadow redessiné à chaque image. Le texte de la couche reste rouge
    (l'ombre est dessinée derrière lui) : le rouge garde l'intérieur des lettres,
-   plus clair en son cœur façon tube néon rouge (rose-blanc, halo rouge), le
+   rouge néon pétant en son cœur façon tube néon (un soupçon de blanc, halo rouge), le
    jaune reste un liseré fin sur le contour, sans baver. Halo court et
    intensité maximale atténuée pour rester lisible. */
 .rb-page-bg-text::after {
@@ -111,12 +111,12 @@
   position: absolute;
   top: 0;
   left: 0;
-  color: color-mix(in srgb, var(--rb-accent) 62%, white);
+  color: color-mix(in srgb, var(--rb-neon-red) 80%, white);
   -webkit-text-stroke: 1px var(--rb-stone-flame);
   text-shadow:
     0 0 4px var(--rb-stone-flame),
-    0 0 9px var(--rb-accent),
-    0 0 15px var(--rb-accent);
+    0 0 9px var(--rb-neon-red),
+    0 0 15px var(--rb-neon-red);
   opacity: calc(var(--wm-glow, 0) * 0.7);
   pointer-events: none;
 }

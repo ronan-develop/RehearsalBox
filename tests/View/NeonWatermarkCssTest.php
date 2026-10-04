@@ -119,7 +119,11 @@ final class NeonWatermarkCssTest extends TestCase
 
         // Un texte transparent laisserait l'ombre jaune recouvrir l'intérieur des lettres.
         self::assertStringNotContainsString('color: transparent', $glow);
-        self::assertMatchesRegularExpression('/color:\s*(var\(--rb-accent\)|color-mix\([^;]*var\(--rb-accent\))/', $glow, 'Le rouge (éventuellement éclairci) reste à l\'intérieur des lettres.');
+        self::assertMatchesRegularExpression('/color:\s*(var\(--rb-neon-red\)|color-mix\([^;]*var\(--rb-neon-red\)[^;]*\))/', $glow, 'Rouge pétant (jeton --rb-neon-red) à l\'intérieur des lettres.');
+        // Un soupçon de blanc seulement : le cœur reste franchement rouge.
+        if (preg_match('/color-mix\([^;]*?(\d+)%[^;]*white/', $glow, $mix) === 1) {
+            self::assertGreaterThanOrEqual(75, (int) $mix[1], 'Au plus 25 % de blanc : rouge pétant, pas rose.');
+        }
     }
 
     #[Test]
