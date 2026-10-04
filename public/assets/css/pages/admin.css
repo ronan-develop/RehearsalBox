@@ -139,15 +139,37 @@
   color: #fff;
 }
 
-/* Page Utilisateurs (#138) */
-.rb-admin-crosslink {
-  margin-bottom: var(--rb-space-3);
+/* Onglets Groupes | Utilisateurs (#155) — même apparence que les onglets du tableau de bord */
+.rb-admin-tabs {
+  display: flex;
+  gap: var(--rb-space-1);
+  margin-bottom: var(--rb-space-4);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: 3px;
 }
 
-.rb-admin-crosslink a {
+.rb-admin-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  color: var(--rb-text-2);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: var(--rb-radius-sm);
+}
+
+.rb-admin-tab[aria-current="page"] {
+  background: var(--rb-surface-strong);
   color: var(--rb-accent);
+  box-shadow: var(--rb-elevation-1);
 }
 
+/* Page Utilisateurs (#138) */
 .rb-admin-note {
   color: var(--rb-text-2);
   font-size: 0.875rem;

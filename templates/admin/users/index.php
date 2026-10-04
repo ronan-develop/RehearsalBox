@@ -19,9 +19,9 @@
 </head>
 <body>
     <div class="rb-admin-page">
+        <?php $adminTab = 'users'; require __DIR__ . '/../../partials/admin-tabs.php'; ?>
         <h1>Utilisateurs</h1>
         <p class="rb-admin-subtitle">Comptes, accès et déblocage.</p>
-        <p class="rb-admin-crosslink"><a href="/admin/groups">← Groupes</a></p>
 
         <form data-async data-endpoint="/api/admin/users" data-method="POST" class="rb-admin-form rb-card" data-user-create-form>
             <p class="rb-admin-note">
