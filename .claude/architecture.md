@@ -23,7 +23,7 @@ src/
 
 ## E-mails (#157)
 
-Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, inséré dans `layout.php`) et `<nom>.txt.php` (version texte). `MailRenderer::render('<nom>', $data)` retourne `['html' => …, 'text' => …]`. Règles : tables et **styles en ligne** (clients de messagerie), aucune police web ni image distante, **tout contenu dynamique échappé** avec `e()` (le message de contact est saisi par un utilisateur), liens construits depuis `app.base_url`. Ajouter un e-mail = deux gabarits + un test dans `tests/Mail/MailRendererTest.php`.
+Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, inséré dans `layout.php`) et `<nom>.txt.php` (version texte). `MailRenderer::render('<nom>', $data)` retourne `['html' => …, 'text' => …]`. Règles : tables et **styles en ligne** (clients de messagerie), aucune police web ni image distante, **tout contenu dynamique échappé** avec `e()` (le contenu d'un e-mail peut venir d'un utilisateur), liens construits depuis `app.base_url`. Ajouter un e-mail = deux gabarits + un test dans `tests/Mail/MailRendererTest.php`.
 
 ## Principes appliqués
 
@@ -47,6 +47,14 @@ Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requ�
 - **Quoi** : appartenance (`isMember`) pour lire, rôle gestionnaire (`roleOf`) pour modifier un groupe ou ses documents, rôle admin (`AuthGuard::requireRole`) pour l'administration. Un membre du groupe demandeur ne répond pas à sa propre demande.
 - **Réponse** : un objet interdit et un objet inexistant renvoient la **même réponse** (403, même message) pour les ressources de groupe, document et demande ; 401 si anonyme. Ne jamais distinguer « n'existe pas » de « pas à vous » (énumération des identifiants). Les routes admin gardent leurs codes propres.
 - **Test** : toute nouvelle route à identifiant s'ajoute à `tests/Security/IdorMatrixTest.php` (acteurs refusés, identifiant inexistant, cas limites).
+
+## Messagerie entre groupes (#153)
+
+- **Modèle** : `conversations` (groupe initiateur, groupe visé, sujet), `conversation_messages` (auteur, texte brut), `conversation_states` (par personne : dernière lecture, archivée) — migration 014. Le « non lu » se déduit de `last_read_at` (aucun compteur à maintenir) ; l'archivage est **par personne**, un nouveau message d'un autre ramène le fil dans sa boîte.
+- **Accès** : tout membre de l'un des deux groupes lit et répond (`ConversationService`). Pour démarrer, la personne doit appartenir au groupe émetteur choisi (liste « Écrire en tant que » seulement si elle a plusieurs groupes) ; un groupe ne s'écrit pas à lui-même. Auteur et utilisateur viennent **toujours de la session**. Fil interdit, inexistant ou identifiant mal formé : même 403 « Accès refusé. ».
+- **Boîtes** : Reçues = fils de mes groupes non archivés ; Envoyées = fils où j'ai écrit (aperçu = **mon** dernier message) ; Archivées = fils que j'ai archivés. L'unité est le fil, jamais le message isolé.
+- **Saisie** : `ConversationInputPolicy` (sujet ≤ 150 caractères sans caractère de contrôle, message ≤ 5 000), limite de 30 messages par heure et par personne (429). Le texte n'est jamais inséré en HTML côté client (`textContent`).
+- **Pas d'e-mail** à chaque message dans cette première version : badge « non lu » seulement.
 
 ## Point clé — concurrence sur les créneaux libérés
 

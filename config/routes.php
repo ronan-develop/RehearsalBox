@@ -9,7 +9,6 @@ use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
-use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\PasswordResetApiController;
@@ -61,7 +60,6 @@ return [
         ['POST',   '/api/admin/users/{id}/unlock', [UserAdminApiController::class, 'unlock']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
-        ['POST',   '/api/groups/{id}/contact', [GroupContactApiController::class, 'send']],
         ['GET',    '/api/conversations', [ConversationApiController::class, 'index']],
         ['POST',   '/api/conversations', [ConversationApiController::class, 'start']],
         ['GET',    '/api/conversations/{id}', [ConversationApiController::class, 'show']],

@@ -164,7 +164,6 @@ final class IdorMatrixTest extends TestCase
             // Espace groupe
             ['GET', '/api/groups/{groupA}/space', [], ['anon', 'stranger', 'outsiderB']],
             ['PATCH', '/api/groups/{groupA}/space', ['lineup' => [], 'upcomingShows' => []], ['anon', 'stranger', 'outsiderB', 'memberA']],
-            ['POST', '/api/groups/{groupA}/contact', ['message' => 'Bonjour'], ['anon']],
             // Messagerie (#153) : réservée aux membres des deux groupes de la conversation
             ['GET', '/api/conversations', [], ['anon']],
             ['GET', '/api/conversations/{convAB}', [], ['anon', 'stranger']],
@@ -248,15 +247,6 @@ final class IdorMatrixTest extends TestCase
             self::assertLessThan(500, $status, "{$method} {$path} avec l'id « {$edge} » ne doit pas faire une erreur serveur.");
             self::assertNotSame(200, $status, "{$method} {$path} avec l'id « {$edge} » ne doit pas réussir pour un inconnu.");
         }
-    }
-
-    #[Test]
-    public function testContactDoesNotRevealWhichGroupsExist(): void
-    {
-        $existing = $this->call('stranger', 'POST', '/api/groups/' . self::$ids['groupA'] . '/contact', ['message' => 'Bonjour']);
-        $missing = $this->call('stranger', 'POST', '/api/groups/' . self::MISSING_ID . '/contact', ['message' => 'Bonjour']);
-
-        self::assertSame($existing, $missing);
     }
 
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------
