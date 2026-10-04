@@ -25,6 +25,23 @@
             </form>
         </div>
         <div class="rb-auth-card rb-card">
+            <h2 class="rb-account-section-title">Adresse e-mail</h2>
+            <p class="rb-auth-intro">Un lien de confirmation (valable 1 heure) sera envoyé à la <strong>nouvelle</strong> adresse, et l'ancienne sera prévenue. Vous serez ensuite déconnecté de vos appareils et vous vous reconnecterez avec la nouvelle adresse.</p>
+            <form data-async data-endpoint="/api/account/email" data-method="PATCH">
+                <div class="rb-field">
+                    <label for="newEmail">Nouvelle adresse e-mail</label>
+                    <input type="email" id="newEmail" name="email" class="rb-input" required maxlength="190" autocomplete="email">
+                    <span class="rb-field-error" data-field-error="email"></span>
+                </div>
+                <div class="rb-field">
+                    <label for="emailCurrentPassword">Mot de passe actuel</label>
+                    <input type="password" id="emailCurrentPassword" name="currentPassword" class="rb-input" required autocomplete="current-password">
+                    <span class="rb-field-error" data-field-error="currentPassword"></span>
+                </div>
+                <button type="submit" class="rb-btn-primary">Envoyer le lien de confirmation</button>
+            </form>
+        </div>
+        <div class="rb-auth-card rb-card">
             <h2 class="rb-account-section-title">Mot de passe</h2>
             <p class="rb-auth-intro">Pour changer de mot de passe, saisissez l'actuel puis le nouveau (8 caractères minimum). Vos autres appareils seront déconnectés.</p>
             <form data-async data-endpoint="/api/auth/change-password" data-method="POST">
