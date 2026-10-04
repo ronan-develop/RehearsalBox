@@ -12,9 +12,7 @@ use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\NativePasswordHasher;
-use App\Security\PasswordPolicy;
 use App\Service\AuthService;
-use App\Service\UserProvisioningService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,87 +26,9 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $hasher = new NativePasswordHasher();
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, $hasher, $session, $groupRepository);
-        $controller = new AuthApiController($authService, new UserProvisioningService($userRepository, $hasher, new PasswordPolicy()));
+        $controller = new AuthApiController($authService);
 
         return [$controller, $userRepository, $session, $groupRepository];
-    }
-
-    #[Test]
-
-    public function testRegisterCreatesUserAndReturns201(): void
-    {
-        [$controller] = $this->makeController();
-
-        $request = new Request('POST', '/api/auth/register', [], [
-            'email' => 'alice@rehearsalbox.test',
-            'password' => 'password123',
-            'displayName' => 'Alice',
-        ], []);
-
-        $response = $controller->register($request);
-
-        self::assertSame(201, $response->statusCode());
-    }
-
-    #[Test]
-
-    public function testRegisterWithInvalidEmailReturns422(): void
-    {
-        [$controller] = $this->makeController();
-
-        $request = new Request('POST', '/api/auth/register', [], [
-            'email' => 'pas-un-email',
-            'password' => 'password123',
-            'displayName' => 'Alice',
-        ], []);
-
-        $response = $controller->register($request);
-
-        self::assertSame(422, $response->statusCode());
-    }
-
-    #[Test]
-
-    public function testRegisterWithShortPasswordReturns422(): void
-    {
-        [$controller] = $this->makeController();
-
-        $request = new Request('POST', '/api/auth/register', [], [
-            'email' => 'bob@rehearsalbox.test',
-            'password' => '123',
-            'displayName' => 'Bob',
-        ], []);
-
-        $response = $controller->register($request);
-
-        self::assertSame(422, $response->statusCode());
-    }
-
-    #[Test]
-
-    public function testRegisterWithDuplicateEmailReturns422(): void
-    {
-        [$controller, $userRepository] = $this->makeController();
-        $userRepository->save(new User(
-            0,
-            'chris@rehearsalbox.test',
-            (new NativePasswordHasher())->hash('password123'),
-            'Chris',
-            UserRole::Musicien,
-            true,
-            0,
-            null,
-        ));
-
-        $request = new Request('POST', '/api/auth/register', [], [
-            'email' => 'chris@rehearsalbox.test',
-            'password' => 'password123',
-            'displayName' => 'Chris Bis',
-        ], []);
-
-        $response = $controller->register($request);
-
-        self::assertSame(422, $response->statusCode());
     }
 
     #[Test]

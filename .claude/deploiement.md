@@ -46,6 +46,8 @@ RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> <admin|m
 
 Le mot de passe passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. Les groupes sont créés ensuite depuis l'interface admin. Changer les mots de passe provisoires dès la première connexion.
 
+**Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Tout compte est créé par un admin ; en attendant la page admin des utilisateurs (#138), c'est `bin/create-user.php` sur le serveur (les mots de passe provisoires sont ensuite changés par l'utilisateur, ou remplacés via « Mot de passe oublié »).
+
 ## Réinitialisation de mot de passe
 
 - Pages publiques `/forgot-password` et `/reset-password?token=…` ; API `POST /api/auth/forgot-password` et `/api/auth/reset-password`.

@@ -90,11 +90,6 @@ final class PageController
         );
     }
 
-    public function register(): Response
-    {
-        return new Response($this->renderer->render('auth/register', ['csrfToken' => $this->csrfTokenManager->getToken()]));
-    }
-
     public function dashboard(): Response
     {
         $user = $this->authGuard->requireLogin();
