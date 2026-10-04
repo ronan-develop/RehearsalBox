@@ -14,6 +14,7 @@ use App\Entity\User;
 use App\Http\Request;
 use App\Kernel;
 use App\Migration\Migrator;
+use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
@@ -104,6 +105,11 @@ final class IdorMatrixTest extends TestCase
 
         $document = $documents->save(new GroupDocument(0, $groupA->id(), 'secret-de-A.pdf', 'stored-secret.pdf', 'application/pdf', 10, $managerA->id()));
 
+        // Conversation entre A (initiateur) et B (visé) : seuls les membres de A ou B y ont accès.
+        $conversations = new MysqlConversationRepository($pdo);
+        $conversationAB = $conversations->create($groupA->id(), $groupB->id(), 'Secret entre A et B', new \DateTimeImmutable());
+        $conversations->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
+
         self::$storagePath = sys_get_temp_dir() . '/rb-idor-' . bin2hex(random_bytes(4));
         mkdir(self::$storagePath);
 
@@ -114,6 +120,8 @@ final class IdorMatrixTest extends TestCase
             'excBA' => $exceptionBA->id(),
             'docA' => $document->id(),
             'userMemberA' => $memberA->id(),
+            'convAB' => $conversationAB->id(),
+            'groupB' => $groupB->id(),
         ];
     }
 
@@ -157,6 +165,12 @@ final class IdorMatrixTest extends TestCase
             ['GET', '/api/groups/{groupA}/space', [], ['anon', 'stranger', 'outsiderB']],
             ['PATCH', '/api/groups/{groupA}/space', ['lineup' => [], 'upcomingShows' => []], ['anon', 'stranger', 'outsiderB', 'memberA']],
             ['POST', '/api/groups/{groupA}/contact', ['message' => 'Bonjour'], ['anon']],
+            // Messagerie (#153) : réservée aux membres des deux groupes de la conversation
+            ['GET', '/api/conversations', [], ['anon']],
+            ['GET', '/api/conversations/{convAB}', [], ['anon', 'stranger']],
+            ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus'], ['anon', 'stranger']],
+            ['PATCH', '/api/conversations/{convAB}', ['archived' => true], ['anon', 'stranger']],
+            ['POST', '/api/conversations', ['groupId' => '{groupA}', 'targetGroupId' => '{groupB}', 'subject' => 'Usurpation', 'message' => 'Je parle pour A'], ['anon', 'stranger', 'outsiderB']],
             // Documents
             ['GET', '/api/groups/{groupA}/documents', [], ['anon', 'stranger', 'outsiderB']],
             ['POST', '/api/groups/{groupA}/documents', ['__upload' => true], ['anon', 'stranger', 'outsiderB', 'memberA']],
@@ -203,6 +217,9 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/groups/{id}/documents', ['__upload' => true], 'groupA'],
             ['GET', '/api/documents/{id}', [], 'docA'],
             ['DELETE', '/api/documents/{id}', [], 'docA'],
+            ['GET', '/api/conversations/{id}', [], 'convAB'],
+            ['POST', '/api/conversations/{id}/messages', ['message' => 'Intrus'], 'convAB'],
+            ['PATCH', '/api/conversations/{id}', ['archived' => true], 'convAB'],
         ];
 
         foreach ($routes as [$method, $path, $body, $idKey]) {
@@ -253,6 +270,10 @@ final class IdorMatrixTest extends TestCase
         self::assertSame(200, $this->call('memberA', 'GET', "/api/groups/{$groupA}/documents")[0]);
         self::assertSame(200, $this->call('memberA', 'GET', "/api/availability/pending/{$groupA}")[0]);
         self::assertSame(200, $this->call('outsiderB', 'GET', '/api/availability/requested/' . $this->groupBId())[0]);
+        self::assertSame(200, $this->call('memberA', 'GET', '/api/conversations')[0]);
+        self::assertSame(200, $this->call('outsiderB', 'GET', '/api/conversations')[0]);
+        self::assertSame(200, $this->call('outsiderB', 'GET', '/api/conversations/' . self::$ids['convAB'])[0], 'membre du groupe visé');
+        self::assertSame([], json_decode($this->call('stranger', 'GET', '/api/conversations')[1], true)['conversations'], 'un inconnu ne voit aucun fil');
     }
 
     #[Test]
@@ -281,6 +302,12 @@ final class IdorMatrixTest extends TestCase
         foreach (self::$ids as $key => $value) {
             $path = str_replace('{' . $key . '}', (string) $value, $path);
         }
+
+        array_walk_recursive($body, static function (mixed &$value): void {
+            if (is_string($value) && preg_match('/^\{(\w+)\}$/', $value, $m) === 1 && isset(self::$ids[$m[1]])) {
+                $value = (string) self::$ids[$m[1]];
+            }
+        });
 
         $files = [];
         if (($body['__upload'] ?? false) === true) {

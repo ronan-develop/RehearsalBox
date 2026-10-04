@@ -6,6 +6,7 @@ use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
+use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupContactApiController;
@@ -61,6 +62,11 @@ return [
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
         ['POST',   '/api/groups/{id}/contact', [GroupContactApiController::class, 'send']],
+        ['GET',    '/api/conversations', [ConversationApiController::class, 'index']],
+        ['POST',   '/api/conversations', [ConversationApiController::class, 'start']],
+        ['GET',    '/api/conversations/{id}', [ConversationApiController::class, 'show']],
+        ['PATCH',  '/api/conversations/{id}', [ConversationApiController::class, 'archive']],
+        ['POST',   '/api/conversations/{id}/messages', [ConversationApiController::class, 'reply']],
         ['GET',    '/api/groups/{id}/space', [GroupSpaceApiController::class, 'show']],
         ['PATCH',  '/api/groups/{id}/space', [GroupSpaceApiController::class, 'updateProfile']],
         ['POST',   '/api/groups/{id}/documents', [GroupDocumentApiController::class, 'store']],

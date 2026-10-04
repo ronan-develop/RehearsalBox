@@ -7,6 +7,7 @@ use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
+use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupContactApiController;
@@ -46,6 +47,9 @@ use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
+use App\Service\ConversationService;
+use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\MysqlConversationRepository;
 use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
@@ -239,6 +243,19 @@ return static function (array $config): Container {
 
     $container->set(GroupApiController::class, fn ($c) => new GroupApiController(
         $c->get(GroupServiceInterface::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
+
+    $container->set(ConversationService::class, fn ($c) => new ConversationService(
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+    ));
+
+    $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(
+        $c->get(ConversationService::class),
         $c->get(AuthGuard::class),
     ));
 
