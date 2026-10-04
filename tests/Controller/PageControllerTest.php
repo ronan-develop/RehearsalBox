@@ -305,37 +305,55 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Groupe Demandeur', $response->body());
     }
 
-    #[Test]
-
-    public function testDashboardMergesReceivedAndSentExceptionsSortedByCreatedAtDescending(): void
+    /**
+     * Deux demandes envoyées par le groupe de l'utilisateur vers le même créneau
+     * d'un autre groupe, avec des created_at fixés : [ancienne, récente].
+     *
+     * @return array{0: PageController, 1: array{0: int, 1: int}}
+     */
+    private function sentRequestsWithCreatedAt(string $olderCreatedAt, string $newerCreatedAt): array
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
-
         $user = $this->createLoggedInUser($userRepository, $authService);
 
+        $ownGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $groupRepository->addMember($ownGroup->id(), $user->id());
         $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
-        $groupRepository->addMember($holderGroup->id(), $user->id());
         $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
 
-        $otherGroup = $groupRepository->save(new Group(0, 'Autre Groupe', null, null, 'contact@example.test'));
-        $groupRepository->addMember($otherGroup->id(), $user->id());
+        $older = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $ownGroup->id(), $user->id(), 'Demande ancienne');
+        $newer = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+14 days'), $ownGroup->id(), $user->id(), 'Demande récente');
 
-        // Demande reçue par $holderGroup (dont $user est membre).
-        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $otherGroup->id(), $user->id(), 'Demande reçue');
+        $update = $this->pdo->prepare('UPDATE slot_exceptions SET created_at = :created_at WHERE id = :id');
+        $update->execute(['created_at' => $olderCreatedAt, 'id' => $older->id()]);
+        $update->execute(['created_at' => $newerCreatedAt, 'id' => $newer->id()]);
 
-        // Demande envoyée par $otherGroup (dont $user est aussi membre) vers un autre créneau.
-        $otherHolderGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
-        $otherSlot = $slotService->create($otherHolderGroup->id(), Weekday::Wednesday, '18:00:00', '20:00:00');
-        $exceptionRepository->createRequest($otherSlot->id(), new \DateTimeImmutable('+8 days'), $otherGroup->id(), $user->id(), 'Demande envoyée');
+        return [$controller, [$older->id(), $newer->id()]];
+    }
 
-        $response = $controller->dashboard();
+    #[Test]
 
-        self::assertStringContainsString('data-exception-deck', $response->body());
-        $recuePosition = strpos($response->body(), 'Demande reçue');
-        $envoyeePosition = strpos($response->body(), 'Demande envoyée');
-        self::assertNotFalse($recuePosition);
-        self::assertNotFalse($envoyeePosition);
-        self::assertGreaterThan($recuePosition, $envoyeePosition, 'La demande la plus récente (envoyée en second) doit apparaître en premier.');
+    public function testDashboardListsMostRecentSentRequestFirst(): void
+    {
+        [$controller] = $this->sentRequestsWithCreatedAt('2026-01-01 10:00:00', '2026-01-02 10:00:00');
+
+        $body = $controller->dashboard()->body();
+
+        self::assertNotFalse(strpos($body, 'Demande ancienne'));
+        self::assertNotFalse(strpos($body, 'Demande récente'));
+        self::assertLessThan(strpos($body, 'Demande ancienne'), strpos($body, 'Demande récente'), 'La demande la plus récente doit apparaître en premier.');
+    }
+
+    #[Test]
+
+    public function testDashboardBreaksCreatedAtTiesByDescendingId(): void
+    {
+        // Même seconde : l'ordre ne doit dépendre ni de l'insertion ni du hasard.
+        [$controller] = $this->sentRequestsWithCreatedAt('2026-01-01 10:00:00', '2026-01-01 10:00:00');
+
+        $body = $controller->dashboard()->body();
+
+        self::assertLessThan(strpos($body, 'Demande ancienne'), strpos($body, 'Demande récente'), 'À created_at égal, l\'identifiant le plus grand (créé en dernier) passe en premier.');
     }
 
     #[Test]
