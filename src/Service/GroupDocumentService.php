@@ -85,12 +85,8 @@ final class GroupDocumentService
     public function resolveDownloadPath(int $documentId, int $actorUserId): string
     {
         $document = $this->documentRepository->findById($documentId);
-        if ($document === null) {
-            throw new \InvalidArgumentException("Document {$documentId} introuvable.");
-        }
-
-        if (!$this->groupRepository->isMember($document->groupId(), $actorUserId)) {
-            throw new AccessDeniedException("Vous n'appartenez pas à ce groupe.");
+        if ($document === null || !$this->groupRepository->isMember($document->groupId(), $actorUserId)) {
+            throw $this->documentAccessDenied();
         }
 
         return $this->storagePath . '/' . $document->storedName();
@@ -99,11 +95,9 @@ final class GroupDocumentService
     public function delete(int $documentId, int $actorUserId): void
     {
         $document = $this->documentRepository->findById($documentId);
-        if ($document === null) {
-            throw new \InvalidArgumentException("Document {$documentId} introuvable.");
+        if ($document === null || $this->groupRepository->roleOf($document->groupId(), $actorUserId) !== GroupUserRole::Gestionnaire) {
+            throw $this->documentAccessDenied();
         }
-
-        $this->assertActorIsManager($document->groupId(), $actorUserId);
 
         $path = $this->storagePath . '/' . $document->storedName();
         if (is_file($path)) {
@@ -118,5 +112,11 @@ final class GroupDocumentService
         if ($this->groupRepository->roleOf($groupId, $actorUserId) !== GroupUserRole::Gestionnaire) {
             throw new AccessDeniedException("Vous n'êtes pas gestionnaire de ce groupe.");
         }
+    }
+
+    /** Document interdit et document inexistant : même réponse (IDOR, #118). */
+    private function documentAccessDenied(): AccessDeniedException
+    {
+        return new AccessDeniedException('Accès refusé.');
     }
 }

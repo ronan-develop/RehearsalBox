@@ -148,12 +148,12 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testRespondOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    public function testRespondOnUnknownExceptionIsRefusedLikeAForbiddenOne(): void
     {
         [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
         [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
 
-        $this->expectException(RequestAlreadyRespondedException::class);
+        $this->expectException(AccessDeniedException::class);
 
         $service->respond(9999, true, $holderUserId);
     }
@@ -282,12 +282,12 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testUpdateRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    public function testUpdateRequestOnUnknownExceptionIsRefusedLikeAForbiddenOne(): void
     {
         [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
         [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
 
-        $this->expectException(RequestAlreadyRespondedException::class);
+        $this->expectException(AccessDeniedException::class);
 
         $service->updateRequest(9999, new \DateTimeImmutable('+14 days'), null, $holderUserId);
     }
@@ -343,12 +343,12 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testCancelRequestOnUnknownExceptionThrowsRequestAlreadyResponded(): void
+    public function testCancelRequestOnUnknownExceptionIsRefusedLikeAForbiddenOne(): void
     {
         [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
         [, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
 
-        $this->expectException(RequestAlreadyRespondedException::class);
+        $this->expectException(AccessDeniedException::class);
 
         $service->cancelRequest(9999, $holderUserId);
     }

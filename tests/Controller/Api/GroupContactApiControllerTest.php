@@ -97,7 +97,7 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testSendWithUnknownGroupReturns404(): void
+    public function testSendWithUnknownGroupAnswersLikeAnExistingOne(): void
     {
         [$controller, , $userRepository, $authService] = $this->makeController();
         $this->createLoggedInUser($userRepository, $authService);
@@ -105,7 +105,8 @@ final class GroupContactApiControllerTest extends RepositoryTestCase
         $request = new Request('POST', '/api/groups/9999/contact', [], ['message' => 'Bonjour'], []);
         $response = $controller->send($request, '9999');
 
-        self::assertSame(404, $response->statusCode());
+        // Même réponse qu'un groupe existant : on ne révèle pas quels groupes existent (#118).
+        self::assertSame(200, $response->statusCode());
     }
 
     #[Test]
