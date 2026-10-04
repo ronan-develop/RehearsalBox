@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset } from './parallax.js';
+import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoAtSearchBar } from './parallax.js';
 
 test('computeStartOffset puts the watermark in the first third of the header, relative to its centered resting position', () => {
   const headerRect = { top: 0, left: 0, height: 132, width: 300 };
@@ -109,12 +109,13 @@ function fakeBgElement() {
   };
 }
 
-function fakeDocumentWithBg(bg, { header = null, anchor = null, scrollHeight = 0 } = {}) {
+function fakeDocumentWithBg(bg, { header = null, anchor = null, search = null, scrollHeight = 0 } = {}) {
   return {
     querySelector: (selector) => {
       if (selector === '[data-parallax="bg"]') return bg;
       if (selector === '.rb-dashboard-header') return header;
       if (selector === '[data-parallax-anchor]') return anchor;
+      if (selector === '[data-planning-search]') return search;
       return null;
     },
     documentElement: { scrollHeight },
@@ -343,5 +344,75 @@ test('initParallax adds the neon class once the scroll ratio threshold is reache
 
   win.scrollY = 720;
   initParallax(doc, win);
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
+});
+
+// --- Bascule rouge -> jaune néon au niveau de la barre de recherche (#121) ---
+
+test('isLogoAtSearchBar is false while the logo middle is above the top of the search bar', () => {
+  assert.equal(isLogoAtSearchBar({ top: 100, height: 92 }, { top: 300 }), false);
+});
+
+test('isLogoAtSearchBar is true once the logo middle reaches the top of the search bar', () => {
+  // milieu du logo : 254 + 46 = 300 = haut de la barre.
+  assert.equal(isLogoAtSearchBar({ top: 254, height: 92 }, { top: 300 }), true);
+  assert.equal(isLogoAtSearchBar({ top: 400, height: 92 }, { top: 300 }), true);
+});
+
+function neonScenario({ searchTop }) {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
+  const search = { getBoundingClientRect: () => fakeRect({ top: searchTop() }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, search, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
+  let scrollCallback;
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
+  initParallax(doc, win);
+  const scrollTo = (y) => {
+    win.scrollY = y;
+    scrollCallback();
+  };
+
+  return { bg, scrollTo };
+}
+
+test('initParallax switches to neon when the logo reaches the search bar, not at the progress threshold', () => {
+  // scrollY 360 : progression 0.5 (seuil 720) -> logo à top 477, milieu 523.
+  let searchTop = 600;
+  const { bg, scrollTo } = neonScenario({ searchTop: () => searchTop });
+
+  scrollTo(360);
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false, 'logo encore au-dessus de la barre');
+
+  searchTop = 500;
+  scrollTo(360);
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true, 'logo au niveau de la barre, avant même le seuil de progression');
+});
+
+test('initParallax switches back to red when scrolling up above the search bar again', () => {
+  let searchTop = 500;
+  const { bg, scrollTo } = neonScenario({ searchTop: () => searchTop });
+
+  scrollTo(360);
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
+
+  searchTop = 700;
+  scrollTo(0);
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), false);
+});
+
+test('initParallax keeps the former progress-based switch when the search bar is absent', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
+
+  win.scrollY = 720;
+  initParallax(doc, win);
+
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
 });

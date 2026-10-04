@@ -81,9 +81,9 @@
   }
 }
 
-/* Contour néon renforcé + léger vacillement façon flamme — seulement une
-   fois le watermark stabilisé en bas de sa course (cf. parallax.js), pas de
-   glow permanent. Empilement de text-shadow (contour net + halo plus large)
+/* Contour néon renforcé + léger vacillement façon flamme — seulement quand le
+   logo passe au niveau de la barre de recherche (cf. parallax.js,
+   isLogoAtSearchBar), pas de glow permanent. Empilement de text-shadow (contour net + halo plus large)
    plutôt qu'un filter: drop-shadow() unique, pour garder un liseré marqué
    sur le tracé en plus de la lueur diffuse. */
 .rb-page-bg-text--neon {
