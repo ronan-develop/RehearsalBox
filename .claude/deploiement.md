@@ -86,6 +86,22 @@ L'hébergeur valide OPcache sur le chemin du lien `current` (`opcache.revalidate
 
 Si le contrôle échoue : `bin/rollback.sh`, ou purger à la main puis relancer `bin/verify-release.sh <url>/login <empreinte>`.
 
+## Délivrabilité des e-mails (#132)
+
+Les e-mails sortent par `sendmail://default` (Exim de l'hébergeur), expéditeur fixe `no-reply@<domaine>`. État constaté lors d'un test réel vers Gmail (en-têtes « Afficher l'original ») :
+
+| Contrôle | Enregistrement DNS (zone du domaine d'envoi) | Résultat |
+|---|---|---|
+| **DKIM** | clé publiée au sélecteur `default` (activée côté cPanel) | PASS |
+| **DMARC** | `_dmarc.<domaine>` TXT `v=DMARC1; p=none` | PASS (aligné par DKIM) |
+| **SPF** | TXT `v=spf1 +mx +a +ip4:<IP du serveur> ~all` | **SOFTFAIL** |
+
+Boîte de réception chez Gmail (c'était le spam avant l'ajout de DMARC). **SPF reste en softfail par construction :** l'IP de sortie des e-mails n'est pas celle du serveur web et **change d'un envoi à l'autre** (groupe d'IP de l'hébergeur), donc lister une IP dans le SPF ne tient pas. DKIM + DMARC suffisent à l'alignement. Ne **pas** autoriser toute une plage d'IP de l'hébergeur : d'autres clients pourraient alors envoyer en notre nom avec un SPF valide. Durcissement possible : demander au support de l'hébergeur son `include:` SPF officiel pour l'envoi sortant.
+
+Vérifier après une modification DNS ou un changement d'hébergeur :
+1. `dig +short TXT _dmarc.<domaine>` et `dig +short TXT <domaine>` (un seul enregistrement SPF).
+2. Demander une réinitialisation vers une adresse Gmail de contrôle, puis ⋮ → « Afficher l'original » : DKIM et DMARC doivent être **PASS**. Ne jamais partager le corps du message (lien de connexion valable 1 heure) ; la limite est de 3 demandes par heure et par compte.
+
 ## Cache des assets (#150)
 
 `public/.htaccess` envoie `Cache-Control: no-cache` sur `*.css`, `*.js` et `*.mjs` : le navigateur revalide à chaque chargement (`Last-Modified` change à chaque release : 200 avec le nouveau fichier, sinon 304). Pas de `?v=` : `app.js` importe 13 modules par chemin relatif, que l'on ne peut pas versionner un par un sans build. Vérification après déploiement : `curl -sI https://<domaine>/assets/js/app.js | grep -i cache-control` doit afficher `no-cache`. Un navigateur qui avait déjà mis un fichier en cache **avant** ce réglage le garde jusqu'à l'expiration de sa fraîcheur heuristique (rechargement forcé une fois).
