@@ -9,6 +9,7 @@ use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\PasswordHasherInterface;
 use App\Security\PasswordPolicy;
+use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\UserValidationException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
@@ -51,11 +52,11 @@ final class PasswordResetService
             return;
         }
 
-        $token = bin2hex(random_bytes(32));
+        $token = ResetToken::generate();
 
         $this->transactions->run(function () use ($user, $token, $now): void {
             $this->resetRepository->invalidateAllForUser($user->id(), $now);
-            $this->resetRepository->create($user->id(), hash('sha256', $token), $now->modify(self::TOKEN_TTL), $now);
+            $this->resetRepository->create($user->id(), ResetToken::hash($token), $now->modify(self::TOKEN_TTL), $now);
         });
 
         try {
@@ -82,7 +83,7 @@ final class PasswordResetService
         }
 
         $this->transactions->run(function () use ($token, $newPassword, $now): void {
-            $userId = $this->resetRepository->consume(hash('sha256', $token), $now);
+            $userId = $this->resetRepository->consume(ResetToken::hash($token), $now);
             if ($userId === null) {
                 throw new InvalidResetTokenException();
             }

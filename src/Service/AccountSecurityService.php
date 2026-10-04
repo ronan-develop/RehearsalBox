@@ -8,6 +8,7 @@ use App\Database\TransactionRunner;
 use App\Entity\User;
 use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
+use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -41,11 +42,11 @@ final class AccountSecurityService
     {
         $now ??= new \DateTimeImmutable();
 
-        $token = bin2hex(random_bytes(32));
+        $token = ResetToken::generate();
         $this->resetRepository->invalidateAllForUser($user->id(), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
         $this->resetRepository->create(
             $user->id(),
-            hash('sha256', $token),
+            ResetToken::hash($token),
             $now->modify(self::ALERT_TTL),
             $now,
             PasswordResetRepositoryInterface::PURPOSE_ALERT,
@@ -65,7 +66,7 @@ final class AccountSecurityService
         $now ??= new \DateTimeImmutable();
 
         $email = $this->transactions->run(function () use ($token, $now): string {
-            $userId = $this->resetRepository->consume(hash('sha256', $token), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
+            $userId = $this->resetRepository->consume(ResetToken::hash($token), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
             $user = $userId === null ? null : $this->userRepository->findById($userId);
             if ($user === null) {
                 throw new InvalidResetTokenException();
