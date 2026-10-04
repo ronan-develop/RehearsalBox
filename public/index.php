@@ -11,6 +11,7 @@ if (PHP_SAPI === 'cli-server') {
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use App\Deploy\ReleaseMarker;
 use App\Http\Request;
 use App\Kernel;
 use App\Routing\Router;
@@ -29,5 +30,12 @@ foreach ([...$routeGroups['pages'], ...$routeGroups['api']] as [$method, $patter
 
 $kernel = new Kernel($router, $container, $container->get(CsrfTokenManager::class));
 $request = Request::fromGlobals();
+
+// Marqueur opaque de la release (écrit par bin/deploy.sh) : permet de vérifier
+// que la production sert bien la dernière release. Absent en développement.
+$releaseMarker = ReleaseMarker::fromFile(__DIR__ . '/../RELEASE');
+if ($releaseMarker !== null) {
+    header('X-Release: ' . $releaseMarker);
+}
 
 $kernel->handle($request)->send();
