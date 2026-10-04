@@ -44,3 +44,26 @@
 .rb-auth-card .rb-field:last-of-type {
   margin-bottom: var(--rb-space-5);
 }
+
+.rb-auth-intro {
+  margin: 0 0 var(--rb-space-4);
+  color: var(--rb-text-2);
+  font-size: 0.95rem;
+}
+
+.rb-auth-confirmation {
+  margin: var(--rb-space-4) 0 0;
+  padding: var(--rb-space-3);
+  border: 1px solid var(--rb-accent);
+  border-radius: var(--rb-radius-md);
+}
+
+.rb-auth-link {
+  margin: var(--rb-space-4) 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.rb-auth-link a {
+  color: var(--rb-accent);
+}
