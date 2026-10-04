@@ -6,6 +6,7 @@ namespace App\Mail;
 
 use App\View\PhpTemplateRenderer;
 use App\View\TemplateRendererInterface;
+use Symfony\Component\Mime\Email;
 
 /**
  * Rend un e-mail en deux versions à partir des gabarits `templates/mail/` : HTML
@@ -14,6 +15,9 @@ use App\View\TemplateRendererInterface;
  */
 final class MailRenderer
 {
+    private const LOGO_PATH = __DIR__ . '/../../public/assets/img/mail-logo-b27.png';
+    private const LOGO_CONTENT_ID = 'logo-b27';
+
     public function __construct(private readonly TemplateRendererInterface $renderer)
     {
     }
@@ -21,6 +25,23 @@ final class MailRenderer
     public static function withDefaultTemplates(): self
     {
         return new self(new PhpTemplateRenderer(__DIR__ . '/../../templates'));
+    }
+
+    /**
+     * Complète un e-mail (expéditeur, destinataire, sujet déjà posés) avec ses deux versions
+     * et le logo du site intégré en pièce jointe en ligne (cid:logo-b27) : il s'affiche sans
+     * « afficher les images », contrairement à une image distante.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function compose(Email $email, string $template, array $data = []): Email
+    {
+        $mail = $this->render($template, $data);
+
+        return $email
+            ->html($mail['html'])
+            ->text($mail['text'])
+            ->embedFromPath(self::LOGO_PATH, self::LOGO_CONTENT_ID, 'image/png');
     }
 
     /**

@@ -320,5 +320,6 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         self::assertStringContainsString('href="' . $link . '"', (string) $email->getHtmlBody(), 'bouton dans la version HTML');
         self::assertStringContainsString('#B27', (string) $email->getHtmlBody());
         self::assertStringContainsString($link, (string) $email->getTextBody(), 'lien aussi dans la version texte');
+        self::assertCount(1, $email->getAttachments(), 'le logo du site est intégré au mail');
     }
 }

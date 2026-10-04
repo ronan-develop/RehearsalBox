@@ -104,16 +104,16 @@ final class PasswordResetService
     {
         $link = rtrim($this->baseUrl, '/') . '/reset-password?token=' . $token;
 
-        $mail = ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->render('password-reset', [
-            'link' => $link,
-            'preheader' => 'Choisissez un nouveau mot de passe (lien valable 1 heure).',
-        ]);
-
-        return (new Email())
-            ->from($this->fromAddress)
-            ->to($to)
-            ->subject('RehearsalBox — réinitialisation de votre mot de passe')
-            ->html($mail['html'])
-            ->text($mail['text']);
+        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
+            (new Email())
+                ->from($this->fromAddress)
+                ->to($to)
+                ->subject('RehearsalBox — réinitialisation de votre mot de passe'),
+            'password-reset',
+            [
+                'link' => $link,
+                'preheader' => 'Choisissez un nouveau mot de passe (lien valable 1 heure).',
+            ],
+        );
     }
 }

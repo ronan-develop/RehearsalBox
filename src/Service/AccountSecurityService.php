@@ -87,16 +87,16 @@ final class AccountSecurityService
     {
         $link = rtrim($this->baseUrl, '/') . '/account/secure?token=' . $token;
 
-        $mail = ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->render('account-alert', [
-            'link' => $link,
-            'preheader' => 'Votre mot de passe vient d\'être modifié. Si ce n\'est pas vous, sécurisez votre compte.',
-        ]);
-
-        return (new Email())
-            ->from($this->fromAddress)
-            ->to($to)
-            ->subject('RehearsalBox — votre mot de passe a été modifié')
-            ->html($mail['html'])
-            ->text($mail['text']);
+        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
+            (new Email())
+                ->from($this->fromAddress)
+                ->to($to)
+                ->subject('RehearsalBox — votre mot de passe a été modifié'),
+            'account-alert',
+            [
+                'link' => $link,
+                'preheader' => 'Votre mot de passe vient d\'être modifié. Si ce n\'est pas vous, sécurisez votre compte.',
+            ],
+        );
     }
 }

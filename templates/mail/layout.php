@@ -26,9 +26,10 @@ $font = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
         <td align="center" style="padding:32px 16px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
                 <tr>
-                    <td style="padding:0 4px 20px 4px;font-family:<?= $font ?>;">
-                        <span style="font-size:30px;font-weight:bold;letter-spacing:1px;color:#b5654a;">#B27</span>
-                        <span style="font-size:14px;color:#a8a6a2;padding-left:8px;">RehearsalBox</span>
+                    <td align="center" style="padding:0 0 16px 0;font-family:<?= $font ?>;">
+                        <?php /* Logo du site (#B27, police A Dripping Marker) en image intégrée au mail : cid:logo-b27, voir MailRenderer::compose() */ ?>
+                        <img src="cid:logo-b27" alt="#B27 RehearsalBox" width="200" height="102" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;color:#b5654a;font-size:30px;font-weight:bold;">
+                        <div style="margin:2px 0 0 0;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#a8a6a2;">Local</div>
                     </td>
                 </tr>
                 <tr>

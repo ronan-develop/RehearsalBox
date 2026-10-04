@@ -26,19 +26,19 @@ final class GroupContactService
             throw new \InvalidArgumentException("Groupe {$groupId} introuvable.");
         }
 
-        $mail = ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->render('group-contact', [
-            'senderEmail' => $senderEmail,
-            'message' => $message,
-            'preheader' => 'Un musicien vous a écrit depuis RehearsalBox.',
-        ]);
-
-        $email = (new Email())
-            ->from($this->fromAddress)
-            ->to($group->contactEmail())
-            ->replyTo($senderEmail)
-            ->subject('RehearsalBox — demande de contact')
-            ->html($mail['html'])
-            ->text($mail['text']);
+        $email = ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
+            (new Email())
+                ->from($this->fromAddress)
+                ->to($group->contactEmail())
+                ->replyTo($senderEmail)
+                ->subject('RehearsalBox — demande de contact'),
+            'group-contact',
+            [
+                'senderEmail' => $senderEmail,
+                'message' => $message,
+                'preheader' => 'Un musicien vous a écrit depuis RehearsalBox.',
+            ],
+        );
 
         $this->mailer->send($email);
     }
