@@ -544,4 +544,74 @@ final class PageControllerTest extends RepositoryTestCase
         // La barre du bas garde ses 5 entrées (pas de 6e lien qui déborderait sur mobile).
         self::assertSame(5, substr_count($body, 'rb-bottom-nav-link'), 'la navigation du bas reste à 5 entrées');
     }
+
+    // --- Messagerie (#153) ------------------------------------------------------------------------
+
+    #[Test]
+    public function testDashboardRendersTheMessagesSectionWithItsThreeBoxesAndTheThreadModal(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $body = $controller->dashboard()->body();
+
+        self::assertStringContainsString('data-messages', $body);
+        foreach (['received', 'sent', 'archived'] as $box) {
+            self::assertStringContainsString('data-messages-box="' . $box . '"', $body);
+        }
+        self::assertStringContainsString('data-thread-overlay', $body);
+        self::assertStringContainsString('data-thread-form', $body);
+        self::assertStringContainsString('data-messages-unread', $body);
+    }
+
+    #[Test]
+    public function testContactModalOffersTheUsersGroupsAsSenderAndEscapesTheirNames(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $mine = $groupRepository->save(new Group(0, 'Les "Rock" <b>Stars</b>', null, null, 'rock@example.test'));
+        $other = $groupRepository->save(new Group(0, 'Autre Groupe', null, null, 'autre@example.test'));
+        $notMine = $groupRepository->save(new Group(0, 'Groupe Étranger', null, null, 'etranger@example.test'));
+        $groupRepository->addMember($mine->id(), $user->id());
+        $groupRepository->addMember($other->id(), $user->id());
+
+        $body = $controller->dashboard()->body();
+
+        self::assertStringContainsString('data-contact-from-field', $body);
+        self::assertStringContainsString('data-contact-from-select', $body);
+        self::assertSame(1, preg_match('/data-groups="([^"]*)"/', $body, $matches));
+        $groups = json_decode(html_entity_decode($matches[1], ENT_QUOTES), true);
+        self::assertSame([$other->id(), $mine->id()], array_column($groups, 'id'), 'uniquement MES groupes');
+        self::assertStringNotContainsString('<b>Stars</b>', $body, 'nom de groupe échappé');
+        self::assertStringNotContainsString('Groupe Étranger</option>', $body);
+        self::assertStringNotContainsString((string) $notMine->id() . ',"name"', $matches[1]);
+        self::assertStringContainsString('name="subject"', $body);
+    }
+
+    #[Test]
+    public function testGroupSpaceContactModalCreatesAConversationAndListsTheViewersGroups(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $viewer = $this->createLoggedInUser($userRepository, $authService);
+        $mine = $groupRepository->save(new Group(0, 'Mon Groupe', null, null, 'moi@example.test'));
+        $groupRepository->addMember($mine->id(), $viewer->id());
+        $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'public@example.test'));
+
+        $body = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public')->body();
+
+        self::assertStringContainsString('data-contact-from-field', $body);
+        self::assertStringContainsString('Mon Groupe', $body);
+        self::assertStringContainsString('name="targetGroupId"', $body);
+    }
+
+    #[Test]
+    public function testGroupSpaceForAnonymousVisitorHasNoSenderChoice(): void
+    {
+        [$controller, $groupRepository] = $this->makeController();
+        $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'public@example.test'));
+
+        $body = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public')->body();
+
+        self::assertStringNotContainsString('data-groups="[{', $body);
+    }
 }

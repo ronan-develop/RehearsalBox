@@ -7,9 +7,9 @@ use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
+use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
-use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
@@ -46,7 +46,9 @@ use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
-use App\Service\GroupContactService;
+use App\Service\ConversationService;
+use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\MysqlConversationRepository;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
 use App\Service\PasswordChangeService;
@@ -113,13 +115,6 @@ return static function (array $config): Container {
 
     $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(
         Transport::fromDsn($config['mailer']['dsn']),
-    ));
-
-    $container->set(GroupContactService::class, fn ($c) => new GroupContactService(
-        $c->get(MailerInterface::class),
-        $c->get(GroupRepositoryInterface::class),
-        $config['mailer']['from'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
@@ -242,8 +237,16 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
     ));
 
-    $container->set(GroupContactApiController::class, fn ($c) => new GroupContactApiController(
-        $c->get(GroupContactService::class),
+    $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
+
+    $container->set(ConversationService::class, fn ($c) => new ConversationService(
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+    ));
+
+    $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(
+        $c->get(ConversationService::class),
         $c->get(AuthGuard::class),
     ));
 

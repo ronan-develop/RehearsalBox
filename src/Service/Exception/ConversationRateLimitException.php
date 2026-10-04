@@ -4,6 +4,6 @@ declare(strict_types=1);
 
 namespace App\Service\Exception;
 
-final class UserValidationException extends FieldValidationException
+final class ConversationRateLimitException extends \RuntimeException
 {
 }

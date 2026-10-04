@@ -28,7 +28,6 @@ final class MailRendererTest extends TestCase
         foreach ([
             ['password-reset', ['link' => self::LINK]],
             ['account-alert', ['link' => self::LINK]],
-            ['group-contact', ['senderEmail' => 'musicien@example.test', 'message' => 'Bonjour']],
         ] as [$template, $data]) {
             $html = $this->renderer->render($template, $data)['html'];
 
@@ -99,32 +98,6 @@ final class MailRendererTest extends TestCase
         }
         self::assertStringContainsString('href="https://rehearsalbox.example/reset-password?token=abc123&amp;x=1"', $mail['html']);
         self::assertStringContainsString(self::LINK, $mail['text']);
-    }
-
-    // --- Contact entre groupes --------------------------------------------------------------
-
-    #[Test]
-    public function testGroupContactEscapesTheUserMessageAndKeepsLineBreaks(): void
-    {
-        $mail = $this->renderer->render('group-contact', [
-            'senderEmail' => 'musicien@example.test',
-            'message' => "Salut <script>alert(1)</script>\nOn répète mardi ?",
-        ]);
-
-        self::assertStringNotContainsString('<script>alert(1)</script>', $mail['html']);
-        self::assertStringContainsString('&lt;script&gt;', $mail['html']);
-        self::assertStringContainsString('<br', $mail['html'], 'les sauts de ligne sont conservés');
-        self::assertStringContainsString('musicien@example.test', $mail['html']);
-        // Version texte : le message tel qu'écrit, sans HTML ajouté.
-        self::assertStringContainsString("Salut <script>alert(1)</script>\nOn répète mardi ?", $mail['text']);
-    }
-
-    #[Test]
-    public function testGroupContactEscapesTheSenderEmail(): void
-    {
-        $html = $this->renderer->render('group-contact', ['senderEmail' => '"><img src=x onerror=alert(1)>@x.test', 'message' => 'a'])['html'];
-
-        self::assertStringNotContainsString('<img src=x', $html);
     }
 
     // --- Logo du site (#159) -------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { openContactModal, closeContactModal, handleContactSubmit, initContact, handlePlanningCardActivation } from './contact.js';
+import { openContactModal, closeContactModal, handleContactSubmit, initContact, handlePlanningCardActivation, eligibleSenderGroups, configureSenderChoice } from './contact.js';
 
 function fakeOverlay() {
   const state = { hidden: true, titleText: '', groupIdInputValue: '', formReset: false };
@@ -36,7 +36,7 @@ test('openContactModal fills the group id/name and shows the overlay', () => {
 
   assert.equal(state.hidden, false);
   assert.equal(state.groupIdInputValue, '7');
-  assert.equal(state.titleText, 'Contacter Groupe Test');
+  assert.equal(state.titleText, 'Écrire à Groupe Test');
 });
 
 test('closeContactModal hides the overlay and resets the form', () => {
@@ -70,7 +70,9 @@ test('handleContactSubmit posts the message and closes the modal on success', as
   let prevented = false;
   const RealFormData = globalThis.FormData;
   const formData = new RealFormData();
-  formData.append('groupId', '7');
+  formData.append('targetGroupId', '7');
+  formData.append('fromGroupId', '3');
+  formData.append('subject', 'Créneau du jeudi');
   formData.append('message', 'Bonjour, un échange possible ?');
 
   const event = {
@@ -85,8 +87,75 @@ test('handleContactSubmit posts the message and closes the modal on success', as
   globalThis.FormData = RealFormData;
 
   assert.equal(prevented, true);
-  assert.equal(calledUrl, '/api/groups/7/contact');
-  assert.deepEqual(calledBody, { message: 'Bonjour, un échange possible ?' });
+  assert.equal(calledUrl, '/api/conversations');
+  assert.deepEqual(calledBody, {
+    groupId: '3',
+    targetGroupId: '7',
+    subject: 'Créneau du jeudi',
+    message: 'Bonjour, un échange possible ?',
+  });
+});
+
+test('eligibleSenderGroups excludes the targeted group (a group cannot write to itself)', () => {
+  const groups = [{ id: 1, name: 'Alpha' }, { id: 2, name: 'Beta' }, { id: 3, name: 'Gamma' }];
+
+  assert.deepEqual(eligibleSenderGroups(groups, '2').map((g) => g.id), [1, 3]);
+  assert.deepEqual(eligibleSenderGroups(groups, 9).map((g) => g.id), [1, 2, 3]);
+  assert.deepEqual(eligibleSenderGroups([], '2'), []);
+});
+
+function fakeSenderField(groups) {
+  const state = { hidden: true, options: [] };
+  globalThis.document = {
+    ...(globalThis.document ?? {}),
+    createElement: () => ({ value: '', textContent: '', appendChild() {}, remove() {} }),
+  };
+  return {
+    state,
+    field: { dataset: { groups: JSON.stringify(groups) }, get hidden() { return state.hidden; }, set hidden(v) { state.hidden = v; } },
+    select: { replaceChildren: (...options) => { state.options = options; }, value: '' },
+  };
+}
+
+test('configureSenderChoice shows the choice list only when several groups can speak', () => {
+  const { state, field, select } = fakeSenderField([{ id: 1, name: 'Alpha' }, { id: 2, name: 'Beta' }, { id: 3, name: 'Gamma' }]);
+
+  const count = configureSenderChoice(field, select, '3');
+
+  assert.equal(count, 2);
+  assert.equal(state.hidden, false);
+  assert.deepEqual(state.options.map((o) => [o.value, o.textContent]), [['1', 'Alpha'], ['2', 'Beta']]);
+  assert.equal(select.value, '1');
+});
+
+test('configureSenderChoice hides the list and preselects the only possible group', () => {
+  const { state, field, select } = fakeSenderField([{ id: 1, name: 'Alpha' }, { id: 3, name: 'Gamma' }]);
+
+  const count = configureSenderChoice(field, select, '3');
+
+  assert.equal(count, 1);
+  assert.equal(state.hidden, true);
+  assert.equal(select.value, '1');
+});
+
+test('configureSenderChoice reports no possible sender when the user has no other group', () => {
+  const { field, select } = fakeSenderField([{ id: 3, name: 'Gamma' }]);
+
+  assert.equal(configureSenderChoice(field, select, '3'), 0);
+});
+
+test('openContactModal refuses to open when the user has no group able to write', () => {
+  const { state, overlay } = fakeOverlay();
+  const { field, select } = fakeSenderField([{ id: 7, name: 'Groupe Test' }]);
+  const original = overlay.querySelector;
+  overlay.querySelector = (selector) => (selector === '[data-contact-from-field]' ? field : selector === '[data-contact-from-select]' ? select : original(selector));
+  const toasts = [];
+  globalThis.document.querySelector = () => null;
+  globalThis.document.body = { appendChild: (node) => toasts.push(node) };
+
+  openContactModal(fakeButton('7', 'Groupe Test'), fakeRoot(overlay));
+
+  assert.equal(state.hidden, true);
 });
 
 function fakeInitRoot(overlay) {

@@ -425,7 +425,8 @@ body {
   margin-bottom: var(--rb-space-4);
 }
 
-.rb-exceptions-tabs {
+.rb-exceptions-tabs,
+.rb-messages-tabs {
   display: flex;
   gap: var(--rb-space-1);
   margin-bottom: var(--rb-space-3);
@@ -435,7 +436,8 @@ body {
   padding: 3px;
 }
 
-.rb-exceptions-tab {
+.rb-exceptions-tab,
+.rb-messages-tab {
   flex: 1;
   min-height: 40px;
   background: transparent;
@@ -446,7 +448,8 @@ body {
   border-radius: var(--rb-radius-sm);
 }
 
-.rb-exceptions-tab[aria-selected="true"] {
+.rb-exceptions-tab[aria-selected="true"],
+.rb-messages-tab[aria-selected="true"] {
   background: var(--rb-surface-strong);
   color: var(--rb-accent);
   box-shadow: var(--rb-elevation-1);
