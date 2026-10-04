@@ -81,7 +81,7 @@
   }
 }
 
-/* Contour néon renforcé + léger vacillement façon flamme — seulement quand le
+/* Contour néon renforcé, statique — seulement quand le
    logo est passé sous la barre de recherche (cf. parallax.js,
    isLogoBelowSearchBar), pas de glow permanent. Empilement de text-shadow (contour net + halo plus large)
    plutôt qu'un filter: drop-shadow() unique, pour garder un liseré marqué
@@ -90,35 +90,15 @@
   opacity: 1;
   color: var(--rb-accent);
   -webkit-text-stroke: 2px var(--rb-stone-flame);
-  animation: rb-page-bg-text-flame 2.4s ease-in-out infinite;
-}
-
-@keyframes rb-page-bg-text-flame {
-  0%, 100% {
-    text-shadow:
-      0 0 3px var(--rb-stone-flame),
-      0 0 8px var(--rb-stone-flame),
-      0 0 16px var(--rb-accent),
-      0 0 2px var(--rb-stone-chalk);
-  }
-  50% {
-    text-shadow:
-      0 0 4px var(--rb-stone-flame),
-      0 0 14px var(--rb-stone-flame),
-      0 0 26px var(--rb-accent),
-      0 0 3px var(--rb-stone-chalk);
-  }
+  /* Néon statique, sur tous les écrans : pas de pulsation (ni repaint du
+     text-shadow en boucle). */
+  text-shadow:
+    0 0 3px var(--rb-stone-flame),
+    0 0 8px var(--rb-stone-flame),
+    0 0 16px var(--rb-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rb-page-bg-text--neon {
-    animation: none;
-    text-shadow:
-      0 0 3px var(--rb-stone-flame),
-      0 0 8px var(--rb-stone-flame),
-      0 0 16px var(--rb-accent);
-  }
-
   .rb-page-bg-text {
     transform: none !important;
   }
