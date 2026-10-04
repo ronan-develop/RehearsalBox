@@ -358,14 +358,18 @@ final class PageControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testDashboardHidesExceptionDeckSectionWhenListIsEmpty(): void
+    public function testDashboardShowsExceptionDeckWithEmptyStatesWhenThereIsNoRequest(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
         $this->createLoggedInUser($userRepository, $authService);
 
-        $response = $controller->dashboard();
+        $body = $controller->dashboard()->body();
 
-        self::assertStringNotContainsString('data-exception-deck', $response->body());
+        self::assertStringContainsString('Demandes de créneau', $body);
+        self::assertStringContainsString('data-exception-deck', $body);
+        self::assertStringContainsString('Aucune demande reçue en attente.', $body);
+        self::assertStringContainsString('Aucune demande envoyée en attente.', $body);
+        self::assertStringContainsString('Aucune demande archivée.', $body);
     }
 
     #[Test]
