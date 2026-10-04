@@ -7,6 +7,7 @@
     <title>Disponibilités — RehearsalBox</title>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/pages/dashboard.css">
+    <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body>
     <div class="rb-page-bg" aria-hidden="true">
@@ -224,22 +225,8 @@
             </div>
         </section>
 
-        <div class="rb-modal-overlay" data-contact-modal-overlay hidden>
-            <div class="rb-modal rb-card" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
-                <h2 id="contact-modal-title" data-contact-modal-title>Contacter le groupe</h2>
-                <form data-contact-form>
-                    <input type="hidden" name="groupId" data-contact-group-id-input>
-                    <div class="rb-field">
-                        <label for="contact-message">Message</label>
-                        <textarea id="contact-message" name="message" class="rb-input" rows="4" required></textarea>
-                    </div>
-                    <div class="rb-modal-actions">
-                        <button type="button" class="rb-btn" data-contact-modal-cancel>Annuler</button>
-                        <button type="submit" class="rb-btn rb-btn-primary">Envoyer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <?php require __DIR__ . '/../partials/messages-section.php'; ?>
+        <?php require __DIR__ . '/../partials/contact-modal.php'; ?>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
