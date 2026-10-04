@@ -36,7 +36,7 @@ export RB_SSH_CONFIG=<chemin/ssh_config> RB_DOCROOT_LINK=<dossier-domaine>/publi
 ./bin/deploy.sh          # phpunit + npm test + composer audit, puis envoi, install, sauvegarde, migrations, bascule
 ```
 
-Étapes : contrôles locaux → envoi de la release → `composer install --no-dev` avec le PHP CLI **explicite** + vérification `Nothing to install` → génération de `config.local.php` si absent (`RB_REGEN_CONFIG=1` pour forcer) → dump si la base contient des tables → `bin/migrate.php` → rendu à blanc de `GET /login` en CLI → bascule de `current`. Si une étape échoue, `current` n'est pas modifié. **Jamais** `database/seed.php` en production.
+Étapes : contrôles locaux → envoi de la release → `composer install --no-dev` avec le PHP CLI **explicite** + vérification `Nothing to install` → génération de `config.local.php` si absent (`RB_REGEN_CONFIG=1` pour forcer) → dump si la base contient des tables → `bin/migrate.php` → rendu à blanc de `GET /login` en CLI → bascule de `current` → purge d'OPcache → contrôle de la release servie. Si une étape échoue, `current` n'est pas modifié. **Jamais** `database/seed.php` en production.
 
 ## Comptes initiaux (sans fixtures)
 
@@ -71,6 +71,16 @@ RB_SSH_CONFIG=<chemin/ssh_config> ./bin/rollback.sh   # current -> release préc
 
 La base n'est pas restaurée automatiquement : la commande de restauration depuis `backups/pre-<release>.sql.gz` est affichée, à lancer à la main.
 
+## OPcache et lien symbolique
+
+L'hébergeur valide OPcache sur le chemin du lien `current` (`opcache.revalidate_path=Off`), qui ne change pas d'une release à l'autre : après la bascule, l'ancien HTML et les anciennes routes peuvent rester servis alors que le CSS/JS sont déjà neufs, sans aucune erreur.
+
+`bin/deploy.sh` s'en protège après la bascule :
+1. **Purge** : un script PHP jetable au nom aléatoire (`opcache-reset-<hex>.php`) est déposé dans `current/public`, appelé en HTTPS (`opcache_reset()`), puis supprimé aussitôt. Si la purge échoue, un avertissement est affiché.
+2. **Contrôle** (`bin/verify-release.sh`) : chaque réponse porte `X-Release`, empreinte opaque (12 premiers caractères du sha256) de l'identifiant de release, lue dans le fichier `RELEASE` écrit au déploiement (absent en développement : pas d'en-tête). Si la valeur attendue n'est pas servie après plusieurs tentatives, le script **échoue** (code ≠ 0) au lieu d'annoncer un succès.
+
+Si le contrôle échoue : `bin/rollback.sh`, ou purger à la main puis relancer `bin/verify-release.sh <url>/login <empreinte>`.
+
 ## Points d'attention o2switch
 
 - Pas de démon, pas de process > 420 s CPU, < 20 000 fichiers par dossier.
@@ -87,6 +97,7 @@ La base n'est pas restaurée automatiquement : la commande de restauration depui
 | 500 | `~/logs`, droits de `shared/config.local.php`, version PHP web |
 | Accès DB refusé | variables `PROD_DB_*`, `RB_REGEN_CONFIG=1 ./bin/deploy.sh` |
 | `composer` affiche son aide et sort en 0 | PHP CGI utilisé : toujours `php composer` avec le PHP CLI explicite |
+| Ancien design/routes 404 après un déploiement | OPcache (voir ci-dessus) : le contrôle `X-Release` doit l'avoir signalé |
 | SSH refusé | IPv4 non autorisée dans le cPanel, clé non « Authorize » |
 
 ## Critère de bon fonctionnement
