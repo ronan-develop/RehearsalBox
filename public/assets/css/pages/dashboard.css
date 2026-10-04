@@ -1,7 +1,17 @@
 .rb-dashboard-page {
   min-height: 100vh;
   padding: var(--rb-space-4);
-  padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--rb-space-6) + env(safe-area-inset-bottom));
+}
+
+/* Ancre invisible dans le flow normal, juste au-dessus de "Demandes de
+   créneau" : sert uniquement de repère géométrique pour le parallax du
+   watermark (cf. parallax.js) — sa position réelle à l'écran, recalculée à
+   chaque frame de scroll, indique où stabiliser le watermark, identique en
+   desktop et mobile. */
+.rb-parallax-anchor {
+  display: block;
+  height: 0;
 }
 
 @media (min-width: 768px) {
@@ -27,32 +37,191 @@
 
 }
 
+/* Calque plein-page "#B27" en fond, indépendant du header (frère de
+   .rb-dashboard-page, cf. templates/dashboard/index.php). Au repos il est
+   centré horizontalement dans la page, quel que soit l'écran ; parallax.js
+   n'ajoute qu'un décalage par rapport à ce centre : vers le premier tiers du
+   header au chargement, tendant vers 0 une fois le watermark stabilisé sous
+   le deck d'exceptions (cf. parallax.js). */
+.rb-page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  /* Position de repos du watermark : centré horizontalement dans la page, quel
+     que soit l'écran. parallax.js n'ajoute qu'un décalage par rapport à ce
+     centre (qui tend vers 0 en fin de scroll). */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  background: var(--rb-bg);
+  pointer-events: none;
+}
+
+.rb-page-bg-text {
+  display: block;
+  font-family: 'ADrippingMarker', sans-serif;
+  color: var(--rb-accent);
+  opacity: 0.35;
+  line-height: 1;
+  white-space: nowrap;
+  font-size: 56px;
+  will-change: transform;
+  transition: text-shadow 0.4s ease;
+  /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
+     interpole entre une position centrée dans le header au chargement
+     (scroll 0) et une position finale fixe une fois le scroll dépassé un
+     certain seuil. */
+  transform: translate(var(--wm-x, 0px), calc(var(--wm-y, 0px) + var(--wm-scroll-y, 0px)));
+}
+
+@media (min-width: 768px) {
+  .rb-page-bg-text {
+    font-size: 150px;
+  }
+}
+
+/* Contour néon renforcé + léger vacillement façon flamme — seulement une
+   fois le watermark stabilisé en bas de sa course (cf. parallax.js), pas de
+   glow permanent. Empilement de text-shadow (contour net + halo plus large)
+   plutôt qu'un filter: drop-shadow() unique, pour garder un liseré marqué
+   sur le tracé en plus de la lueur diffuse. */
+.rb-page-bg-text--neon {
+  opacity: 1;
+  color: var(--rb-accent);
+  -webkit-text-stroke: 2px var(--rb-stone-flame);
+  animation: rb-page-bg-text-flame 2.4s ease-in-out infinite;
+}
+
+@keyframes rb-page-bg-text-flame {
+  0%, 100% {
+    text-shadow:
+      0 0 3px var(--rb-stone-flame),
+      0 0 8px var(--rb-stone-flame),
+      0 0 16px var(--rb-accent),
+      0 0 2px var(--rb-stone-chalk);
+  }
+  50% {
+    text-shadow:
+      0 0 4px var(--rb-stone-flame),
+      0 0 14px var(--rb-stone-flame),
+      0 0 26px var(--rb-accent),
+      0 0 3px var(--rb-stone-chalk);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-page-bg-text--neon {
+    animation: none;
+    text-shadow:
+      0 0 3px var(--rb-stone-flame),
+      0 0 8px var(--rb-stone-flame),
+      0 0 16px var(--rb-accent);
+  }
+
+  .rb-page-bg-text {
+    transform: none !important;
+  }
+}
+
+body {
+  --rb-dashboard-header-h: 132px;
+}
+
+@media (min-width: 768px) {
+  body {
+    --rb-dashboard-header-h: 176px;
+  }
+}
+
 .rb-dashboard-header {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--rb-dashboard-header-h);
   gap: var(--rb-space-3);
   margin-bottom: var(--rb-space-4);
 }
 
-.rb-dashboard-header h1 {
-  margin: 0;
+/* Vignette photo du groupe — volontairement petite pour manger le moins
+   possible le "#B27" de fond. Éditable uniquement par le gestionnaire
+   (badge crayon) ; simple vignette en lecture seule sinon. */
+.rb-group-photo {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rb-radius-sm);
+  overflow: hidden;
+  background: var(--rb-surface-strong);
+  border: 1px solid var(--rb-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rb-text-3);
+  box-shadow: var(--rb-elevation-1);
 }
 
-.rb-dashboard-header .rb-input {
-  width: 100%;
+.rb-group-photo svg {
+  width: 18px;
+  height: 18px;
 }
 
-@media (min-width: 480px) {
-  .rb-dashboard-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+.rb-group-photo--editable {
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+}
 
-  .rb-dashboard-header .rb-input {
-    width: auto;
-  }
+.rb-group-photo--editable:hover {
+  border-color: var(--rb-accent);
+}
+
+.rb-group-photo-edit-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rb-accent);
+  border: 2px solid var(--rb-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rb-group-photo-edit-badge svg {
+  width: 9px;
+  height: 9px;
+  color: #fff;
+}
+
+.rb-dashboard-header-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+  font-size: 0.8125rem;
+  color: var(--rb-text-2);
+}
+
+.rb-dashboard-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--rb-surface-strong);
+  border: 1px solid var(--rb-accent);
+  color: var(--rb-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
 }
 
 .rb-visually-hidden {
@@ -66,18 +235,6 @@
 .rb-slot-list {
   display: grid;
   gap: var(--rb-space-3);
-}
-
-.rb-slot-card-date {
-  margin: 0 0 var(--rb-space-2);
-  font-weight: 600;
-  color: var(--rb-accent-2);
-}
-
-.rb-slot-card-reason {
-  margin: 0 0 var(--rb-space-3);
-  color: var(--rb-text-2);
-  font-size: 0.9375rem;
 }
 
 .rb-empty-state {
@@ -131,273 +288,131 @@
 .rb-planning-card {
   position: relative;
   flex: 0 0 auto;
-  width: 220px;
-  height: 180px;
+  width: 176px;
+  min-height: 132px;
   scroll-snap-align: start;
+  padding: 22px 20px;
+  background: var(--rb-stone-chalk);
+  color: #1c1a17;
   cursor: pointer;
-  /* filter: drop-shadow() posé sur le MÊME élément qu'un clip-path ne se
-     rend jamais visuellement dans Chromium (constaté : getComputedStyle
-     renvoie bien la valeur, le style est appliqué, mais rien n'apparaît à
-     l'écran même en zoomant fort — confirmé en retirant clip-path pour
-     voir le halo réapparaître aussitôt). Le filtre est donc porté par ce
-     wrapper SANS clip-path ; la forme (fond + découpe) est déportée sur
-     l'enfant .rb-planning-card-shape ci-dessous.
-     Ombre visible en permanence ; au hover elle s'efface pour appuyer
-     l'effet "bouton enfoncé" (cf. retour utilisateur — c'était inversé). */
-  filter: drop-shadow(2px 2px 4px rgba(254, 248, 248, 0.55));
-  transition: filter 0.15s ease, transform 0.15s ease;
+  text-align: left;
+  /* Bord "déchiré" : filtre SVG TornPaper (feTurbulence + displacement),
+     instancié par carte avec un seed aléatoire — voir
+     assets/js/tornpaper.js et tornpaper-init.js. Ce clip-path est le repli
+     si JS est désactivé ou si le filtre ne charge pas ; une fois le filtre
+     appliqué en JS (style inline sur la carte), il s'efface via la règle
+     ci-dessous pour ne pas cumuler les deux découpes. */
+  clip-path: polygon(
+    0.0% 0.0%, 12.5% -5.3%, 25.0% -3.1%, 37.5% -2.8%, 50.0% -4.1%, 62.5% 4.3%, 75.0% -4.5%, 87.5% -4.4%,
+    100.0% 0.0%, 102.6% 12.5%, 107.9% 25.0%, 104.0% 37.5%, 95.5% 50.0%, 95.4% 62.5%, 90.7% 75.0%, 103.7% 87.5%,
+    100.0% 100.0%, 87.5% 96.9%, 75.0% 103.9%, 62.5% 96.2%, 50.0% 107.3%, 37.5% 97.5%, 25.0% 97.1%, 12.5% 97.3%,
+    0.0% 100.0%, 5.5% 87.5%, -8.7% 75.0%, 2.5% 62.5%, -7.7% 50.0%, -8.8% 37.5%, 4.8% 25.0%, -7.8% 12.5%
+  );
+  transition: transform var(--rb-motion-standard);
 }
 
-/* Carte non cliquable (#81) : pas d'effet "bouton enfoncé", curseur normal. */
+.rb-planning-card[style*="filter"] {
+  clip-path: none;
+}
+
+/* Carte non cliquable (#81) : pas d'effet hover, curseur normal. */
 .rb-planning-card--exceptional {
   cursor: default;
 }
 
-.rb-planning-card:not(.rb-planning-card--exceptional):hover {
-  /* Effet "bouton enfoncé" : décalage vers le bas-gauche + ombre effacée,
-     la carte semble s'enfoncer dans la surface au lieu de s'élever. */
-  transform: translate(-2px, 2px);
-  filter: drop-shadow(0 0 0 rgba(254, 248, 248, 0));
-}
-
-.rb-planning-card-shape {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  /* Rupture assumée avec le fond sombre du reste de l'app : effet
-     "flyer merch" en papier blanc cassé posé sur le dashboard. Coins
-     haut/bas largement arrondis (cf. référence merch) avec une fine
-     déchirure irrégulière, portée par un seul tracé en coordonnées
-     absolues (d'où la taille fixe du parent). Tracé statique ci-dessous =
-     fallback no-JS/avant DOMContentLoaded (déchirure uniquement en haut,
-     historique) ; en usage normal, chaque carte reçoit son propre tracé
-     4 côtés via clip-path inline (generateTornEdgesPath, planning-slider.js,
-     cf. ticket #51) pour ne pas être uniforme entre cartes. */
-  /* Angles/positions par défaut (repris par --wrinkle-* si le JS n'a pas
-     encore tourné, ex: no-JS ou avant DOMContentLoaded) : valeurs neutres
-     identiques à l'ancienne version fixe. */
-  --wrinkle-angle-1: 115deg;
-  --wrinkle-angle-2: 25deg;
-  --wrinkle-angle-3: 200deg;
-  --wrinkle-pos-1: 20% 15%;
-  --wrinkle-pos-2: 80% 85%;
-  --wrinkle-pos-3: 70% 20%;
-  /* Plis courts supplémentaires (0, 1 ou 2 par carte, cf. retour
-     utilisateur "pour ne pas être uniforme") : contrairement aux 3 plis
-     ci-dessus qui traversent toute la carte, ceux-là sont confinés à une
-     zone rectangulaire via background-size + no-repeat. Invisibles par
-     défaut (taille 0), activés par planning-slider.js. */
-  --wrinkle-extra-1-angle: 0deg;
-  --wrinkle-extra-1-pos: 50% 50%;
-  --wrinkle-extra-1-size: 0% 0%;
-  --wrinkle-extra-2-angle: 0deg;
-  --wrinkle-extra-2-pos: 50% 50%;
-  --wrinkle-extra-2-size: 0% 0%;
-  background-color: #ece9e2;
-  /* Effet papier froissé : superposition de dégradés en niveaux de gris
-     (plis diagonaux + zones d'ombre/lumière irrégulières) fondus sur la
-     couleur papier via overlay — pas de texture externe, cohérent avec
-     la contrainte "pas de dépendance externe" du projet. Angles/positions
-     pilotés par des variables CSS randomisées par carte (planning-slider.js,
-     randomizeCardWrinkles) pour éviter que toutes les cartes soient
-     visuellement identiques (cf. retour utilisateur). */
-  background-image:
-    linear-gradient(var(--wrinkle-angle-1), transparent 40%, rgba(0, 0, 0, 0.06) 41%, transparent 43%),
-    linear-gradient(var(--wrinkle-angle-2), transparent 60%, rgba(255, 255, 255, 0.5) 61%, transparent 64%),
-    linear-gradient(var(--wrinkle-angle-3), transparent 30%, rgba(0, 0, 0, 0.05) 32%, transparent 35%),
-    radial-gradient(ellipse at var(--wrinkle-pos-1), rgba(255, 255, 255, 0.45) 0%, transparent 45%),
-    radial-gradient(ellipse at var(--wrinkle-pos-2), rgba(0, 0, 0, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at var(--wrinkle-pos-3), rgba(0, 0, 0, 0.05) 0%, transparent 40%),
-    linear-gradient(var(--wrinkle-extra-1-angle), transparent 42%, rgba(255, 255, 255, 0.65) 47%, rgba(0, 0, 0, 0.22) 52%, transparent 57%),
-    linear-gradient(var(--wrinkle-extra-2-angle), transparent 42%, rgba(255, 255, 255, 0.65) 47%, rgba(0, 0, 0, 0.22) 52%, transparent 57%),
-    /* Ellipses fines superposées à chaque pli court : cassent la ligne
-       droite du linear-gradient pour un aspect moins géométrique
-       (cf. retour utilisateur "moins linéaire, plus réaliste"). */
-    radial-gradient(ellipse 70% 20% at 50% 50%, rgba(0, 0, 0, 0.15) 0%, transparent 65%),
-    radial-gradient(ellipse 70% 20% at 50% 50%, rgba(0, 0, 0, 0.15) 0%, transparent 65%),
-    /* Taches d'usure éparses (café/manipulation répétée) : effet "dirty"
-       en plus du froissé, positions fixes (pas besoin de variation par
-       carte, contrairement aux plis ci-dessus). */
-    radial-gradient(ellipse 18% 10% at 12% 78%, rgba(90, 70, 40, 0.10) 0%, transparent 70%),
-    radial-gradient(ellipse 12% 8% at 85% 22%, rgba(90, 70, 40, 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 22% 14% at 65% 92%, rgba(60, 45, 25, 0.07) 0%, transparent 75%);
-  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, var(--wrinkle-extra-1-pos), var(--wrinkle-extra-2-pos), var(--wrinkle-extra-1-pos), var(--wrinkle-extra-2-pos), 0 0, 0 0, 0 0;
-  background-size: cover, cover, cover, cover, cover, cover, var(--wrinkle-extra-1-size), var(--wrinkle-extra-2-size), var(--wrinkle-extra-1-size), var(--wrinkle-extra-2-size), cover, cover, cover;
-  background-repeat: no-repeat;
-  background-blend-mode: overlay, overlay, overlay, normal, normal, normal, overlay, overlay, multiply, multiply, multiply, multiply, multiply;
-  color: #2a2620;
-  clip-path: path('M 0 22 A 22 22 0 0 1 22 0 L 23.9 0.29 L 25.6 1.37 L 28.3 1.55 L 30.1 1.26 L 32.4 1.45 L 34.7 0.87 L 37.6 0.13 L 40.1 2.14 L 44.4 0.05 L 48.8 0.03 L 51.2 0.16 L 55.6 1.67 L 59.1 0.74 L 60.9 0.37 L 62.6 0.89 L 64.7 0.85 L 68.8 0.97 L 71.7 0.13 L 73.5 0.24 L 77.6 0.3 L 81 1.11 L 85.2 1.47 L 87.9 1.88 L 89.9 1.12 L 93.2 2.33 L 96.3 0.83 L 99.1 2.19 L 103 2.18 L 105 0.32 L 107.4 0.92 L 111.7 2.47 L 115.6 1.74 L 117.4 0.39 L 121 0.79 L 124.2 2.44 L 127.1 1.77 L 131.1 0.2 L 133 0.65 L 136.2 0.03 L 139.7 1.5 L 142.1 2.18 L 144.2 1.11 L 146.8 1.25 L 149.6 0.27 L 153.8 1.78 L 156.9 1.01 L 159.9 1.82 L 164.1 1.76 L 166 0.24 L 169.8 1.08 L 172.7 2.22 L 177.1 1.29 L 179 0.95 L 182.6 0.7 L 184.3 1.31 L 188.6 0.94 L 192 0.36 L 195.8 2.48 A 22 22 0 0 1 220 22 L 219.25 24.4 L 219.49 28.7 L 218.39 32.6 L 218.74 34.6 L 219.59 38.5 L 218.61 41.7 L 218.75 45.1 L 219.86 46.6 L 218.15 50.2 L 217.66 52.3 L 217.96 55.4 L 219.66 58.7 L 217.75 60.6 L 218.78 63.5 L 218.04 66.7 L 219.11 70.6 L 219.36 74 L 218.07 77.4 L 218.81 81.6 L 219.29 84.5 L 219.95 87.8 L 218.52 90.9 L 217.54 93.8 L 219.1 97.1 L 218.66 100.5 L 219.56 104.5 L 219.96 107.9 L 219.32 111.1 L 217.58 113.1 L 218.36 116.8 L 219.01 118.4 L 217.8 122 L 218.01 125.3 L 219 127.8 L 217.56 129.5 L 219.17 133.1 L 217.92 135 L 219.7 136.9 L 219.4 139.2 L 219.8 141 L 219.38 143.1 L 219.79 146.8 L 219.03 149 L 218.73 153.1 A 22 22 0 0 1 198 180 L 195.7 179.09 L 191.3 179.66 L 189.3 179.55 L 187.5 179.97 L 185.7 179.96 L 183.5 177.68 L 180.3 177.78 L 177.4 177.6 L 175.3 178.55 L 173 178.51 L 170.8 179.22 L 168 179.16 L 164.4 177.96 L 161.7 178.84 L 159.3 177.97 L 155.2 178.9 L 153.2 178.83 L 149.8 179.45 L 146.8 179.48 L 144.1 179.8 L 140.2 178.32 L 137.1 179.97 L 135.6 179.36 L 134 179.4 L 130.4 178.36 L 126.1 179.34 L 122.7 179.47 L 119.9 178.47 L 118.4 178.28 L 116.4 179.24 L 113.8 179.45 L 110.6 177.59 L 107.2 179.13 L 103.1 178.36 L 99.7 179.65 L 96.5 177.73 L 93.1 177.71 L 90.1 179.03 L 86 177.5 L 84.4 179 L 82.3 179.74 L 79.5 179.02 L 76.4 179.77 L 73.6 179.48 L 70.7 177.9 L 68.3 178.49 L 65.8 178.74 L 63.7 178.96 L 59.7 178.4 L 56.3 179.85 L 54.6 179.98 L 52.4 177.86 L 50.5 179.86 L 48.6 178.01 L 46.3 179.28 L 42.5 179.25 L 40.6 178.45 L 38.2 179.45 L 36.3 177.66 L 32.8 177.75 L 29.9 178.76 L 26.4 177.51 L 24.4 179.04 A 22 22 0 0 1 22 180 L 1.51 155.7 L 1.77 152.5 L 0.73 148.2 L 0.66 145.5 L 0.44 142.5 L 0.16 139.6 L 1.98 135.2 L 1.86 133.3 L 0.04 129.8 L 0.4 126.2 L 1.21 122.6 L 2.43 121 L 1.91 116.7 L 0.1 112.5 L 1.56 108 L 1.69 104.1 L 0.1 99.6 L 1.26 97.3 L 2.31 95.3 L 1.29 93.7 L 0.98 89.6 L 1.22 85.6 L 2.01 81.2 L 1.74 79 L 1.94 75.3 L 1.08 72.9 L 2.38 70.1 L 1.64 66.4 L 0.71 62.9 L 1.58 60.6 L 2.43 56.4 L 1.45 53.6 L 1.19 50 L 0.46 45.9 L 2.44 44.4 L 2.19 41.8 L 1.04 37.4 L 2.26 35 L 0.07 32.1 L 0.93 29.4 L 0.86 26.3 Z');
-  padding: var(--rb-space-3);
-}
-
-/* Bout de scotch semi-transparent façon flyer punaisé — position choisie
-   aléatoirement par carte parmi 3 variantes (planning-slider.js,
-   pickTapePosition), toujours présent (pas d'aléatoire sur la présence,
-   cf. retour utilisateur). */
-.rb-planning-card-tape {
-  position: absolute;
-  top: -10px;
-  width: 56px;
-  height: 26px;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  /* Bords courts (gauche/droite) légèrement déchirés, comme arraché d'un
-     rouleau de scotch — les bords longs (haut/bas) restent nets. */
-  clip-path: polygon(0% 0%, 1.2% 0%, 1.6% 21.8%, 1.7% 42.7%, 0.1% 58.6%, 2.9% 72%, 0.4% 88.7%, 0% 100%, 100% 100%, 98.5% 100%, 99.7% 78.6%, 97.6% 59.8%, 99.4% 43.2%, 99.4% 27.9%, 97.3% 8.4%, 100% 0%);
-}
-
-.rb-planning-card-tape--corner-left {
-  left: -14px;
-  transform: rotate(-45deg);
-}
-
-.rb-planning-card-tape--corner-right {
-  right: -14px;
-  transform: rotate(45deg);
-}
-
-.rb-planning-card-tape--top-center {
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Label "Occasionnel" (#34) : bande jaune pâle façon post-it/correcteur,
-   posée en bas-droite de la carte — signale qu'un créneau n'est pas un fixe
-   récurrent mais une occurrence ponctuelle (exception acceptée cette
-   semaine). Couleur volontairement contrastée avec le papier crème de la
-   carte (cf. retour utilisateur : le blanc cassé s'y fondait). Bords en
-   clip-path pour casser la ligne droite, cohérent avec l'esthétique
-   "papier" du reste de la carte. */
-.rb-planning-card-label--occasional {
-  position: absolute;
-  bottom: 8px;
-  right: 14px;
-  z-index: 1;
-  display: inline-block;
-  padding: 2px 12px;
-  background: #f4d35e;
-  box-shadow: 0 1px 2px rgba(21, 21, 26, 0.35);
-  transform: rotate(-3deg);
-  clip-path: polygon(0% 15%, 4% 0%, 22% 8%, 41% 0%, 58% 10%, 76% 2%, 93% 12%, 100% 0%, 100% 85%, 96% 100%, 79% 90%, 61% 100%, 43% 92%, 24% 100%, 7% 88%, 0% 100%);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #5c4a1a;
+.rb-planning-card:not(.rb-planning-card--exceptional):hover,
+.rb-planning-card:not(.rb-planning-card--exceptional):focus-visible {
+  transform: translateY(-3px) rotate(-0.6deg);
 }
 
 .rb-planning-card-group {
-  margin: 0 0 var(--rb-space-2);
-  /* Couleur locale à la carte (pas --rb-accent, réutilisé ailleurs pour les
-     boutons/bordures) : même famille terracotta que le thème, mais plus
-     sombre/désaturée pour rester lisible sur le fond papier clair sans
-     virer au saumon (cf. retour utilisateur). */
-  color: #9c5540;
-  text-shadow: 0 1px 1px rgba(21, 21, 26, 0.45);
+  margin: 0 0 var(--rb-space-1);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1c1a17;
 }
 
 .rb-planning-card-weekday {
-  margin: 0 0 var(--rb-space-1);
-  font-weight: 600;
-  color: #2a2620;
+  margin: 0 0 2px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b6660;
 }
 
 .rb-planning-card-date {
-  margin: 0 0 var(--rb-space-1);
+  margin: 0 0 2px;
   font-size: 0.8125rem;
-  color: #5a5449;
+  color: #6b6660;
 }
 
 .rb-planning-card-time {
   margin: 0;
-  color: #5a5449;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--rb-accent);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Deck de cartes empilées (#42) : chaque carte est positionnée en absolute
-   dans un conteneur à hauteur fixe, décalée/tournée selon sa position dans
-   la pile via --deck-index (posée en JS) — on ne voit que le dessus de la
-   pile + un bout des suivantes en dessous, façon jeu de cartes à jouer. */
-/* Deck de cartes empilées (#42) : chaque carte est positionnée en absolute
-   dans un conteneur à hauteur fixe, décalée/tournée selon sa position dans
-   la pile via --deck-index (posée en JS) — on ne voit que le dessus de la
-   pile + un bout des suivantes en dessous, façon jeu de cartes à jouer. */
-.rb-exception-deck-wrapper {
-  position: relative;
-  margin-bottom: var(--rb-space-6);
-  padding: var(--rb-space-5);
-  /* Léger halo clair en bas-droite (cf. retour utilisateur) pour donner
-     du relief à la pierre — filter: drop-shadow() plutôt que box-shadow
-     car il suit la forme réelle après clip-path (box-shadow resterait
-     rectangulaire et casserait l'effet de bord irrégulier). filter:
-     drop-shadow() posé sur le MÊME élément qu'un clip-path ne se rend
-     jamais visuellement dans Chromium (même bug documenté sur
-     .rb-planning-card ci-dessus) : le filtre est donc porté par ce
-     wrapper SANS clip-path ; le fond pierre + la découpe irrégulière
-     sont déportés sur l'enfant .rb-exception-deck-stone ci-dessous. */
-  filter: drop-shadow(3px 3px 6px rgba(255, 255, 255, 0.08));
-}
-
-.rb-exception-deck-stone {
+/* Label "Occasionnel" (#34) : signale qu'un créneau n'est pas un fixe
+   récurrent mais une occurrence ponctuelle (exception acceptée cette
+   semaine). */
+.rb-planning-card--exceptional .rb-badge {
   position: absolute;
-  inset: 0;
-  /* Effet pierre/roche (#96, référence hellfest.fr : fond texturé sur des
-     blocs spécifiques, pas sur toute la page). Asset local
-     (public/assets/img/pierre.jpg), pas de dépendance externe. */
-  background-color: var(--rb-bg);
-  background-image: url('/assets/img/pierre.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  /* Bords irréguliers façon roche cassée sur les 4 côtés (référence
-     hellfest.fr). clip-path: polygon() en pourcentages (pas path() en
-     pixels) : le wrapper suit maintenant la pleine largeur du viewport
-     (2rem de marge, cf. retour utilisateur), donc doit s'adapter à
-     n'importe quelle largeur — polygon() en % le permet, contrairement
-     à path() qui exige des coordonnées absolues. Contrepartie : pas de
-     coins arrondis natifs possibles en même temps qu'un clip-path
-     (border-radius + clip-path ne cohabitent pas). Amplitude 0.3-0.9%
-     sur 45 segments par bord : équilibre entre une découpe trop
-     grossière (dents visibles, cf. retour utilisateur "trop grossiers")
-     et une découpe trop fine devenue invisible à l'oeil (cf. retour
-     utilisateur "je ne vois rien"). Chaque bord garde son propre jitter
-     jusque dans les coins théoriques (pas de point figé exact à
-     0%/100%) pour éviter l'effet de pic net entre un point théorique
-     parfait et son voisin jitteré (cf. retour utilisateur "casse-moi
-     cet effet pic dans les coins") ; bord gauche calculé en miroir
-     horizontal du bord droit (même séquence d'amplitudes, cf. retour
-     utilisateur "applique l'inverse en face"). Tracé statique, pas de
-     variation aléatoire nécessaire (un seul wrapper par page). */
-  clip-path: polygon(
-    0% 0.761%, 2.222% 0.79%, 4.444% 0.683%, 6.667% 0.584%, 8.889% 0.746%, 11.111% 0.467%, 13.333% 0.423%, 15.556% 0.601%,
-    17.778% 0.433%, 20% 0.527%, 22.222% 0.605%, 24.444% 0.83%, 26.667% 0.546%, 28.889% 0.407%, 31.111% 0.71%, 33.333% 0.731%,
-    35.556% 0.857%, 37.778% 0.321%, 40% 0.731%, 42.222% 0.407%, 44.444% 0.514%, 46.667% 0.796%, 48.889% 0.505%, 51.111% 0.34%,
-    53.333% 0.576%, 55.556% 0.801%, 57.778% 0.647%, 60% 0.322%, 62.222% 0.347%, 64.444% 0.486%, 66.667% 0.883%, 68.889% 0.59%,
-    71.111% 0.707%, 73.333% 0.709%, 75.556% 0.583%, 77.778% 0.36%, 80% 0.65%, 82.222% 0.574%, 84.444% 0.895%, 86.667% 0.357%,
-    88.889% 0.813%, 91.111% 0.762%, 93.333% 0.679%, 95.556% 0.352%, 97.778% 0.811%, 100% 0.666%, 99.31% 0%, 99.157% 2.222%,
-    99.521% 4.444%, 99.638% 6.667%, 99.563% 8.889%, 99.244% 11.111%, 99.583% 13.333%, 99.504% 15.556%, 99.219% 17.778%, 99.497% 20%,
-    99.329% 22.222%, 99.194% 24.444%, 99.128% 26.667%, 99.389% 28.889%, 99.521% 31.111%, 99.428% 33.333%, 99.433% 35.556%, 99.35% 37.778%,
-    99.546% 40%, 99.213% 42.222%, 99.629% 44.444%, 99.232% 46.667%, 99.677% 48.889%, 99.511% 51.111%, 99.436% 53.333%, 99.375% 55.556%,
-    99.343% 57.778%, 99.307% 60%, 99.259% 62.222%, 99.477% 64.444%, 99.197% 66.667%, 99.677% 68.889%, 99.663% 71.111%, 99.456% 73.333%,
-    99.18% 75.556%, 99.649% 77.778%, 99.232% 80%, 99.318% 82.222%, 99.187% 84.444%, 99.476% 86.667%, 99.24% 88.889%, 99.227% 91.111%,
-    99.338% 93.333%, 99.297% 95.556%, 99.518% 97.778%, 99.168% 100%, 100% 99.225%, 97.778% 99.29%, 95.556% 99.222%, 93.333% 99.341%,
-    91.111% 99.657%, 88.889% 99.6%, 86.667% 99.159%, 84.444% 99.608%, 82.222% 99.646%, 80% 99.528%, 77.778% 99.394%, 75.556% 99.611%,
-    73.333% 99.498%, 71.111% 99.265%, 68.889% 99.143%, 66.667% 99.319%, 64.444% 99.47%, 62.222% 99.693%, 60% 99.242%, 57.778% 99.66%,
-    55.556% 99.111%, 53.333% 99.517%, 51.111% 99.485%, 48.889% 99.448%, 46.667% 99.192%, 44.444% 99.194%, 42.222% 99.152%, 40% 99.12%,
-    37.778% 99.639%, 35.556% 99.675%, 33.333% 99.548%, 31.111% 99.268%, 28.889% 99.465%, 26.667% 99.528%, 24.444% 99.531%, 22.222% 99.374%,
-    20% 99.309%, 17.778% 99.48%, 15.556% 99.651%, 13.333% 99.142%, 11.111% 99.363%, 8.889% 99.345%, 6.667% 99.276%, 4.444% 99.431%,
-    2.222% 99.308%, 0% 99.361%, 0.832% 100%, 0.482% 97.778%, 0.703% 95.556%, 0.662% 93.333%, 0.773% 91.111%, 0.76% 88.889%,
-    0.524% 86.667%, 0.813% 84.444%, 0.682% 82.222%, 0.768% 80%, 0.351% 77.778%, 0.82% 75.556%, 0.544% 73.333%, 0.337% 71.111%,
-    0.323% 68.889%, 0.803% 66.667%, 0.523% 64.444%, 0.741% 62.222%, 0.693% 60%, 0.657% 57.778%, 0.625% 55.556%, 0.564% 53.333%,
-    0.489% 51.111%, 0.323% 48.889%, 0.768% 46.667%, 0.371% 44.444%, 0.787% 42.222%, 0.454% 40%, 0.65% 37.778%, 0.567% 35.556%,
-    0.572% 33.333%, 0.479% 31.111%, 0.611% 28.889%, 0.872% 26.667%, 0.806% 24.444%, 0.671% 22.222%, 0.503% 20%, 0.781% 17.778%,
-    0.496% 15.556%, 0.417% 13.333%, 0.756% 11.111%, 0.437% 8.889%, 0.362% 6.667%, 0.479% 4.444%, 0.843% 2.222%, 0.69% 0%
-  );
+  top: 14px;
+  right: 12px;
+  font-size: 0.625rem;
+  padding: 1px 6px;
+  background: transparent;
+  border-color: var(--rb-stone-flame);
+  color: #8a6d1a;
+}
+
+.rb-planning-card--exceptional .rb-planning-card-group {
+  padding-right: var(--rb-space-4);
+}
+
+@media (min-width: 768px) {
+  .rb-planning-card {
+    width: 204px;
+  }
+}
+
+/* --- Deck d'exceptions --- */
+.rb-exceptions-section {
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-exceptions-tabs {
+  display: flex;
+  gap: var(--rb-space-1);
+  margin-bottom: var(--rb-space-3);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  padding: 3px;
+}
+
+.rb-exceptions-tab {
+  flex: 1;
+  min-height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--rb-text-2);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--rb-radius-sm);
+}
+
+.rb-exceptions-tab[aria-selected="true"] {
+  background: var(--rb-surface-strong);
+  color: var(--rb-accent);
+  box-shadow: var(--rb-elevation-1);
 }
 
 .rb-exception-deck {
   position: relative;
-  height: 420px;
   /* Empêche le drag/swipe tactile de déclencher un scroll de page pendant
      la navigation manuelle dans la pile (borné, pas de boucle). */
   touch-action: pan-y;
@@ -405,21 +420,26 @@
 
 @media (min-width: 768px) {
   .rb-exception-deck {
-    /* Moins oppressant sur grand écran (cf. retour utilisateur) : la
-       pile de cartes ne s'étire pas sur toute la largeur du wrapper
-       pierre (qui, lui, occupe toute la largeur du container avec 2rem
-       de marge du viewport, cf. .rb-dashboard-page). */
     max-width: 420px;
     margin-inline: auto;
   }
 }
 
+/* Hauteur intrinsèque plutôt qu'une valeur fixe en px : seule la carte du
+   dessus (--deck-index: 0) reste dans le flow normal et dicte la hauteur
+   du deck selon son propre contenu (raison courte/longue/absente, wrap du
+   nom de groupe…) — les cartes suivantes (--deck-index > 0) sont calées
+   par-dessus en absolute, à la hauteur ainsi déterminée. */
 .rb-exception-card {
   position: absolute;
   inset: 0;
   width: 100%;
   --deck-index: 0;
   --deck-drag-x: 0px;
+  --group-color: var(--rb-accent);
+  padding: var(--rb-space-4);
+  border-radius: var(--rb-radius-lg);
+  border-top: 3px solid var(--group-color);
   overflow: hidden;
   transform:
     translateX(calc(var(--deck-drag-x) + var(--deck-index) * 10px))
@@ -428,19 +448,109 @@
   transform-origin: bottom center;
   transition: transform 0.25s ease;
   z-index: calc(100 - var(--deck-index));
-  box-shadow: 4px 4px 12px rgba(255, 255, 255, 0.15);
+  box-shadow: var(--rb-elevation-3);
+  display: flex;
+  flex-direction: column;
+}
+
+.rb-exception-card--active {
+  position: relative;
+  /* Glow néon sur le bord haut coloré (pas de halo sur les cartes derrière
+     dans la pile, seulement la carte du dessus). */
+  box-shadow: var(--rb-elevation-3), 0 -2px 18px 0 var(--group-color), 0 -1px 6px 1px var(--group-color);
 }
 
 .rb-exception-card[data-dragging] {
   transition: none;
 }
 
-/* Actions (Accepter/Refuser, ou le bouton Modifier du formulaire + Annuler)
-   côte à côte plutôt qu'empilées — .rb-btn-primary est en width: 100% par
-   défaut (base.css), on le restreint ici au contexte de la carte. */
+/* Coin en équerre, écho du même motif que la texture pierre. */
+.rb-exception-card::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  border-bottom: 1.5px solid var(--group-color);
+  border-right: 1.5px solid var(--group-color);
+  opacity: .55;
+  pointer-events: none;
+}
+
+.rb-exception-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-exception-card-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--rb-stone-1);
+  border: 1px solid var(--group-color);
+  color: var(--group-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.rb-exception-card-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rb-exception-card-head h3 {
+  margin: 0 0 2px;
+}
+
+.rb-exception-card-slot {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+  margin: 0 0 var(--rb-space-3);
+  padding: var(--rb-space-2) var(--rb-space-3);
+  background: rgba(0,0,0,0.25);
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.9375rem;
+  min-width: 0;
+}
+
+.rb-exception-card-slot svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--rb-stone-flame);
+}
+
+.rb-exception-card-slot strong {
+  min-width: 0;
+  white-space: normal;
+  color: var(--rb-stone-flame);
+  font-weight: 700;
+}
+
+.rb-exception-card-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+/* Actions (Accepter/Refuser, ou Modifier/Annuler) côte à côte plutôt
+   qu'empilées — .rb-btn-primary est en width: 100% par défaut
+   (base.css), on le restreint ici au contexte de la carte. */
 .rb-exception-card-actions {
   display: flex;
   gap: var(--rb-space-2);
+  margin-top: auto;
+  padding-top: var(--rb-space-3);
 }
 
 .rb-exception-card-actions .rb-btn {
@@ -448,9 +558,33 @@
   flex: 1;
 }
 
+.rb-exception-empty[hidden] {
+  display: none;
+}
+
+.rb-exception-empty {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rb-space-2);
+  text-align: center;
+  color: var(--rb-text-3);
+  border: 1px dashed var(--rb-border);
+  border-radius: var(--rb-radius-lg);
+  padding: var(--rb-space-4);
+}
+
+.rb-exception-empty svg {
+  width: 32px;
+  height: 32px;
+  opacity: 0.5;
+}
+
 .rb-badge {
   display: inline-block;
-  margin: 0 var(--rb-space-2) var(--rb-space-2) 0;
+  margin: 0;
   padding: 2px var(--rb-space-2);
   border-radius: var(--rb-radius-sm);
   font-size: 0.8125rem;
@@ -463,5 +597,20 @@
 .rb-badge-direction {
   color: var(--rb-accent-2);
   border-color: var(--rb-accent-2);
+}
+
+.rb-badge-warn {
+  color: var(--rb-warn);
+  border-color: var(--rb-warn);
+}
+
+.rb-badge-ok {
+  color: var(--rb-ok);
+  border-color: var(--rb-ok);
+}
+
+.rb-badge-err {
+  color: var(--rb-err);
+  border-color: var(--rb-err);
 }
 

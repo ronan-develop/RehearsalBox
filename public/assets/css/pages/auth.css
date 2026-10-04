@@ -16,26 +16,29 @@
 }
 
 .rb-auth-logo-wrap {
-  position: relative;
   margin: calc(var(--rb-space-5) * -1) calc(var(--rb-space-4) * -1) var(--rb-space-4);
-}
-
-.rb-auth-logo-wrap::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 32px;
-  background: linear-gradient(to bottom, transparent, var(--rb-surface));
+  padding: var(--rb-space-6) var(--rb-space-3) var(--rb-space-4);
+  text-align: center;
+  border-bottom: 1px solid var(--rb-stone-2);
 }
 
 .rb-auth-logo {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1010 / 700;
-  object-fit: cover;
+  display: inline-block;
+  font-family: 'ADrippingMarker', sans-serif;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: var(--rb-accent);
+  text-shadow: 0 0 22px rgba(181, 101, 74, 0.55);
+}
+.rb-auth-logo span { color: var(--rb-stone-flame); }
+
+.rb-auth-tagline {
+  margin: var(--rb-space-1) 0 0;
+  font-size: 0.6875rem;
+  color: var(--rb-stone-chalk);
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .rb-auth-card .rb-field:last-of-type {

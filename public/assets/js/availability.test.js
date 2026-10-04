@@ -51,7 +51,7 @@ function fakeRootWithCard() {
       querySelector: (selector) => {
         const match = /\[data-exception-id="(.+)"\]/.exec(selector);
         if (match) {
-          return { remove: () => removed.push(match[1]) };
+          return { remove: () => removed.push(match[1]), closest: () => null };
         }
         if (selector === '[data-planning-track-exceptional]') {
           return { innerHTML: '', querySelectorAll: () => [] };
@@ -162,6 +162,23 @@ test('handleCancel removes the card on 409 (already responded)', async () => {
   await handleCancel(fakeCancelButton('13'), root);
 
   assert.deepEqual(removed, ['13']);
+});
+
+test('handleCancel renumbers the deck and reveals the empty state when it was the last card', async () => {
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({}) });
+  globalThis.document = fakeDocument();
+
+  const emptyState = { removeAttribute: () => { emptyState.hiddenRemoved = true; }, hiddenRemoved: false };
+  const deck = {
+    querySelectorAll: () => [],
+    querySelector: (selector) => (selector === '.rb-exception-empty' ? emptyState : null),
+  };
+  const card = { remove: () => {}, closest: (selector) => (selector === '[data-exception-deck]' ? deck : null) };
+  const root = { querySelector: () => card };
+
+  await handleCancel(fakeCancelButton('20'), root);
+
+  assert.equal(emptyState.hiddenRemoved, true);
 });
 
 test('handleUpdateSubmit prevents native submit and PATCHes the form as JSON', async () => {

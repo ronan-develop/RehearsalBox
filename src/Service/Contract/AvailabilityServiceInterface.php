@@ -21,6 +21,12 @@ interface AvailabilityServiceInterface
     public function findByRequestingGroup(int $groupId, int $userId): array;
 
     /**
+     * @throws \App\Security\Exception\AccessDeniedException si l'utilisateur courant n'appartient pas à $groupId
+     * @return list<SlotException> Exceptions déjà traitées, titulaire ou demandeur confondus.
+     */
+    public function findArchivedForGroup(int $groupId, int $userId): array;
+
+    /**
      * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe titulaire du créneau
      * @throws \App\Service\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà répondue
      */

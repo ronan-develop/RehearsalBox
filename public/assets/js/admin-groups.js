@@ -26,12 +26,26 @@ export function renderGroupCard(group) {
         <button type="submit" class="rb-btn">Enregistrer</button>
       </form>
       <div class="rb-group-actions">
-        <button type="button" class="rb-btn" data-edit-group-button data-group-id="${group.id}">Modifier</button>
-        <button type="button" class="rb-btn rb-btn-danger" data-delete-group-button data-group-id="${group.id}">Supprimer</button>
+        <button type="button" class="rb-btn rb-btn-icon" data-edit-group-button data-group-id="${group.id}" aria-label="Modifier">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+          </svg>
+        </button>
+        <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-group-button data-group-id="${group.id}" aria-label="Supprimer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+          </svg>
+        </button>
       </div>
       <form data-async data-endpoint="/api/admin/groups/${group.id}/members" data-method="POST" class="rb-add-member-form">
         <input type="email" name="email" class="rb-input" placeholder="Email du musicien" required>
-        <button type="submit" class="rb-btn">Ajouter</button>
+        <button type="submit" class="rb-btn rb-btn-icon" aria-label="Ajouter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
       </form>
     </article>
   `;

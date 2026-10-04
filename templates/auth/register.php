@@ -11,8 +11,9 @@
 <body>
     <div class="rb-auth-page">
         <div class="rb-auth-card rb-card">
-            <div class="rb-auth-logo-wrap">
-                <img src="/assets/img/B27.jpg" alt="RehearsalBox" class="rb-auth-logo" width="1010" height="700">
+            <div class="rb-auth-logo-wrap rb-stone-panel">
+                <span class="rb-auth-logo">#B<span>27</span></span>
+                <p class="rb-auth-tagline">Local</p>
             </div>
             <form data-async data-endpoint="/api/auth/register" data-method="POST">
                 <div class="rb-field">

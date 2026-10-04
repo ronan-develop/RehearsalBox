@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="rb-group-space-page" data-group-space data-group-id="<?= e((string) $group->id()) ?>" data-current-user-group-role="<?= e($currentUserGroupRole?->value ?? '') ?>">
-        <header class="rb-group-space-header">
+        <header class="rb-group-space-header rb-stone-panel">
             <a href="/" class="rb-btn rb-btn-primary rb-group-space-back">&larr; Retour</a>
             <h1><?= e($group->name()) ?></h1>
             <?php if ($group->genre() !== null): ?>
@@ -20,20 +20,28 @@
 
         <section class="rb-group-space-section">
             <h2>Line-up</h2>
-            <ul class="rb-group-space-lineup" data-lineup-list>
-                <?php foreach ($group->lineup() as $member): ?>
-                    <li><?= e($member->name()) ?> — <?= e($member->instrument()) ?></li>
-                <?php endforeach; ?>
-            </ul>
+            <?php if ($group->lineup() === []): ?>
+                <p class="rb-group-space-empty">Aucun musicien renseigné.</p>
+            <?php else: ?>
+                <ul class="rb-group-space-lineup" data-lineup-list>
+                    <?php foreach ($group->lineup() as $member): ?>
+                        <li><span><?= e($member->name()) ?></span><span><?= e($member->instrument()) ?></span></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
         </section>
 
         <section class="rb-group-space-section">
             <h2>Concerts à venir</h2>
-            <ul class="rb-group-space-shows" data-shows-list>
-                <?php foreach ($group->upcomingShows() as $show): ?>
-                    <li><?= e($show->date()) ?> — <?= e($show->venue()) ?></li>
-                <?php endforeach; ?>
-            </ul>
+            <?php if ($group->upcomingShows() === []): ?>
+                <p class="rb-group-space-empty">Aucun concert à venir.</p>
+            <?php else: ?>
+                <ul class="rb-group-space-shows" data-shows-list>
+                    <?php foreach ($group->upcomingShows() as $show): ?>
+                        <li><span class="rb-group-space-show-date"><?= e($show->date()) ?></span><span><?= e($show->venue()) ?></span></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
         </section>
 
         <?php if ($currentUserGroupRole?->value === 'gestionnaire'): ?>
@@ -47,7 +55,12 @@
                                 <div class="rb-group-space-editor-row" data-lineup-row>
                                     <input type="text" name="name" class="rb-input" placeholder="Nom" value="<?= e($member->name()) ?>">
                                     <input type="text" name="instrument" class="rb-input" placeholder="Instrument" value="<?= e($member->instrument()) ?>">
-                                    <button type="button" class="rb-btn rb-btn-danger" data-remove-row>Retirer</button>
+                                    <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-remove-row aria-label="Retirer">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        </svg>
+                                    </button>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -61,7 +74,12 @@
                                 <div class="rb-group-space-editor-row" data-show-row>
                                     <input type="text" name="date" class="rb-input" placeholder="Date (AAAA-MM-JJ)" value="<?= e($show->date()) ?>">
                                     <input type="text" name="venue" class="rb-input" placeholder="Lieu" value="<?= e($show->venue()) ?>">
-                                    <button type="button" class="rb-btn rb-btn-danger" data-remove-row>Retirer</button>
+                                    <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-remove-row aria-label="Retirer">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        </svg>
+                                    </button>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -76,16 +94,28 @@
         <?php if ($currentUserGroupRole !== null): ?>
             <section class="rb-group-space-section">
                 <h2>Documents techniques</h2>
-                <ul class="rb-group-space-documents" data-documents-list>
-                    <?php foreach ($documents as $document): ?>
-                        <li data-document-id="<?= e((string) $document->id()) ?>">
-                            <a href="/api/documents/<?= e((string) $document->id()) ?>" target="_blank" rel="noopener"><?= e($document->originalName()) ?></a>
-                            <?php if ($currentUserGroupRole->value === 'gestionnaire'): ?>
-                                <button type="button" class="rb-btn rb-btn-danger" data-delete-document data-document-id="<?= e((string) $document->id()) ?>">Supprimer</button>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+                <?php if ($documents === []): ?>
+                    <p class="rb-group-space-empty">Aucun document.</p>
+                <?php else: ?>
+                    <ul class="rb-group-space-documents" data-documents-list>
+                        <?php foreach ($documents as $document): ?>
+                            <li data-document-id="<?= e((string) $document->id()) ?>">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>
+                                </svg>
+                                <a href="/api/documents/<?= e((string) $document->id()) ?>" target="_blank" rel="noopener"><?= e($document->originalName()) ?></a>
+                                <?php if ($currentUserGroupRole->value === 'gestionnaire'): ?>
+                                    <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-document data-document-id="<?= e((string) $document->id()) ?>" aria-label="Supprimer">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        </svg>
+                                    </button>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
                 <?php if ($currentUserGroupRole->value === 'gestionnaire'): ?>
                     <form data-document-upload-form data-endpoint="/api/groups/<?= e((string) $group->id()) ?>/documents" enctype="multipart/form-data">
                         <div class="rb-field">

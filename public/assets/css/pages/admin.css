@@ -6,7 +6,12 @@
 }
 
 .rb-admin-page h1 {
+  margin-bottom: var(--rb-space-1);
+}
+
+.rb-admin-subtitle {
   margin-bottom: var(--rb-space-4);
+  color: var(--rb-text-2);
 }
 
 .rb-admin-form {
@@ -21,6 +26,7 @@
 }
 
 .rb-admin-table {
+  display: none;
   width: 100%;
   min-width: 420px;
   border-collapse: collapse;
@@ -31,6 +37,37 @@
   text-align: left;
   padding: var(--rb-space-2) var(--rb-space-3);
   border-bottom: 1px solid var(--rb-border);
+}
+
+@media (min-width: 768px) {
+  .rb-admin-table { display: table; }
+  .rb-admin-cards { display: none; }
+}
+
+.rb-admin-cards {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+.rb-slot-card {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-3);
+  padding: var(--rb-space-3);
+}
+
+.rb-slot-card-color {
+  width: 8px;
+  align-self: stretch;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.rb-slot-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .rb-group-list {

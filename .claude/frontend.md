@@ -8,9 +8,9 @@ Pas de Tailwind/Bootstrap. `assets/css/base.css` porte les variables CSS custom 
 
 |Rôle|Variable(s)|
 |-|-|
-|Fond|`--rb-bg` (`#121212`), `--rb-bg-2` (`#1a1a1a`)|
-|Accent|`--rb-accent` (rouge `#e63946`)|
-|Accent secondaire|`--rb-accent-2` (orange électrique ou violet néon)|
+|Fond|`--rb-bg` (`#15151a`), `--rb-bg-2` (`#1a1a20`)|
+|Accent|`--rb-accent` (braise/terracotta `#b5654a`)|
+|Accent secondaire|`--rb-accent-2` (`#8a8478`, gris chaud désaturé)|
 |Surface|`--rb-surface`, `--rb-surface-strong` (modales, tab-bar)|
 |Bordure|`--rb-border`|
 |Texte|`--rb-text`, `--rb-text-2`, `--rb-text-3`|
@@ -18,12 +18,15 @@ Pas de Tailwind/Bootstrap. `assets/css/base.css` porte les variables CSS custom 
 |Statuts|`--rb-ok`, `--rb-warn`, `--rb-err`|
 |Espacement|`--rb-space-1` … `--rb-space-6`|
 |Rayons|`--rb-radius-sm`, `--rb-radius-md`|
+|Texture pierre|`--rb-stone-1` … `--rb-stone-flame`, classes `.rb-stone-surface`/`.rb-stone-panel` (usage parcimonieux) et `.rb-stone-panel--ember` (réservée au header dashboard, ne pas généraliser)|
 
 Dark mode : le projet est nativement sombre (pas de mode clair prévu au départ) — si un mode clair est ajouté plus tard, passer par `@media (prefers-color-scheme: light)` en exception, pas l'inverse.
 
 ## Typographie
 
-Display condensée/anguleuse pour les titres, lisible standard pour le corps. **Toujours self-hosted (woff2)** — jamais de CDN externe (cohérent avec la CSP `default-src 'self'` et l'hébergement mutualisé).
+Arimo pour tout texte lu/fonctionnel (titres h1/h2/h3 et corps). **Toujours self-hosted (woff2)** — jamais de CDN externe (cohérent avec la CSP `default-src 'self'` et l'hébergement mutualisé).
+
+Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/assets/fonts/a-dripping-marker.woff2`) sert le watermark décoratif du dashboard (`aria-hidden="true"`) et le logo `.rb-auth-logo` des pages login/register — toujours et uniquement pour le graffiti "#B27" lui-même, jamais pour un autre titre ou texte lu générique.
 
 ## Règles
 

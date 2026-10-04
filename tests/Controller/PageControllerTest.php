@@ -111,6 +111,49 @@ final class PageControllerTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testDashboardExposesPrimaryGroupNameAndInitialsWhenUserBelongsToOneGroup(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Gestionnaire);
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('<span>Groupe Test</span>', $response->body());
+        self::assertStringContainsString('rb-dashboard-avatar" aria-hidden="true">MT<', $response->body());
+    }
+
+    #[Test]
+
+    public function testDashboardExposesFirstGroupAlphabeticallyWhenUserBelongsToMultipleGroups(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $groupZ = $groupRepository->save(new Group(0, 'Zebra', null, null, 'contact-z@example.test'));
+        $groupA = $groupRepository->save(new Group(0, 'Alpha', null, null, 'contact-a@example.test'));
+        $groupRepository->addMember($groupZ->id(), $user->id(), GroupUserRole::Membre);
+        $groupRepository->addMember($groupA->id(), $user->id(), GroupUserRole::Membre);
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('<span>Alpha</span>', $response->body());
+    }
+
+    #[Test]
+
+    public function testDashboardExposesNoPrimaryGroupWhenUserBelongsToNoGroup(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->dashboard();
+
+        self::assertStringContainsString('<span>Admin local</span>', $response->body());
+    }
+
+    #[Test]
+
     public function testDashboardShowsNoPlanningSliderWhenNoFixedSlots(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();

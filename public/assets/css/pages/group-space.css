@@ -12,16 +12,39 @@
   text-decoration: none;
 }
 
+.rb-group-space-header {
+  padding: var(--rb-space-4);
+}
+
 .rb-group-space-header h1 {
   margin-bottom: var(--rb-space-1);
+  color: #fff;
 }
 
 .rb-group-space-genre {
-  color: var(--rb-text-2);
+  margin: 0;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rb-stone-flame);
 }
 
 .rb-group-space-section {
   margin-top: var(--rb-space-5);
+}
+
+.rb-group-space-section h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-group-space-section h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rb-border);
 }
 
 .rb-group-space-lineup,
@@ -31,13 +54,76 @@
   gap: var(--rb-space-2);
   list-style: none;
   padding: 0;
+  margin: 0;
+}
+
+.rb-group-space-lineup li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--rb-space-2);
+  padding: var(--rb-space-3);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+}
+
+.rb-group-space-lineup li span:last-child {
+  color: var(--rb-text-2);
+}
+
+.rb-group-space-shows li {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-3);
+  padding: var(--rb-space-3);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-left: 3px solid var(--rb-accent);
+  border-radius: var(--rb-radius-sm);
+}
+
+.rb-group-space-show-date {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--rb-accent);
+  white-space: nowrap;
 }
 
 .rb-group-space-documents li {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--rb-space-2);
+  padding: var(--rb-space-2) var(--rb-space-3);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  font-size: 0.9375rem;
+}
+
+.rb-group-space-documents li svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--rb-text-2);
+}
+
+.rb-group-space-documents li a {
+  flex: 1;
+  min-width: 0;
+  color: var(--rb-text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rb-group-space-documents li a:hover {
+  color: var(--rb-accent);
+}
+
+.rb-group-space-empty {
+  color: var(--rb-text-3);
+  font-size: 0.9375rem;
 }
 
 .rb-group-space-editor-group {

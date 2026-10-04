@@ -7,6 +7,16 @@
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
 import { refreshExceptionalPlanning } from './planning-slider.js';
+import { renumberDeck } from './exception-deck.js';
+
+function removeExceptionCard(root, exceptionId) {
+  const card = root.querySelector(`[data-exception-id="${exceptionId}"]`);
+  const deck = card?.closest('[data-exception-deck]');
+  card?.remove();
+  if (deck) {
+    renumberDeck(deck);
+  }
+}
 
 export function getCurrentGroupId(root = document) {
   const select = root.querySelector('[data-current-group-select]');
@@ -23,7 +33,7 @@ export async function handleRespond(button, root = document) {
       body: JSON.stringify({ accepted }),
     });
 
-    root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
+    removeExceptionCard(root, exceptionId);
     showToast(accepted ? 'Demande acceptée.' : 'Demande refusée.', 'success');
 
     if (accepted) {
@@ -33,7 +43,7 @@ export async function handleRespond(button, root = document) {
     showToast(error.message, 'error');
 
     if (error.status === 409) {
-      root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
+      removeExceptionCard(root, exceptionId);
     }
   }
 }
@@ -46,13 +56,13 @@ export async function handleCancel(button, root = document) {
       method: 'DELETE',
     });
 
-    root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
+    removeExceptionCard(root, exceptionId);
     showToast('Demande annulée.', 'success');
   } catch (error) {
     showToast(error.message, 'error');
 
     if (error.status === 409) {
-      root.querySelector(`[data-exception-id="${exceptionId}"]`)?.remove();
+      removeExceptionCard(root, exceptionId);
     }
   }
 }

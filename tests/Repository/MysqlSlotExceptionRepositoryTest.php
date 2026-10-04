@@ -361,6 +361,90 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(0, $results);
     }
 
+    #[Test]
+
+    public function testFindArchivedForGroupIncludesRespondedExceptionsWhereGroupIsHolder(): void
+    {
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($exception->id(), true, $requestingUserId);
+
+        $archivedForHolder = $repository->findArchivedForGroup($holderGroupId);
+
+        self::assertCount(1, $archivedForHolder);
+        self::assertSame($exception->id(), $archivedForHolder[0]->id());
+    }
+
+    #[Test]
+
+    public function testFindArchivedForGroupIncludesRespondedExceptionsWhereGroupIsRequester(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($exception->id(), false, $requestingUserId);
+
+        $archivedForRequester = $repository->findArchivedForGroup($requestingGroupId);
+
+        self::assertCount(1, $archivedForRequester);
+        self::assertSame($exception->id(), $archivedForRequester[0]->id());
+    }
+
+    #[Test]
+
+    public function testFindArchivedForGroupExcludesPendingExceptions(): void
+    {
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+
+        $archivedForHolder = $repository->findArchivedForGroup($holderGroupId);
+
+        self::assertCount(0, $archivedForHolder);
+    }
+
+    #[Test]
+
+    public function testFindArchivedForGroupDoesNotDuplicateWhenGroupIsBothHolderAndRequester(): void
+    {
+        [$holderSlotId, $holderGroupId, $holderUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        // Le groupe titulaire fait lui-même une demande sur son propre créneau —
+        // cas limite, doit apparaître une seule fois dans les archives, pas deux
+        // (une entrée JOIN via recurring_slots + une via requested_by_group_id).
+        $exception = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $holderGroupId, $holderUserId, null);
+        $repository->respond($exception->id(), true, $holderUserId);
+
+        $archived = $repository->findArchivedForGroup($holderGroupId);
+
+        self::assertCount(1, $archived);
+    }
+
+    #[Test]
+
+    public function testFindArchivedForGroupOrdersByOccurrenceDateDescending(): void
+    {
+        [$holderSlotId, $holderGroupId, , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $older = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-01'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($older->id(), true, $requestingUserId);
+
+        $newer = $repository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-10'), $requestingGroupId, $requestingUserId, null);
+        $repository->respond($newer->id(), false, $requestingUserId);
+
+        $archived = $repository->findArchivedForGroup($holderGroupId);
+
+        self::assertCount(2, $archived);
+        self::assertSame($newer->id(), $archived[0]->id());
+        self::assertSame($older->id(), $archived[1]->id());
+    }
+
     /** @return array{0: int, 1: int, 2: int, 3: int, 4: int} [holderSlotId, holderGroupId, holderUserId, requestingGroupId, requestingUserId] */
     private function createHolderAndRequester(): array
     {

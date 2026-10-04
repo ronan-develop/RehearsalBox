@@ -7,6 +7,8 @@ namespace App\Controller;
 use App\Entity\DashboardExceptionItem;
 use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
+use App\Entity\RecurringSlot;
+use App\Entity\SlotException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
@@ -17,6 +19,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Service\Contract\SlotServiceInterface;
+use App\Support\Initials;
 use App\View\TemplateRendererInterface;
 
 final class PageController
@@ -53,41 +56,71 @@ final class PageController
             $groupRoles[$group->id()] = $this->groupRepository->roleOf($group->id(), $user->id());
         }
 
-        $items = [];
-        $seenPendingIds = [];
-        $seenRequestedIds = [];
+        $slotsById = [];
+        foreach ($this->slotService->findAllActive() as $slot) {
+            $slotsById[$slot->id()] = $slot;
+        }
+
+        // Indexés par id d'exception : une demande visible depuis plusieurs groupes
+        // de l'utilisateur n'apparaît qu'une fois (et n'est construite qu'une fois).
+        $receivedItems = [];
+        $sentItems = [];
+        $archivedItems = [];
         foreach ($groups as $group) {
             foreach ($this->availabilityService->findPendingForHolderGroup($group->id(), $user->id()) as $exception) {
-                if (isset($seenPendingIds[$exception->id()])) {
-                    continue;
-                }
-                $seenPendingIds[$exception->id()] = true;
-                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
-                \assert($requestingGroup !== null);
-                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue, $requestingGroup->name());
+                $receivedItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Recue, $slotsById);
             }
             foreach ($this->availabilityService->findByRequestingGroup($group->id(), $user->id()) as $exception) {
-                if (isset($seenRequestedIds[$exception->id()])) {
-                    continue;
-                }
-                $seenRequestedIds[$exception->id()] = true;
-                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
-                \assert($requestingGroup !== null);
-                $items[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee, $requestingGroup->name());
+                $sentItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Envoyee, $slotsById);
+            }
+            foreach ($this->availabilityService->findArchivedForGroup($group->id(), $user->id()) as $exception) {
+                $direction = $exception->requestedByGroupId() === $group->id() ? ExceptionDirection::Envoyee : ExceptionDirection::Recue;
+                $archivedItems[$exception->id()] ??= $this->toDashboardItem($exception, $direction, $slotsById);
             }
         }
 
-        usort($items, static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
-            $b->exception()->createdAt() <=> $a->exception()->createdAt());
+        $sortByCreatedAtDescending = static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
+            $b->exception()->createdAt() <=> $a->exception()->createdAt();
+        usort($receivedItems, $sortByCreatedAtDescending);
+        usort($sentItems, $sortByCreatedAtDescending);
+        usort($archivedItems, $sortByCreatedAtDescending);
+
+        // Limite connue : si l'utilisateur appartient à plusieurs groupes, le premier
+        // (par ordre alphabétique de nom, cf. GroupRepository::findByMember) est affiché
+        // arbitrairement dans le header. Pas de concept de "groupe principal" en base —
+        // cf. issue à ouvrir si ce cas devient fréquent en usage réel.
+        $primaryGroup = $groups[0] ?? null;
+        $primaryGroupRole = $primaryGroup !== null ? $groupRoles[$primaryGroup->id()] : null;
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'planningSlots' => $this->slotService->findFixedPlanningSlots(),
             'exceptionalPlanningSlots' => $this->slotService->findOccasionalPlanningSlots(),
-            'dashboardExceptions' => $items,
+            'receivedExceptions' => $receivedItems,
+            'sentExceptions' => $sentItems,
+            'archivedExceptions' => $archivedItems,
             'currentUserRole' => $user->role(),
             'currentUserGroupRoles' => $groupRoles,
+            'currentUserGroupName' => $primaryGroup?->name(),
+            'currentUserGroupRole' => $primaryGroupRole,
+            'currentUserGroupId' => $primaryGroup?->id(),
+            'currentUserInitials' => Initials::from($user->displayName()),
         ]));
+    }
+
+    /** @param array<int, RecurringSlot> $slotsById */
+    private function toDashboardItem(SlotException $exception, ExceptionDirection $direction, array $slotsById): DashboardExceptionItem
+    {
+        $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+        \assert($requestingGroup !== null);
+
+        return new DashboardExceptionItem(
+            $exception,
+            $direction,
+            $requestingGroup->name(),
+            $requestingGroup->colorHex(),
+            $slotsById[$exception->recurringSlotId()] ?? null,
+        );
     }
 
     public function adminSlots(): Response
