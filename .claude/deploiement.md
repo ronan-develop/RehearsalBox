@@ -1,20 +1,77 @@
-# Déploiement — WIP, hébergeur non choisi
+# Déploiement — o2switch (hébergement mutualisé, sous-compte dédié)
 
-⚠️ **Cette section est un squelette à compléter.** L'hébergeur cible n'est pas encore choisi (probable hébergement mutualisé, cf. contraintes du projet : PHP pur, pas de composer install garanti en prod, upload FTP possible). Ne pas présumer d'un hébergeur précis (o2switch ou autre) tant que la décision n'est pas prise — compléter ce fichier à ce moment-là.
+Aucun secret ni identifiant d'infrastructure dans ce fichier (dépôt public) : les valeurs réelles vivent dans `.secrets` (local, ignoré par git) et dans `config/config.local.php` sur le serveur (0600, hors webroot). `<...>` = placeholder.
 
-## Contraintes connues à date
+## Principe
 
-- Hébergement mutualisé probable : pas d'accès SSH garanti, pas de process long-running, `vendor/` committé plutôt que `composer install` en prod si l'hébergeur ne le permet pas.
-- `public/` doit être l'unique document root exposée ; `src/`, `config/`, `database/` restent hors webroot (cf. `.claude/architecture.md`).
-- HTTPS obligatoire, cookie de session `Secure`+`httponly`+`SameSite` (cf. plan de sécurité).
+Déploiement par **releases** en SSH depuis le poste de dev, sans démon ni binaire tiers. Seuls les fichiers suivis par git (HEAD) sont envoyés (`git archive`) : ni `.secrets`, ni `config.local.php`, ni tests.
 
-## À définir une fois l'hébergeur choisi
+```text
+~/rehearsalbox/
+├── releases/<horodatage>-<sha>/   ← code + vendor/ (composer install --no-dev sur le serveur)
+├── current -> releases/<...>      ← bascule atomique
+├── shared/config.local.php        ← 0600, généré par bin/generate-config.php
+├── shared/storage/                ← documents des groupes (inscriptible)
+├── shared/well-known/             ← validation du certificat
+└── backups/pre-<release>.sql.gz   ← dump avant migration (7 conservés)
+~/<racine-du-domaine>/public -> ~/rehearsalbox/current/public   ← seule partie exposée
+```
 
-- Méthode de déploiement (SSH manuel via script `bin/`, FTP, ou webhook)
-- Variables d'environnement en prod (`config/config.local.php`, jamais committé)
-- Prérequis panel d'hébergement (sous-domaine, base MySQL, clé SSH si applicable)
-- Diagnostic des erreurs fréquentes (500, accès DB refusé, etc.)
+`src/`, `config/`, `database/`, `storage/` restent hors webroot.
 
-## Critère de bon fonctionnement (à valider après premier déploiement réel)
+## Prérequis (une fois)
+
+- Sous-compte cPanel dédié, domaine ajouté avec pour **racine du document `<dossier-domaine>/public`** (vérifier dans *Domaines* : sinon le site répond 404/403).
+- Version PHP **8.4** (web et CLI) ; extensions : `pdo_mysql` (via mysqlnd), `mbstring`, `fileinfo`, `openssl`, `iconv`, `intl`, `opcache`. `/usr/local/bin/php -v` doit afficher 8.4.
+- Base MariaDB + utilisateur créés dans le cPanel.
+- Clé SSH dédiée générée en local, **clé publique** importée et autorisée dans le cPanel, adresse IPv4 du poste autorisée. Fichier `ssh_config` local avec un alias (hors dépôt).
+- SPF/DKIM valides pour le domaine d'envoi (cPanel › Email Deliverability).
+- Certificat Let's Encrypt par AutoSSL (sans wildcard).
+- `.secrets` : `PROD_DB_HOST`, `PROD_DB_PORT`, `PROD_DB_DATABASE`, `PROD_DB_USER`, `PROD_DB_PASSWORD`, `MAILER_DSN` (`sendmail://default`), `MAILER_FROM` (adresse `no-reply@<domaine>`).
+
+## Déployer
+
+```bash
+export RB_SSH_CONFIG=<chemin/ssh_config> RB_DOCROOT_LINK=<dossier-domaine>/public RB_SECRETS_FILE=<chemin/.secrets>
+./bin/deploy.sh          # phpunit + npm test + composer audit, puis envoi, install, sauvegarde, migrations, bascule
+```
+
+Étapes : contrôles locaux → envoi de la release → `composer install --no-dev` avec le PHP CLI **explicite** + vérification `Nothing to install` → génération de `config.local.php` si absent (`RB_REGEN_CONFIG=1` pour forcer) → dump si la base contient des tables → `bin/migrate.php` → rendu à blanc de `GET /login` en CLI → bascule de `current`. Si une étape échoue, `current` n'est pas modifié. **Jamais** `database/seed.php` en production.
+
+## Comptes initiaux (sans fixtures)
+
+```bash
+RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> <admin|musicien>
+```
+
+Le mot de passe passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. Les groupes sont créés ensuite depuis l'interface admin. Changer les mots de passe provisoires dès la première connexion.
+
+## Retour arrière
+
+```bash
+RB_SSH_CONFIG=<chemin/ssh_config> ./bin/rollback.sh   # current -> release précédente (3 conservées)
+```
+
+La base n'est pas restaurée automatiquement : la commande de restauration depuis `backups/pre-<release>.sql.gz` est affichée, à lancer à la main.
+
+## Points d'attention o2switch
+
+- Pas de démon, pas de process > 420 s CPU, < 20 000 fichiers par dossier.
+- **PATCH et DELETE** : les CGV ne citent que POST/GET/OPTIONS/PUT → à tester après chaque changement d'hébergement (`curl -X PATCH` / `-X DELETE` sur une route authentifiée doit renvoyer du JSON applicatif, pas une 405/501).
+- E-mail : `sendmail://default` (Exim local), expéditeur fixe, l'utilisateur est en `Reply-To`. 20 000 envois automatisés/jour max.
+- `/usr/local/bin/php` et le PHP web peuvent différer : vérifier les deux après un changement de version.
+- Client SQL : `mariadb` / `mariadb-dump` (les alias `mysql*` sont dépréciés).
+
+## Diagnostic
+
+| Symptôme | Piste |
+|---|---|
+| 404/403 sur tout le site | racine du document ≠ `<dossier-domaine>/public`, ou lien `public` absent |
+| 500 | `~/logs`, droits de `shared/config.local.php`, version PHP web |
+| Accès DB refusé | variables `PROD_DB_*`, `RB_REGEN_CONFIG=1 ./bin/deploy.sh` |
+| `composer` affiche son aide et sort en 0 | PHP CGI utilisé : toujours `php composer` avec le PHP CLI explicite |
+| SSH refusé | IPv4 non autorisée dans le cPanel, clé non « Authorize » |
+
+## Critère de bon fonctionnement
 
 Un musicien peut se connecter depuis son téléphone, voir le dashboard des disponibilités, et revendiquer un créneau libéré sans erreur.

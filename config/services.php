@@ -38,6 +38,7 @@ use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
 use App\Service\SlotService;
+use App\Service\UserProvisioningService;
 use App\View\PhpTemplateRenderer;
 use App\View\TemplateRendererInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -97,6 +98,7 @@ return static function (array $config): Container {
     $container->set(GroupContactService::class, fn ($c) => new GroupContactService(
         $c->get(MailerInterface::class),
         $c->get(GroupRepositoryInterface::class),
+        $config['mailer']['from'],
     ));
 
     $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
@@ -112,10 +114,14 @@ return static function (array $config): Container {
         $c->get(GroupDocumentRepositoryInterface::class),
     ));
 
-    $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
-        $c->get(AuthServiceInterface::class),
+    $container->set(UserProvisioningService::class, fn ($c) => new UserProvisioningService(
         $c->get(UserRepositoryInterface::class),
         $c->get(PasswordHasherInterface::class),
+    ));
+
+    $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
+        $c->get(AuthServiceInterface::class),
+        $c->get(UserProvisioningService::class),
     ));
 
     $container->set(AvailabilityApiController::class, fn ($c) => new AvailabilityApiController(

@@ -13,7 +13,7 @@ La CI a démarré rouge dès le premier commit (aucun code ni test à ce stade) 
 
 ## Déploiement
 
-**Manuel, pas automatique** — hébergeur pas encore choisi, voir `.claude/deploiement.md` (WIP). Un déploiement ne part jamais avec des tests rouges en local (`./vendor/bin/phpunit` + `npm test` avant tout push vers `main`).
+**Manuel, pas automatique** — `./bin/deploy.sh` depuis le poste de dev (o2switch, SSH), voir `.claude/deploiement.md`. Un déploiement ne part jamais avec des tests rouges en local (`./vendor/bin/phpunit` + `npm test` avant tout push vers `main`).
 
 ## Suivi d'avancement
 

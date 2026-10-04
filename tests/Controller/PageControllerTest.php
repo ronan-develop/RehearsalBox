@@ -253,7 +253,7 @@ final class PageControllerTest extends RepositoryTestCase
             lockedUntil: null,
         ));
         $groupRepository->addMember($requestingGroup->id(), $requester->id());
-        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $requestingGroup->id(), $requester->id(), 'Concert samedi');
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $requester->id(), 'Concert samedi');
 
         $response = $controller->dashboard();
 
@@ -278,12 +278,12 @@ final class PageControllerTest extends RepositoryTestCase
         $groupRepository->addMember($otherGroup->id(), $user->id());
 
         // Demande reçue par $holderGroup (dont $user est membre).
-        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('2026-08-04'), $otherGroup->id(), $user->id(), 'Demande reçue');
+        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $otherGroup->id(), $user->id(), 'Demande reçue');
 
         // Demande envoyée par $otherGroup (dont $user est aussi membre) vers un autre créneau.
         $otherHolderGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
         $otherSlot = $slotService->create($otherHolderGroup->id(), Weekday::Wednesday, '18:00:00', '20:00:00');
-        $exceptionRepository->createRequest($otherSlot->id(), new \DateTimeImmutable('2026-08-05'), $otherGroup->id(), $user->id(), 'Demande envoyée');
+        $exceptionRepository->createRequest($otherSlot->id(), new \DateTimeImmutable('+8 days'), $otherGroup->id(), $user->id(), 'Demande envoyée');
 
         $response = $controller->dashboard();
 

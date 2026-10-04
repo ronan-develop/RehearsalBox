@@ -50,7 +50,7 @@ final class GroupContactServiceTest extends RepositoryTestCase
             }
         };
 
-        $service = new GroupContactService($mailer, $groupRepository);
+        $service = new GroupContactService($mailer, $groupRepository, 'no-reply@rehearsalbox.test');
         $service->send($group->id(), $sender->id(), $sender->email(), 'Bonjour, on peut échanger un créneau ?');
 
         self::assertNotNull($mailer->sent);
@@ -59,6 +59,34 @@ final class GroupContactServiceTest extends RepositoryTestCase
             $mailer->sent->getTo(),
         ));
         self::assertStringContainsString('Bonjour, on peut échanger un créneau ?', $mailer->sent->getTextBody());
+        self::assertSame(['alice@rehearsalbox.test'], array_map(
+            static fn ($address) => $address->getAddress(),
+            $mailer->sent->getReplyTo(),
+        ));
+    }
+
+    #[Test]
+    public function testSendUsesConfiguredFromAddressAndKeepsSenderAsReplyTo(): void
+    {
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $group = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+
+        $mailer = new class implements MailerInterface {
+            public ?Email $sent = null;
+
+            public function send(\Symfony\Component\Mime\RawMessage $message, ?\Symfony\Component\Mailer\Envelope $envelope = null): void
+            {
+                $this->sent = $message;
+            }
+        };
+
+        $service = new GroupContactService($mailer, $groupRepository, 'no-reply@rehearsalbox.example');
+        $service->send($group->id(), 1, 'alice@rehearsalbox.test', 'Bonjour');
+
+        self::assertSame(['no-reply@rehearsalbox.example'], array_map(
+            static fn ($address) => $address->getAddress(),
+            $mailer->sent->getFrom(),
+        ));
         self::assertSame(['alice@rehearsalbox.test'], array_map(
             static fn ($address) => $address->getAddress(),
             $mailer->sent->getReplyTo(),
@@ -76,7 +104,7 @@ final class GroupContactServiceTest extends RepositoryTestCase
             }
         };
 
-        $service = new GroupContactService($mailer, $groupRepository);
+        $service = new GroupContactService($mailer, $groupRepository, 'no-reply@rehearsalbox.test');
 
         $this->expectException(\InvalidArgumentException::class);
 

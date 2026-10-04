@@ -6,13 +6,27 @@ namespace App\Security;
 
 final class NativeSession implements SessionInterface
 {
+    /**
+     * @param array<string, mixed> $server
+     *
+     * @return array{cookie_httponly: bool, cookie_samesite: string, cookie_secure: bool}
+     */
+    public static function cookieOptions(array $server): array
+    {
+        $https = strtolower((string) ($server['HTTPS'] ?? ''));
+        $forwardedProto = strtolower((string) ($server['HTTP_X_FORWARDED_PROTO'] ?? ''));
+
+        return [
+            'cookie_httponly' => true,
+            'cookie_samesite' => 'Lax',
+            'cookie_secure' => ($https !== '' && $https !== 'off') || $forwardedProto === 'https',
+        ];
+    }
+
     public function start(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start([
-                'cookie_httponly' => true,
-                'cookie_samesite' => 'Lax',
-            ]);
+            session_start(self::cookieOptions($_SERVER));
         }
     }
 

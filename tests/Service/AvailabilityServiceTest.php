@@ -87,7 +87,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $responded = $service->respond($exception->id(), true, $holderUserId);
 
@@ -102,7 +102,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $responded = $service->respond($exception->id(), false, $holderUserId);
 
@@ -122,7 +122,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $this->expectException(AccessDeniedException::class);
 
@@ -137,7 +137,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $service->respond($exception->id(), true, $holderUserId);
 
@@ -166,7 +166,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, $holderGroupId, $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $found = $service->findPendingForHolderGroup($holderGroupId, $holderUserId);
 
@@ -194,7 +194,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $found = $service->findByRequestingGroup($requestingGroupId, $requestingUserId);
 
@@ -209,11 +209,11 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, 'Raison initiale');
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, 'Raison initiale');
 
-        $updated = $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), 'Raison modifiée', $requestingUserId);
+        $updated = $service->updateRequest($exception->id(), new \DateTimeImmutable('+14 days'), 'Raison modifiée', $requestingUserId);
 
-        self::assertSame('2026-08-11', $updated->occurrenceDate()->format('Y-m-d'));
+        self::assertSame((new \DateTimeImmutable('+14 days'))->format('Y-m-d'), $updated->occurrenceDate()->format('Y-m-d'));
         self::assertSame('Raison modifiée', $updated->requestReason());
     }
 
@@ -228,11 +228,11 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $this->expectException(AccessDeniedException::class);
 
-        $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
+        $service->updateRequest($exception->id(), new \DateTimeImmutable('+14 days'), null, $holderUserId);
     }
 
     #[Test]
@@ -243,12 +243,12 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
         $service->respond($exception->id(), true, $holderUserId);
 
         $this->expectException(RequestAlreadyRespondedException::class);
 
-        $service->updateRequest($exception->id(), new \DateTimeImmutable('2026-08-11'), null, $requestingUserId);
+        $service->updateRequest($exception->id(), new \DateTimeImmutable('+14 days'), null, $requestingUserId);
     }
 
     #[Test]
@@ -260,7 +260,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $this->expectException(RequestAlreadyRespondedException::class);
 
-        $service->updateRequest(9999, new \DateTimeImmutable('2026-08-11'), null, $holderUserId);
+        $service->updateRequest(9999, new \DateTimeImmutable('+14 days'), null, $holderUserId);
     }
 
     #[Test]
@@ -271,7 +271,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $service->cancelRequest($exception->id(), $requestingUserId);
 
@@ -289,7 +289,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
         $this->expectException(AccessDeniedException::class);
 
@@ -304,7 +304,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('2026-08-04'), $requestingGroupId, $requestingUserId, null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
         $service->respond($exception->id(), true, $holderUserId);
 
         $this->expectException(RequestAlreadyRespondedException::class);

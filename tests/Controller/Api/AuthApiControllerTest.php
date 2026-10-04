@@ -13,6 +13,7 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\NativePasswordHasher;
 use App\Service\AuthService;
+use App\Service\UserProvisioningService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,7 +27,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $hasher = new NativePasswordHasher();
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, $hasher, $session, $groupRepository);
-        $controller = new AuthApiController($authService, $userRepository, $hasher);
+        $controller = new AuthApiController($authService, new UserProvisioningService($userRepository, $hasher));
 
         return [$controller, $userRepository, $session, $groupRepository];
     }
