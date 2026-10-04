@@ -173,6 +173,24 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testANewMessageFromSomeoneElseBringsAnArchivedThreadBackButNotMyOwnMessage(): void
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $a = $this->group('Alpha', $alice);
+        $b = $this->group('Beta', $bob);
+        $thread = $this->repository->create($a->id(), $b->id(), 'Fil', $this->now);
+        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
+        $this->repository->setArchived($thread->id(), $alice->id(), true);
+        $this->repository->setArchived($thread->id(), $bob->id(), true);
+
+        $this->repository->addMessage($thread->id(), $bob->id(), 'Réponse', $this->at('+1 minute'));
+
+        self::assertCount(1, $this->repository->listFor($alice->id(), Box::BOX_RECEIVED), 'Alice revoit le fil');
+        self::assertCount(1, $this->repository->listFor($bob->id(), Box::BOX_ARCHIVED), 'Bob garde son archivage');
+    }
+
+    #[Test]
     public function testUnreadUntilReadAndAgainAfterANewMessageFromSomeoneElse(): void
     {
         $alice = $this->user('Alice');

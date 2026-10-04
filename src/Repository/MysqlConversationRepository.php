@@ -58,6 +58,12 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             'created_at' => $now->format(self::DATE_FORMAT),
         ]);
 
+        // Un nouveau message ramène le fil dans la boîte des AUTRES personnes (pas de réponse ratée en archive).
+        $unarchive = $this->pdo->prepare(
+            'UPDATE conversation_states SET archived = 0 WHERE conversation_id = :conversation_id AND user_id <> :author_id'
+        );
+        $unarchive->execute(['conversation_id' => $conversationId, 'author_id' => $authorId]);
+
         $name = $this->pdo->prepare('SELECT display_name FROM users WHERE id = :id');
         $name->execute(['id' => $authorId]);
 
