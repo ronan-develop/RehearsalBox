@@ -50,6 +50,9 @@ use App\Service\GroupContactService;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
 use App\Service\PasswordChangeService;
+use App\Repository\Contract\EmailChangeRepositoryInterface;
+use App\Repository\MysqlEmailChangeRepository;
+use App\Service\EmailChangeService;
 use App\Service\ProfileService;
 use App\Service\PasswordResetService;
 use App\Service\SlotService;
@@ -179,6 +182,20 @@ return static function (array $config): Container {
         $c->get(PasswordChangeService::class),
         $c->get(AccountSecurityService::class),
         $c->get(ProfileService::class),
+        $c->get(EmailChangeService::class),
+    ));
+
+    $container->set(EmailChangeRepositoryInterface::class, fn ($c) => new MysqlEmailChangeRepository($c->get(PDO::class)));
+
+    $container->set(EmailChangeService::class, fn ($c) => new EmailChangeService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(EmailChangeRepositoryInterface::class),
+        $c->get(PasswordHasherInterface::class),
+        $c->get(MailerInterface::class),
+        $c->get(TransactionRunner::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
     ));
 
     $container->set(ProfileService::class, fn ($c) => new ProfileService($c->get(UserRepositoryInterface::class)));

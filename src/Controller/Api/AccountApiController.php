@@ -9,6 +9,8 @@ use App\Http\Request;
 use App\Security\AuthGuard;
 use App\Service\AccountSecurityService;
 use App\Service\Contract\AuthServiceInterface;
+use App\Service\EmailChangeService;
+use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\UserValidationException;
 use App\Service\PasswordChangeService;
@@ -22,6 +24,7 @@ final class AccountApiController
         private readonly PasswordChangeService $passwordChange,
         private readonly AccountSecurityService $accountSecurity,
         private readonly ProfileService $profile,
+        private readonly EmailChangeService $emailChange,
     ) {
     }
 
@@ -45,6 +48,50 @@ final class AccountApiController
         }
 
         return new JsonResponse(['displayName' => $updated->displayName()]);
+    }
+
+    /**
+     * Demande de changement de MON adresse e-mail (#164) : nouvelle adresse + mot de passe actuel. Le compte est
+     * celui de la session (aucun identifiant lu dans la requête). Réponse identique que l'adresse soit libre ou
+     * déjà utilisée : on ne révèle pas quelles adresses ont un compte. Le jeton ne sort jamais de l'e-mail.
+     */
+    public function requestEmailChange(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $email = $request->body('email');
+        $currentPassword = $request->body('currentPassword', '');
+        if (!is_string($email)) {
+            return new JsonResponse(['error' => 'Validation échouée', 'fields' => ['email' => 'Adresse email invalide.']], 422);
+        }
+        if (!is_string($currentPassword)) {
+            return new JsonResponse(['error' => 'Validation échouée', 'fields' => ['currentPassword' => 'Mot de passe actuel incorrect.']], 422);
+        }
+
+        try {
+            $this->emailChange->requestChange($user->id(), $currentPassword, $email);
+        } catch (UserValidationException $e) {
+            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
+        }
+
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    /** Confirmation depuis le lien reçu à la nouvelle adresse : publique (le jeton fait foi), appelée après un clic explicite. */
+    public function confirmEmailChange(Request $request): JsonResponse
+    {
+        $token = $request->body('token');
+        if (!is_string($token)) {
+            return new JsonResponse(['error' => (new InvalidEmailChangeException())->getMessage()], 422);
+        }
+
+        try {
+            $this->emailChange->confirm($token);
+        } catch (InvalidEmailChangeException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 422);
+        }
+
+        return new JsonResponse(['status' => 'ok']);
     }
 
     /** L'utilisateur visé est celui de la session : aucun identifiant n'est lu dans la requête. */
