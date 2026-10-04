@@ -169,4 +169,51 @@ final class MailRendererTest extends TestCase
         self::assertStringContainsString('inline', $parts[0]->getPreparedHeaders()->get('Content-Disposition')->getBodyAsString());
         self::assertSame("\x89PNG", substr($parts[0]->getBody(), 0, 4));
     }
+
+    // --- Changement d'adresse e-mail (#164) ---------------------------------------------------------
+
+    #[Test]
+    public function testEmailChangeAsksTheNewAddressToConfirmWithAOneHourSingleUseLink(): void
+    {
+        $mail = $this->renderer->render('email-change', ['link' => self::LINK]);
+
+        self::assertStringContainsString('href="https://rehearsalbox.example/reset-password?token=abc123&amp;x=1"', $mail['html']);
+        self::assertStringContainsString('Confirmer ma nouvelle adresse', $mail['html']);
+        self::assertStringContainsString(self::LINK, $mail['text']);
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('1 heure', $body);
+            self::assertStringContainsString('usage unique', $body);
+            self::assertStringContainsString("Si vous n'êtes pas à l'origine de cette demande", $body);
+        }
+    }
+
+    #[Test]
+    public function testEmailChangeEscapesAMaliciousLink(): void
+    {
+        $html = $this->renderer->render('email-change', ['link' => 'https://x.test/"><script>alert(1)</script>'])['html'];
+
+        self::assertStringNotContainsString('<script>alert(1)</script>', $html);
+    }
+
+    #[Test]
+    public function testEmailChangedAlertTellsTheOldAddressAboutTheChangeWithoutAnyLink(): void
+    {
+        $mail = $this->renderer->render('email-changed', ['newEmailMasked' => 'n***@exemple.test']);
+
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('n***@exemple.test', $body);
+            self::assertStringContainsString('a été modifiée', $body);
+            self::assertStringContainsString('administrateur', $body, "recours si ce n'est pas la personne : un administrateur");
+            self::assertStringNotContainsString('token=', $body, "aucun jeton ni lien d'action dans cette alerte");
+        }
+        self::assertStringNotContainsString('<a href', $mail['html'], "aucun lien d'action");
+    }
+
+    #[Test]
+    public function testEmailChangedAlertEscapesTheMaskedAddress(): void
+    {
+        $html = $this->renderer->render('email-changed', ['newEmailMasked' => '"><img src=x onerror=alert(1)>'])['html'];
+
+        self::assertStringNotContainsString('<img src=x', $html);
+    }
 }
