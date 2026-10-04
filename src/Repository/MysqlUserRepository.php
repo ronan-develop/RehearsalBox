@@ -34,6 +34,21 @@ final class MysqlUserRepository implements UserRepositoryInterface
         return $row === false ? null : $this->hydrate($row);
     }
 
+    public function findAll(): array
+    {
+        $rows = $this->pdo->query('SELECT * FROM users ORDER BY display_name, id')->fetchAll(\PDO::FETCH_ASSOC);
+
+        return array_map($this->hydrate(...), $rows);
+    }
+
+    public function countActiveAdmins(): int
+    {
+        $statement = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE role = :role AND is_active = 1');
+        $statement->execute(['role' => UserRole::Admin->value]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function save(User $user): User
     {
         if ($user->id() === 0) {

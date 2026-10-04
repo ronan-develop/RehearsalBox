@@ -97,4 +97,30 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
 
         self::assertSame(1, $repository->findById($user->id())->sessionVersion());
     }
+
+    #[Test]
+    public function testFindAllReturnsEveryAccountOrderedByDisplayName(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $this->insertUser($repository, 'zoe@rehearsalbox.test', 'Zoé');
+        $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+
+        $all = $repository->findAll();
+
+        self::assertSame(['Alice', 'Zoé'], array_map(static fn (User $u): string => $u->displayName(), $all));
+    }
+
+    #[Test]
+    public function testCountActiveAdminsIgnoresInactiveAdminsAndMusicians(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $admin = $repository->save(new User(0, 'a@rehearsalbox.test', 'h', 'Admin A', UserRole::Admin, true, 0, null));
+        $repository->save(new User(0, 'b@rehearsalbox.test', 'h', 'Admin B', UserRole::Admin, false, 0, null));
+        $this->insertUser($repository, 'm@rehearsalbox.test', 'Musicien');
+
+        self::assertSame(1, $repository->countActiveAdmins());
+
+        $repository->save($admin->withActive(false));
+        self::assertSame(0, $repository->countActiveAdmins());
+    }
 }
