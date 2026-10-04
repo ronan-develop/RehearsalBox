@@ -124,11 +124,9 @@
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rb-page-bg-text {
-    transform: none !important;
-  }
-}
+/* Mouvement réduit : aucune animation ici, et le transform n'est PAS supprimé :
+   parallax.js n'applique alors que le décalage de départ (une fois), qui garde
+   le logo dans le cadre du header au chargement (#145). */
 
 body {
   --rb-dashboard-header-h: 132px;
