@@ -17,6 +17,7 @@ final class User
         private readonly bool $isActive,
         private readonly int $failedLoginAttempts,
         private readonly ?\DateTimeImmutable $lockedUntil,
+        private readonly int $sessionVersion = 0,
     ) {
     }
 
@@ -70,6 +71,12 @@ final class User
         return $this->lockedUntil;
     }
 
+    /** Incrémentée pour fermer toutes les sessions ouvertes (changement de mot de passe, compte sécurisé). */
+    public function sessionVersion(): int
+    {
+        return $this->sessionVersion;
+    }
+
     /** Verrouille temporairement le compte après le seuil d'échecs (cf. plan §10.4). */
     public function withFailedLoginAttempt(int $maxAttempts, \DateTimeImmutable $now, string $lockDuration): self
     {
@@ -85,6 +92,7 @@ final class User
             $this->isActive,
             $attempts,
             $lockedUntil,
+            $this->sessionVersion,
         );
     }
 
@@ -99,10 +107,14 @@ final class User
             $this->isActive,
             0,
             null,
+            $this->sessionVersion,
         );
     }
 
-    /** Nouveau mot de passe (déjà haché) : remet aussi à zéro les échecs de connexion et le verrouillage. */
+    /**
+     * Nouveau mot de passe (déjà haché) : remet aussi à zéro les échecs de connexion et le verrouillage,
+     * et ferme toutes les autres sessions (version incrémentée).
+     */
     public function withPasswordHash(string $passwordHash): self
     {
         return new self(
@@ -114,6 +126,38 @@ final class User
             $this->isActive,
             0,
             null,
+            $this->sessionVersion + 1,
+        );
+    }
+
+    /** Ferme toutes les sessions ouvertes, sans toucher au mot de passe. */
+    public function withSessionsRevoked(): self
+    {
+        return new self(
+            $this->id,
+            $this->email,
+            $this->passwordHash,
+            $this->displayName,
+            $this->role,
+            $this->isActive,
+            $this->failedLoginAttempts,
+            $this->lockedUntil,
+            $this->sessionVersion + 1,
+        );
+    }
+
+    public function withLockedUntil(\DateTimeImmutable $lockedUntil): self
+    {
+        return new self(
+            $this->id,
+            $this->email,
+            $this->passwordHash,
+            $this->displayName,
+            $this->role,
+            $this->isActive,
+            $this->failedLoginAttempts,
+            $lockedUntil,
+            $this->sessionVersion,
         );
     }
 }

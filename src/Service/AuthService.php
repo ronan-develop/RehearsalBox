@@ -16,6 +16,7 @@ final class AuthService implements AuthServiceInterface
 {
     private const SESSION_KEY_USER_ID = 'user_id';
     private const SESSION_KEY_ACTIVE_GROUP_ID = 'active_group_id';
+    private const SESSION_KEY_SESSION_VERSION = 'session_version';
     private const MAX_FAILED_ATTEMPTS = 5;
     private const LOCK_DURATION = '+15 minutes';
 
@@ -52,6 +53,7 @@ final class AuthService implements AuthServiceInterface
 
         $this->session->regenerate();
         $this->session->set(self::SESSION_KEY_USER_ID, $user->id());
+        $this->session->set(self::SESSION_KEY_SESSION_VERSION, $user->sessionVersion());
 
         $groups = $this->groupRepository->findByMember($user->id());
         if (count($groups) === 1) {
@@ -64,8 +66,30 @@ final class AuthService implements AuthServiceInterface
     public function currentUser(): ?User
     {
         $userId = $this->session->get(self::SESSION_KEY_USER_ID);
+        if (!is_int($userId)) {
+            return null;
+        }
 
-        return is_int($userId) ? $this->userRepository->findById($userId) : null;
+        $user = $this->userRepository->findById($userId);
+        if ($user === null) {
+            return null;
+        }
+
+        // Une session sans version (ouverte avant l'introduction du compteur) vaut 0.
+        // Si le compteur de l'utilisateur a avancé (mot de passe changé, compte sécurisé),
+        // cette session est périmée : traitée comme déconnectée.
+        if ((int) $this->session->get(self::SESSION_KEY_SESSION_VERSION, 0) !== $user->sessionVersion()) {
+            return null;
+        }
+
+        return $user;
+    }
+
+    public function refreshSession(User $user): void
+    {
+        $this->session->regenerate();
+        $this->session->set(self::SESSION_KEY_USER_ID, $user->id());
+        $this->session->set(self::SESSION_KEY_SESSION_VERSION, $user->sessionVersion());
     }
 
     public function logout(): void
