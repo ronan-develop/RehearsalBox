@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Routing;
 
+use App\Controller\Api\AccountApiController;
 use App\Controller\Api\PasswordResetApiController;
 use App\Controller\PageController;
 use PHPUnit\Framework\Attributes\Test;
@@ -31,5 +32,12 @@ final class PasswordResetRoutesTest extends TestCase
     {
         self::assertContains(['POST', '/api/auth/forgot-password', [PasswordResetApiController::class, 'forgotPassword']], $this->allRoutes());
         self::assertContains(['POST', '/api/auth/reset-password', [PasswordResetApiController::class, 'resetPassword']], $this->allRoutes());
+    }
+
+    #[Test]
+    public function testAccountEndpointsAreRegisteredAsPostApiRoutes(): void
+    {
+        self::assertContains(['POST', '/api/auth/change-password', [AccountApiController::class, 'changePassword']], $this->allRoutes());
+        self::assertContains(['POST', '/api/auth/secure-account', [AccountApiController::class, 'secureAccount']], $this->allRoutes());
     }
 }
