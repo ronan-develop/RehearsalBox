@@ -203,6 +203,26 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testUpdateWithMalformedDateReturns422(): void
+    {
+        [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe A', null, null, 'contact@example.test'));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe B', null, null, 'contact@example.test'));
+        $bob = $this->createUser($userRepository, 'bob@rehearsalbox.test');
+        $groupRepository->addMember($requestingGroup->id(), $bob->id());
+        $exception = $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $bob->id(), 'Raison');
+        $authService->attempt('bob@rehearsalbox.test', 'password');
+
+        foreach (['', 'pas-une-date', '2026-13-45', '2026-02-30', ['2026-08-11']] as $malformed) {
+            $request = new Request('PATCH', "/api/availability/{$exception->id()}", [], ['occurrenceDate' => $malformed], []);
+
+            self::assertSame(422, $controller->update($request, (string) $exception->id())->statusCode(), 'date : ' . json_encode($malformed));
+        }
+    }
+
+    #[Test]
+
     public function testUpdateByMemberOfHolderGroupThrowsAccessDenied(): void
     {
         [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService] = $this->makeController();

@@ -103,6 +103,30 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testUpdateProfileWithMalformedPayloadReturns422(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'chris@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $authService->attempt('chris@rehearsalbox.test', 'password');
+
+        $payloads = [
+            ['lineup' => ['pas-un-tableau'], 'upcomingShows' => []],
+            ['lineup' => [['name' => 'Alice']], 'upcomingShows' => []],
+            ['lineup' => [['name' => ['x'], 'instrument' => 'Basse']], 'upcomingShows' => []],
+            ['lineup' => [], 'upcomingShows' => [['date' => '2026-09-12']]],
+            ['lineup' => 'chaine', 'upcomingShows' => []],
+        ];
+        foreach ($payloads as $payload) {
+            $request = new Request('PATCH', "/api/groups/{$group->id()}/space", [], $payload, []);
+
+            self::assertSame(422, $controller->updateProfile($request, (string) $group->id())->statusCode(), json_encode($payload));
+        }
+    }
+
+    #[Test]
+
     public function testUpdateProfileByNonGestionnaireReturns403(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
