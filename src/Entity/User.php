@@ -146,6 +146,22 @@ final class User
         );
     }
 
+    /** Nouveau nom affiché ; ne touche à rien d'autre (pas de session fermée). */
+    public function withDisplayName(string $displayName): self
+    {
+        return new self(
+            $this->id,
+            $this->email,
+            $this->passwordHash,
+            $displayName,
+            $this->role,
+            $this->isActive,
+            $this->failedLoginAttempts,
+            $this->lockedUntil,
+            $this->sessionVersion,
+        );
+    }
+
     /**
      * Active ou désactive le compte. La désactivation ferme aussi toutes les
      * sessions ouvertes (version incrémentée) ; la réactivation ne change rien d'autre.

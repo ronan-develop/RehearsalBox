@@ -136,4 +136,22 @@ final class UserTest extends TestCase
 
         self::assertTrue($user->isActive());
     }
+
+    #[Test]
+    public function testWithDisplayNameReplacesOnlyTheNameAndKeepsEverythingElse(): void
+    {
+        $user = $this->lockedUser();
+
+        $renamed = $user->withDisplayName('Alice Martin');
+
+        self::assertSame('Alice Martin', $renamed->displayName());
+        self::assertSame($user->email(), $renamed->email());
+        self::assertSame($user->passwordHash(), $renamed->passwordHash());
+        self::assertSame($user->role(), $renamed->role());
+        self::assertSame($user->isActive(), $renamed->isActive());
+        self::assertSame($user->failedLoginAttempts(), $renamed->failedLoginAttempts());
+        self::assertEquals($user->lockedUntil(), $renamed->lockedUntil());
+        self::assertSame($user->sessionVersion(), $renamed->sessionVersion(), 'renommer ne ferme aucune session');
+        self::assertSame('Alice', $user->displayName(), 'immuable');
+    }
 }
