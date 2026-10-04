@@ -117,6 +117,9 @@ rb_ssh "cd \"\$HOME/$BASE/releases/$release\" && $REMOTE_PHP bin/migrate.php"
 say "Test à blanc du contrôleur frontal (GET /login en CLI)"
 rb_ssh "cd \"\$HOME/$BASE/releases/$release/public\" && $REMOTE_PHP -d display_errors=0 -r '\$_SERVER[\"REQUEST_METHOD\"]=\"GET\"; \$_SERVER[\"REQUEST_URI\"]=\"/login\"; require \"index.php\";' | grep -qi '<html'"
 
+say "Marqueur de release"
+rb_ssh "printf '%s\n' \"$release\" > \"\$HOME/$BASE/releases/$release/RELEASE\""
+
 say "Bascule vers ${release}"
 rb_ssh bash -s -- "$BASE" "$release" "$DOCROOT_LINK" "$KEEP_RELEASES" <<'REMOTE'
 set -euo pipefail
@@ -142,5 +145,25 @@ fi
 ls -1d releases/*/ | sort | head -n -"$keep" | xargs -r rm -rf --
 echo "Release active : $(basename "$(readlink current)")"
 REMOTE
+
+# --- 7. Purge d'OPcache puis contrôle de la release servie ----------------
+# L'hébergeur valide OPcache sur le chemin du lien symbolique (qui ne change pas) :
+# sans purge, l'ancien code compilé reste servi après la bascule.
+app_url="${RB_APP_URL:-$(secret APP_URL)}"
+say "Purge d'OPcache"
+purge="opcache-reset-$(openssl rand -hex 16).php"
+rb_ssh "printf '%s' '<?php echo function_exists(\"opcache_reset\") && opcache_reset() ? \"ok\" : \"ko\";' > \"\$HOME/$BASE/current/public/$purge\""
+purged=$(curl -s "${app_url%/}/$purge" || true)
+rb_ssh "rm -f \"\$HOME/$BASE/current/public/$purge\""
+if [ "$purged" != "ok" ]; then
+    echo "ATTENTION : purge d'OPcache impossible (réponse '${purged:-vide}'), contrôle de la release servie ci-dessous." >&2
+fi
+
+say "Contrôle de la release servie"
+expected=$(printf '%s' "$release" | sha256sum | cut -c1-12)
+if ! ./bin/verify-release.sh "${app_url%/}/login" "$expected"; then
+    echo "La bascule est faite mais le site sert l'ancienne release : lancer bin/rollback.sh ou purger OPcache (voir .claude/deploiement.md)." >&2
+    exit 1
+fi
 
 say "Déploiement terminé : ${release}"
