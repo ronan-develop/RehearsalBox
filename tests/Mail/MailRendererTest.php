@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Mail;
 
 use App\Mail\MailRenderer;
+use Symfony\Component\Mime\Email;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -124,5 +125,48 @@ final class MailRendererTest extends TestCase
         $html = $this->renderer->render('group-contact', ['senderEmail' => '"><img src=x onerror=alert(1)>@x.test', 'message' => 'a'])['html'];
 
         self::assertStringNotContainsString('<img src=x', $html);
+    }
+
+    // --- Logo du site (#159) -------------------------------------------------------------------
+
+    #[Test]
+    public function testHeaderShowsTheSiteLogoAsAnEmbeddedImageWithATextFallback(): void
+    {
+        $html = $this->renderer->render('password-reset', ['link' => self::LINK])['html'];
+
+        self::assertStringContainsString('<img src="cid:logo-b27"', $html);
+        self::assertStringContainsString('alt="#B27 RehearsalBox"', $html);
+        self::assertStringContainsString('width="200"', $html);
+        self::assertStringContainsString('Local</div>', $html, 'le mot « Local » sous le logo (mis en capitales par le style), comme sur la page de connexion');
+    }
+
+    #[Test]
+    public function testTheLogoAssetIsATransparentPngOfReasonableSize(): void
+    {
+        $path = __DIR__ . '/../../public/assets/img/mail-logo-b27.png';
+
+        self::assertFileExists($path);
+        self::assertSame("\x89PNG", substr((string) file_get_contents($path, false, null, 0, 4), 0, 4));
+        self::assertLessThan(80 * 1024, filesize($path), 'image légère pour un e-mail');
+        [$width, $height] = getimagesize($path);
+        self::assertSame([402, 204], [$width, $height], 'affichée à 200 px de large : nette sur écran 2x');
+    }
+
+    #[Test]
+    public function testComposeEmbedsTheLogoAsAnInlinePartAndSetsBothBodies(): void
+    {
+        $email = $this->renderer->compose(
+            (new Email())->from('no-reply@example.test')->to('a@example.test')->subject('Sujet'),
+            'password-reset',
+            ['link' => self::LINK],
+        );
+
+        self::assertStringContainsString('Choisir un nouveau mot de passe', (string) $email->getHtmlBody());
+        self::assertStringContainsString(self::LINK, (string) $email->getTextBody());
+        $parts = $email->getAttachments();
+        self::assertCount(1, $parts, 'une seule pièce : le logo');
+        self::assertSame('image/png', $parts[0]->getMediaType() . '/' . $parts[0]->getMediaSubtype());
+        self::assertStringContainsString('inline', $parts[0]->getPreparedHeaders()->get('Content-Disposition')->getBodyAsString());
+        self::assertSame("\x89PNG", substr($parts[0]->getBody(), 0, 4));
     }
 }
