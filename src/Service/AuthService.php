@@ -17,8 +17,8 @@ final class AuthService implements AuthServiceInterface
     private const SESSION_KEY_USER_ID = 'user_id';
     private const SESSION_KEY_ACTIVE_GROUP_ID = 'active_group_id';
     private const SESSION_KEY_SESSION_VERSION = 'session_version';
-    private const MAX_FAILED_ATTEMPTS = 5;
-    private const LOCK_DURATION = '+15 minutes';
+    public const MAX_FAILED_ATTEMPTS = 5;
+    public const LOCK_DURATION = '+15 minutes';
 
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
