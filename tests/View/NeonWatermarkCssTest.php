@@ -158,7 +158,7 @@ final class NeonWatermarkCssTest extends TestCase
     #[Test]
     public function testThereIsNoPulseAnimationAnywhere(): void
     {
-        self::assertStringNotContainsString('@keyframes', $this->css);
+        self::assertStringNotContainsString('@keyframes rb-page-bg', $this->css, 'Aucune animation du watermark (la timeline a la sienne : rb-planning-scroll).');
         self::assertStringNotContainsString('rb-page-bg-text-flame', $this->css);
         self::assertStringNotContainsString('animation: rb-page-bg-text', $this->css);
     }
