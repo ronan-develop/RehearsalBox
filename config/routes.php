@@ -6,6 +6,7 @@ use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\Api\GroupApiController;
+use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupContactApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
@@ -23,6 +24,7 @@ return [
         ['GET', '/account/secure', [PageController::class, 'secureAccount']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
+        ['GET', '/admin/users', [PageController::class, 'adminUsers']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
     ],
     'api' => [
@@ -47,6 +49,10 @@ return [
         ['POST',   '/api/admin/groups', [GroupApiController::class, 'store']],
         ['PATCH',  '/api/admin/groups/{id}', [GroupApiController::class, 'update']],
         ['DELETE', '/api/admin/groups/{id}', [GroupApiController::class, 'destroy']],
+        ['GET',    '/api/admin/users', [UserAdminApiController::class, 'index']],
+        ['POST',   '/api/admin/users', [UserAdminApiController::class, 'store']],
+        ['PATCH',  '/api/admin/users/{id}', [UserAdminApiController::class, 'update']],
+        ['POST',   '/api/admin/users/{id}/unlock', [UserAdminApiController::class, 'unlock']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
         ['POST',   '/api/groups/{id}/contact', [GroupContactApiController::class, 'send']],
