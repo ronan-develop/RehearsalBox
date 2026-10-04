@@ -99,22 +99,24 @@
 }
 
 /* Brillance progressive : plus le logo descend (parallax.js, --wm-glow de 0 à
-   1), plus le jaune est brillant. Couche de lueur forte superposée au texte
-   (texte transparent : seule l'ombre est dessinée), dont SEULE l'opacité varie
-   avec le scroll : opération du compositeur, pas de text-shadow redessiné à
-   chaque image. */
+   1), plus le jaune est brillant. Couche de lueur superposée au texte, dont
+   SEULE l'opacité varie avec le scroll : opération du compositeur, pas de
+   text-shadow redessiné à chaque image. Le texte de la couche reste rouge
+   (l'ombre est dessinée derrière lui) : le rouge garde l'intérieur des lettres,
+   légèrement éclairci pour un peu d'éclat, le jaune reste sur le contour et à
+   l'extérieur, sans baver. Halo court et intensité maximale atténuée pour
+   rester lisible. */
 .rb-page-bg-text::after {
   content: attr(data-text);
   position: absolute;
   top: 0;
   left: 0;
-  color: transparent;
+  color: color-mix(in srgb, var(--rb-accent) 82%, white);
   -webkit-text-stroke: 1px var(--rb-stone-flame);
   text-shadow:
-    0 0 8px var(--rb-stone-flame),
-    0 0 18px var(--rb-stone-flame),
-    0 0 30px var(--rb-accent);
-  opacity: var(--wm-glow, 0);
+    0 0 5px var(--rb-stone-flame),
+    0 0 14px var(--rb-accent);
+  opacity: calc(var(--wm-glow, 0) * 0.7);
   pointer-events: none;
 }
 

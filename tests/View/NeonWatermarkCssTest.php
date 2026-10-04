@@ -100,7 +100,8 @@ final class NeonWatermarkCssTest extends TestCase
         $glow = $this->block($this->baseRules(), '.rb-page-bg-text::after');
 
         // Couche de lueur forte, dont seule l'opacité varie avec --wm-glow (compositeur).
-        self::assertStringContainsString('opacity: var(--wm-glow', $glow);
+        self::assertStringContainsString('var(--wm-glow', $glow);
+        self::assertMatchesRegularExpression('/opacity:\s*calc\(var\(--wm-glow[^;]*\*\s*0?\.[1-9]/', $glow, 'Intensité maximale atténuée (pas de jaune à 100 %).');
         self::assertStringContainsString('text-shadow', $glow);
         self::assertStringNotContainsString('animation', $glow);
         self::assertStringNotContainsString('transition: text-shadow', $glow);
@@ -108,6 +109,17 @@ final class NeonWatermarkCssTest extends TestCase
         preg_match_all('/0 0 (\d+)px/', $glow, $glowBlurs);
         preg_match_all('/0 0 (\d+)px/', $neon, $neonBlurs);
         self::assertGreaterThan(max(array_map('intval', $neonBlurs[1])), max(array_map('intval', $glowBlurs[1])), 'La couche de lueur est plus brillante que le néon discret.');
+        self::assertLessThanOrEqual(16, max(array_map('intval', $glowBlurs[1])), 'Halo contenu : il ne doit pas baver sur le texte.');
+    }
+
+    #[Test]
+    public function testGlowLayerKeepsTheRedInsideTheLetters(): void
+    {
+        $glow = $this->block($this->baseRules(), '.rb-page-bg-text::after');
+
+        // Un texte transparent laisserait l'ombre jaune recouvrir l'intérieur des lettres.
+        self::assertStringNotContainsString('color: transparent', $glow);
+        self::assertMatchesRegularExpression('/color:\s*(var\(--rb-accent\)|color-mix\([^;]*var\(--rb-accent\))/', $glow, 'Le rouge (éventuellement éclairci) reste à l\'intérieur des lettres.');
     }
 
     #[Test]
