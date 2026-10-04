@@ -115,9 +115,7 @@
             </div>
         </section>
 
-        <?php // Marqueur invisible : repère la fin de la zone planning pour le
-        // recentrage progressif du watermark #B27 au scroll (cf. parallax.js). ?>
-        <div data-parallax-scroll-end aria-hidden="true"></div>
+        <span class="rb-parallax-anchor" data-parallax-anchor aria-hidden="true"></span>
 
         <?php if ($receivedExceptions !== [] || $sentExceptions !== [] || $archivedExceptions !== []): ?>
             <?php
@@ -187,7 +185,7 @@
             };
             ?>
             <section class="rb-exceptions-section">
-                <h2 data-parallax-target>Demandes de créneau</h2>
+                <h2>Demandes de créneau</h2>
                 <div class="rb-exceptions-tabs" role="tablist">
                     <button type="button" class="rb-exceptions-tab" role="tab" aria-selected="true" data-tab-target="received">
                         Reçues<?php if ($receivedExceptions !== []): ?> <span class="rb-badge rb-badge-warn"><?= e((string) count($receivedExceptions)) ?></span><?php endif; ?>

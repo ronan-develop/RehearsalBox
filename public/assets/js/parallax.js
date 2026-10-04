@@ -4,15 +4,25 @@
  * Au chargement (scroll 0), le calque est décalé vers le premier tiers
  * horizontal du header et centré verticalement dans sa hauteur plutôt que
  * dans son coin haut-gauche par défaut. Cet offset (--wm-x/--wm-y) s'interpole
- * progressivement, au fur et à mesure du scroll, vers une position finale
- * centrée horizontalement sous le titre "Demandes de créneau"
- * ([data-parallax-target]) — atteinte une fois la zone planning dépassée
- * (repérée via [data-parallax-scroll-end]). Par-dessus cet offset, une
- * translation verticale classique suit le scroll (effet parallax habituel,
- * cf. --wm-scroll-y). Respecte prefers-reduced-motion.
+ * progressivement, au fur et à mesure du scroll, vers une position finale —
+ * le watermark s'y stabilise une fois qu'on approche la fin réelle du
+ * scroll de la page (calculée depuis scrollHeight/innerHeight, pas un seuil
+ * arbitraire) et n'en bouge plus au-delà.
  *
- * Le calcul géométrique est extrait du DOM réel (fonctions pures ci-dessous)
- * pour rester testable en environnement node --test.
+ * Position finale calée sur une ancre dans le flow normal
+ * ([data-parallax-anchor], juste au-dessus du titre "Demandes de créneau",
+ * cf. templates/dashboard/index.php) plutôt qu'une valeur fixe en px devinée
+ * — identique en desktop et mobile. La position de l'ancre à l'écran
+ * (getBoundingClientRect().top) est recalculée à chaque frame de scroll (pas
+ * sa position absolue dans le document comparée à scrollY, qui ne tient pas
+ * compte de la hauteur du viewport et se désynchronise selon la taille
+ * d'écran), puis figée dès que la progression atteint 1 pour que le
+ * watermark s'arrête net plutôt que de continuer à suivre l'ancre qui
+ * remonte au fil du scroll.
+ *
+ * Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
+ * DOM réel (fonctions pures ci-dessous) pour rester testables en
+ * environnement node --test.
  */
 
 /**
@@ -27,37 +37,46 @@ export function computeStartOffset(headerRect, bgTextRect) {
   };
 }
 
-/** Marge sous la cible (typiquement le titre "Demandes de créneau") avant de
- * stabiliser le watermark — le fait descendre sous les tabs Reçues/Envoyées/
- * Archivées plutôt que de coller juste sous le titre. */
-const END_OFFSET_MARGIN_PX = 140;
-
 /**
- * Décalage final (progress 1) : centré horizontalement sous le titre cible
- * (typiquement "Demandes de créneau"), relatif à la position par défaut du
- * texte. `null` si aucune cible n'est trouvée (deck vide, pas de section) —
- * l'offset final retombe alors sur {0, 0}, la position par défaut du calque.
+ * Position finale (progress 1) : calée sur la position actuelle à l'écran
+ * de l'ancre — bg étant fixed (top constant à l'écran), le delta
+ * (anchorRect.top - bgTextRect.top) donne directement le --wm-y nécessaire
+ * pour que le bas du watermark coïncide avec l'ancre actuellement affichée.
+ * x reste celui du départ (aucun décalage horizontal supplémentaire) : le
+ * watermark descend simplement à la verticale jusqu'à l'ancre.
  */
-export function computeEndOffset(targetRect, bgTextRect) {
-  if (!targetRect) {
-    return { x: 0, y: 0 };
-  }
+export function computeAnchorEndOffset(anchorRect, bgTextRect, startX) {
   return {
-    x: targetRect.left + targetRect.width / 2 - bgTextRect.width / 2 - bgTextRect.left,
-    y: targetRect.bottom - bgTextRect.top + END_OFFSET_MARGIN_PX,
+    x: startX,
+    y: anchorRect.top - bgTextRect.top - bgTextRect.height,
   };
 }
 
+/** Scroll maximal atteignable par la page (document.body.scrollHeight -
+ * window.innerHeight) : le watermark doit être stabilisé bien avant ce
+ * point (sinon l'utilisateur ne "voit" jamais la position finale avant la
+ * toute fin de page) — cf. END_SCROLL_RATIO. */
+export function computeMaxScrollY(scrollHeight, innerHeight) {
+  return Math.max(scrollHeight - innerHeight, 0);
+}
+
+/** Fraction du scroll total de la page à partir de laquelle le watermark
+ * doit être figé à sa position finale (0.6 = dès qu'on a parcouru 60% du
+ * scroll disponible) — un ratio de la page réelle plutôt qu'un seuil en px
+ * arbitraire, qui s'adapte automatiquement à la quantité de contenu. */
+const END_SCROLL_RATIO = 0.6;
+
 /**
- * Progression 0→1 de scroll entre le haut de page et le marqueur de fin
- * (typiquement le début du deck d'exceptions, après le planning) — clampée,
- * et 1 par défaut si aucun marqueur n'est trouvé (pas d'offset à interpoler).
+ * Progression 0→1 de scroll entre le haut de page et le seuil de fin (une
+ * fraction du scroll maximal atteignable, cf. END_SCROLL_RATIO) — clampée,
+ * et 1 par défaut si maxScrollY est nul (page sans scroll possible).
  */
-export function computeScrollProgress(scrollY, markerTopAbsolute) {
-  if (markerTopAbsolute === null || markerTopAbsolute <= 0) {
+export function computeScrollProgress(scrollY, maxScrollY) {
+  const threshold = maxScrollY * END_SCROLL_RATIO;
+  if (threshold <= 0) {
     return 1;
   }
-  return Math.min(Math.max(scrollY / markerTopAbsolute, 0), 1);
+  return Math.min(Math.max(scrollY / threshold, 0), 1);
 }
 
 /** Interpolation linéaire simple entre deux valeurs. */
@@ -71,30 +90,69 @@ export function initParallax(root = document, windowRef = window) {
 
   if (windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+  const anchor = root.querySelector('[data-parallax-anchor]');
   const header = root.querySelector('.rb-dashboard-header');
-  const scrollEndMarker = root.querySelector('[data-parallax-scroll-end]');
-  const target = root.querySelector('[data-parallax-target]');
+
+  // Calculé une seule fois, pas à chaque frame de scroll : bg est en
+  // position: fixed, donc son getBoundingClientRect() reflète déjà le
+  // transform appliqué au frame précédent — le recalculer en continu créait
+  // une boucle de rétroaction (chaque frame se basant sur la position issue
+  // du frame d'avant) qui faisait trembler le watermark de façon erratique.
+  const initialScrollY = windowRef.scrollY;
+  const bgTextRectAtRest = bg.getBoundingClientRect();
+
+  // header est dans le flow normal (son top varie avec le scroll),
+  // contrairement à bg (fixed, top constant à l'écran) : on neutralise le
+  // scrollY courant pour obtenir un rect "en haut de page", cohérent même
+  // si initParallax() démarre à un scroll non nul (retour arrière
+  // navigateur, ancre #...). DOMRect n'expose ses propriétés que via des
+  // accesseurs du prototype : { ...rect } ne copie rien, d'où la
+  // reconstruction explicite plutôt qu'un spread.
+  const start = header
+    ? computeStartOffset(
+        {
+          top: header.getBoundingClientRect().top + initialScrollY,
+          width: header.getBoundingClientRect().width,
+          height: header.getBoundingClientRect().height,
+        },
+        bgTextRectAtRest,
+      )
+    : { x: 0, y: 0 };
 
   let ticking = false;
+  // L'ancre continue de remonter tant qu'on scrolle, même après
+  // stabilisation (progress = 1) — figée au moment où progress atteint 1
+  // pour la première fois, sinon le watermark suivrait indéfiniment l'ancre
+  // au lieu de se stopper net (cf. retour utilisateur : "stoppé net, pas de
+  // tremblement, pas de sortie d'écran").
+  let frozenEnd = null;
 
   function update() {
     const y = windowRef.scrollY;
-    const bgTextRect = bg.getBoundingClientRect();
+    // Recalculé à chaque frame (pas juste au chargement) : scrollHeight
+    // peut changer après coup (contenu chargé en XHR, ex. acceptation d'une
+    // exception qui révèle la section planning occasionnel) et innerHeight
+    // varie si l'utilisateur redimensionne/tourne son appareil.
+    const maxScrollY = computeMaxScrollY(root.documentElement?.scrollHeight ?? 0, windowRef.innerHeight ?? 0);
+    const progress = computeScrollProgress(y, maxScrollY);
 
-    const start = header
-      ? computeStartOffset(header.getBoundingClientRect(), bgTextRect)
-      : { x: 0, y: 0 };
-
-    const end = computeEndOffset(target ? target.getBoundingClientRect() : null, bgTextRect);
-
-    const markerTopAbsolute = scrollEndMarker
-      ? scrollEndMarker.getBoundingClientRect().top + y
-      : null;
-    const progress = computeScrollProgress(y, markerTopAbsolute);
+    let end = start;
+    if (anchor) {
+      if (frozenEnd === null) {
+        end = computeAnchorEndOffset(anchor.getBoundingClientRect(), bgTextRectAtRest, start.x);
+        if (progress === 1) frozenEnd = end;
+      } else {
+        end = frozenEnd;
+      }
+    }
 
     bg.style.setProperty('--wm-x', `${lerp(start.x, end.x, progress)}px`);
     bg.style.setProperty('--wm-y', `${lerp(start.y, end.y, progress)}px`);
-    bg.style.setProperty('--wm-scroll-y', `${y * 0.35}px`);
+    // Le parallax de scroll (translateY continu) s'estompe au fur et à
+    // mesure de la progression : l'interpolation --wm-x/--wm-y pilote déjà
+    // le déplacement voulu, et le watermark ne doit plus bouger une fois
+    // stabilisé (progress = 1).
+    bg.style.setProperty('--wm-scroll-y', `${y * 0.35 * (1 - progress)}px`);
     bg.classList.toggle('rb-page-bg-text--neon', progress === 1);
     ticking = false;
   }
@@ -103,8 +161,8 @@ export function initParallax(root = document, windowRef = window) {
     'scroll',
     () => {
       if (!ticking) {
-        windowRef.requestAnimationFrame(update);
         ticking = true;
+        windowRef.requestAnimationFrame(update);
       }
     },
     { passive: true }

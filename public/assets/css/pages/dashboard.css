@@ -1,7 +1,17 @@
 .rb-dashboard-page {
   min-height: 100vh;
   padding: var(--rb-space-4);
-  padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--rb-space-6) + env(safe-area-inset-bottom));
+}
+
+/* Ancre invisible dans le flow normal, juste au-dessus de "Demandes de
+   créneau" : sert uniquement de repère géométrique pour le parallax du
+   watermark (cf. parallax.js) — sa position réelle à l'écran, recalculée à
+   chaque frame de scroll, indique où stabiliser le watermark, identique en
+   desktop et mobile. */
+.rb-parallax-anchor {
+  display: block;
+  height: 0;
 }
 
 @media (min-width: 768px) {
@@ -28,7 +38,11 @@
 }
 
 /* Calque plein-page "#B27" en fond, indépendant du header (frère de
-   .rb-dashboard-page, cf. templates/dashboard/index.php). */
+   .rb-dashboard-page, cf. templates/dashboard/index.php). Mobile et desktop
+   glissent tous deux du header vers une position finale stabilisée sous le
+   deck d'exceptions (cf. parallax.js) ; seule l'amplitude du décalage
+   horizontal diffère (aucun décalage en x sur mobile, pas assez de largeur
+   disponible — cf. retour utilisateur). */
 .rb-page-bg {
   position: fixed;
   inset: 0;
@@ -46,25 +60,14 @@
   opacity: 0.35;
   line-height: 1;
   white-space: nowrap;
-  font-size: 92px;
+  font-size: 56px;
   will-change: transform;
   transition: text-shadow 0.4s ease;
   /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
      interpole entre une position centrée dans le header au chargement
-     (scroll 0) et une position centrée sous le titre "Demandes de créneau"
-     une fois la zone planning dépassée. */
+     (scroll 0) et une position finale fixe une fois le scroll dépassé un
+     certain seuil. */
   transform: translate(var(--wm-x, 0px), calc(var(--wm-y, 0px) + var(--wm-scroll-y, 0px)));
-}
-
-/* Contour néon léger — seulement une fois le watermark stabilisé en bas de
-   sa course (cf. parallax.js), pas de glow plein en continu. Empilement de
-   text-shadow à faible rayon plutôt qu'un halo diffus, pour un liseré net
-   sur les contours du tracé plutôt qu'une lueur qui mangerait le contenu. */
-.rb-page-bg-text--neon {
-  text-shadow:
-    0 0 2px var(--rb-stone-flame),
-    0 0 5px var(--rb-stone-flame),
-    0 0 1px var(--rb-accent);
 }
 
 @media (min-width: 768px) {
@@ -73,7 +76,44 @@
   }
 }
 
+/* Contour néon renforcé + léger vacillement façon flamme — seulement une
+   fois le watermark stabilisé en bas de sa course (cf. parallax.js), pas de
+   glow permanent. Empilement de text-shadow (contour net + halo plus large)
+   plutôt qu'un filter: drop-shadow() unique, pour garder un liseré marqué
+   sur le tracé en plus de la lueur diffuse. */
+.rb-page-bg-text--neon {
+  opacity: 1;
+  color: var(--rb-accent);
+  -webkit-text-stroke: 2px var(--rb-stone-flame);
+  animation: rb-page-bg-text-flame 2.4s ease-in-out infinite;
+}
+
+@keyframes rb-page-bg-text-flame {
+  0%, 100% {
+    text-shadow:
+      0 0 3px var(--rb-stone-flame),
+      0 0 8px var(--rb-stone-flame),
+      0 0 16px var(--rb-accent),
+      0 0 2px var(--rb-stone-chalk);
+  }
+  50% {
+    text-shadow:
+      0 0 4px var(--rb-stone-flame),
+      0 0 14px var(--rb-stone-flame),
+      0 0 26px var(--rb-accent),
+      0 0 3px var(--rb-stone-chalk);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .rb-page-bg-text--neon {
+    animation: none;
+    text-shadow:
+      0 0 3px var(--rb-stone-flame),
+      0 0 8px var(--rb-stone-flame),
+      0 0 16px var(--rb-accent);
+  }
+
   .rb-page-bg-text {
     transform: none !important;
   }

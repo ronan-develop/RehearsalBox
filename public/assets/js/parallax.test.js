@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initParallax, computeStartOffset, computeEndOffset, computeScrollProgress } from './parallax.js';
+import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset } from './parallax.js';
 
 test('computeStartOffset positions the watermark in the first third of the header width', () => {
   const headerRect = { top: 0, height: 132, width: 300 };
@@ -20,52 +20,68 @@ test('computeStartOffset centers the watermark vertically within the header heig
   assert.equal(offset.y, 0 - 0 + 66 - 46);
 });
 
-test('computeEndOffset returns {0, 0} when there is no target (e.g. empty deck section)', () => {
-  const bgTextRect = { top: 0, left: 0, width: 300 };
-
-  const offset = computeEndOffset(null, bgTextRect);
-
-  assert.deepEqual(offset, { x: 0, y: 0 });
+test('computeMaxScrollY returns scrollHeight minus innerHeight', () => {
+  assert.equal(computeMaxScrollY(2000, 800), 1200);
 });
 
-test('computeEndOffset centers the watermark horizontally under the target', () => {
-  const targetRect = { left: 100, width: 200, bottom: 500 };
-  const bgTextRect = { top: 0, left: 0, width: 300 };
-
-  const offset = computeEndOffset(targetRect, bgTextRect);
-
-  // Centre du target (100 + 200/2 = 200) moins la moitié de la largeur du texte (150).
-  assert.equal(offset.x, 50);
-});
-
-test('computeEndOffset positions the watermark below the target with a margin (past the tabs)', () => {
-  const targetRect = { left: 100, width: 200, bottom: 500 };
-  const bgTextRect = { top: 20, left: 0, width: 300 };
-
-  const offset = computeEndOffset(targetRect, bgTextRect);
-
-  assert.equal(offset.y, 500 - 20 + 140);
+test('computeMaxScrollY never returns a negative value (page shorter than viewport)', () => {
+  assert.equal(computeMaxScrollY(500, 800), 0);
 });
 
 test('computeScrollProgress returns 0 at the top of the page', () => {
-  assert.equal(computeScrollProgress(0, 800), 0);
+  assert.equal(computeScrollProgress(0, 1000), 0);
 });
 
-test('computeScrollProgress returns 1 once past the end marker', () => {
-  assert.equal(computeScrollProgress(800, 800), 1);
-  assert.equal(computeScrollProgress(1000, 800), 1);
+test('computeScrollProgress returns 1 once the ratio threshold of maxScrollY is reached', () => {
+  // Seuil interne = 60% de maxScrollY : 1000 * 0.6 = 600.
+  assert.equal(computeScrollProgress(600, 1000), 1);
+  assert.equal(computeScrollProgress(1000, 1000), 1);
 });
 
-test('computeScrollProgress interpolates linearly between 0 and the marker', () => {
-  assert.equal(computeScrollProgress(400, 800), 0.5);
+test('computeScrollProgress interpolates linearly up to the threshold', () => {
+  // 300 / (1000 * 0.6) = 0.5.
+  assert.equal(computeScrollProgress(300, 1000), 0.5);
 });
 
-test('computeScrollProgress returns 1 when no end marker is present (nothing to interpolate)', () => {
-  assert.equal(computeScrollProgress(0, null), 1);
+test('computeScrollProgress returns 1 when the page has no scroll available (maxScrollY = 0)', () => {
+  assert.equal(computeScrollProgress(0, 0), 1);
 });
 
+test('computeAnchorEndOffset keeps the given startX unchanged (no extra horizontal shift)', () => {
+  const anchorRect = { top: 900 };
+  const bgTextRect = { top: 40, height: 92 };
+
+  const end = computeAnchorEndOffset(anchorRect, bgTextRect, 100);
+
+  assert.equal(end.x, 100);
+});
+
+test('computeAnchorEndOffset returns the delta needed for a fixed element to stop at the anchor current screen position', () => {
+  const anchorRect = { top: 900 };
+  const bgTextRect = { top: 40, height: 92 };
+
+  const end = computeAnchorEndOffset(anchorRect, bgTextRect, 0);
+
+  // 900 - 40 - 92 = 768.
+  assert.equal(end.y, 768);
+});
+
+/**
+ * Simule un DOMRect natif : ses propriétés sont des accesseurs du
+ * prototype (non énumérables sur l'instance), donc { ...rect } spreade un
+ * objet vide — un piège réel qui a fait passer un bug en prod (--wm-y
+ * calculé à NaN) sans qu'aucun test ne le voie, tant que le fake utilisait
+ * un plain object spreadable. On reproduit ce comportement ici via
+ * Object.create + defineProperties pour que ce genre de régression soit
+ * détecté par les tests.
+ */
 function fakeRect(overrides = {}) {
-  return { top: 0, left: 0, width: 0, height: 0, bottom: 0, ...overrides };
+  const values = { top: 0, left: 0, width: 0, height: 0, bottom: 0, ...overrides };
+  const proto = {};
+  for (const [key, value] of Object.entries(values)) {
+    Object.defineProperty(proto, key, { get: () => value, enumerable: false });
+  }
+  return Object.create(proto);
 }
 
 function fakeBgElement() {
@@ -80,22 +96,26 @@ function fakeBgElement() {
   };
 }
 
-function fakeDocumentWithBg(bg, { header = null, scrollEndMarker = null, target = null } = {}) {
+function fakeDocumentWithBg(bg, { header = null, anchor = null, scrollHeight = 0 } = {}) {
   return {
     querySelector: (selector) => {
       if (selector === '[data-parallax="bg"]') return bg;
       if (selector === '.rb-dashboard-header') return header;
-      if (selector === '[data-parallax-scroll-end]') return scrollEndMarker;
-      if (selector === '[data-parallax-target]') return target;
+      if (selector === '[data-parallax-anchor]') return anchor;
       return null;
     },
+    documentElement: { scrollHeight },
   };
 }
 
-function fakeWindow({ reducedMotion = false } = {}) {
+function fakeWindow({ reducedMotion = false, innerHeight = 800 } = {}) {
   return {
-    matchMedia: () => ({ matches: reducedMotion }),
+    matchMedia: (query) => {
+      if (query === '(prefers-reduced-motion: reduce)') return { matches: reducedMotion };
+      return { matches: false };
+    },
     scrollY: 0,
+    innerHeight,
     addEventListener: () => {},
     requestAnimationFrame: (cb) => cb(),
   };
@@ -117,49 +137,11 @@ test('initParallax does nothing when prefers-reduced-motion is set', () => {
   assert.equal(bg.properties['--wm-scroll-y'], undefined);
 });
 
-test('initParallax sets the scroll-driven vertical offset based on the current scroll position', () => {
-  const bg = fakeBgElement();
-  const doc = fakeDocumentWithBg(bg);
-  const win = fakeWindow();
-  win.scrollY = 100;
-
-  initParallax(doc, win);
-
-  assert.equal(bg.properties['--wm-scroll-y'], '35px');
-});
-
-test('initParallax updates the scroll-driven offset on scroll', () => {
-  const bg = fakeBgElement();
-  const doc = fakeDocumentWithBg(bg);
-  let scrollCallback;
-  const win = fakeWindow();
-  win.addEventListener = (event, cb) => {
-    if (event === 'scroll') scrollCallback = cb;
-  };
-
-  initParallax(doc, win);
-  win.scrollY = 200;
-  scrollCallback();
-
-  assert.equal(bg.properties['--wm-scroll-y'], '70px');
-});
-
-test('initParallax sets no start offset when there is no header (--wm-x/--wm-y at 0)', () => {
-  const bg = fakeBgElement();
-  const doc = fakeDocumentWithBg(bg);
-
-  initParallax(doc, fakeWindow());
-
-  assert.equal(bg.properties['--wm-x'], '0px');
-  assert.equal(bg.properties['--wm-y'], '0px');
-});
-
-test('initParallax applies the full start offset at scroll 0 when a header and end marker are present', () => {
+test('initParallax applies the full start offset at scroll 0 when the page has scroll room', () => {
   const bg = fakeBgElement();
   const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
-  const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 }) };
-  const doc = fakeDocumentWithBg(bg, { header, scrollEndMarker });
-  const win = fakeWindow();
+  const doc = fakeDocumentWithBg(bg, { header, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
   win.scrollY = 0;
 
   initParallax(doc, win);
@@ -167,41 +149,151 @@ test('initParallax applies the full start offset at scroll 0 when a header and e
   assert.equal(bg.properties['--wm-x'], '100px');
 });
 
-test('initParallax reaches the end offset (centered under the target) once scrolled past the end marker', () => {
+test('initParallax recomputes the anchor-based end offset from its current screen position on every frame, before stabilization', () => {
   const bg = fakeBgElement();
   const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
-  const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 - 900 }) };
-  const target = { getBoundingClientRect: () => fakeRect({ left: 0, width: 200, bottom: 400 }) };
-  const doc = fakeDocumentWithBg(bg, { header, scrollEndMarker, target });
-  const win = fakeWindow();
-  win.scrollY = 900;
+  // bgTextRectAtRest.top = 0, height = 92 (fakeBgElement) ; anchorRect.top - 0 - 92 = --wm-y attendu.
+  let anchorTop = 900;
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: anchorTop }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 4000 });
+  let scrollCallback;
+  const win = fakeWindow({ innerHeight: 800 });
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
+
+  initParallax(doc, win);
+  // maxScrollY = 4000 - 800 = 3200 ; seuil = 3200 * 0.6 = 1920 -> progress < 1 ici.
+  win.scrollY = 500;
+  scrollCallback();
+  const firstY = bg.properties['--wm-y'];
+
+  anchorTop = 600;
+  win.scrollY = 1000;
+  scrollCallback();
+  // Toujours recalculé tant que progress < 1 : suit la nouvelle position de l'ancre.
+  assert.notEqual(bg.properties['--wm-y'], firstY);
+});
+
+test('initParallax stops exactly at the anchor current screen position once the scroll ratio threshold is reached', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  let scrollCallback;
+  const win = fakeWindow({ innerHeight: 800 });
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
+
+  initParallax(doc, win);
+  // maxScrollY = 2000 - 800 = 1200 ; seuil = 1200 * 0.6 = 720.
+  win.scrollY = 720;
+  scrollCallback();
+
+  // anchorRect.top(900) - bgTextRect.top(0) - bgTextRect.height(92) = 808.
+  assert.equal(bg.properties['--wm-y'], '808px');
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
+});
+
+test('initParallax freezes the end offset once progress reaches 1, ignoring further anchor movement', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  let anchorTop = 900;
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: anchorTop }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  let scrollCallback;
+  const win = fakeWindow({ innerHeight: 800 });
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
+
+  initParallax(doc, win);
+  win.scrollY = 720;
+  scrollCallback();
+  const frozenY = bg.properties['--wm-y'];
+
+  // L'ancre continue de remonter au fil du scroll : ignoré une fois figé.
+  anchorTop = 50;
+  win.scrollY = 1200;
+  scrollCallback();
+
+  assert.equal(bg.properties['--wm-y'], frozenY);
+});
+
+test('initParallax keeps recomputing update() correctly across many successive scroll events', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 5000 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 20000 });
+  let scrollCallback;
+  const win = fakeWindow({ innerHeight: 800 });
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
 
   initParallax(doc, win);
 
-  assert.equal(bg.properties['--wm-x'], '100px');
+  // Régression : un bug d'ordre (requestAnimationFrame appelé avant que
+  // `ticking` soit marqué true) bloquait `ticking` à true dès le second
+  // scroll avec un requestAnimationFrame synchrone (comme ici), empêchant
+  // tout recalcul ultérieur. On vérifie que plusieurs scrolls successifs
+  // produisent bien des valeurs différentes.
+  const values = [];
+  for (let i = 1; i <= 5; i++) {
+    win.scrollY = i * 500;
+    scrollCallback();
+    values.push(bg.properties['--wm-y']);
+  }
+
+  assert.equal(new Set(values).size, values.length);
 });
 
-test('initParallax adds the neon class only once fully scrolled to the end position', () => {
+test('initParallax sets no start offset when there is no header (falls back to 0,0)', () => {
+  const bg = fakeBgElement();
+  const doc = fakeDocumentWithBg(bg);
+
+  assert.doesNotThrow(() => initParallax(doc, fakeWindow()));
+});
+
+test('initParallax freezes the scroll-driven translateY once fully stabilized (progress = 1)', () => {
   const bg = fakeBgElement();
   const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
-  const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 - 400 }) };
-  const doc = fakeDocumentWithBg(bg, { header, scrollEndMarker });
-  const win = fakeWindow();
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  let scrollCallback;
+  const win = fakeWindow({ innerHeight: 800 });
+  win.addEventListener = (event, cb) => {
+    if (event === 'scroll') scrollCallback = cb;
+  };
 
-  win.scrollY = 200;
+  initParallax(doc, win);
+  win.scrollY = 1200;
+  scrollCallback();
+
+  assert.equal(bg.properties['--wm-scroll-y'], '0px');
+});
+
+test('initParallax adds the neon class only once the scroll ratio threshold is reached', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
+
+  win.scrollY = 300;
   initParallax(doc, win);
   assert.equal(bg.classes.has('rb-page-bg-text--neon'), false);
 });
 
-test('initParallax falls back to {0,0} at the end when there is no target (empty deck section)', () => {
+test('initParallax adds the neon class once the scroll ratio threshold is reached', () => {
   const bg = fakeBgElement();
   const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
-  const scrollEndMarker = { getBoundingClientRect: () => fakeRect({ top: 800 - 900 }) };
-  const doc = fakeDocumentWithBg(bg, { header, scrollEndMarker });
-  const win = fakeWindow();
-  win.scrollY = 900;
+  const anchor = { getBoundingClientRect: () => fakeRect({ top: 900 }) };
+  const doc = fakeDocumentWithBg(bg, { header, anchor, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
 
+  win.scrollY = 720;
   initParallax(doc, win);
-
-  assert.equal(bg.properties['--wm-x'], '0px');
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true);
 });
