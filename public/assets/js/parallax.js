@@ -21,6 +21,10 @@
  * seuil END_SCROLL_RATIO du scroll réel de la page (scrollHeight/innerHeight,
  * pas un seuil arbitraire en px).
  *
+ * La couleur (rouge → jaune néon) bascule quand le logo a dépassé la barre de
+ * recherche, c'est-à-dire qu'il est passé en dessous (isLogoBelowSearchBar),
+ * dans les deux sens.
+ *
  * Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
  * DOM réel (fonctions pures ci-dessous) pour rester testables en
  * environnement node --test.
@@ -83,6 +87,17 @@ export function computeScrollProgress(scrollY, maxScrollY) {
   return Math.min(Math.max(scrollY / threshold, 0), 1);
 }
 
+/**
+ * Le logo a "dépassé" la barre de recherche quand le haut de son texte est au
+ * niveau du bas de la barre, ou en dessous (positions à l'écran, même repère) :
+ * il est alors entièrement sous la barre. Critère purement géométrique,
+ * indépendant de la taille d'écran et de la quantité de contenu, et réversible
+ * (il suit la position réelle à chaque frame).
+ */
+export function isLogoBelowSearchBar(logo, searchRect) {
+  return logo.top >= searchRect.bottom;
+}
+
 /** Interpolation linéaire simple entre deux valeurs. */
 function lerp(from, to, progress) {
   return from + (to - from) * progress;
@@ -96,6 +111,7 @@ export function initParallax(root = document, windowRef = window) {
 
   const anchor = root.querySelector('[data-parallax-anchor]');
   const header = root.querySelector('.rb-dashboard-header');
+  const search = root.querySelector('[data-planning-search]');
 
   // Calculé une seule fois, pas à chaque frame de scroll : bg est en
   // position: fixed, donc son getBoundingClientRect() reflète déjà le
@@ -151,14 +167,26 @@ export function initParallax(root = document, windowRef = window) {
       }
     }
 
+    const wmY = lerp(start.y, end.y, progress);
+    const scrollOffsetY = y * 0.35 * (1 - progress);
     bg.style.setProperty('--wm-x', `${lerp(start.x, end.x, progress)}px`);
-    bg.style.setProperty('--wm-y', `${lerp(start.y, end.y, progress)}px`);
+    bg.style.setProperty('--wm-y', `${wmY}px`);
     // Le parallax de scroll (translateY continu) s'estompe au fur et à
     // mesure de la progression : l'interpolation --wm-x/--wm-y pilote déjà
     // le déplacement voulu, et le watermark ne doit plus bouger une fois
     // stabilisé (progress = 1).
-    bg.style.setProperty('--wm-scroll-y', `${y * 0.35 * (1 - progress)}px`);
-    bg.classList.toggle('rb-page-bg-text--neon', progress === 1);
+    bg.style.setProperty('--wm-scroll-y', `${scrollOffsetY}px`);
+    // Couleur : néon quand le logo est passé sous la barre de recherche
+    // (position à l'écran calculée depuis le repos + décalages de cette frame,
+    // sans relire un rect déjà transformé). Sans barre de recherche : ancien
+    // critère, la progression a atteint 1.
+    const neon = search
+      ? isLogoBelowSearchBar(
+          { top: bgTextRectAtRest.top + wmY + scrollOffsetY, height: bgTextRectAtRest.height },
+          search.getBoundingClientRect(),
+        )
+      : progress === 1;
+    bg.classList.toggle('rb-page-bg-text--neon', neon);
     ticking = false;
   }
 
