@@ -7,6 +7,8 @@ namespace App\Controller;
 use App\Entity\DashboardExceptionItem;
 use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
+use App\Entity\RecurringSlot;
+use App\Entity\SlotException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
@@ -59,40 +61,21 @@ final class PageController
             $slotsById[$slot->id()] = $slot;
         }
 
+        // Indexés par id d'exception : une demande visible depuis plusieurs groupes
+        // de l'utilisateur n'apparaît qu'une fois (et n'est construite qu'une fois).
         $receivedItems = [];
         $sentItems = [];
         $archivedItems = [];
-        $seenPendingIds = [];
-        $seenRequestedIds = [];
-        $seenArchivedIds = [];
         foreach ($groups as $group) {
             foreach ($this->availabilityService->findPendingForHolderGroup($group->id(), $user->id()) as $exception) {
-                if (isset($seenPendingIds[$exception->id()])) {
-                    continue;
-                }
-                $seenPendingIds[$exception->id()] = true;
-                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
-                \assert($requestingGroup !== null);
-                $receivedItems[] = new DashboardExceptionItem($exception, ExceptionDirection::Recue, $requestingGroup->name(), $requestingGroup->colorHex(), $slotsById[$exception->recurringSlotId()] ?? null);
+                $receivedItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Recue, $slotsById);
             }
             foreach ($this->availabilityService->findByRequestingGroup($group->id(), $user->id()) as $exception) {
-                if (isset($seenRequestedIds[$exception->id()])) {
-                    continue;
-                }
-                $seenRequestedIds[$exception->id()] = true;
-                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
-                \assert($requestingGroup !== null);
-                $sentItems[] = new DashboardExceptionItem($exception, ExceptionDirection::Envoyee, $requestingGroup->name(), $requestingGroup->colorHex(), $slotsById[$exception->recurringSlotId()] ?? null);
+                $sentItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Envoyee, $slotsById);
             }
             foreach ($this->availabilityService->findArchivedForGroup($group->id(), $user->id()) as $exception) {
-                if (isset($seenArchivedIds[$exception->id()])) {
-                    continue;
-                }
-                $seenArchivedIds[$exception->id()] = true;
-                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
-                \assert($requestingGroup !== null);
                 $direction = $exception->requestedByGroupId() === $group->id() ? ExceptionDirection::Envoyee : ExceptionDirection::Recue;
-                $archivedItems[] = new DashboardExceptionItem($exception, $direction, $requestingGroup->name(), $requestingGroup->colorHex(), $slotsById[$exception->recurringSlotId()] ?? null);
+                $archivedItems[$exception->id()] ??= $this->toDashboardItem($exception, $direction, $slotsById);
             }
         }
 
@@ -123,6 +106,21 @@ final class PageController
             'currentUserGroupId' => $primaryGroup?->id(),
             'currentUserInitials' => Initials::from($user->displayName()),
         ]));
+    }
+
+    /** @param array<int, RecurringSlot> $slotsById */
+    private function toDashboardItem(SlotException $exception, ExceptionDirection $direction, array $slotsById): DashboardExceptionItem
+    {
+        $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+        \assert($requestingGroup !== null);
+
+        return new DashboardExceptionItem(
+            $exception,
+            $direction,
+            $requestingGroup->name(),
+            $requestingGroup->colorHex(),
+            $slotsById[$exception->recurringSlotId()] ?? null,
+        );
     }
 
     public function adminSlots(): Response
