@@ -138,3 +138,73 @@
   background: var(--rb-err);
   color: #fff;
 }
+
+/* Page Utilisateurs (#138) */
+.rb-admin-crosslink {
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-admin-crosslink a {
+  color: var(--rb-accent);
+}
+
+.rb-admin-note {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-user-list {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-user-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rb-space-3);
+}
+
+.rb-user-main {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.rb-user-main h3 {
+  margin: 0;
+}
+
+.rb-user-email {
+  margin: 0 0 var(--rb-space-2);
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.rb-user-badges,
+.rb-user-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+  margin: 0 0 var(--rb-space-2);
+}
+
+.rb-user-badges .rb-badge,
+.rb-user-group {
+  padding: 2px var(--rb-space-2);
+  border: 1px solid var(--rb-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.rb-user-badges .rb-badge-warn {
+  border-color: var(--rb-err);
+  color: var(--rb-err);
+}
+
+.rb-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+}

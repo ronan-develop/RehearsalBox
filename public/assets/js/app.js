@@ -3,6 +3,7 @@ import { initAuth } from './auth.js';
 import { initAvailability } from './availability.js';
 import { initAdminSlots } from './admin-slots.js';
 import { initAdminGroups } from './admin-groups.js';
+import { initAdminUsers } from './admin-users.js';
 import { initPlanningSlider, initExceptionalPlanningSlider } from './planning-slider.js';
 import { initTornPaper } from './tornpaper-init.js';
 import { initPlanningSearch } from './planning-search.js';
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAvailability();
   initAdminSlots();
   initAdminGroups();
+  initAdminUsers();
   initPlanningSlider();
   initExceptionalPlanningSlider();
   initTornPaper();
