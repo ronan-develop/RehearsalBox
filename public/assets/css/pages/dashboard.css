@@ -82,6 +82,17 @@
   }
 }
 
+/* Lissage du déplacement (classe posée par parallax.js une fois le logo en place,
+   jamais en mouvement réduit) : le logo glisse au lieu de sauter quand la page
+   est peu scrollable (mobile). Transform et opacité : compositeur, pas de repaint. */
+.rb-page-bg-text--smooth {
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.rb-page-bg-text--smooth::after {
+  transition: opacity 0.3s ease-out;
+}
+
 /* Effet néon, statique — seulement quand le logo est passé sous la barre de
    recherche (cf. parallax.js, isLogoBelowSearchBar), pas de glow permanent.
    Empilement de text-shadow plutôt qu'un filter: drop-shadow() unique, pour

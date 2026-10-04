@@ -102,7 +102,10 @@ function fakeBgElement() {
   const classes = new Set();
   return {
     style: { setProperty: (name, value) => { properties[name] = value; } },
-    classList: { toggle: (name, force) => { force ? classes.add(name) : classes.delete(name); } },
+    classList: {
+      toggle: (name, force) => { force ? classes.add(name) : classes.delete(name); },
+      add: (name) => { classes.add(name); },
+    },
     getBoundingClientRect: () => fakeRect({ height: 92 }),
     properties,
     classes,
@@ -545,4 +548,32 @@ test('initParallax measures again when the window is resized', () => {
   handlers.resize();
 
   assert.ok(reads.anchor > before, 'la mesure est refaite au redimensionnement');
+});
+
+// --- Lissage du déplacement (#147) : le logo glisse au lieu de sauter ---
+
+test('initParallax enables the smoothing transition after the first render, not before (no slide-in at load)', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ top: 32, left: 0, width: 300, height: 132 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
+  const frames = [];
+  win.requestAnimationFrame = (cb) => frames.push(cb);
+
+  initParallax(doc, win);
+  assert.equal(bg.classes.has('rb-page-bg-text--smooth'), false, 'pas de transition pendant le placement initial');
+
+  while (frames.length) frames.shift()();
+  assert.equal(bg.classes.has('rb-page-bg-text--smooth'), true, 'lissage actif une fois le logo en place');
+});
+
+test('initParallax never enables the smoothing transition with prefers-reduced-motion', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ top: 32, left: 0, width: 300, height: 132 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollHeight: 2000 });
+  const win = fakeWindow({ reducedMotion: true });
+
+  initParallax(doc, win);
+
+  assert.equal(bg.classes.has('rb-page-bg-text--smooth'), false);
 });

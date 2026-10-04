@@ -143,6 +143,19 @@ final class NeonWatermarkCssTest extends TestCase
     }
 
     #[Test]
+    public function testMovementIsSmoothedOnlyOnceTheLogoIsInPlace(): void
+    {
+        // Pas de transition sur la règle de base : le logo ne glisse pas depuis le haut au chargement.
+        self::assertStringNotContainsString('transition: transform', $this->block($this->baseRules(), '.rb-page-bg-text {'));
+
+        $smooth = $this->block($this->baseRules(), '.rb-page-bg-text--smooth {');
+        self::assertMatchesRegularExpression('/transition:\s*transform\s+0?\.[2-6]\d*s/', $smooth, 'Transform lissé en 0,2 à 0,6 s (compositeur).');
+
+        $smoothGlow = $this->block($this->baseRules(), '.rb-page-bg-text--smooth::after {');
+        self::assertMatchesRegularExpression('/transition:\s*opacity/', $smoothGlow, 'Montée en brillance en douceur.');
+    }
+
+    #[Test]
     public function testThereIsNoPulseAnimationAnywhere(): void
     {
         self::assertStringNotContainsString('@keyframes', $this->css);
