@@ -11,6 +11,7 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\GroupContactService;
+use App\Tests\Support\RecordingMailer;
 use App\Tests\RepositoryTestCase;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
@@ -109,5 +110,24 @@ final class GroupContactServiceTest extends RepositoryTestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $service->send(9999, 1, 'alice@rehearsalbox.test', 'Message');
+    }
+
+    #[Test]
+    public function testTheContactMailHasABrandedHtmlVersionThatEscapesTheMessage(): void
+    {
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $userRepository = new MysqlUserRepository($this->pdo);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $sender = $userRepository->save(new User(0, 'alice@rehearsalbox.test', 'hash', 'Alice', UserRole::Musicien, true, 0, null));
+        $mailer = new RecordingMailer();
+
+        (new GroupContactService($mailer, $groupRepository, 'no-reply@rehearsalbox.test'))
+            ->send($group->id(), $sender->id(), $sender->email(), '<script>alert(1)</script> On répète ?');
+
+        $email = $mailer->sent[0];
+        self::assertStringNotContainsString('<script>alert(1)</script>', (string) $email->getHtmlBody());
+        self::assertStringContainsString('&lt;script&gt;', (string) $email->getHtmlBody());
+        self::assertStringContainsString('#B27', (string) $email->getHtmlBody());
+        self::assertStringContainsString('<script>alert(1)</script> On répète ?', (string) $email->getTextBody(), 'la version texte garde le message tel quel');
     }
 }

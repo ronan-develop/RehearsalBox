@@ -11,6 +11,7 @@ use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use App\Mail\MailRenderer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -34,6 +35,7 @@ final class AccountSecurityService
         private readonly PasswordResetService $passwordReset,
         private readonly string $fromAddress,
         private readonly string $baseUrl,
+        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -85,17 +87,16 @@ final class AccountSecurityService
     {
         $link = rtrim($this->baseUrl, '/') . '/account/secure?token=' . $token;
 
+        $mail = ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->render('account-alert', [
+            'link' => $link,
+            'preheader' => 'Votre mot de passe vient d\'être modifié. Si ce n\'est pas vous, sécurisez votre compte.',
+        ]);
+
         return (new Email())
             ->from($this->fromAddress)
             ->to($to)
             ->subject('RehearsalBox — votre mot de passe a été modifié')
-            ->text(
-                "Bonjour,\n\n"
-                . "Le mot de passe de votre compte RehearsalBox vient d'être modifié.\n"
-                . "Si c'est vous, il n'y a rien à faire.\n\n"
-                . "Si vous n'êtes PAS à l'origine de ce changement, sécurisez votre compte maintenant (lien valable 24 heures, à usage unique) :\n\n"
-                . $link . "\n\n"
-                . "Le compte sera verrouillé, toutes les sessions seront fermées et un lien vous sera envoyé pour choisir un nouveau mot de passe.\n"
-            );
+            ->html($mail['html'])
+            ->text($mail['text']);
     }
 }
