@@ -92,6 +92,22 @@ final class PageController
         );
     }
 
+    /**
+     * Cible du bouton du mail de confirmation, envoyé à la NOUVELLE adresse (#164). Un simple GET n'agit jamais
+     * (les scanners de mails suivent les liens) : la page demande une confirmation explicite. Publique (le jeton
+     * fait foi) ; le jeton est dans l'URL : pas de Referer sortant, pas de mise en cache.
+     */
+    public function confirmEmail(Request $request): Response
+    {
+        return new Response(
+            $this->renderer->render('auth/confirm-email', [
+                'csrfToken' => $this->csrfTokenManager->getToken(),
+                'token' => (string) $request->query('token', ''),
+            ]),
+            headers: ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'],
+        );
+    }
+
     public function dashboard(): Response
     {
         $user = $this->authGuard->requireLogin();

@@ -19,6 +19,16 @@ export function applyProfileResult(form, result) {
   return 'Nom mis à jour.';
 }
 
+/**
+ * Après une demande de changement d'adresse : le mot de passe saisi est effacé et le message est générique
+ * (identique que l'adresse soit libre ou déjà utilisée) ; retourne ce message.
+ */
+export function applyEmailChangeRequested(form) {
+  form.reset();
+
+  return "Si cette adresse est utilisable, un lien de confirmation vient de lui être envoyé (valable 1 heure).";
+}
+
 /** Vrai quand la page de connexion arrive après une réinitialisation réussie (?reset=1). */
 export function isPasswordResetAnnouncement(search) {
   return new URLSearchParams(search).get('reset') === '1';
@@ -38,6 +48,16 @@ export function initAuth() {
 
   document.querySelectorAll('form[data-async][data-endpoint*="/account/profile"]').forEach((form) => {
     form.addEventListener('async-success', (event) => showToast(applyProfileResult(form, event.detail), 'success'));
+    form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
+  });
+
+  document.querySelectorAll('form[data-async][data-endpoint$="/api/account/email"]').forEach((form) => {
+    form.addEventListener('async-success', () => showToast(applyEmailChangeRequested(form), 'success'));
+    form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
+  });
+
+  document.querySelectorAll('form[data-async][data-endpoint*="/account/email/confirm"]').forEach((form) => {
+    form.addEventListener('async-success', () => revealConfirmation(form));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 

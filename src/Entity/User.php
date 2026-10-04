@@ -146,6 +146,25 @@ final class User
         );
     }
 
+    /**
+     * Nouvelle adresse e-mail (identifiant de connexion) : ferme toutes les sessions ouvertes,
+     * l'utilisateur se reconnecte avec la nouvelle adresse.
+     */
+    public function withEmail(string $email): self
+    {
+        return new self(
+            $this->id,
+            $email,
+            $this->passwordHash,
+            $this->displayName,
+            $this->role,
+            $this->isActive,
+            $this->failedLoginAttempts,
+            $this->lockedUntil,
+            $this->sessionVersion + 1,
+        );
+    }
+
     /** Nouveau nom affiché ; ne touche à rien d'autre (pas de session fermée). */
     public function withDisplayName(string $displayName): self
     {

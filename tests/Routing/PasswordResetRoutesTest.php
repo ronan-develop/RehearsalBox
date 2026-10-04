@@ -63,4 +63,12 @@ final class PasswordResetRoutesTest extends TestCase
     {
         self::assertContains(['PATCH', '/api/account/profile', [AccountApiController::class, 'updateProfile']], $this->allRoutes());
     }
+
+    #[Test]
+    public function testEmailChangeRoutesAreRegistered(): void
+    {
+        self::assertContains(['PATCH', '/api/account/email', [AccountApiController::class, 'requestEmailChange']], $this->allRoutes());
+        self::assertContains(['POST', '/api/account/email/confirm', [AccountApiController::class, 'confirmEmailChange']], $this->allRoutes());
+        self::assertContains(['GET', '/account/email/confirm', [PageController::class, 'confirmEmail']], $this->allRoutes());
+    }
 }

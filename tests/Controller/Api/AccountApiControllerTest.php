@@ -17,7 +17,9 @@ use App\Security\Exception\UnauthenticatedException;
 use App\Security\NativePasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\AccountSecurityService;
+use App\Service\EmailChangeService;
 use App\Service\ProfileService;
+use App\Repository\MysqlEmailChangeRepository;
 use App\Service\AuthService;
 use App\Service\PasswordChangeService;
 use App\Service\PasswordResetService;
@@ -52,6 +54,7 @@ final class AccountApiControllerTest extends RepositoryTestCase
             new PasswordChangeService($this->users, $hasher, $policy, $this->security),
             $this->security,
             new ProfileService($this->users),
+            new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $hasher, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
         );
     }
 
@@ -236,5 +239,121 @@ final class AccountApiControllerTest extends RepositoryTestCase
 
         self::assertSame($versionBefore, $this->users->findById($alice->id())->sessionVersion());
         self::assertNotNull($this->auth->currentUser(), 'la session reste ouverte');
+    }
+
+    // --- Mon adresse e-mail (#164) --------------------------------------------------------------
+
+    private function patchEmail(array $body): Request
+    {
+        return new Request('PATCH', '/api/account/email', [], $body, []);
+    }
+
+    private function confirmRequest(array $body): Request
+    {
+        return new Request('POST', '/api/account/email/confirm', [], $body, []);
+    }
+
+    private function requestedToken(): string
+    {
+        self::assertSame(1, preg_match('#/account/email/confirm\?token=([0-9a-f]{64})#', (string) $this->mailer->sent[0]->getTextBody(), $m));
+
+        return $m[1];
+    }
+
+    #[Test]
+    public function testRequestEmailChangeSendsTheLinkToTheNewAddressAndAnswersGenerically(): void
+    {
+        $alice = $this->insertUser();
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+
+        $response = $this->controller->requestEmailChange($this->patchEmail(['email' => 'nouvelle@rehearsalbox.test', 'currentPassword' => 'ancien-mdp']));
+
+        self::assertSame(200, $response->statusCode());
+        self::assertSame('ok', json_decode($response->body(), true)['status']);
+        self::assertCount(1, $this->mailer->sent);
+        self::assertSame(['nouvelle@rehearsalbox.test'], array_map(static fn ($a) => $a->getAddress(), $this->mailer->sent[0]->getTo()));
+        self::assertStringNotContainsString($this->requestedToken(), $response->body(), 'le jeton ne sort jamais de l\'e-mail');
+        self::assertSame('alice@rehearsalbox.test', $this->users->findById($alice->id())->email());
+    }
+
+    #[Test]
+    public function testRequestEmailChangeRequiresALoggedInUser(): void
+    {
+        $this->expectException(\App\Security\Exception\UnauthenticatedException::class);
+
+        $this->controller->requestEmailChange($this->patchEmail(['email' => 'x@rehearsalbox.test', 'currentPassword' => 'ancien-mdp']));
+    }
+
+    #[Test]
+    public function testRequestEmailChangeActsOnTheSessionAccountNeverOnAnIdSentByTheClient(): void
+    {
+        $alice = $this->insertUser();
+        $bob = $this->insertUser('bob@rehearsalbox.test');
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+
+        $this->controller->requestEmailChange($this->patchEmail([
+            'email' => 'nouvelle@rehearsalbox.test', 'currentPassword' => 'ancien-mdp', 'userId' => $bob->id(), 'id' => $bob->id(),
+        ]));
+
+        self::assertSame([$alice->id()], array_map('intval', $this->pdo->query('SELECT user_id FROM email_changes')->fetchAll(\PDO::FETCH_COLUMN)));
+    }
+
+    #[Test]
+    public function testRequestEmailChangeReturns422WithTheFieldForBadInput(): void
+    {
+        $this->insertUser();
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+
+        $wrongPassword = $this->controller->requestEmailChange($this->patchEmail(['email' => 'nouvelle@rehearsalbox.test', 'currentPassword' => 'faux']));
+        self::assertSame(422, $wrongPassword->statusCode());
+        self::assertArrayHasKey('currentPassword', json_decode($wrongPassword->body(), true)['fields']);
+
+        foreach ([['email' => 'pas-un-email', 'currentPassword' => 'ancien-mdp'], ['email' => ['a@b.test'], 'currentPassword' => 'ancien-mdp'], ['currentPassword' => 'ancien-mdp']] as $body) {
+            $response = $this->controller->requestEmailChange($this->patchEmail($body));
+            self::assertSame(422, $response->statusCode(), json_encode($body));
+            self::assertArrayHasKey('email', json_decode($response->body(), true)['fields']);
+        }
+        self::assertSame([], $this->mailer->sent);
+    }
+
+    #[Test]
+    public function testRequestEmailChangeToAnExistingAddressAnswersExactlyLikeASuccess(): void
+    {
+        $this->insertUser();
+        $this->insertUser('bob@rehearsalbox.test');
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+
+        $taken = $this->controller->requestEmailChange($this->patchEmail(['email' => 'bob@rehearsalbox.test', 'currentPassword' => 'ancien-mdp']));
+        $free = $this->controller->requestEmailChange($this->patchEmail(['email' => 'libre@rehearsalbox.test', 'currentPassword' => 'ancien-mdp']));
+
+        self::assertSame([$free->statusCode(), $free->body()], [$taken->statusCode(), $taken->body()], 'aucune différence observable : pas d\'énumération des comptes');
+    }
+
+    #[Test]
+    public function testConfirmEmailChangeIsPublicChangesTheAddressAndTheTokenWorksOnce(): void
+    {
+        $alice = $this->insertUser();
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+        $this->controller->requestEmailChange($this->patchEmail(['email' => 'nouvelle@rehearsalbox.test', 'currentPassword' => 'ancien-mdp']));
+        $token = $this->requestedToken();
+        $this->auth->logout();
+
+        $first = $this->controller->confirmEmailChange($this->confirmRequest(['token' => $token]));
+        $second = $this->controller->confirmEmailChange($this->confirmRequest(['token' => $token]));
+
+        self::assertSame(200, $first->statusCode());
+        self::assertSame('nouvelle@rehearsalbox.test', $this->users->findById($alice->id())->email());
+        self::assertSame(422, $second->statusCode());
+        self::assertSame('Ce lien est invalide ou a expiré.', json_decode($second->body(), true)['error']);
+    }
+
+    #[Test]
+    public function testConfirmEmailChangeRefusesMissingOrMalformedTokens(): void
+    {
+        foreach ([[], ['token' => ''], ['token' => ['x']], ['token' => 12], ['token' => str_repeat('z', 64)]] as $body) {
+            $response = $this->controller->confirmEmailChange($this->confirmRequest($body));
+
+            self::assertSame(422, $response->statusCode(), json_encode($body));
+        }
     }
 }

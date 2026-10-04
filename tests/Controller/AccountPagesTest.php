@@ -107,9 +107,8 @@ final class AccountPagesTest extends RepositoryTestCase
         self::assertStringContainsString('data-method="PATCH"', $body);
         self::assertMatchesRegularExpression('/<input[^>]*name="displayName"[^>]*value="' . preg_quote('Alice', '/') . '"[^>]*maxlength="100"|<input[^>]*name="displayName"[^>]*maxlength="100"[^>]*value="' . preg_quote('Alice', '/') . '"/', $body);
         self::assertStringContainsString('data-field-error="displayName"', $body);
-        // L'e-mail s'affiche (lecture seule) : on ne le modifie pas ici.
+        // L'adresse e-mail actuelle s'affiche ; son changement est un formulaire à part (mot de passe actuel requis).
         self::assertStringContainsString('alice@rehearsalbox.test', $body);
-        self::assertStringNotContainsString('name="email"', $body);
         // Le formulaire du mot de passe est toujours là.
         self::assertStringContainsString('data-endpoint="/api/auth/change-password"', $body);
     }
@@ -175,5 +174,69 @@ final class AccountPagesTest extends RepositoryTestCase
         $this->logIn(UserRole::Admin);
 
         self::assertStringContainsString('href="/account/password"', $controller->dashboard()->body());
+    }
+
+    // --- Changement d'adresse e-mail (#164) --------------------------------------------------------------
+
+    #[Test]
+    public function testAccountPageOffersTheEmailChangeFormAskingForTheCurrentPassword(): void
+    {
+        $controller = $this->controller();
+        $this->logIn(UserRole::Musicien);
+
+        $body = $controller->accountPassword()->body();
+
+        self::assertStringContainsString('data-endpoint="/api/account/email"', $body);
+        self::assertMatchesRegularExpression('/<form[^>]*data-endpoint="\/api\/account\/email"[^>]*data-method="PATCH"/', $body);
+        self::assertMatchesRegularExpression('/<input type="email"[^>]*name="email"/', $body);
+        self::assertStringContainsString('data-field-error="email"', $body);
+        self::assertSame(1, preg_match_all('/data-endpoint="\/api\/account\/email"/', $body), 'un seul formulaire e-mail');
+        // Le mot de passe actuel est demandé, jamais prérempli.
+        self::assertMatchesRegularExpression('/<form[^>]*\/api\/account\/email".*?name="currentPassword"[^>]*autocomplete="current-password"/s', $body);
+        self::assertStringNotContainsString('value="ancien', $body);
+        self::assertStringContainsString('lien de confirmation', $body, "la consigne explique le lien envoyé à la nouvelle adresse");
+    }
+
+    private function confirmEmailRequest(?string $token): Request
+    {
+        return new Request('GET', '/account/email/confirm', $token === null ? [] : ['token' => $token], [], []);
+    }
+
+    #[Test]
+    public function testConfirmEmailPageIsPublicAndAsksForAnExplicitConfirmationNeverActingOnGet(): void
+    {
+        $token = str_repeat('ab', 32);
+        $controller = $this->controller();
+
+        // Aucune connexion nécessaire : le lien est ouvert depuis la boîte mail (peut-être sur un autre appareil).
+        $response = $controller->confirmEmail($this->confirmEmailRequest($token));
+
+        self::assertSame(200, $response->statusCode());
+        $body = $response->body();
+        self::assertStringContainsString('data-endpoint="/api/account/email/confirm"', $body);
+        self::assertStringContainsString('data-method="POST"', $body);
+        self::assertStringContainsString('<input type="hidden" name="token" value="' . $token . '">', $body);
+        self::assertStringContainsString('Confirmer ma nouvelle adresse', $body);
+        self::assertStringContainsString('data-confirmation', $body);
+    }
+
+    #[Test]
+    public function testConfirmEmailPageNeverLeaksTheTokenAndEscapesIt(): void
+    {
+        $response = $this->controller()->confirmEmail($this->confirmEmailRequest('"><script>alert(1)</script>'));
+
+        self::assertSame('no-referrer', $response->headers()['Referrer-Policy'] ?? null);
+        self::assertSame('no-store', $response->headers()['Cache-Control'] ?? null);
+        self::assertStringContainsString('<meta name="referrer" content="no-referrer">', $response->body());
+        self::assertStringNotContainsString('<script>alert(1)</script>', $response->body());
+    }
+
+    #[Test]
+    public function testConfirmEmailPageWithoutTokenShowsAnInvalidLinkMessage(): void
+    {
+        $response = $this->controller()->confirmEmail($this->confirmEmailRequest(null));
+
+        self::assertStringContainsString('invalide ou incomplet', $response->body());
+        self::assertStringNotContainsString('<form', $response->body());
     }
 }

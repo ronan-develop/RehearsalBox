@@ -152,6 +152,7 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/admin/users/{userMemberA}/unlock', [], ['anon', 'stranger', 'memberA', 'managerA']],
             // Mon compte (#161) : seul l'utilisateur connecté, sur son propre compte
             ['PATCH', '/api/account/profile', ['displayName' => 'Intrus'], ['anon']],
+            ['PATCH', '/api/account/email', ['email' => 'intrus@rehearsalbox.test', 'currentPassword' => 'x'], ['anon']],
             // Espace groupe
             ['GET', '/api/groups/{groupA}/space', [], ['anon', 'stranger', 'outsiderB']],
             ['PATCH', '/api/groups/{groupA}/space', ['lineup' => [], 'upcomingShows' => []], ['anon', 'stranger', 'outsiderB', 'memberA']],

@@ -154,4 +154,20 @@ final class UserTest extends TestCase
         self::assertSame($user->sessionVersion(), $renamed->sessionVersion(), 'renommer ne ferme aucune session');
         self::assertSame('Alice', $user->displayName(), 'immuable');
     }
+
+    #[Test]
+    public function testWithEmailChangesTheAddressAndClosesEverySession(): void
+    {
+        $user = $this->lockedUser();
+
+        $moved = $user->withEmail('nouvelle@example.test');
+
+        self::assertSame('nouvelle@example.test', $moved->email());
+        self::assertSame($user->sessionVersion() + 1, $moved->sessionVersion(), "l'identifiant de connexion change : les sessions ouvertes sont périmées");
+        self::assertSame($user->passwordHash(), $moved->passwordHash());
+        self::assertSame($user->displayName(), $moved->displayName());
+        self::assertSame($user->role(), $moved->role());
+        self::assertSame($user->isActive(), $moved->isActive());
+        self::assertSame('alice@example.test', $user->email(), 'immuable');
+    }
 }

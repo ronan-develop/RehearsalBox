@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { revealConfirmation, isPasswordResetAnnouncement, applyProfileResult } from './auth.js';
+import { revealConfirmation, isPasswordResetAnnouncement, applyProfileResult, applyEmailChangeRequested } from './auth.js';
 
 function fakeForm() {
   const confirmation = {
@@ -61,4 +61,16 @@ test('applyProfileResult leaves the field alone when the response carries no usa
 
 test('applyProfileResult tolerates a form without the name field', () => {
   assert.doesNotThrow(() => applyProfileResult({ querySelector: () => null }, { displayName: 'Alice' }));
+});
+
+test('applyEmailChangeRequested clears the form (the typed password never stays on screen) and returns a generic message', () => {
+  let reset = 0;
+  const form = { reset: () => { reset += 1; } };
+
+  const message = applyEmailChangeRequested(form);
+
+  assert.equal(reset, 1);
+  // Message générique : il ne dit pas si l'adresse était libre ou déjà utilisée (pas d'énumération de comptes).
+  assert.match(message, /Si cette adresse est utilisable/);
+  assert.match(message, /1 heure/);
 });
