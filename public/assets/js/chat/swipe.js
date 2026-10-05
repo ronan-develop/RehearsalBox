@@ -26,3 +26,11 @@ export function offsetFor(dx, startOpen, width = ACTION_WIDTH) {
 export function shouldOpen(offset, width = ACTION_WIDTH) {
   return offset <= -width / 2;
 }
+
+/**
+ * Glissement qui DÉCLENCHE une action au relâchement (corriger son message, #200/#212) au lieu de la révéler : il faut avoir
+ * tiré franchement, aux trois quarts de la largeur de l'action, pour éviter les déclenchements accidentels.
+ */
+export function shouldTrigger(offset, width = ACTION_WIDTH) {
+  return offset <= -width * 0.75;
+}

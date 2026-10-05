@@ -36,3 +36,12 @@ test('the action opens past half of its width and closes otherwise', () => {
   assert.equal(shouldOpen(-ACTION_WIDTH / 2 + 1), false);
   assert.equal(shouldOpen(0), false);
 });
+
+test('shouldTrigger asks for a deliberate swipe: three quarters of the action width, not half', async () => {
+  const { shouldTrigger } = await import('./swipe.js');
+
+  assert.equal(shouldTrigger(-72, 72), true);
+  assert.equal(shouldTrigger(-54, 72), true, 'exactement trois quarts');
+  assert.equal(shouldTrigger(-53, 72), false);
+  assert.equal(shouldTrigger(0, 72), false);
+});

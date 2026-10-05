@@ -305,6 +305,7 @@ rb-composer {
 .rb-chat-messages {
   display: flex;
   flex-direction: column-reverse;
+  overflow-x: hidden; /* le crayon de correction attend hors écran, à droite des bulles (#212) */
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--rb-space-3);
@@ -821,19 +822,28 @@ rb-composer {
 }
 
 @media (hover: none) {
-  /* Écran tactile (#212) : pas de survol, donc le crayon reste visible (zone de 44 px) en plus de l'appui long, qui ne doit
-     pas dépendre du seul geste : Safari iOS démarre la sélection de texte et le menu système vers 500 ms et l'annule.
-     Le texte de mes bulles encore modifiables n'est donc pas sélectionnable au toucher pendant leurs 15 minutes. */
-  .rb-chat-edit {
-    min-width: 44px;
-    min-height: 44px;
-    opacity: 0.7;
+  /* Écran tactile (#212) : un glissement vers la gauche sur sa bulle récente la corrige. La bulle suit le doigt (--swipe-x,
+     posé par swipe-edit.js) et le crayon, accroché à son bord droit, entre à l'écran ; le texte reste sélectionnable (copier). */
+  .rb-chat-message[data-editable] {
+    position: relative;
+    touch-action: pan-y; /* le défilement vertical reste au navigateur */
+    transform: translateX(var(--swipe-x, 0px));
+    transition: transform 0.2s ease;
   }
 
-  .rb-chat-message[data-editable] .rb-chat-bubble {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  .rb-chat-message--dragging {
+    transition: none;
+  }
+
+  .rb-chat-edit {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 8px);
+    min-width: 44px;
+    min-height: 44px;
+    color: var(--rb-accent);
+    opacity: 1;
+    transform: translateY(-50%);
   }
 }
 

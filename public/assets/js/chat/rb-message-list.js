@@ -4,8 +4,8 @@
  * e()) ; le navigateur ne construit jamais une bulle à partir de texte.
  */
 import { EVT, emit } from './events.js';
-import { createLongPress } from './longpress.js';
 import { isNearBottom } from './model.js';
+import { wireSwipeEdit } from './swipe-edit.js';
 
 export class RbMessageList extends HTMLElement {
   connectedCallback() {
@@ -21,37 +21,18 @@ export class RbMessageList extends HTMLElement {
   }
 
   /**
-   * Corriger son message (#200) : un bouton (survol ou clavier) et, sur mobile, un appui long sur ses propres bulles
-   * récentes (`data-editable`, posé par le serveur). Le composant ne fait que demander (message:edit-request) : la saisie et
-   * l'appel à l'API sont ailleurs.
+   * Corriger son message (#200, #212) : un bouton (survol ou clavier sur ordinateur) et, sur écran tactile, un glissement vers
+   * la gauche sur ses propres bulles récentes (`data-editable`, posé par le serveur). Le composant ne fait que demander
+   * (message:edit-request) : la saisie et l'appel à l'API sont ailleurs.
    */
   #wireEditing() {
-    const longPress = createLongPress({ onLongPress: ({ target }) => this.#requestEdit(target) });
-    const editable = (event) => (event.pointerType === 'touch' ? event.target.closest('.rb-chat-message[data-editable]') : null);
-
-    this.addEventListener('pointerdown', (event) => {
-      const row = editable(event);
-      if (row !== null) {
-        longPress.start(event.clientX, event.clientY, row);
-      }
-    });
-    this.addEventListener('pointermove', (event) => longPress.move(event.clientX, event.clientY), { passive: true });
-    this.addEventListener('pointerup', () => longPress.end());
-    this.addEventListener('pointercancel', () => longPress.cancel());
-    // Après un appui long, ni menu du système ni clic parasite au relâchement.
-    this.addEventListener('contextmenu', (event) => longPress.consumed() && event.preventDefault());
+    wireSwipeEdit(this, { onEdit: (row) => this.#requestEdit(row) });
     this.addEventListener('click', (event) => {
-      if (longPress.consumed()) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        return;
-      }
       const button = event.target.closest('[data-edit-message]');
       if (button !== null) {
         this.#requestEdit(button.closest('.rb-chat-message'));
       }
-    }, true);
+    });
   }
 
   #requestEdit(row) {
