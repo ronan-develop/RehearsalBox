@@ -13,7 +13,7 @@ use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\AvailabilityService;
 use App\Service\GroupService;
@@ -32,7 +32,7 @@ final class PasswordResetPagesTest extends RepositoryTestCase
         $exceptionRepository = new MysqlSlotExceptionRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
+        $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
 
         return new PageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),

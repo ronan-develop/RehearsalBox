@@ -7,7 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\CurrentPasswordVerifier;
 use App\Service\Exception\UserValidationException;
 use App\Tests\RepositoryTestCase;
@@ -23,13 +23,13 @@ final class CurrentPasswordVerifierTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
-        $this->verifier = new CurrentPasswordVerifier($this->users, new NativePasswordHasher());
+        $this->verifier = new CurrentPasswordVerifier($this->users, new FastPasswordHasher());
         $this->now = new \DateTimeImmutable('2026-10-04 12:00:00');
     }
 
     private function user(): User
     {
-        return $this->users->save(new User(0, 'alice@rehearsalbox.test', (new NativePasswordHasher())->hash('le-bon-mot-de-passe'), 'Alice', UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, 'alice@rehearsalbox.test', (new FastPasswordHasher())->hash('le-bon-mot-de-passe'), 'Alice', UserRole::Musicien, true, 0, null));
     }
 
     #[Test]

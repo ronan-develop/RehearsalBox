@@ -9,7 +9,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlEmailChangeRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\EmailChangeService;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\UserValidationException;
@@ -36,7 +36,7 @@ final class EmailChangeServiceTest extends RepositoryTestCase
 
     private function user(string $email = 'alice@rehearsalbox.test', bool $active = true): User
     {
-        return $this->users->save(new User(0, $email, (new NativePasswordHasher())->hash(self::PASSWORD), 'Alice', UserRole::Musicien, $active, 0, null));
+        return $this->users->save(new User(0, $email, (new FastPasswordHasher())->hash(self::PASSWORD), 'Alice', UserRole::Musicien, $active, 0, null));
     }
 
     private function service(MailerInterface $mailer): EmailChangeService
@@ -44,7 +44,7 @@ final class EmailChangeServiceTest extends RepositoryTestCase
         return new EmailChangeService(
             $this->users,
             new MysqlEmailChangeRepository($this->pdo),
-            new NativePasswordHasher(),
+            new FastPasswordHasher(),
             $mailer,
             new TransactionRunner($this->pdo),
             'no-reply@rehearsalbox.example',

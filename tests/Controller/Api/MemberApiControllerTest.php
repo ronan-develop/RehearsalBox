@@ -18,7 +18,7 @@ use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
 use App\Tests\Security\InMemorySession;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\ConversationAccess;
 use App\Service\MemberSearchService;
@@ -44,7 +44,7 @@ final class MemberApiControllerTest extends RepositoryTestCase
         parent::setUp();
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
-        $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
+        $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
         $conversations = new MysqlConversationRepository($this->pdo);
         $guests = new MysqlConversationGuestRepository($this->pdo);
         $this->controller = new MemberApiController(
@@ -62,7 +62,7 @@ final class MemberApiControllerTest extends RepositoryTestCase
 
     private function user(string $name): User
     {
-        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', (new NativePasswordHasher())->hash(self::PASSWORD), $name, UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', (new FastPasswordHasher())->hash(self::PASSWORD), $name, UserRole::Musicien, true, 0, null));
     }
 
     private function group(string $name, User ...$members): Group

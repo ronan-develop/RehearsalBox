@@ -10,7 +10,7 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\Exception\UserAdminRuleException;
 use App\Service\Exception\UserNotFoundException;
@@ -34,7 +34,7 @@ final class UserAdminServiceTest extends RepositoryTestCase
         $this->service = new UserAdminService(
             $this->users,
             $this->groups,
-            new UserProvisioningService($this->users, new NativePasswordHasher(), new PasswordPolicy()),
+            new UserProvisioningService($this->users, new FastPasswordHasher(), new PasswordPolicy()),
         );
     }
 
@@ -80,7 +80,7 @@ final class UserAdminServiceTest extends RepositoryTestCase
 
         self::assertTrue($user->isActive());
         self::assertSame(UserRole::Musicien, $user->role());
-        self::assertFalse((new NativePasswordHasher())->verify('', $user->passwordHash()));
+        self::assertFalse((new FastPasswordHasher())->verify('', $user->passwordHash()));
     }
 
     #[Test]

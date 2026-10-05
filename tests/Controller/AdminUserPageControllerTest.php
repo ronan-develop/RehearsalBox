@@ -14,7 +14,7 @@ use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\AuthService;
 use App\Service\GroupService;
@@ -37,7 +37,7 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
         $this->groups = new MysqlGroupRepository($this->pdo);
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         $session = new InMemorySession();
         $this->auth = new AuthService($this->users, $hasher, $session, $this->groups);
         $this->controller = new AdminUserPageController(

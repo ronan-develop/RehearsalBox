@@ -11,7 +11,7 @@ use App\Entity\User;
 use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
@@ -23,7 +23,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
     {
         $userRepository = new MysqlUserRepository($this->pdo);
         $groupRepository = new MysqlGroupRepository($this->pdo);
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, $hasher, $session, $groupRepository);
         $controller = new AuthApiController($authService);
@@ -39,7 +39,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $userRepository->save(new User(
             0,
             'dana@rehearsalbox.test',
-            (new NativePasswordHasher())->hash('password123'),
+            (new FastPasswordHasher())->hash('password123'),
             'Dana',
             UserRole::Musicien,
             true,
@@ -92,7 +92,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             0,
             'kim@rehearsalbox.test',
-            (new NativePasswordHasher())->hash('password123'),
+            (new FastPasswordHasher())->hash('password123'),
             'Kim',
             UserRole::Musicien,
             true,
@@ -118,7 +118,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             0,
             'liam@rehearsalbox.test',
-            (new NativePasswordHasher())->hash('password123'),
+            (new FastPasswordHasher())->hash('password123'),
             'Liam',
             UserRole::Musicien,
             true,
@@ -146,7 +146,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             0,
             'mona@rehearsalbox.test',
-            (new NativePasswordHasher())->hash('password123'),
+            (new FastPasswordHasher())->hash('password123'),
             'Mona',
             UserRole::Musicien,
             true,
@@ -170,7 +170,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             0,
             'noe@rehearsalbox.test',
-            (new NativePasswordHasher())->hash('password123'),
+            (new FastPasswordHasher())->hash('password123'),
             'Noe',
             UserRole::Musicien,
             true,

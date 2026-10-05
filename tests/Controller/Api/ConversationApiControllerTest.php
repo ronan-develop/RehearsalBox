@@ -21,7 +21,7 @@ use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\ConversationService;
 use App\Tests\RepositoryTestCase;
@@ -47,7 +47,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->clock = new MockClock('2026-10-04 12:00:00');
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
-        $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
+        $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
         $guests = new \App\Repository\MysqlConversationGuestRepository($this->pdo);
         $access = new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, $guests);
         $service = new ConversationService(
@@ -75,7 +75,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
 
     private function user(string $name): User
     {
-        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', (new NativePasswordHasher())->hash(self::PASSWORD), $name, UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', (new FastPasswordHasher())->hash(self::PASSWORD), $name, UserRole::Musicien, true, 0, null));
     }
 
     private function group(string $name, User ...$members): Group

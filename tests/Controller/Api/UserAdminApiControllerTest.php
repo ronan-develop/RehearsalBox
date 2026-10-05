@@ -14,7 +14,7 @@ use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\AuthService;
 use App\Service\UserAdminService;
@@ -35,7 +35,7 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
         $this->groups = new MysqlGroupRepository($this->pdo);
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         $this->auth = new AuthService($this->users, $hasher, new InMemorySession(), $this->groups);
         $this->controller = new UserAdminApiController(
             new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy())),
@@ -165,7 +165,7 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         ]));
 
         $created = $this->users->findByEmail('x@rehearsalbox.test');
-        self::assertFalse((new NativePasswordHasher())->verify($sent, $created->passwordHash()), "l'admin ne fixe aucun mot de passe");
+        self::assertFalse((new FastPasswordHasher())->verify($sent, $created->passwordHash()), "l'admin ne fixe aucun mot de passe");
     }
 
     #[Test]
