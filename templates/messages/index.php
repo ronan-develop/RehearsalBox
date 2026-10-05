@@ -5,8 +5,11 @@
  *
  * @var string   $csrfToken
  * @var int|null $activeId conversation ouverte (route /messages/{id}), null sur /messages
+ * @var array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null $draft
+ *            brouillon de la page /messages/new/{groupId} (aucune conversation n'existe avant le premier message)
  */
 $activeId = $activeId ?? null;
+$draft = $draft ?? null;
 ?>
 <!doctype html>
 <html lang="fr">
@@ -19,41 +22,21 @@ $activeId = $activeId ?? null;
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body class="rb-chat-body">
-    <div class="rb-chat" data-chat data-active-id="<?= e($activeId === null ? '' : (string) $activeId) ?>" data-view="<?= $activeId === null ? 'list' : 'thread' ?>">
-        <aside class="rb-chat-sidebar" aria-label="Conversations">
-            <header class="rb-chat-sidebar-head">
-                <a href="/" class="rb-chat-icon-link" data-chat-home aria-label="Retour aux disponibilités">←</a>
-                <button type="button" class="rb-chat-icon-link" data-chat-leave-archives aria-label="Retour aux conversations" hidden>←</button>
-                <h1 data-chat-list-title>Messages</h1>
-            </header>
-            <button type="button" class="rb-chat-archives" data-chat-archives>
-                Archivées <span class="rb-badge rb-badge-warn" data-chat-archives-unread hidden></span>
-            </button>
-            <ul class="rb-chat-list" data-chat-list></ul>
-            <p class="rb-chat-empty" data-chat-empty hidden>Aucune conversation. Écrivez à un groupe depuis le planning ou depuis sa page.</p>
-        </aside>
+    <div class="rb-chat" data-chat data-active-id="<?= e($activeId === null ? '' : (string) $activeId) ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $activeId === null && $draft === null ? 'list' : 'thread' ?>">
+        <?php require __DIR__ . '/_sidebar.php'; ?>
 
         <section class="rb-chat-main" aria-label="Conversation">
-            <div class="rb-chat-placeholder" data-chat-placeholder<?= $activeId === null ? '' : ' hidden' ?>>
+            <div class="rb-chat-placeholder" data-chat-placeholder<?= $activeId === null && $draft === null ? '' : ' hidden' ?>>
                 <p>Choisissez une conversation.</p>
             </div>
-            <div class="rb-chat-thread" data-chat-thread<?= $activeId === null ? ' hidden' : '' ?>>
-                <header class="rb-chat-thread-head">
-                    <a href="/messages" class="rb-chat-icon-link rb-chat-back" data-chat-back aria-label="Retour aux conversations">←</a>
-                    <div class="rb-chat-thread-titles">
-                        <button type="button" class="rb-chat-title" data-chat-title title="Modifier le titre"></button>
-                        <form data-chat-rename-form hidden>
-                            <input type="text" name="title" class="rb-input" maxlength="150" placeholder="Titre de la conversation" aria-label="Titre de la conversation">
-                        </form>
-                        <p class="rb-chat-label" data-chat-label></p>
-                    </div>
-                </header>
+            <div class="rb-chat-thread" data-chat-thread<?= $activeId === null && $draft === null ? ' hidden' : '' ?>>
+                <?php require __DIR__ . '/_thread-header.php'; ?>
                 <ol class="rb-chat-messages" data-chat-messages aria-live="polite"></ol>
+                <?php if ($draft !== null && $draft['blocked']): ?>
+                    <p class="rb-chat-notice" role="alert">Vous devez appartenir à un autre groupe pour écrire à celui-ci.</p>
+                <?php endif; ?>
                 <p class="rb-chat-status" data-chat-status aria-live="polite"></p>
-                <form class="rb-chat-form" data-chat-form>
-                    <textarea name="message" rows="1" maxlength="5000" class="rb-input" placeholder="Votre message" aria-label="Votre message" required></textarea>
-                    <button type="submit" class="rb-btn rb-btn-primary rb-chat-send">Envoyer</button>
-                </form>
+                <?php $composerHidden = $draft !== null && $draft['blocked']; require __DIR__ . '/_composer.php'; ?>
             </div>
         </section>
     </div>

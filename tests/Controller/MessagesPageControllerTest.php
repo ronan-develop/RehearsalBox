@@ -48,6 +48,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
             new CsrfTokenManager($session),
             new AuthGuard($this->auth),
             $this->service,
+            $this->groups,
         );
     }
 
@@ -143,6 +144,107 @@ final class MessagesPageControllerTest extends RepositoryTestCase
             }
         }
 
+        self::assertCount(1, array_unique($messages));
+    }
+
+    // --- Démarrer une conversation : page vide à la Signal (#181) -----------------------------------------------
+
+    #[Test]
+    public function testComposeRequiresALogin(): void
+    {
+        $this->expectException(UnauthenticatedException::class);
+        $this->controller->compose($this->request(), '1');
+    }
+
+    #[Test]
+    public function testComposeRendersAnEmptyThreadAddressedToTheTargetGroup(): void
+    {
+        $alice = $this->user('Alice');
+        $mine = $this->group('Alpha', $alice);
+        $target = $this->group('Beta Rockers');
+        $this->loginAs($alice);
+
+        $response = $this->controller->compose($this->request(), (string) $target->id());
+        $body = $response->body();
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('data-draft-target-id="' . $target->id() . '"', $body);
+        self::assertStringContainsString('Nouvelle conversation avec Beta Rockers', $body);
+        self::assertStringContainsString('data-chat-form', $body);
+        self::assertStringContainsString('data-view="thread"', $body);
+        self::assertStringNotContainsString('data-draft-blocked', $body);
+        self::assertStringContainsString('<option value="' . $mine->id() . '">Alpha</option>', $body);
+        self::assertSame([], $this->service->listFor($alice->id(), 'active'), 'ouvrir la page ne crée rien : la conversation naît au premier message');
+    }
+
+    #[Test]
+    public function testComposeOffersTheSenderChoiceOnlyWhenSeveralGroupsCanWrite(): void
+    {
+        $alice = $this->user('Alice');
+        $this->group('Alpha', $alice);
+        $this->group('Gamma', $alice);
+        $target = $this->group('Beta');
+        $this->loginAs($alice);
+        $several = $this->controller->compose($this->request(), (string) $target->id())->body();
+
+        $bob = $this->user('Bob');
+        $this->group('Delta', $bob);
+        $this->loginAs($bob);
+        $single = $this->controller->compose($this->request(), (string) $target->id())->body();
+
+        self::assertDoesNotMatchRegularExpression('/<select[^>]*data-chat-sender[^>]*hidden/', $several, 'plusieurs groupes : la liste est visible');
+        self::assertMatchesRegularExpression('/<select[^>]*data-chat-sender[^>]*hidden/', $single, 'un seul groupe : présélectionné, liste masquée');
+    }
+
+    #[Test]
+    public function testComposeNeverProposesTheTargetGroupAsSender(): void
+    {
+        $alice = $this->user('Alice');
+        $this->group('Alpha', $alice);
+        $target = $this->group('Beta', $alice);
+        $this->loginAs($alice);
+
+        $body = $this->controller->compose($this->request(), (string) $target->id())->body();
+
+        self::assertStringContainsString('>Alpha</option>', $body);
+        self::assertStringNotContainsString('>Beta</option>', $body, 'un groupe ne s\'écrit pas à lui-même');
+    }
+
+    #[Test]
+    public function testComposeExplainsWhenThePersonHasNoGroupToWriteFrom(): void
+    {
+        $nobody = $this->user('Zoe');
+        $target = $this->group('Beta');
+        $this->loginAs($nobody);
+
+        $body = $this->controller->compose($this->request(), (string) $target->id())->body();
+
+        self::assertStringContainsString('data-draft-blocked', $body);
+        self::assertStringContainsString('Vous devez appartenir à un autre groupe', $body);
+        self::assertMatchesRegularExpression('/<form[^>]*data-chat-form[^>]*hidden/', $body, 'pas de zone de saisie');
+    }
+
+    #[Test]
+    public function testComposeEscapesTheGroupNameAndRefusesUnknownOrMalformedTargets(): void
+    {
+        $alice = $this->user('Alice');
+        $this->group('Alpha', $alice);
+        $target = $this->group('<script>alert(1)</script>');
+        $this->loginAs($alice);
+
+        $body = $this->controller->compose($this->request(), (string) $target->id())->body();
+        self::assertStringNotContainsString('<script>alert(1)</script>', $body);
+        self::assertStringContainsString('&lt;script&gt;', $body);
+
+        $messages = [];
+        foreach (['9999', 'abc', '0', '-1', '1.5', '1 OR 1=1'] as $id) {
+            try {
+                $this->controller->compose($this->request(), $id);
+                self::fail("refus attendu pour {$id}");
+            } catch (AccessDeniedException $e) {
+                $messages[] = $e->getMessage();
+            }
+        }
         self::assertCount(1, array_unique($messages));
     }
 }

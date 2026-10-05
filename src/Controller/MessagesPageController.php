@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Http\Request;
 use App\Http\Response;
+use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
@@ -25,6 +26,7 @@ final class MessagesPageController
         private readonly CsrfTokenManager $csrfTokenManager,
         private readonly AuthGuard $authGuard,
         private readonly ConversationService $conversationService,
+        private readonly GroupRepositoryInterface $groupRepository,
     ) {
     }
 
@@ -44,7 +46,36 @@ final class MessagesPageController
         return $this->render($conversation->id());
     }
 
-    private function render(?int $activeId): Response
+    /**
+     * Page de démarrage (#181) : un fil vide adressé au groupe visé. Rien n'est créé ici : la conversation naît à
+     * l'envoi du premier message (POST /api/conversations, qui revérifie tout). Groupe inconnu ou identifiant mal formé :
+     * même refus qu'ailleurs.
+     */
+    public function compose(Request $request, string $groupId): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $targetId = StrictId::from($groupId) ?? throw new AccessDeniedException('Accès refusé.');
+        $target = $this->groupRepository->findById($targetId) ?? throw new AccessDeniedException('Accès refusé.');
+
+        // Un groupe ne s'écrit pas à lui-même : le groupe visé n'est jamais proposé comme émetteur.
+        $senders = [];
+        foreach ($this->groupRepository->findByMember($user->id()) as $group) {
+            if ($group->id() !== $target->id()) {
+                $senders[] = ['id' => $group->id(), 'name' => $group->name()];
+            }
+        }
+
+        return $this->render(null, [
+            'targetId' => $target->id(),
+            'targetName' => $target->name(),
+            'senders' => $senders,
+            'blocked' => $senders === [],
+        ]);
+    }
+
+    /** @param array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null $draft */
+    private function render(?int $activeId, ?array $draft = null): Response
     {
         $user = $this->authGuard->requireLogin();
 
@@ -53,6 +84,7 @@ final class MessagesPageController
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'currentUserRole' => $user->role(),
                 'activeId' => $activeId,
+                'draft' => $draft,
             ]),
             headers: ['Cache-Control' => 'private, no-store'],
         );
