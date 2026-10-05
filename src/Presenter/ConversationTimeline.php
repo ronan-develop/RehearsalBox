@@ -18,7 +18,7 @@ use App\Support\SafeColor;
  *  - ['type' => 'day', 'label']
  *  - ['type' => 'unread']
  *  - ['type' => 'system', 'text']
- *  - ['type' => 'message', 'id', 'mine', 'startsRun', 'author', 'initials', 'groupName', 'color', 'body', 'segments', 'mentionsMe', 'time', 'edited', 'editable']
+ *  - ['type' => 'message', 'id', 'mine', 'startsRun', 'author', 'initials', 'groupName', 'color', 'body', 'segments', 'mentionsMe', 'time', 'edited', 'editable', 'quote']
  */
 final class ConversationTimeline
 {
@@ -84,6 +84,11 @@ final class ConversationTimeline
                 'time' => $this->formatter->time($message->createdAt()),
                 'edited' => $message->editedAt() === null ? null : $this->formatter->time($message->editedAt()),
                 'editable' => $mine && $editableSince !== null && $message->createdAt() >= $editableSince,
+                'quote' => $message->quote() === null ? null : [
+                    'id' => $message->quote()->messageId(),
+                    'author' => $message->quote()->authorName(),
+                    'excerpt' => $message->quote()->excerpt(),
+                ],
             ];
             $previousAuthor = $message->authorName();
         }

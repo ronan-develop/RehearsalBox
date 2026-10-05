@@ -4,11 +4,12 @@
  * (conversations, archives, retour) n'en fait pas partie : ce sont de vrais liens.
  */
 export const EVT = Object.freeze({
-  SUBMIT: 'composer:submit', // { text, mentions } : l'utilisateur envoie son message (mentions = identifiants des personnes taguées)
+  SUBMIT: 'composer:submit', // { text, mentions, replyTo } : l'utilisateur envoie son message (mentions = identifiants des personnes taguées, replyTo = message cité ou null)
   TYPING: 'composer:typing', // {} : il est en train d'écrire (déjà limité en débit)
   RENAME: 'header:rename', // { title } : nouveau titre ('' pour le retirer)
   EDIT_REQUEST: 'message:edit-request', // { id, text } : la personne veut corriger son message (appui long, bouton)
   EDIT: 'composer:edit', // { id, text, mentions } : le texte corrigé est validé
+  QUOTE_REQUEST: 'message:quote-request', // { id, author, text } : la personne veut citer ce message (glissement vers la droite, bouton)
 });
 
 export function emit(target, name, detail = {}) {

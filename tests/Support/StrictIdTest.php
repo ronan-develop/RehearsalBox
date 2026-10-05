@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
+use App\Security\Exception\AccessDeniedException;
 use App\Support\StrictId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -49,5 +50,20 @@ final class StrictIdTest extends TestCase
     public function testRefusesAnythingElse(mixed $value): void
     {
         self::assertNull(StrictId::from($value));
+    }
+
+    #[Test]
+    public function testOrDeniedReturnsTheIdentifierOrRefusesLikeAForbiddenAccess(): void
+    {
+        self::assertSame(12, StrictId::orDenied('12'));
+
+        foreach (['12abc', '0', '-1', '', null, [1], 1.5] as $invalid) {
+            try {
+                StrictId::orDenied($invalid);
+                self::fail('un identifiant invalide doit être refusé');
+            } catch (AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage());
+            }
+        }
     }
 }

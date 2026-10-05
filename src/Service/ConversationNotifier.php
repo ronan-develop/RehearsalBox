@@ -11,6 +11,7 @@ use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Support\HeaderText;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use App\Service\Contract\NewConversationNotifierInterface;
 
 /**
  * E-mails de la messagerie (#180). Le premier message prévient le groupe visé UNE SEULE FOIS, à l'adresse de contact de sa
@@ -18,7 +19,7 @@ use Symfony\Component\Mime\Email;
  * le titre ni le texte du message (saisis par un utilisateur, bientôt chiffrés) : seulement qui écrit, au nom de quel groupe,
  * et un lien vers la conversation (connexion requise). Un échec d'envoi ne remonte jamais : le message est déjà envoyé.
  */
-final class ConversationNotifier
+final class ConversationNotifier implements NewConversationNotifierInterface
 {
     public function __construct(
         private readonly MailerInterface $mailer,

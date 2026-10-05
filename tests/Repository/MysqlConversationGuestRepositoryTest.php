@@ -10,6 +10,8 @@ use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
@@ -21,6 +23,8 @@ final class MysqlConversationGuestRepositoryTest extends RepositoryTestCase
     private \DateTimeImmutable $now;
     private \DateTimeImmutable $cutoff;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationGuestRepository $guests;
     /** @var array<string, User> */
     private array $people = [];
@@ -33,6 +37,8 @@ final class MysqlConversationGuestRepositoryTest extends RepositoryTestCase
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->cutoff = $this->now->modify('-30 days');
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
@@ -46,9 +52,9 @@ final class MysqlConversationGuestRepositoryTest extends RepositoryTestCase
         $groups->addMember($beta, $this->people['bob']->id());
         $groups->addMember($carnage, $this->people['denis']->id());
         $this->conversationId = $this->conversations->create($alpha, $beta, 'Concert', $this->now, $this->people['alice']->id())->id();
-        $this->conversations->addMessage($this->conversationId, $this->people['alice']->id(), 'Salut', $this->now);
+        $this->messages->addMessage($this->conversationId, $this->people['alice']->id(), 'Salut', $this->now);
         $this->otherConversationId = $this->conversations->create($alpha, $beta, 'Autre', $this->now, $this->people['alice']->id())->id();
-        $this->conversations->addMessage($this->otherConversationId, $this->people['alice']->id(), 'Hello', $this->now);
+        $this->messages->addMessage($this->otherConversationId, $this->people['alice']->id(), 'Hello', $this->now);
     }
 
     private function id(string $name): int
@@ -100,12 +106,12 @@ final class MysqlConversationGuestRepositoryTest extends RepositoryTestCase
     {
         self::assertSame(2, $this->conversations->participantCount($this->conversationId));
         $this->guests->add($this->conversationId, $this->id('denis'), $this->id('alice'), $this->now);
-        $this->conversations->markRead($this->conversationId, $this->id('denis'), $this->now);
-        $this->conversations->setTyping($this->conversationId, $this->id('denis'), $this->now);
+        $this->presence->markRead($this->conversationId, $this->id('denis'), $this->now);
+        $this->presence->setTyping($this->conversationId, $this->id('denis'), $this->now);
 
         self::assertSame(3, $this->conversations->participantCount($this->conversationId));
-        self::assertSame(['Denis'], $this->conversations->readersOf($this->conversationId, $this->now->modify('-1 minute'), $this->id('alice')));
-        self::assertSame(['Denis'], $this->conversations->typingNames($this->conversationId, $this->id('alice'), $this->now->modify('-5 seconds')));
+        self::assertSame(['Denis'], $this->presence->readersOf($this->conversationId, $this->now->modify('-1 minute'), $this->id('alice')));
+        self::assertSame(['Denis'], $this->presence->typingNames($this->conversationId, $this->id('alice'), $this->now->modify('-5 seconds')));
     }
 
     #[Test]

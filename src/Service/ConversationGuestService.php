@@ -6,7 +6,7 @@ namespace App\Service;
 
 use App\Database\TransactionRunner;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
-use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use Symfony\Component\Clock\ClockInterface;
@@ -21,7 +21,7 @@ final class ConversationGuestService
     public function __construct(
         private readonly ConversationAccess $access,
         private readonly ConversationGuestRepositoryInterface $guests,
-        private readonly ConversationRepositoryInterface $conversations,
+        private readonly ConversationMessageRepositoryInterface $messages,
         private readonly UserRepositoryInterface $users,
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
@@ -42,7 +42,7 @@ final class ConversationGuestService
         $now = $this->clock->now();
         $this->transactions->run(function () use ($conversationId, $guestId, $userId, $line, $now): void {
             $this->guests->remove($conversationId, $guestId);
-            $this->conversations->addMessage($conversationId, $userId, $line, $now, true);
+            $this->messages->addMessage($conversationId, $userId, $line, $now, true);
         });
     }
 }

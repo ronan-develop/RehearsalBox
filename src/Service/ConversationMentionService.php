@@ -9,18 +9,19 @@ use App\Entity\ConversationMessage;
 use App\Entity\MentionPlan;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
-use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;
+use App\Service\Contract\ConversationMentionsInterface;
 
 /**
  * Mentions d'un message (#178) : valide les personnes désignées par IDENTIFIANT (jamais par le texte), sépare les
  * participants des extérieurs et invite ces derniers. Une personne n'est prise en compte que si « @Nom » figure dans le
  * texte. Seuls les membres de l'un des deux groupes peuvent faire entrer quelqu'un ; un invité mentionne les participants.
  */
-final class ConversationMentionService
+final class ConversationMentionService implements ConversationMentionsInterface
 {
     public const MAX_MENTIONS = 10;
 
@@ -29,7 +30,7 @@ final class ConversationMentionService
         private readonly GroupRepositoryInterface $groups,
         private readonly ConversationGuestRepositoryInterface $guests,
         private readonly ConversationMentionRepositoryInterface $mentions,
-        private readonly ConversationRepositoryInterface $conversations,
+        private readonly ConversationMessageRepositoryInterface $messages,
         private readonly ?MentionNotifier $notifier = null,
     ) {
     }
@@ -118,7 +119,7 @@ final class ConversationMentionService
     {
         foreach ($plan->outsiders() as $userId => $name) {
             if ($this->guests->add($conversationId, $userId, $actorId, $now)) {
-                $this->conversations->addMessage($conversationId, $actorId, "a ajouté {$name} à la conversation", $now, true);
+                $this->messages->addMessage($conversationId, $actorId, "a ajouté {$name} à la conversation", $now, true);
             }
         }
     }

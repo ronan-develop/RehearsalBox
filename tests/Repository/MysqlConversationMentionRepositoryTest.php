@@ -9,6 +9,9 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
@@ -19,6 +22,8 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
     private \DateTimeImmutable $now;
     private MysqlConversationMentionRepository $mentions;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     /** @var array<string, User> */
     private array $people = [];
     private int $conversationId;
@@ -29,6 +34,8 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
         foreach (['alice', 'bob', 'denis'] as $name) {
@@ -43,7 +50,7 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
 
     private function say(string $text): int
     {
-        return $this->conversations->addMessage($this->conversationId, $this->people['alice']->id(), $text, $this->now)->id();
+        return $this->messages->addMessage($this->conversationId, $this->people['alice']->id(), $text, $this->now)->id();
     }
 
     #[Test]
@@ -86,7 +93,7 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         $id = $this->say('@Bob');
         $this->mentions->record($id, [$this->people['bob']->id() => '@Bob']);
 
-        $this->conversations->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM message_mentions')->fetchColumn());
     }
@@ -102,7 +109,7 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         self::assertTrue($mentioned('bob'), 'Bob est tagué et n\'a pas lu');
         self::assertFalse($mentioned('alice'), 'Alice a écrit le message, elle n\'est pas taguée');
 
-        $this->conversations->markRead($this->conversationId, $this->people['bob']->id(), $this->now->modify('+1 minute'));
+        $this->presence->markRead($this->conversationId, $this->people['bob']->id(), $this->now->modify('+1 minute'));
 
         self::assertFalse($mentioned('bob'), 'lu : le marqueur disparaît');
     }

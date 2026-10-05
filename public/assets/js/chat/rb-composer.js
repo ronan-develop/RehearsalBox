@@ -1,56 +1,68 @@
 /**
  * <rb-composer> : zone de saisie (champ + envoi). Entrée envoie, Maj+Entrée = retour à la ligne, le champ grandit avec le
- * texte. Émet composer:submit { text, mentions } et composer:typing (limité à un signal toutes les 3 s). Ne connaît ni
- * l'API ni la conversation : le même composant sert à un fil existant et à un brouillon.
+ * texte. Émet composer:submit { text, mentions, replyTo } et composer:typing (limité à un signal toutes les 3 s). Ne connaît
+ * ni l'API ni la conversation : le même composant sert à un fil existant et à un brouillon.
  *
- * Mentions (#178) : taper « @ » ouvre une liste de membres (listbox accessible, clavier et toucher). La fonction de
- * recherche est fournie par <rb-chat> (`suggest`) ; sans elle, aucune suggestion. Les noms sont insérés avec textContent,
- * jamais en HTML.
+ * Il orchestre trois pièces, chacune dans son module : les suggestions de mentions (mention-picker.js, #178), le brouillon
+ * conservé (composer-drafts.js, #187) et l'aperçu de la citation (composer-quote.js, #214). Il garde la saisie, l'envoi et le
+ * mode correction (#200).
  */
 import { EVT, emit } from './events.js';
 import { shouldSendTyping } from './model.js';
-import { activeQuery, applyMention, mentionedIds, pendingGuests } from './mentions.js';
-
-const SUGGEST_DELAY_MS = 200;
-const DRAFT_SAVE_DELAY_MS = 300;
-const MIN_QUERY = 2;
+import { mentionedIds, pendingGuests } from './mentions.js';
+import { MentionPicker } from './mention-picker.js';
+import { ComposerDrafts } from './composer-drafts.js';
+import { ComposerQuote } from './composer-quote.js';
 
 export class RbComposer extends HTMLElement {
   #lastTypingSent = null;
   #picks = new Map();
-  #items = [];
-  #active = -1;
-  #timer = 0;
-  #seq = 0;
+  #editing = null; // identifiant du message en cours de correction (#200), null sinon
+  #stashed = ''; // texte de la saisie en cours, mis de côté pendant la correction
+  #picker = null;
+  #drafts = null;
+  #quote = null;
 
   /** Fournie par <rb-chat> : (requête) => Promise<[{ id, name, groups, participant }]>. */
   suggest = null;
 
-  #drafts = null;
-  #draftKey = '';
-  #draftTimer = 0;
-  #editing = null; // identifiant du message en cours de correction (#200), null sinon
-  #stashed = ''; // texte de la saisie en cours, mis de côté pendant la correction
-
   connectedCallback() {
     this.form = this.querySelector('form');
     this.field = this.form.elements.message;
-    this.list = this.querySelector('[data-mention-list]');
     this.notice = this.querySelector('[data-mention-notice]');
     this.banner = this.querySelector('[data-composer-edit]');
     this.querySelector('[data-composer-edit-cancel]')?.addEventListener('click', () => this.cancelEdit());
+
+    this.#drafts = new ComposerDrafts({ field: this.field, isSuspended: () => this.#editing !== null });
+    this.#quote = new ComposerQuote(this.querySelector('[data-composer-quote]'), () => this.cancelQuote());
+    this.#picker = new MentionPicker({
+      field: this.field,
+      list: this.querySelector('[data-mention-list]'),
+      suggest: () => this.suggest,
+      onPick: (member) => {
+        this.#picks.set(member.id, { name: member.name, participant: member.participant });
+        this.#autosize();
+        this.#refreshNotice();
+      },
+    });
 
     this.form.addEventListener('submit', (event) => {
       event.preventDefault();
       this.#send();
     });
     this.field.addEventListener('keydown', (event) => {
-      if (this.#handleListKey(event)) {
+      if (this.#picker.handleKey(event)) {
         return;
       }
       if (event.key === 'Escape' && this.#editing !== null) {
         event.preventDefault();
         this.cancelEdit();
+
+        return;
+      }
+      if (event.key === 'Escape' && this.#quote.active) {
+        event.preventDefault();
+        this.cancelQuote();
 
         return;
       }
@@ -66,21 +78,13 @@ export class RbComposer extends HTMLElement {
         emit(this, EVT.TYPING);
       }
       this.#refreshNotice();
-      this.#onMentionInput();
-      this.#scheduleDraftSave();
+      this.#picker.onInput();
+      this.#drafts.schedule();
     });
-    this.field.addEventListener('blur', () => this.#closeList());
+    this.field.addEventListener('blur', () => this.#picker.close());
     // On quitte la page ou l'onglet passe en arrière-plan : le brouillon est écrit tout de suite, sans attendre le délai.
-    window.addEventListener('pagehide', () => this.#flushDraft());
-    document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && this.#flushDraft());
-    // pointerdown + preventDefault : le champ garde le focus, l'option est choisie au toucher comme à la souris.
-    this.list?.addEventListener('pointerdown', (event) => {
-      const option = event.target.closest('[data-index]');
-      if (option) {
-        event.preventDefault();
-        this.#select(Number(option.dataset.index));
-      }
-    });
+    window.addEventListener('pagehide', () => this.#drafts.flush());
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && this.#drafts.flush());
   }
 
   /**
@@ -88,28 +92,40 @@ export class RbComposer extends HTMLElement {
    * `drafts` : createDraftStore(...) ; `key` : une clé par conversation (ou par brouillon de page de démarrage).
    */
   configureDrafts(drafts, key) {
-    this.#drafts = drafts;
-    this.#draftKey = key;
-    drafts.clearExpired();
-    const saved = drafts.load(key);
-    if (saved !== '' && this.field.value.trim() === '') {
-      this.field.value = saved;
-      this.#autosize();
+    this.#drafts.configure(drafts, key, () => this.#autosize());
+  }
+
+  /**
+   * Citer un message (#214) : un aperçu (auteur et début du texte) apparaît au-dessus de la saisie, avec une croix pour le
+   * retirer. Le brouillon n'en garde pas trace. Ignoré pendant la correction d'un message (on ne répond pas à ce moment-là).
+   */
+  startQuote({ id, author, text }) {
+    if (this.#editing !== null) {
+      return;
     }
+    this.#quote.show({ id, author, text });
+    this.field.focus();
+  }
+
+  cancelQuote() {
+    this.#quote.clear();
+    this.field.focus({ preventScroll: true });
   }
 
   /**
    * Correction d'un message (#200) : la saisie reçoit son texte, un bandeau le rappelle et permet d'annuler. La saisie en
    * cours et son brouillon sont mis de côté et reviennent à la fin ; le brouillon n'est pas écrit pendant la correction.
+   * Une citation en attente est retirée : corriger n'est pas répondre.
    */
   startEdit({ id, text }) {
     if (this.#editing === null) {
       this.#stashed = this.field.value;
     }
+    this.#quote.clear();
     this.#editing = String(id);
     this.field.value = text;
     this.#autosize();
-    this.#closeList();
+    this.#picker.close();
     this.#refreshNotice();
     if (this.banner) {
       this.banner.hidden = false;
@@ -125,7 +141,7 @@ export class RbComposer extends HTMLElement {
     this.#stashed = '';
     this.#autosize();
     this.#refreshNotice();
-    this.#flushDraft(); // la saisie d'avant, mise de côté, redevient un brouillon conservé
+    this.#drafts.flush(); // la saisie d'avant, mise de côté, redevient un brouillon conservé
     if (this.banner) {
       this.banner.hidden = true;
     }
@@ -138,11 +154,14 @@ export class RbComposer extends HTMLElement {
     }
   }
 
-  /** Remet le texte (envoi échoué) pour que rien ne soit perdu. */
-  restore(text) {
+  /** Remet le texte (et la citation) quand l'envoi a échoué, pour que rien ne soit perdu. */
+  restore(text, quote = null) {
     this.field.value = text;
+    if (quote !== null) {
+      this.#quote.show(quote);
+    }
     this.#autosize();
-    this.#flushDraft();
+    this.#drafts.flush();
     this.field.focus();
   }
 
@@ -162,131 +181,16 @@ export class RbComposer extends HTMLElement {
 
       return;
     }
+    const quote = this.#quote.snapshot;
     this.field.value = '';
+    this.#quote.clear();
     this.#autosize();
-    this.#closeList();
+    this.#picker.close();
     this.#refreshNotice();
-    this.#flushDraft(); // champ vidé : le brouillon est effacé (réécrit par restore() si l'envoi échoue)
-    emit(this, EVT.SUBMIT, { text, mentions });
+    this.#drafts.flush(); // champ vidé : le brouillon est effacé (réécrit par restore() si l'envoi échoue)
+    emit(this, EVT.SUBMIT, { text, mentions, replyTo: quote === null ? null : Number(quote.id), quote });
     // Le champ garde le focus après l'envoi (bouton ou touche) : sur mobile le clavier reste ouvert pour enchaîner.
     this.field.focus({ preventScroll: true });
-  }
-
-  #scheduleDraftSave() {
-    if (this.#editing !== null) {
-      return;
-    }
-    window.clearTimeout(this.#draftTimer);
-    this.#draftTimer = window.setTimeout(() => this.#flushDraft(), DRAFT_SAVE_DELAY_MS);
-  }
-
-  #flushDraft() {
-    if (this.#editing !== null) {
-      return; // le texte du champ est celui d'un message déjà envoyé : jamais enregistré comme brouillon
-    }
-    window.clearTimeout(this.#draftTimer);
-    this.#drafts?.save(this.#draftKey, this.field?.value ?? '');
-  }
-
-  #onMentionInput() {
-    window.clearTimeout(this.#timer);
-    const typed = activeQuery(this.field.value, this.field.selectionStart ?? this.field.value.length);
-    if (typed === null || typed.query.trim().length < MIN_QUERY || typeof this.suggest !== 'function') {
-      this.#closeList();
-      return;
-    }
-    this.#timer = window.setTimeout(async () => {
-      const seq = ++this.#seq;
-      try {
-        const members = await this.suggest(typed.query.trim());
-        if (seq === this.#seq) {
-          this.#openList(members);
-        }
-      } catch {
-        this.#closeList();
-      }
-    }, SUGGEST_DELAY_MS);
-  }
-
-  #openList(members) {
-    this.#items = members;
-    this.#active = members.length > 0 ? 0 : -1;
-    this.list.replaceChildren(...members.map((member, index) => {
-      const item = document.createElement('li');
-      item.role = 'option';
-      item.id = `rb-mention-${index}`;
-      item.dataset.index = String(index);
-      item.className = 'rb-chat-mention-option';
-      const name = document.createElement('span');
-      name.className = 'rb-chat-mention-name';
-      name.textContent = member.name;
-      const meta = document.createElement('span');
-      meta.className = 'rb-chat-mention-meta';
-      meta.textContent = [member.groups, member.participant ? '' : 'sera ajouté'].filter(Boolean).join(' · ');
-      item.append(name, meta);
-      return item;
-    }));
-    this.list.hidden = members.length === 0;
-    this.#paintActive();
-  }
-
-  #closeList() {
-    window.clearTimeout(this.#timer);
-    this.#seq += 1;
-    this.#items = [];
-    this.#active = -1;
-    if (this.list) {
-      this.list.hidden = true;
-      this.list.replaceChildren();
-    }
-    this.field?.removeAttribute('aria-activedescendant');
-  }
-
-  #paintActive() {
-    [...this.list.children].forEach((item, index) => item.setAttribute('aria-selected', String(index === this.#active)));
-    if (this.#active >= 0) {
-      this.field.setAttribute('aria-activedescendant', `rb-mention-${this.#active}`);
-    } else {
-      this.field.removeAttribute('aria-activedescendant');
-    }
-  }
-
-  /** Clavier de la liste : flèches, Entrée ou Tab pour choisir, Échap pour fermer. Renvoie true si la touche est prise. */
-  #handleListKey(event) {
-    if (!this.list || this.list.hidden || this.#items.length === 0) {
-      return false;
-    }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      const step = event.key === 'ArrowDown' ? 1 : -1;
-      this.#active = (this.#active + step + this.#items.length) % this.#items.length;
-      this.#paintActive();
-    } else if (event.key === 'Enter' || event.key === 'Tab') {
-      this.#select(this.#active);
-    } else if (event.key === 'Escape') {
-      this.#closeList();
-    } else {
-      return false;
-    }
-    event.preventDefault();
-
-    return true;
-  }
-
-  #select(index) {
-    const member = this.#items[index];
-    const typed = activeQuery(this.field.value, this.field.selectionStart ?? this.field.value.length);
-    if (!member || typed === null) {
-      this.#closeList();
-      return;
-    }
-    const { text, caret } = applyMention(this.field.value, typed.start, this.field.selectionStart, member.name);
-    this.field.value = text;
-    this.field.setSelectionRange(caret, caret);
-    this.#picks.set(member.id, { name: member.name, participant: member.participant });
-    this.#closeList();
-    this.#autosize();
-    this.#refreshNotice();
-    this.field.focus();
   }
 
   /** Prévient avant l'envoi : une personne extérieure à la conversation y sera ajoutée. */

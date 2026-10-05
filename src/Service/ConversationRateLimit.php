@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Service\Exception\ConversationRateLimitException;
 
 /**
@@ -15,7 +15,7 @@ final class ConversationRateLimit
 {
     public const MAX_PER_HOUR = 30;
 
-    public function __construct(private readonly ConversationRepositoryInterface $conversations)
+    public function __construct(private readonly ConversationMessageRepositoryInterface $messages)
     {
     }
 
@@ -23,7 +23,7 @@ final class ConversationRateLimit
     public function assertWithin(int $userId, \DateTimeImmutable $now): void
     {
         $since = $now->modify('-1 hour');
-        if ($this->conversations->countMessagesBySince($userId, $since) + $this->conversations->countEditsBySince($userId, $since) >= self::MAX_PER_HOUR) {
+        if ($this->messages->countMessagesBySince($userId, $since) + $this->messages->countEditsBySince($userId, $since) >= self::MAX_PER_HOUR) {
             throw new ConversationRateLimitException('Trop de messages envoyés : réessayez dans un moment.');
         }
     }

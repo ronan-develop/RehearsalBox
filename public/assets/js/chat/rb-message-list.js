@@ -5,7 +5,12 @@
  */
 import { EVT, emit } from './events.js';
 import { isNearBottom } from './model.js';
+import { quoteFromRow } from './quote.js';
 import { wireSwipeEdit } from './swipe-edit.js';
+import { wireSwipeQuote } from './swipe-quote.js';
+
+const FLASH_CLASS = 'rb-chat-message--flash';
+const FLASH_MS = 1600;
 
 export class RbMessageList extends HTMLElement {
   connectedCallback() {
@@ -18,6 +23,7 @@ export class RbMessageList extends HTMLElement {
     });
     this.addEventListener('scroll', () => this.nearBottom() && this.#hideHint(), { passive: true });
     this.#wireEditing();
+    this.#wireQuoting();
   }
 
   /**
@@ -40,6 +46,47 @@ export class RbMessageList extends HTMLElement {
     if (row?.dataset.messageId && typeof text === 'string') {
       emit(this, EVT.EDIT_REQUEST, { id: row.dataset.messageId, text });
     }
+  }
+
+  /**
+   * Citer un message (#214) : un bouton « Répondre » (survol ou clavier sur ordinateur) et, sur écran tactile, un glissement
+   * vers la droite sur n'importe quelle bulle. Le composant ne fait que demander (message:quote-request). Un clic sur la
+   * citation d'une bulle amène le message cité à l'écran ; sans JavaScript, le lien (ancre) fait le même trajet.
+   */
+  #wireQuoting() {
+    wireSwipeQuote(this, { onQuote: (row) => this.#requestQuote(row) });
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-quote-message]');
+      if (button !== null) {
+        this.#requestQuote(button.closest('.rb-chat-message'));
+
+        return;
+      }
+      const link = event.target.closest('.rb-chat-quote');
+      if (link !== null) {
+        const target = this.querySelector(`#${CSS.escape(link.getAttribute('href').slice(1))}`);
+        if (target !== null) {
+          event.preventDefault();
+          this.#reveal(target);
+        }
+      }
+    });
+  }
+
+  #requestQuote(row) {
+    const quote = quoteFromRow(row);
+    if (quote !== null) {
+      emit(this, EVT.QUOTE_REQUEST, quote);
+    }
+  }
+
+  #reveal(row) {
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    row.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+    row.classList.remove(FLASH_CLASS);
+    void row.offsetWidth; // relance l'animation si on cite deux fois de suite le même message
+    row.classList.add(FLASH_CLASS);
+    window.setTimeout(() => row.classList.remove(FLASH_CLASS), FLASH_MS);
   }
 
   /** Remplace le corps d'une bulle par le fragment corrigé (dessiné par le même gabarit PHP que la page). */

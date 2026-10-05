@@ -10,6 +10,8 @@ use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
 use App\Repository\MysqlNotificationPreferenceRepository;
@@ -27,6 +29,8 @@ final class MentionReminderServiceTest extends RepositoryTestCase
 {
     private MysqlMentionNoticeRepository $notices;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlUserRepository $users;
     /** @var array<string, User> */
     private array $people = [];
@@ -37,6 +41,8 @@ final class MentionReminderServiceTest extends RepositoryTestCase
         parent::setUp();
         $this->notices = new MysqlMentionNoticeRepository($this->pdo);
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
         foreach (['alice', 'bob', 'denis'] as $name) {
@@ -49,7 +55,7 @@ final class MentionReminderServiceTest extends RepositoryTestCase
         $this->conversationId = $this->conversations->create($alpha, $beta, 'Titre secret', new \DateTimeImmutable('2026-10-05 08:00:00'), $this->id('alice'))->id();
         (new MysqlConversationGuestRepository($this->pdo))->add($this->conversationId, $this->id('denis'), $this->id('alice'), new \DateTimeImmutable('2026-10-05 08:00:00'));
         // Alice mentionne Denis le 5 à 10:00 (UTC) ; l'e-mail de mention part à ce moment-là.
-        $message = $this->conversations->addMessage($this->conversationId, $this->id('alice'), 'Texte secret @Denis', new \DateTimeImmutable('2026-10-05 10:00:00'));
+        $message = $this->messages->addMessage($this->conversationId, $this->id('alice'), 'Texte secret @Denis', new \DateTimeImmutable('2026-10-05 10:00:00'));
         (new MysqlConversationMentionRepository($this->pdo))->record($message->id(), [$this->id('denis') => '@Denis']);
         $this->notices->claimNotice($this->conversationId, $this->id('denis'), $this->id('alice'), new \DateTimeImmutable('2026-10-05 10:00:00'), new \DateTimeImmutable('2026-10-04 10:00:00'));
     }
@@ -126,7 +132,7 @@ final class MentionReminderServiceTest extends RepositoryTestCase
     #[Test]
     public function testReadingTheConversationOrUnsubscribingCancelsTheReminder(): void
     {
-        $this->conversations->markRead($this->conversationId, $this->id('denis'), new \DateTimeImmutable('2026-10-05 20:00:00'));
+        $this->presence->markRead($this->conversationId, $this->id('denis'), new \DateTimeImmutable('2026-10-05 20:00:00'));
         $mailer = new RecordingMailer();
         self::assertSame(0, $this->service($mailer, '2026-10-06 10:30:00')->sendDue()->sent(), 'lu : pas de relance');
 

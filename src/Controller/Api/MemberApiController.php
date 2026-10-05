@@ -31,19 +31,14 @@ final class MemberApiController
 
         $conversation = $request->query('conversation');
         $members = $conversation !== null
-            ? $this->search->search($user->id(), $query, $this->idOrDenied($conversation))
+            ? $this->search->search($user->id(), $query, StrictId::orDenied($conversation))
             : $this->search->searchForNewConversation(
                 $user->id(),
                 $query,
-                $this->idOrDenied($request->query('groupId')),
-                $this->idOrDenied($request->query('targetGroupId')),
+                StrictId::orDenied($request->query('groupId')),
+                StrictId::orDenied($request->query('targetGroupId')),
             );
 
         return new JsonResponse(['members' => $members]);
-    }
-
-    private function idOrDenied(mixed $value): int
-    {
-        return StrictId::from($value) ?? throw new AccessDeniedException('Accès refusé.');
     }
 }

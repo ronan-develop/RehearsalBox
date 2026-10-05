@@ -10,6 +10,8 @@ use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Service\ConversationMentionService;
@@ -23,6 +25,8 @@ final class ConversationMentionServiceTest extends RepositoryTestCase
     private \DateTimeImmutable $now;
     private ConversationMentionService $service;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationGuestRepository $guests;
     private MysqlConversationMentionRepository $mentions;
     /** @var array<string, User> */
@@ -49,9 +53,11 @@ final class ConversationMentionServiceTest extends RepositoryTestCase
         $groups->addMember($this->beta, $this->people['bob']->id());
         $groups->addMember($carnage, $this->people['denis']->id());
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
-        $this->service = new ConversationMentionService($users, $groups, $this->guests, $this->mentions, $this->conversations);
+        $this->service = new ConversationMentionService($users, $groups, $this->guests, $this->mentions, $this->messages);
         $this->conversationId = $this->conversations->create($this->alpha, $this->beta, null, $this->now, $this->people['alice']->id())->id();
     }
 
@@ -147,13 +153,13 @@ final class ConversationMentionServiceTest extends RepositoryTestCase
         $plan = $this->plan('alice', 'Viens @Denis et @Bob', [$this->id('denis'), $this->id('bob')]);
 
         $this->service->addGuests($plan, $this->id('alice'), $this->conversationId, $this->now);
-        $message = $this->conversations->addMessage($this->conversationId, $this->id('alice'), 'Viens @Denis et @Bob', $this->now);
+        $message = $this->messages->addMessage($this->conversationId, $this->id('alice'), 'Viens @Denis et @Bob', $this->now);
         $this->service->record($plan, $message->id());
 
         self::assertTrue($this->guests->isGuest($this->conversationId, $this->id('denis')));
         self::assertFalse($this->guests->isGuest($this->conversationId, $this->id('bob')));
         self::assertSame($this->id('alice'), $this->guests->addedBy($this->conversationId, $this->id('denis')));
-        $lines = array_map(static fn ($m) => [$m->isSystem(), $m->body()], $this->conversations->messagesOf($this->conversationId));
+        $lines = array_map(static fn ($m) => [$m->isSystem(), $m->body()], $this->messages->messagesOf($this->conversationId));
         self::assertContains([true, 'a ajouté Denis à la conversation'], $lines);
         self::assertSame(
             [$this->id('bob') => '@Bob', $this->id('denis') => '@Denis'],

@@ -6,6 +6,7 @@ namespace App\Tests\Presenter;
 
 use App\Entity\ConversationMessage;
 use App\Entity\Group;
+use App\Entity\MessageQuote;
 use App\Presenter\ConversationFormatter;
 use App\Presenter\ConversationTimeline;
 use PHPUnit\Framework\Attributes\Test;
@@ -204,5 +205,18 @@ final class ConversationTimelineTest extends TestCase
         $rows = $this->timeline->rows([$this->msg(2, 11, 'Bob', '2026-10-04 08:05:00')], 10, $this->now, [], null, $previous);
 
         self::assertTrue($rows[0]['startsRun']);
+    }
+
+    #[Test]
+    public function testAMessageThatQuotesAnotherCarriesAShortQuoteForTheRow(): void
+    {
+        $quoted = new MessageQuote(5, 'Bob', "Jeudi à 20h ?\nOn répète chez Denis");
+        $reply = new ConversationMessage(6, 7, 10, 'Alice', 'Oui !', new \DateTimeImmutable('2026-10-04 09:00:00', new \DateTimeZone('UTC')), false, null, $quoted);
+        $plain = $this->msg(7, 11, 'Bob', '2026-10-04 09:01:00', 'Super');
+
+        $rows = array_values(array_filter($this->timeline->rows([$reply, $plain], 10, $this->now), static fn (array $r): bool => $r['type'] === 'message'));
+
+        self::assertSame(['id' => 5, 'author' => 'Bob', 'excerpt' => 'Jeudi à 20h ? On répète chez Denis'], $rows[0]['quote']);
+        self::assertNull($rows[1]['quote']);
     }
 }

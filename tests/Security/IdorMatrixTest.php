@@ -15,6 +15,7 @@ use App\Http\Request;
 use App\Kernel;
 use App\Migration\Migrator;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
@@ -108,8 +109,9 @@ final class IdorMatrixTest extends TestCase
 
         // Conversation entre A (initiateur) et B (visé) : seuls les membres de A ou B y ont accès.
         $conversations = new MysqlConversationRepository($pdo);
+        $messages = new MysqlConversationMessageRepository($pdo);
         $conversationAB = $conversations->create($groupA->id(), $groupB->id(), 'Secret entre A et B', new \DateTimeImmutable());
-        $conversations->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
+        $messages->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
 
         self::$storagePath = sys_get_temp_dir() . '/rb-idor-' . bin2hex(random_bytes(4));
         mkdir(self::$storagePath);
@@ -170,7 +172,8 @@ final class IdorMatrixTest extends TestCase
             ['GET', '/api/conversations', [], ['anon']],
             ['GET', '/api/conversations/{convAB}/updates', [], ['anon', 'stranger']],
             ['GET', '/api/conversation-list', [], ['anon']],
-            ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus'], ['anon', 'stranger']],
+            // (#214) la réponse cite un message : un étranger n'y gagne rien, même en devinant l'identifiant d'un message
+            ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus', 'replyTo' => '1'], ['anon', 'stranger']],
             ['PATCH', '/api/conversations/{convAB}', ['title' => 'Piraté'], ['anon', 'stranger']],
             ['POST', '/api/conversations/{convAB}/typing', [], ['anon', 'stranger']],
             // Corbeille (#190) : seul l'initiateur ; la conversation du jeu d'essai n'en a pas, personne ne peut donc agir

@@ -16,6 +16,8 @@ use App\Presenter\ConversationPresenter;
 use App\Presenter\ConversationTimeline;
 use App\Presenter\MessagesPageView;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
@@ -35,6 +37,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private const PASSWORD = 'mot-de-passe-de-test';
 
     private ConversationApiController $controller;
+    private \App\Controller\Api\ConversationFeedApiController $feedController;
     private \App\Controller\Api\ConversationTrashApiController $trashController;
     private \App\Controller\Api\MessageApiController $messageController;
     private MysqlGroupRepository $groups;
@@ -51,33 +54,41 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
         $guests = new \App\Repository\MysqlConversationGuestRepository($this->pdo);
         $access = new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, $guests);
-        $mentionService = new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), new MysqlConversationRepository($this->pdo));
+        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $presence = new MysqlConversationPresenceRepository($this->pdo);
+        $mentionService = new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), $messages);
         $service = new ConversationService(
             new MysqlConversationRepository($this->pdo),
+            $messages,
+            $presence,
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,
             mentions: $mentionService,
             access: $access,
         );
-        $trash = new \App\Service\ConversationTrashService($access, new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
-        $guestService = new \App\Service\ConversationGuestService($access, $guests, new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
+        $trash = new \App\Service\ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $guestService = new \App\Service\ConversationGuestService($access, $guests, $messages, $this->users, new TransactionRunner($this->pdo), $this->clock);
         $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
-        $editService = new \App\Service\MessageEditService($access, new MysqlConversationRepository($this->pdo), $mentionService, new TransactionRunner($this->pdo), $this->clock);
-        $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
-        $pageView = new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash);
-        $fragments = new \App\Presenter\EditedMessageFragments(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), $pageView);
-        $this->messageController = new \App\Controller\Api\MessageApiController($editService, new AuthGuard($this->auth), $fragments, $service);
-        $this->controller = new ConversationApiController(
-            $service,
-            new ConversationPresenter(),
-            new AuthGuard($this->auth),
-            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash),
-            new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
-            $trash,
-            $guestService,
-            $fragments,
+        $editService = new \App\Service\MessageEditService($access, $messages, $mentionService, new TransactionRunner($this->pdo), $this->clock);
+        $conversations = new MysqlConversationRepository($this->pdo);
+        $reader = new \App\Service\ConversationReader(
+            $access,
+            new \App\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->clock, $mentionService),
+            $conversations,
+            $messages,
+            $presence,
+            $this->clock,
+            $mentionService,
         );
+        $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
+        $renderer = new PhpTemplateRenderer(__DIR__ . '/../../../templates');
+        $pageView = new MessagesPageView($reader, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash);
+        $fragments = new \App\Presenter\EditedMessageFragments($renderer, $pageView);
+        $updates = new \App\Presenter\ConversationUpdates($reader, $pageView, $renderer, $fragments);
+        $this->messageController = new \App\Controller\Api\MessageApiController($editService, new AuthGuard($this->auth), $fragments, $reader);
+        $this->controller = new ConversationApiController($service, $updates, new AuthGuard($this->auth), $guestService);
+        $this->feedController = new \App\Controller\Api\ConversationFeedApiController($reader, $updates, new ConversationPresenter(), new AuthGuard($this->auth), $pageView, $renderer, $trash);
     }
 
     private function user(string $name): User
@@ -112,6 +123,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $controller = match (true) {
             in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) => $this->trashController,
             $action === 'edit' => $this->messageController,
+            in_array($action, ['index', 'listFragment', 'updates', 'typing'], true) => $this->feedController,
             default => $this->controller,
         };
         $response = $controller->{$action}($request, ...$args);
@@ -140,7 +152,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private function startAsAlice(User $alice, Group $a, Group $b, array $extra = []): string
     {
         $this->loginAs($alice);
-        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Salut'] + $extra);
+        [, $json] = $this->call('start', [], array_replace(['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Salut'], $extra));
 
         return (string) $json['id'];
     }
@@ -207,6 +219,61 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Un autre message', $reply['html'], 'les messages reçus entre-temps arrivent avec le mien');
         self::assertStringContainsString('Ma réponse', $reply['html']);
         self::assertStringNotContainsString('Salut', $reply['html'], 'déjà affiché côté client');
+    }
+
+    // --- Citer un message (#214) ---------------------------------------------------------------------
+
+    #[Test]
+    public function testReplyingWithAQuoteShowsTheQuoteWithItsAuthorAndAJumpLink(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b, ['message' => 'Jeudi à 20h ? <b>important</b>']);
+        $quotedId = $this->thread($id)['lastId'];
+        $this->loginAs($bob);
+
+        [$status, $reply] = $this->call('reply', [], ['message' => 'Oui !', 'replyTo' => $quotedId, 'after' => (string) $quotedId], $id);
+
+        self::assertSame(201, $status);
+        self::assertStringContainsString('class="rb-chat-quote"', $reply['html']);
+        self::assertStringContainsString('href="#message-' . $quotedId . '"', $reply['html']);
+        self::assertStringContainsString('Alice', $reply['html']);
+        self::assertStringContainsString('Jeudi à 20h ? &lt;b&gt;important&lt;/b&gt;', $reply['html'], 'le texte cité est échappé');
+        self::assertStringNotContainsString('<b>important</b>', $reply['html']);
+    }
+
+    #[Test]
+    public function testAMessageOfAnotherConversationAndAMalformedIdentifierAreRefusedAsForbidden(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $carole = $this->user('Carole');
+        $c = $this->group('Gamma', $carole);
+        $mine = $this->startAsAlice($alice, $a, $b);
+        $this->loginAs($carole);
+        [, $secret] = $this->call('start', [], ['groupId' => $c->id(), 'targetGroupId' => $b->id(), 'message' => 'Secret de Carole']);
+        $secretId = $this->thread((string) $secret['id'])['lastId'];
+        $this->loginAs($alice);
+
+        foreach ([$secretId, 99999, '5abc', '0', '-1', [1]] as $replyTo) {
+            try {
+                $this->call('reply', [], ['message' => 'Citation interdite', 'replyTo' => $replyTo], $mine);
+                self::fail('citation refusée attendue : ' . json_encode($replyTo));
+            } catch (AccessDeniedException) {
+                self::addToAssertionCount(1);
+            }
+        }
+        self::assertStringNotContainsString('Citation interdite', $this->thread($mine)['html'], 'rien n’est enregistré');
+    }
+
+    #[Test]
+    public function testAbsentOrNullQuoteMeansNoQuote(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        [, $without] = $this->call('reply', [], ['message' => 'Sans citation'], $id);
+        [, $withNull] = $this->call('reply', [], ['message' => 'Citation nulle', 'replyTo' => null], $id);
+
+        self::assertStringNotContainsString('class="rb-chat-quote"', $without['html'] . $withNull['html'], 'aucun bloc de citation');
     }
 
     #[Test]
