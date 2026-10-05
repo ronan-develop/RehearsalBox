@@ -176,6 +176,9 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/conversations/{convAB}/restore', [], ['anon', 'stranger', 'outsiderB', 'memberA']],
             ['DELETE', '/api/conversations/{convAB}/permanent', [], ['anon', 'stranger', 'outsiderB', 'memberA']],
             ['POST', '/api/conversation-alerts/1/dismiss', [], ['anon']],
+            // Mentions (#178) : la recherche exige un contexte (conversation ou groupes), le retrait un invité existant
+            ['GET', '/api/members', [], ['anon', 'stranger']],
+            ['DELETE', '/api/conversations/{convAB}/guests/{userMemberA}', [], ['anon', 'stranger', 'outsiderB', 'memberA']],
             ['POST', '/api/conversations', ['groupId' => '{groupA}', 'targetGroupId' => '{groupB}', 'message' => 'Je parle pour A'], ['anon', 'stranger', 'outsiderB']],
             // Documents
             ['GET', '/api/groups/{groupA}/documents', [], ['anon', 'stranger', 'outsiderB']],
@@ -230,6 +233,7 @@ final class IdorMatrixTest extends TestCase
             ['DELETE', '/api/conversations/{id}', [], 'convAB'],
             ['POST', '/api/conversations/{id}/restore', [], 'convAB'],
             ['DELETE', '/api/conversations/{id}/permanent', [], 'convAB'],
+            ['DELETE', '/api/conversations/{id}/guests/1', [], 'convAB'],
         ];
 
         foreach ($routes as [$method, $path, $body, $idKey]) {

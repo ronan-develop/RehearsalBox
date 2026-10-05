@@ -36,6 +36,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     private MessagesPageController $controller;
     private MockClock $clock;
     private ConversationService $service;
+    private \App\Service\ConversationTrashService $trash;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
     private AuthService $auth;
@@ -48,7 +49,8 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
-        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock, alerts: new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $this->trash = new \App\Service\ConversationTrashService(new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
@@ -56,7 +58,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
             new AuthGuard($this->auth),
             $this->service,
             $this->groups,
-            new MessagesPageView($this->service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock),
+            new MessagesPageView($this->service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $this->trash),
         );
     }
 
@@ -357,7 +359,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     public function testTheRecipientSeesADismissibleAlertAndNobodyElseDoes(): void
     {
         [$alice, $bob, $id] = $this->conversationFromAlice();
-        $this->service->delete($alice->id(), $id);
+        $this->trash->delete($alice->id(), $id);
 
         $this->loginAs($bob);
         $body = $this->controller->list($this->request())->body();
@@ -374,7 +376,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     public function testTheTrashPageListsTheInitiatorsConversationsWithRestoreAndPurgeButtons(): void
     {
         [$alice, $bob, $id] = $this->conversationFromAlice();
-        $this->service->delete($alice->id(), $id);
+        $this->trash->delete($alice->id(), $id);
 
         $this->loginAs($alice);
         $body = $this->controller->trash($this->request())->body();
@@ -401,7 +403,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         }
 
         [$alice, , $id] = $this->conversationFromAlice();
-        $this->service->delete($alice->id(), $id);
+        $this->trash->delete($alice->id(), $id);
         $this->loginAs($alice);
         $this->expectException(\App\Security\Exception\AccessDeniedException::class);
         $this->controller->show($this->request(), (string) $id);

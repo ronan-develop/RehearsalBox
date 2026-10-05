@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation, trashConversation, restoreConversation, purgeConversation, dismissAlert } from './api.js';
+import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation, trashConversation, restoreConversation, purgeConversation, dismissAlert, searchMembers, removeGuest } from './api.js';
 
 function mockFetch(payload = {}) {
   const calls = [];
@@ -95,4 +95,33 @@ test('the trash calls use the right verbs and routes', async () => {
     ['POST', '/api/conversation-alerts/7/dismiss'],
   ]);
   assert.ok(calls.every((call) => call.csrf === 'csrf-token'));
+});
+
+test('mentions are sent only when someone is tagged', async () => {
+  const calls = mockFetch({ id: 1 });
+
+  await sendMessage('12', 'Salut @Denis', 30, [7]);
+  await sendMessage('12', 'Salut', 30, []);
+  await startConversation({ groupId: '3', targetGroupId: '7', message: 'Avec @Denis', mentions: [9] });
+
+  assert.deepEqual(calls[0].body, { message: 'Salut @Denis', after: 30, mentions: [7] });
+  assert.deepEqual(calls[1].body, { message: 'Salut', after: 30 });
+  assert.deepEqual(calls[2].body, { groupId: '3', targetGroupId: '7', message: 'Avec @Denis', mentions: [9] });
+});
+
+test('searchMembers asks for the people matching the query in the right context', async () => {
+  const calls = mockFetch({ members: [] });
+
+  await searchMembers({ query: 'de n', conversation: '12' });
+  await searchMembers({ query: 'bo', groupId: '3', targetGroupId: '7' });
+
+  assert.deepEqual(calls.map((c) => c.url), ['/api/members?q=de+n&conversation=12', '/api/members?q=bo&groupId=3&targetGroupId=7']);
+});
+
+test('removeGuest deletes the guest of a conversation', async () => {
+  const calls = mockFetch({ status: 'ok' });
+
+  await removeGuest('12', '7');
+
+  assert.deepEqual([calls[0].method, calls[0].url], ['DELETE', '/api/conversations/12/guests/7']);
 });

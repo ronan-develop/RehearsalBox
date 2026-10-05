@@ -52,6 +52,26 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testMentionsAreHighlightedInTheFeedAndMarkedInTheList(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-mention--me\s*\{[^}]*background/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-message--mentioned \.rb-chat-bubble\s*\{[^}]*outline/s', $css, 'le surlignage ne dépend pas de la seule couleur');
+        self::assertMatchesRegularExpression('/\.rb-chat-item-mention\s*\{[^}]*position:\s*absolute/s', $css);
+    }
+
+    #[Test]
+    public function testTheMentionListFloatsAboveTheComposerAndStaysHiddenWhenAsked(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-mention-list\s*\{[^}]*position:\s*absolute[^}]*bottom:\s*100%/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-mention-list\[hidden\],\s*\.rb-chat-mention-notice\[hidden\]\s*\{[^}]*display:\s*none/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-mention-option\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

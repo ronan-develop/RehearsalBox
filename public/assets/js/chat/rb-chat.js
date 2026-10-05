@@ -11,7 +11,7 @@ import './rb-thread-header.js';
 import './rb-message-list.js';
 import './rb-composer.js';
 import {
-  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation,
+  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, searchMembers,
 } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
 import { EVT } from './events.js';
@@ -38,7 +38,8 @@ export class RbChat extends HTMLElement {
     this.#lastId = Number(this.dataset.lastId || 0);
 
     this.addEventListener(EVT.RENAME, (event) => this.#serial(() => this.#rename(event.detail.title)));
-    this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail.text)));
+    this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail.text, event.detail.mentions ?? [])));
+    this.composer.suggest = (query) => this.#suggestMembers(query);
     this.addEventListener(EVT.TYPING, () => {
       if (this.#activeId !== null) {
         sendTyping(this.#activeId).catch(() => {});
@@ -107,16 +108,29 @@ export class RbChat extends HTMLElement {
     }
   }
 
-  async #submit(text) {
+  /** Liste après « @ » : le contexte est la conversation ouverte, ou les deux groupes d'un brouillon. */
+  async #suggestMembers(query) {
+    if (this.#activeId === null && this.#draftTargetId === null) {
+      return [];
+    }
+    const context = this.#activeId !== null
+      ? { conversation: this.#activeId }
+      : { groupId: this.header.senderId, targetGroupId: this.#draftTargetId };
+    const { members } = await searchMembers({ query, ...context });
+
+    return members;
+  }
+
+  async #submit(text, mentions = []) {
     if (this.#draftTargetId !== null) {
-      await this.#submitDraft(text);
+      await this.#submitDraft(text, mentions);
       return;
     }
     if (this.#activeId === null) {
       return;
     }
     try {
-      this.#apply(await sendMessage(this.#activeId, text, this.#lastId));
+      this.#apply(await sendMessage(this.#activeId, text, this.#lastId, mentions));
       this.messageList.scrollToBottom();
       this.#idle = 0;
     } catch (error) {
@@ -126,12 +140,13 @@ export class RbChat extends HTMLElement {
   }
 
   /** Premier message d'un brouillon : la conversation est créée, puis navigation classique vers sa page. */
-  async #submitDraft(text) {
+  async #submitDraft(text, mentions = []) {
     try {
       const { id } = await startConversation({
         groupId: this.header.senderId,
         targetGroupId: this.#draftTargetId,
         message: text,
+        mentions,
       });
       window.location.assign(`/messages/${id}`);
     } catch (error) {

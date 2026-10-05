@@ -18,6 +18,13 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         SELECT MAX(x.id) FROM conversation_messages x WHERE x.conversation_id = c.id
     )';
 
+    // Mention non lue : un message qui désigne la personne, plus récent que sa dernière lecture.
+    private const MENTIONED_USER = 'EXISTS (
+        SELECT 1 FROM message_mentions mm JOIN conversation_messages mmsg ON mmsg.id = mm.message_id
+        WHERE mmsg.conversation_id = c.id AND mm.user_id = :mention_user
+          AND (s.last_read_at IS NULL OR mmsg.created_at > s.last_read_at)
+    )';
+
     private const UNREAD_FOR_USER = 'EXISTS (
         SELECT 1 FROM conversation_messages um
         WHERE um.conversation_id = c.id AND um.author_id <> :unread_user
@@ -131,7 +138,8 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
                        gi.name AS initiator_name, gt.name AS target_name,
                        lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
                        lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at,
-                       ' . self::UNREAD_FOR_USER . ' AS unread
+                       ' . self::UNREAD_FOR_USER . ' AS unread,
+                       ' . self::MENTIONED_USER . ' AS mentioned
                 FROM conversations c
                 JOIN `groups` gi ON gi.id = c.initiator_group_id
                 JOIN `groups` gt ON gt.id = c.target_group_id
@@ -144,6 +152,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement = $this->pdo->prepare($sql);
         $statement->execute([
             'unread_user' => $userId,
+            'mention_user' => $userId,
             'state_user' => $userId,
             'visible_user' => $userId,
             'cutoff' => $inactiveBefore->format(self::DATE_FORMAT),
@@ -269,11 +278,15 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function participantCount(int $conversationId): int
     {
         $statement = $this->pdo->prepare(
-            'SELECT COUNT(DISTINCT gu.user_id) FROM conversations c
-             JOIN group_user gu ON gu.group_id IN (c.initiator_group_id, c.target_group_id)
-             WHERE c.id = :conversation_id'
+            'SELECT COUNT(*) FROM (
+                 SELECT gu.user_id FROM conversations c
+                 JOIN group_user gu ON gu.group_id IN (c.initiator_group_id, c.target_group_id)
+                 WHERE c.id = :conversation_id
+                 UNION
+                 SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = :guest_conversation_id
+             ) participants'
         );
-        $statement->execute(['conversation_id' => $conversationId]);
+        $statement->execute(['conversation_id' => $conversationId, 'guest_conversation_id' => $conversationId]);
 
         return (int) $statement->fetchColumn();
     }
@@ -306,12 +319,16 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return array_map('strval', $statement->fetchAll(\PDO::FETCH_COLUMN));
     }
 
-    /** Condition SQL : la personne désignée par $userExpr est membre de l'un des deux groupes de c (comptée une seule fois). */
+    /**
+     * Condition SQL : la personne désignée par $userExpr participe à c, c'est-à-dire membre de l'un des deux groupes ou
+     * invitée à cette conversation (comptée une seule fois). $userExpr n'apparaît qu'une fois (paramètre nommé).
+     */
     private function visibleTo(string $userExpr): string
     {
-        return 'EXISTS (
-            SELECT 1 FROM group_user gu
-            WHERE gu.user_id = ' . $userExpr . ' AND gu.group_id IN (c.initiator_group_id, c.target_group_id)
+        return $userExpr . ' IN (
+            SELECT gu.user_id FROM group_user gu WHERE gu.group_id IN (c.initiator_group_id, c.target_group_id)
+            UNION
+            SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
         )';
     }
 
@@ -330,6 +347,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             (string) $row['target_name'],
             $this->hydrateMessage($row, (int) $row['id'], 'last_'),
             (bool) ($row['unread'] ?? false),
+            (bool) ($row['mentioned'] ?? false),
         );
     }
 

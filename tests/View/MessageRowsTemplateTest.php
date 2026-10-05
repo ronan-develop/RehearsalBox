@@ -33,6 +33,27 @@ final class MessageRowsTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testMentionsAreHighlightedAndEveryPartIsEscaped(): void
+    {
+        $html = $this->rows([$this->message(['segments' => [
+            ['text' => '<b>Salut ', 'mention' => false, 'me' => false],
+            ['text' => '@Denis', 'mention' => true, 'me' => true],
+            ['text' => '</b>', 'mention' => false, 'me' => false],
+        ], 'mentionsMe' => true])]);
+
+        self::assertStringContainsString('<span class="rb-chat-mention rb-chat-mention--me">@Denis</span>', $html);
+        self::assertStringContainsString('&lt;b&gt;Salut ', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertStringContainsString('rb-chat-message--mentioned', $html, 'la bulle de la personne taguée est surlignée');
+    }
+
+    #[Test]
+    public function testARowWithoutSegmentsStillShowsItsBody(): void
+    {
+        self::assertStringContainsString('<p class="rb-chat-text">Salut</p>', $this->rows([$this->message()]));
+    }
+
+    #[Test]
     public function testOthersMessageShowsBadgeAuthorBodyTimeAndAnIdForIncrementalUpdates(): void
     {
         $html = $this->rows([$this->message()]);

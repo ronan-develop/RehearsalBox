@@ -430,7 +430,9 @@ rb-composer {
 }
 
 .rb-chat-form {
+  position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--rb-space-2);
   padding: var(--rb-space-2) var(--rb-space-3);
@@ -583,4 +585,88 @@ rb-composer {
 
 .rb-trash [hidden] {
   display: none;
+}
+
+/* Mentions (#178) */
+.rb-chat-mention {
+  padding: 0 2px;
+  color: var(--rb-accent);
+  background: var(--rb-bg-2);
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.rb-chat-mention--me {
+  color: var(--rb-bg);
+  background: var(--rb-accent);
+}
+
+.rb-chat-message--mentioned .rb-chat-bubble {
+  outline: 2px solid var(--rb-accent);
+  outline-offset: 1px;
+}
+
+.rb-chat-item-mention {
+  position: absolute;
+  right: calc(var(--rb-space-3) + 18px);
+  bottom: var(--rb-space-2);
+  min-width: 20px;
+  color: var(--rb-bg);
+  background: var(--rb-accent);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* Liste après « @ » (#178) */
+.rb-chat-mention-list {
+  position: absolute;
+  right: var(--rb-space-3);
+  bottom: 100%;
+  left: var(--rb-space-3);
+  z-index: 5;
+  max-height: 40vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+}
+
+.rb-chat-mention-list[hidden],
+.rb-chat-mention-notice[hidden] {
+  display: none;
+}
+
+.rb-chat-mention-option {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--rb-space-1) var(--rb-space-3);
+  cursor: pointer;
+}
+
+.rb-chat-mention-option[aria-selected="true"] {
+  background: var(--rb-surface-strong);
+}
+
+.rb-chat-mention-name {
+  font-weight: 700;
+}
+
+.rb-chat-mention-meta {
+  color: var(--rb-text-3);
+  font-size: 0.8125rem;
+}
+
+.rb-chat-mention-notice {
+  flex: 1 0 100%;
+  margin: 0;
+  color: var(--rb-warn);
+  font-size: 0.8125rem;
 }

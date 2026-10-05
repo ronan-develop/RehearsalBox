@@ -4,7 +4,7 @@
  * (conversations, archives, retour) n'en fait pas partie : ce sont de vrais liens.
  */
 export const EVT = Object.freeze({
-  SUBMIT: 'composer:submit', // { text } : l'utilisateur envoie son message
+  SUBMIT: 'composer:submit', // { text, mentions } : l'utilisateur envoie son message (mentions = identifiants des personnes taguées)
   TYPING: 'composer:typing', // {} : il est en train d'écrire (déjà limité en débit)
   RENAME: 'header:rename', // { title } : nouveau titre ('' pour le retirer)
 });

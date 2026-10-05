@@ -13,7 +13,7 @@ foreach ($rows as $row):
 <?php elseif ($row['type'] === 'system'): ?>
 <li class="rb-chat-system"><?= e($row['text']) ?></li>
 <?php else: ?>
-<li class="rb-chat-message<?= $row['mine'] ? ' rb-chat-message--mine' : '' ?>" data-message-id="<?= e((string) $row['id']) ?>">
+<li class="rb-chat-message<?= $row['mine'] ? ' rb-chat-message--mine' : '' ?><?= !empty($row['mentionsMe']) ? ' rb-chat-message--mentioned' : '' ?>" data-message-id="<?= e((string) $row['id']) ?>">
     <?php if (!$row['mine']): ?>
         <?php if ($row['startsRun']): ?>
             <span class="rb-chat-avatar" aria-hidden="true"<?= $row['color'] !== null ? ' style="--group-color: ' . e($row['color']) . '"' : '' ?><?= $row['groupName'] !== null ? ' title="' . e($row['groupName']) . '"' : '' ?>><?= e($row['initials']) ?></span>
@@ -23,7 +23,9 @@ foreach ($rows as $row):
     <?php endif; ?>
     <div class="rb-chat-bubble">
         <?php if (!$row['mine'] && $row['startsRun']): ?><span class="rb-chat-author"><?= e($row['author']) ?></span><?php endif; ?>
-        <p class="rb-chat-text"><?= e($row['body']) ?></p>
+        <p class="rb-chat-text"><?php foreach ($row['segments'] ?? [['text' => $row['body'], 'mention' => false, 'me' => false]] as $segment):
+            if ($segment['mention']): ?><span class="rb-chat-mention<?= $segment['me'] ? ' rb-chat-mention--me' : '' ?>"><?= e($segment['text']) ?></span><?php else: ?><?= e($segment['text']) ?><?php endif;
+        endforeach; ?></p>
         <span class="rb-chat-time"><?= e($row['time']) ?></span>
     </div>
 </li>

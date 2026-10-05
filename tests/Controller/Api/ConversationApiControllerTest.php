@@ -35,6 +35,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private const PASSWORD = 'mot-de-passe-de-test';
 
     private ConversationApiController $controller;
+    private \App\Controller\Api\ConversationTrashApiController $trashController;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
     private AuthService $auth;
@@ -47,14 +48,28 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
-        $service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock, alerts: new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $guests = new \App\Repository\MysqlConversationGuestRepository($this->pdo);
+        $access = new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, $guests);
+        $service = new ConversationService(
+            new MysqlConversationRepository($this->pdo),
+            $this->groups,
+            new TransactionRunner($this->pdo),
+            $this->clock,
+            mentions: new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), new MysqlConversationRepository($this->pdo)),
+            access: $access,
+        );
+        $trash = new \App\Service\ConversationTrashService($access, new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $guestService = new \App\Service\ConversationGuestService($access, $guests, new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
+        $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new ConversationApiController(
             $service,
             new ConversationPresenter(),
             new AuthGuard($this->auth),
-            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock),
+            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash),
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
+            $trash,
+            $guestService,
         );
     }
 
@@ -87,7 +102,8 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private function call(string $action, array $query = [], array $body = [], string ...$args): array
     {
         $request = new Request('POST', '/api/conversations', $query, $body, []);
-        $response = $this->controller->{$action}($request, ...$args);
+        $controller = in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) ? $this->trashController : $this->controller;
+        $response = $controller->{$action}($request, ...$args);
 
         return [$response->statusCode(), json_decode($response->body(), true) ?? []];
     }
@@ -444,5 +460,79 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $this->call('dismissAlert', [], [], $alertId)[0]);
 
         self::assertSame(0, $this->call('index')[1]['unread']['alerts']);
+    }
+
+    // --- Mentions et invités (#178) --------------------------------------------------------------------
+
+    #[Test]
+    public function testTaggingAMemberOutsideTheGroupsOpensTheConversationToThem(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $denis = $this->user('Denis');
+        $this->group('Carnage', $denis);
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        $after = (string) $this->thread($id)['lastId'];
+
+        [$status, $json] = $this->call('reply', [], ['message' => 'Viens voir @Denis', 'mentions' => [$denis->id()], 'after' => $after], $id);
+
+        self::assertSame(201, $status);
+        self::assertStringContainsString('Vous avez ajouté Denis à la conversation', $json['html']);
+        $this->loginAs($denis);
+        self::assertSame(200, $this->call('updates', ['after' => '0'], [], $id)[0], 'Denis lit maintenant la conversation');
+    }
+
+    #[Test]
+    public function testTheFirstMessageCanTagSomeoneToo(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $denis = $this->user('Denis');
+        $this->loginAs($alice);
+
+        [$status, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Avec @Denis', 'mentions' => [$denis->id()]]);
+
+        self::assertSame(201, $status);
+        $this->loginAs($denis);
+        self::assertSame(200, $this->call('updates', ['after' => '0'], [], (string) $json['id'])[0]);
+    }
+
+    #[Test]
+    public function testInvalidMentionsAnswer422WithTheMentionsField(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        foreach ([['mentions' => 'denis'], ['mentions' => ['abc']], ['mentions' => [999999]], ['mentions' => range(1, 11)]] as $extra) {
+            [$status, $json] = $this->call('reply', [], ['message' => 'Salut @Denis'] + $extra, $id);
+            self::assertSame(422, $status, json_encode($extra));
+            self::assertArrayHasKey('mentions', $json['fields']);
+        }
+    }
+
+    #[Test]
+    public function testTheAdderOrTheInitiatorRemovesTheGuestAndOthersAreRefused(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $denis = $this->user('Denis');
+        $id = $this->startAsAlice($alice, $a, $b);
+        $this->call('reply', [], ['message' => '@Denis', 'mentions' => [$denis->id()]], $id);
+
+        $this->loginAs($bob);
+        try {
+            $this->call('removeGuest', [], [], $id, (string) $denis->id());
+            self::fail('Bob n\'a ni ajouté Denis ni ouvert la conversation');
+        } catch (AccessDeniedException) {
+            $this->addToAssertionCount(1);
+        }
+
+        $this->loginAs($alice);
+        self::assertSame(200, $this->call('removeGuest', [], [], $id, (string) $denis->id())[0]);
+        $this->loginAs($denis);
+        try {
+            $this->call('updates', ['after' => '0'], [], $id);
+            self::fail('Denis n\'a plus accès');
+        } catch (AccessDeniedException) {
+            $this->addToAssertionCount(1);
+        }
     }
 }

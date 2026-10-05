@@ -11,8 +11,6 @@ use App\Entity\ConversationSummary;
 use App\Entity\ConversationThread;
 use App\Entity\Group;
 use App\Entity\SeenReceipt;
-use App\Entity\ConversationAlert;
-use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\ConversationInputPolicy;
@@ -25,16 +23,16 @@ use Symfony\Component\Clock\ClockInterface;
  * Messagerie entre deux groupes. Accès : être membre de l'un des deux groupes de la conversation.
  * Un fil interdit et un fil inexistant produisent le même refus (aucun indice sur son existence).
  * Une conversation sans message depuis ARCHIVE_AFTER est archivée (état dérivé, jamais stocké).
- * Seule la personne qui l'a ouverte peut la mettre à la corbeille (TRASH_RETENTION pour la restaurer) ; les autres
- * participants en sont prévenus par un avis dans l'application.
+ * Participants : membres des deux groupes et invités (ConversationAccess). Corbeille et avis : ConversationTrashService ;
+ * retrait d'un invité : ConversationGuestService.
  */
 final class ConversationService
 {
     public const MAX_MESSAGES_PER_HOUR = 30;
     public const ARCHIVE_AFTER = '-30 days';
-    public const TRASH_RETENTION = '-30 days';
     private const TYPING_WINDOW = '-5 seconds';
-    private const DENIED = 'Accès refusé.';
+
+    private readonly ConversationAccess $access;
 
     public function __construct(
         private readonly ConversationRepositoryInterface $conversations,
@@ -43,32 +41,41 @@ final class ConversationService
         private readonly ClockInterface $clock,
         private readonly ConversationInputPolicy $inputPolicy = new ConversationInputPolicy(),
         private readonly ?ConversationNotifier $notifier = null,
-        private readonly ?ConversationAlertRepositoryInterface $alerts = null,
+        private readonly ?ConversationMentionService $mentions = null,
+        ?ConversationAccess $access = null,
     ) {
+        $this->access = $access ?? new ConversationAccess($conversations, $groups);
     }
 
     /**
      * @throws AccessDeniedException             pas membre du groupe émetteur, groupe visé inconnu ou identique
      * @throws ConversationValidationException   titre ou message invalide
+     * @param list<mixed> $mentionIds personnes taguées dans le premier message (identifiants non fiables, validés ici)
+     *
      * @throws ConversationRateLimitException    trop de messages envoyés dans l'heure
      */
-    public function start(int $userId, int $initiatorGroupId, int $targetGroupId, string $body, ?string $title = null): Conversation
+    public function start(int $userId, int $initiatorGroupId, int $targetGroupId, string $body, ?string $title = null, array $mentionIds = []): Conversation
     {
         if ($initiatorGroupId === $targetGroupId
             || !$this->groups->isMember($initiatorGroupId, $userId)
             || $this->groups->findById($targetGroupId) === null) {
-            throw new AccessDeniedException(self::DENIED);
+            throw new AccessDeniedException(ConversationAccess::DENIED);
         }
 
         $title = $this->normalizedTitle($title);
         $body = $this->inputPolicy->normalize($body);
         $this->assertValid($title, $body);
+        $plan = $this->mentions?->plan($userId, $initiatorGroupId, $targetGroupId, null, $body, $mentionIds);
         $now = $this->clock->now();
         $this->assertWithinRateLimit($userId, $now);
 
-        [$conversation, $first] = $this->transactions->run(function () use ($userId, $initiatorGroupId, $targetGroupId, $title, $body, $now): array {
+        [$conversation, $first] = $this->transactions->run(function () use ($userId, $initiatorGroupId, $targetGroupId, $title, $body, $now, $plan): array {
             $conversation = $this->conversations->create($initiatorGroupId, $targetGroupId, $title, $now, $userId);
+            if ($plan !== null) {
+                $this->mentions->addGuests($plan, $userId, $conversation->id(), $now);
+            }
             $first = $this->conversations->addMessage($conversation->id(), $userId, $body, $now);
+            $plan !== null && $this->mentions->record($plan, $first->id());
             $this->conversations->markRead($conversation->id(), $userId, $now);
 
             return [$conversation, $first];
@@ -85,21 +92,33 @@ final class ConversationService
         return $conversation;
     }
 
-    /** @throws AccessDeniedException @throws ConversationValidationException @throws ConversationRateLimitException */
-    public function reply(int $userId, int $conversationId, string $body): ConversationMessage
+    /**
+     * @param list<mixed> $mentionIds personnes taguées (identifiants non fiables, validés ici) ; une personne extérieure
+     *                                aux deux groupes est invitée à CETTE conversation
+     *
+     * @throws AccessDeniedException @throws ConversationValidationException @throws ConversationRateLimitException
+     */
+    public function reply(int $userId, int $conversationId, string $body, array $mentionIds = []): ConversationMessage
     {
-        $this->participantConversation($userId, $conversationId);
+        $conversation = $this->participantConversation($userId, $conversationId);
 
         $body = $this->inputPolicy->normalize($body);
         $this->assertValid(null, $body);
+        $plan = $this->mentions?->plan($userId, $conversation->initiatorGroupId(), $conversation->targetGroupId(), $conversationId, $body, $mentionIds);
         $now = $this->clock->now();
         $this->assertWithinRateLimit($userId, $now);
 
-        $message = $this->conversations->addMessage($conversationId, $userId, $body, $now);
-        // Répondre suppose d'avoir lu le fil : il n'est pas « non lu » pour son propre auteur.
-        $this->conversations->markRead($conversationId, $userId, $now);
+        return $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan): ConversationMessage {
+            if ($plan !== null) {
+                $this->mentions->addGuests($plan, $userId, $conversationId, $now);
+            }
+            $message = $this->conversations->addMessage($conversationId, $userId, $body, $now);
+            $plan !== null && $this->mentions->record($plan, $message->id());
+            // Répondre suppose d'avoir lu le fil : il n'est pas « non lu » pour son propre auteur.
+            $this->conversations->markRead($conversationId, $userId, $now);
 
-        return $message;
+            return $message;
+        });
     }
 
     /**
@@ -197,6 +216,7 @@ final class ConversationService
             $this->authorGroups($conversation, $messages),
             $firstUnreadId,
             $afterId > 0 ? $this->conversations->messageById($conversation->id(), $afterId) : null,
+            $this->mentions?->forMessages($messages) ?? [],
         );
     }
 
@@ -253,110 +273,9 @@ final class ConversationService
         return $result;
     }
 
-    /**
-     * Met la conversation à la corbeille : elle disparaît chez les deux groupes, les autres participants en sont prévenus.
-     *
-     * @throws AccessDeniedException pas l'initiateur, conversation inconnue ou déjà à la corbeille
-     */
-    public function delete(int $userId, int $conversationId): void
-    {
-        $conversation = $this->ownedConversation($userId, $conversationId);
-        if ($conversation->deletedAt() !== null) {
-            throw new AccessDeniedException(self::DENIED);
-        }
-        $now = $this->clock->now();
-        $this->transactions->run(function () use ($conversationId, $userId, $now): void {
-            $this->conversations->moveToTrash($conversationId, $now);
-            $this->alerts?->notifyParticipants($conversationId, $userId, ConversationAlert::DELETED, $now);
-        });
-    }
-
-    /** @throws AccessDeniedException pas l'initiateur, pas à la corbeille, ou corbeille expirée */
-    public function restore(int $userId, int $conversationId): void
-    {
-        $conversation = $this->trashedConversation($userId, $conversationId);
-        $now = $this->clock->now();
-        $this->transactions->run(function () use ($conversation, $userId, $now): void {
-            $this->conversations->restore($conversation->id());
-            $this->alerts?->notifyParticipants($conversation->id(), $userId, ConversationAlert::RESTORED, $now);
-        });
-    }
-
-    /** Suppression définitive d'une conversation déjà à la corbeille. @throws AccessDeniedException */
-    public function deletePermanently(int $userId, int $conversationId): void
-    {
-        $this->conversations->delete($this->trashedConversation($userId, $conversationId)->id());
-    }
-
-    /** Corbeille de la personne ; les conversations expirées sont purgées au passage (aucune tâche planifiée nécessaire). @return list<ConversationSummary> */
-    public function trash(int $userId): array
-    {
-        $cutoff = $this->trashCutoff();
-        $this->conversations->purgeTrashedBefore($cutoff);
-
-        return $this->conversations->listTrashedBy($userId, $cutoff);
-    }
-
-    /** Nombre de conversations dans la corbeille (lecture seule : aucune purge). */
-    public function trashCount(int $userId): int
-    {
-        return count($this->conversations->listTrashedBy($userId, $this->trashCutoff()));
-    }
-
-    /** @return list<ConversationAlert> avis non fermés des 30 derniers jours */
-    public function alertsFor(int $userId): array
-    {
-        return $this->alerts?->findActiveFor($userId, $this->trashCutoff()) ?? [];
-    }
-
-    public function alertCount(int $userId): int
-    {
-        return $this->alerts?->countActiveFor($userId, $this->trashCutoff()) ?? 0;
-    }
-
-    public function dismissAlert(int $userId, int $alertId): void
-    {
-        $this->alerts?->dismiss($alertId, $userId, $this->clock->now());
-    }
-
-    private function trashCutoff(): \DateTimeImmutable
-    {
-        return $this->clock->now()->modify(self::TRASH_RETENTION);
-    }
-
-    /** Conversation ouverte par cette personne (en service ou à la corbeille). @throws AccessDeniedException */
-    private function ownedConversation(int $userId, int $conversationId): Conversation
-    {
-        $conversation = $this->conversations->findById($conversationId);
-        if ($conversation === null || $conversation->createdBy() !== $userId) {
-            throw new AccessDeniedException(self::DENIED);
-        }
-
-        return $conversation;
-    }
-
-    /** Conversation de cette personne à la corbeille depuis moins de TRASH_RETENTION. @throws AccessDeniedException */
-    private function trashedConversation(int $userId, int $conversationId): Conversation
-    {
-        $conversation = $this->ownedConversation($userId, $conversationId);
-        if ($conversation->deletedAt() === null || $conversation->deletedAt() < $this->trashCutoff()) {
-            throw new AccessDeniedException(self::DENIED);
-        }
-
-        return $conversation;
-    }
-
     private function participantConversation(int $userId, int $conversationId): Conversation
     {
-        $conversation = $this->conversations->findById($conversationId);
-        if ($conversation === null
-            || $conversation->deletedAt() !== null
-            || (!$this->groups->isMember($conversation->initiatorGroupId(), $userId)
-                && !$this->groups->isMember($conversation->targetGroupId(), $userId))) {
-            throw new AccessDeniedException(self::DENIED);
-        }
-
-        return $conversation;
+        return $this->access->participant($userId, $conversationId);
     }
 
     private function labelOf(Conversation $conversation): string

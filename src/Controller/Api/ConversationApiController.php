@@ -12,7 +12,9 @@ use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\ConversationGuestService;
 use App\Service\ConversationService;
+use App\Service\ConversationTrashService;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;
@@ -33,6 +35,8 @@ final class ConversationApiController
         private readonly AuthGuard $authGuard,
         private readonly MessagesPageView $view,
         private readonly TemplateRendererInterface $renderer,
+        private readonly ConversationTrashService $trashService,
+        private readonly ConversationGuestService $guestService,
     ) {
     }
 
@@ -51,8 +55,8 @@ final class ConversationApiController
                 $this->conversationService->listFor($user->id(), $box),
             ),
             'unread' => [
-                'total' => $this->conversationService->unreadCount($user->id()) + $this->conversationService->alertCount($user->id()),
-                'alerts' => $this->conversationService->alertCount($user->id()),
+                'total' => $this->conversationService->unreadCount($user->id()) + $this->trashService->alertCount($user->id()),
+                'alerts' => $this->trashService->alertCount($user->id()),
                 'archived' => $this->conversationService->unreadCount($user->id(), ConversationRepositoryInterface::BOX_ARCHIVED),
             ],
         ]);
@@ -66,14 +70,16 @@ final class ConversationApiController
         $targetGroupId = $this->idOrDenied($request->body('targetGroupId'));
         $message = $request->body('message');
         $title = $request->body('title');
+        $mentions = $request->body('mentions');
 
-        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $message, $title): JsonResponse {
+        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $message, $title, $mentions): JsonResponse {
             $conversation = $this->conversationService->start(
                 $user->id(),
                 $initiatorGroupId,
                 $targetGroupId,
                 is_string($message) ? $message : '',
                 is_string($title) ? $title : null,
+                $this->mentionIds($mentions),
             );
 
             return new JsonResponse(['id' => $conversation->id()], 201);
@@ -126,9 +132,10 @@ final class ConversationApiController
         $conversationId = $this->idOrDenied($id);
         $message = $request->body('message');
         $after = $request->body('after');
+        $mentions = $request->body('mentions');
 
-        return $this->guarded(function () use ($user, $conversationId, $message, $after): JsonResponse {
-            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '');
+        return $this->guarded(function () use ($user, $conversationId, $message, $after, $mentions): JsonResponse {
+            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '', $this->mentionIds($mentions));
             $anchor = StrictId::from($after) ?? max(0, $created->id() - 1);
 
             return $this->updatesResponse($user->id(), $conversationId, min($anchor, $created->id() - 1), 201);
@@ -154,37 +161,11 @@ final class ConversationApiController
         });
     }
 
-    /** Met la conversation à la corbeille (initiateur seulement). */
-    public function destroy(Request $request, string $id): JsonResponse
+    /** Retire un invité (celui qui l'a ajouté, l'initiateur de la conversation, ou l'invité qui quitte). */
+    public function removeGuest(Request $request, string $id, string $userId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->conversationService->delete($user->id(), $this->idOrDenied($id));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
-    public function restore(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->conversationService->restore($user->id(), $this->idOrDenied($id));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
-    /** Suppression définitive d'une conversation déjà à la corbeille. */
-    public function destroyPermanently(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->conversationService->deletePermanently($user->id(), $this->idOrDenied($id));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
-    /** Ferme un avis de la personne connectée (celui d'un autre est ignoré). */
-    public function dismissAlert(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->conversationService->dismissAlert($user->id(), $this->idOrDenied($id));
+        $this->guestService->remove($user->id(), $this->idOrDenied($id), $this->idOrDenied($userId));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -224,6 +205,23 @@ final class ConversationApiController
         } catch (ConversationRateLimitException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 429);
         }
+    }
+
+    /**
+     * Identifiants des personnes taguées : absent ou null = aucune ; un autre type que la liste est refusé (422).
+     *
+     * @return list<mixed> identifiants non fiables, validés par le service
+     */
+    private function mentionIds(mixed $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new ConversationValidationException(['mentions' => 'La liste des personnes mentionnées est invalide.']);
+        }
+
+        return $value;
     }
 
     private function idOrDenied(mixed $value): int
