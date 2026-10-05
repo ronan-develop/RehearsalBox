@@ -112,6 +112,8 @@ export class RbComposer extends HTMLElement {
     this.#refreshNotice();
     this.#flushDraft(); // champ vidé : le brouillon est effacé (réécrit par restore() si l'envoi échoue)
     emit(this, EVT.SUBMIT, { text, mentions });
+    // Le champ garde le focus après l'envoi (bouton ou touche) : sur mobile le clavier reste ouvert pour enchaîner.
+    this.field.focus({ preventScroll: true });
   }
 
   #scheduleDraftSave() {

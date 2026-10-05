@@ -11,7 +11,7 @@ $composerHidden = $composerHidden ?? false;
     <form class="rb-chat-form" data-chat-form<?= $composerHidden ? ' hidden' : '' ?>>
         <ul class="rb-chat-mention-list" role="listbox" aria-label="Personnes à mentionner" data-mention-list hidden></ul>
         <p class="rb-chat-mention-notice" role="status" data-mention-notice hidden></p>
-        <textarea name="message" rows="1" maxlength="5000" class="rb-input" placeholder="Votre message (@ pour mentionner)" aria-label="Votre message" aria-autocomplete="list" required></textarea>
+        <textarea name="message" rows="1" maxlength="5000" class="rb-input" placeholder="Votre message (@ pour mentionner)" aria-label="Votre message" aria-autocomplete="list" enterkeyhint="send" required></textarea>
         <button type="submit" class="rb-btn rb-btn-primary rb-chat-send">Envoyer</button>
     </form>
 </rb-composer>

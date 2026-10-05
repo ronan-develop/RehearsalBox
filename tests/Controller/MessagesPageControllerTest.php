@@ -355,6 +355,15 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheComposerAsksTheMobileKeyboardForASendKey(): void
+    {
+        [$alice, , $id] = $this->conversationFromAlice();
+        $this->loginAs($alice);
+
+        self::assertStringContainsString('enterkeyhint="send"', $this->controller->show($this->request(), (string) $id)->body());
+    }
+
+    #[Test]
     public function testThePageCarriesTheViewersIdSoDraftsAreKeptPerUser(): void
     {
         [$alice, $bob] = $this->conversationFromAlice();

@@ -110,6 +110,12 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testPageTransitionsAreNativeAndRespectReducedMotion(): void
+    {
+        self::assertMatchesRegularExpression('/@media \(prefers-reduced-motion: no-preference\)\s*\{\s*@view-transition\s*\{\s*navigation:\s*auto;/s', $this->css(), 'fondu natif entre pages, aucun script, désactivé pour qui réduit les animations');
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

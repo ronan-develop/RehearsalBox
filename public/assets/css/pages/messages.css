@@ -776,3 +776,11 @@ rb-composer {
 .rb-chat-new-messages[hidden] {
   display: none;
 }
+
+/* Transitions de page natives (#187) : les navigations classiques entre pages de la messagerie deviennent des fondus, sans
+   une ligne de JS ni routage client ; ignoré par les navigateurs qui ne le gèrent pas, et désactivé si l'on réduit les animations. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
