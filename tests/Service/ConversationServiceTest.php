@@ -264,6 +264,23 @@ final class ConversationServiceTest extends RepositoryTestCase
         }
     }
 
+    #[Test]
+    public function testPollCarriesThePreviousMessageSoTheViewCanContinueTheDayAndTheRun(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
+        $first = $this->service->open($alice->id(), $conversation->id())->messages()[0];
+        $this->clock->sleep(10);
+        $this->service->reply($bob->id(), $conversation->id(), 'Deuxième');
+
+        $update = $this->service->poll($alice->id(), $conversation->id(), $first->id());
+
+        self::assertSame('Premier', $update->previous()?->body());
+        self::assertNull($this->service->open($alice->id(), $conversation->id())->previous(), 'fil complet : rien avant');
+        self::assertNull($this->service->poll($alice->id(), $conversation->id(), 0)->previous());
+        self::assertNull($this->service->poll($alice->id(), $conversation->id(), 99999)->previous(), 'ancre inconnue');
+    }
+
     // --- Pastille : groupe de l'auteur -------------------------------------------------------------
 
     #[Test]

@@ -185,6 +185,7 @@ final class ConversationService
             $this->seenReceipt($conversation, $userId),
             $this->authorGroups($conversation, $messages),
             $firstUnreadId,
+            $afterId > 0 ? $this->conversations->messageById($conversation->id(), $afterId) : null,
         );
     }
 

@@ -23,6 +23,7 @@ final class ConversationThread
         private readonly ?SeenReceipt $seen,
         private readonly array $authorGroups,
         private readonly ?int $firstUnreadId = null,
+        private readonly ?ConversationMessage $previous = null,
     ) {
     }
 
@@ -63,6 +64,12 @@ final class ConversationThread
     public function firstUnreadId(): ?int
     {
         return $this->firstUnreadId;
+    }
+
+    /** Message qui précède ceux d'une lecture incrémentale (continuité du jour et de la série), null pour un fil complet. */
+    public function previous(): ?ConversationMessage
+    {
+        return $this->previous;
     }
 
     public function authorGroup(int $authorId): ?Group

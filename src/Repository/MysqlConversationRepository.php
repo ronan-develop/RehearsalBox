@@ -73,6 +73,19 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return new ConversationMessage($id, $conversationId, $authorId, (string) $name->fetchColumn(), $body, $now, $system);
     }
 
+    public function messageById(int $conversationId, int $messageId): ?ConversationMessage
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at
+             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+             WHERE m.conversation_id = :conversation_id AND m.id = :id'
+        );
+        $statement->execute(['conversation_id' => $conversationId, 'id' => $messageId]);
+        $row = $statement->fetch(\PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $this->hydrateMessage($row, $conversationId);
+    }
+
     public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage
     {
         $statement = $this->pdo->prepare(
