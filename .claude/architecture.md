@@ -31,6 +31,23 @@ Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, insér
 - **DIP** — chaque `Service`/`Repository` dépend d'une interface (`Contract/`), jamais d'une implémentation concrète
 - **DRY** — CSRF, auth, échappement HTML chacun centralisés une fois (`CsrfTokenManager`, `AuthGuard`, helper `e()`)
 
+## Brancher un composant Symfony
+
+L'application n'est pas un projet Symfony, mais elle est **prête à en accueillir les composants** : le métier (`Service/`, `Entity/`) ne dépend que d'interfaces (ports) — `*RepositoryInterface`, `MailerInterface`, `ClockInterface`, `PasswordHasherInterface`, `SessionInterface` — et chaque implémentation (adaptateur) se lie dans `config/services.php`. Brancher un composant = l'ajouter à `composer.json` (dernière version, bibliothèque **maintenue**), écrire ou lier l'adaptateur dans `services.php`, jamais de classe concrète Symfony dans une signature du métier quand une interface existe.
+
+| Composant | Statut | Remarque |
+|---|---|---|
+| `symfony/mailer`, `mime` | En place | `MailerInterface` injecté ; gabarits dans `templates/mail`. |
+| `symfony/clock` | En place (#170) | `ClockInterface` (PSR-20) lié au conteneur ; `MockClock` en test. Les services existants migrent au fil des tickets (paramètre `?DateTimeImmutable $now` → horloge injectée), la messagerie l'utilise d'emblée. |
+| `symfony/string` | À considérer | Remplacerait `Support\Slug` / `Initials` par un code maintenu (unicode). Gain faible. |
+| `symfony/security-csrf` | À évaluer | Remplacerait `CsrfTokenManager` (code maison sur un point de sécurité) ; dépendances à mesurer. |
+| `symfony/rate-limiter` | Écarté pour l'instant | Nos limites comptent des lignes déjà stockées (testé, sans cache). À revoir si elles se multiplient. |
+| `symfony/validator` | Écarté | Trop de dépendances pour trois petites politiques de saisie. |
+| `symfony/mercure` | Impossible | Demande un hub permanent, impossible sur mutualisé (polling à la place). |
+| `routing`, `http-foundation`, `http-kernel` | Écarté | Remplacer le socle minimal = réécrire tous les contrôleurs, pour un gain faible. |
+
+**Mises à jour** : `.github/dependabot.yml` propose les PR (composer + GitHub Actions) chaque semaine ; `composer audit` tourne en CI et avant chaque déploiement. Symfony 8.x est une branche à versions mineures courtes (passer à la mineure suivante à chaque sortie) ; la branche LTS reste une option si le rythme pèse.
+
 ## Règle critique — pas d'ORM
 
 Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requêtes en PDO préparé (`PDO::ATTR_EMULATE_PREPARES => false`). Voir le point clé sur la concurrence ci-dessous et le plan de sécurité pour le détail des règles (injection, IDOR).
