@@ -32,7 +32,8 @@
     display: flex;
   }
 
-  .rb-chat-back {
+  /* .rb-chat devant : plus spécifique que .rb-chat-icon-link (déclaré plus bas, display: inline-flex). */
+  .rb-chat .rb-chat-back {
     display: none;
   }
 }

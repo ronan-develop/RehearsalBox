@@ -29,7 +29,7 @@ final class ChatCssTest extends TestCase
         $css = $this->css();
 
         self::assertMatchesRegularExpression('/@media \(min-width: 900px\)\s*\{[^@]*grid-template-columns:\s*minmax\(280px, 360px\)/s', $css);
-        self::assertMatchesRegularExpression('/@media \(min-width: 900px\)\s*\{[^@]*\.rb-chat-back\s*\{[^}]*display:\s*none/s', $css, 'le retour mobile disparaît sur grand écran');
+        self::assertMatchesRegularExpression('/@media \(min-width: 900px\)\s*\{[^@]*\.rb-chat \.rb-chat-back\s*\{[^}]*display:\s*none/s', $css, 'le retour mobile disparaît sur grand écran (spécificité supérieure à .rb-chat-icon-link, déclarée plus bas)');
     }
 
     #[Test]
