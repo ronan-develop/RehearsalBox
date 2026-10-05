@@ -13,7 +13,12 @@ use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
+use App\Repository\MysqlConversationNoticeRepository;
+use App\Service\ConversationNotifier;
 use App\Service\ConversationService;
+use App\Tests\Support\FailingMailer;
+use App\Tests\Support\RecordingMailer;
+use Symfony\Component\Mailer\MailerInterface;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Tests\RepositoryTestCase;
@@ -148,6 +153,83 @@ final class ConversationServiceTest extends RepositoryTestCase
         $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), str_repeat('é', 5000), str_repeat('é', 150));
 
         self::assertSame(150, mb_strlen((string) $conversation->title()));
+    }
+
+    // --- E-mail au contact du groupe visé (#180) ----------------------------------------------------------
+
+    private function serviceWithMailer(MailerInterface $mailer): ConversationService
+    {
+        return new ConversationService(
+            new MysqlConversationRepository($this->pdo),
+            $this->groups,
+            new TransactionRunner($this->pdo),
+            $this->clock,
+            notifier: new ConversationNotifier($mailer, new MysqlConversationNoticeRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+        );
+    }
+
+    #[Test]
+    public function testStartingAConversationEmailsTheTargetGroupContactOnceAndOnlyThat(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $this->groups->addMember($b->id(), $this->user('Zoe')->id());
+        $mailer = new RecordingMailer();
+
+        $conversation = $this->serviceWithMailer($mailer)->start($alice->id(), $a->id(), $b->id(), 'Texte très confidentiel', 'Titre confidentiel');
+
+        self::assertCount(1, $mailer->sent, 'un seul e-mail, pas un par membre');
+        self::assertSame(['beta@rehearsalbox.test'], array_map(static fn ($x) => $x->getAddress(), $mailer->sent[0]->getTo()), 'le contact du groupe visé');
+        $text = (string) $mailer->sent[0]->getTextBody();
+        self::assertStringContainsString('Alice', $text);
+        self::assertStringContainsString('Alpha', $text);
+        self::assertStringContainsString('/messages/' . $conversation->id(), $text);
+        self::assertStringNotContainsString('confidentiel', $text . $mailer->sent[0]->getHtmlBody() . $mailer->sent[0]->getSubject());
+    }
+
+    #[Test]
+    public function testRefusedStartsSendNoEmail(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithMailer($mailer);
+
+        foreach ([
+            fn () => $service->start($alice->id(), $b->id(), $a->id(), 'Message'),
+            fn () => $service->start($alice->id(), $a->id(), $a->id(), 'Message'),
+            fn () => $service->start($alice->id(), $a->id(), $b->id(), '   '),
+            fn () => $service->start($alice->id(), $a->id(), $b->id(), 'Message', str_repeat('x', 151)),
+        ] as $attempt) {
+            try {
+                $attempt();
+            } catch (AccessDeniedException | ConversationValidationException) {
+            }
+        }
+
+        self::assertSame([], $mailer->sent);
+    }
+
+    #[Test]
+    public function testAMailTransportFailureNeverBlocksTheConversation(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+
+        $conversation = $this->serviceWithMailer(new FailingMailer())->start($alice->id(), $a->id(), $b->id(), 'Salut');
+
+        self::assertCount(1, $this->service->open($alice->id(), $conversation->id())->messages(), 'le message est bien envoyé');
+    }
+
+    #[Test]
+    public function testRepliesDoNotSendTheImmediateEmail(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithMailer($mailer);
+        $conversation = $service->start($alice->id(), $a->id(), $b->id(), 'Salut');
+
+        $service->reply($bob->id(), $conversation->id(), 'Réponse');
+        $service->reply($alice->id(), $conversation->id(), 'Encore');
+
+        self::assertCount(1, $mailer->sent, 'seul le premier message prévient le groupe (les relances sont un autre mécanisme)');
     }
 
     // --- Accès ------------------------------------------------------------------------------------

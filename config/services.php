@@ -52,6 +52,9 @@ use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
 use App\Presenter\ConversationTimeline;
 use App\Presenter\MessagesPageView;
+use App\Repository\Contract\ConversationNoticeRepositoryInterface;
+use App\Repository\MysqlConversationNoticeRepository;
+use App\Service\ConversationNotifier;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\MysqlConversationRepository;
@@ -250,11 +253,22 @@ return static function (array $config): Container {
 
     $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
 
+    $container->set(ConversationNoticeRepositoryInterface::class, fn ($c) => new MysqlConversationNoticeRepository($c->get(PDO::class)));
+
+    $container->set(ConversationNotifier::class, fn ($c) => new ConversationNotifier(
+        $c->get(MailerInterface::class),
+        $c->get(ConversationNoticeRepositoryInterface::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
+    ));
+
     $container->set(ConversationService::class, fn ($c) => new ConversationService(
         $c->get(ConversationRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(TransactionRunner::class),
         $c->get(ClockInterface::class),
+        notifier: $c->get(ConversationNotifier::class),
     ));
 
     $container->set(ConversationPresenter::class, static fn () => new ConversationPresenter());
