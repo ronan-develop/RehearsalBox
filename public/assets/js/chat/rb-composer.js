@@ -125,6 +125,7 @@ export class RbComposer extends HTMLElement {
     this.#stashed = '';
     this.#autosize();
     this.#refreshNotice();
+    this.#flushDraft(); // la saisie d'avant, mise de côté, redevient un brouillon conservé
     if (this.banner) {
       this.banner.hidden = true;
     }
