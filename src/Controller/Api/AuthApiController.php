@@ -8,6 +8,7 @@ use App\Entity\Group;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\Exception\AccessDeniedException;
+use App\Support\StrictId;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\LoginThrottle;
 
@@ -61,7 +62,7 @@ final class AuthApiController
 
     public function selectGroup(Request $request): JsonResponse
     {
-        $groupId = (int) $request->body('groupId', 0);
+        $groupId = StrictId::from($request->body('groupId')) ?? 0;
 
         try {
             $this->authService->selectActiveGroup($groupId);

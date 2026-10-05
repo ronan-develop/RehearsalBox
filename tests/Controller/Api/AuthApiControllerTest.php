@@ -187,6 +187,21 @@ final class AuthApiControllerTest extends RepositoryTestCase
         self::assertSame(403, $response->statusCode());
     }
 
+    #[Test]
+    public function testSelectGroupRefusesAMalformedIdentifierInsteadOfTruncatingIt(): void
+    {
+        [$controller, $userRepository, , $groupRepository] = $this->makeController();
+        $user = $userRepository->save(new User(0, 'mona@rehearsalbox.test', (new FastPasswordHasher())->hash('password123'), 'Mona', UserRole::Musicien, true, 0, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Mona', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+        $controller->login(new Request('POST', '/api/auth/login', [], ['email' => 'mona@rehearsalbox.test', 'password' => 'password123'], []));
+
+        // « 12abc » ne doit pas devenir 12 (ici l'identifiant réel du groupe suivi de bruit).
+        $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $group->id() . 'abc'], []));
+
+        self::assertSame(403, $response->statusCode());
+    }
+
     private function loginFrom(AuthApiController $controller, string $ip, string $email, string $password): \App\Http\JsonResponse
     {
         return $controller->login(new Request('POST', '/api/auth/login', [], ['email' => $email, 'password' => $password], [], [], $ip));
