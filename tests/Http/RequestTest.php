@@ -40,4 +40,13 @@ final class RequestTest extends TestCase
         self::assertSame('/tmp/phpXXXXXX', $file['tmp_name']);
         self::assertSame(UPLOAD_ERR_OK, $file['error']);
     }
+
+    #[Test]
+    public function testTheClientAddressIsKeptWhenValidAndEmptyOtherwise(): void
+    {
+        self::assertSame('203.0.113.7', (new Request('GET', '/', [], [], [], [], '203.0.113.7'))->clientIp());
+        self::assertSame('2001:db8::1', (new Request('GET', '/', [], [], [], [], '2001:db8::1'))->clientIp());
+        self::assertSame('', (new Request('GET', '/', [], [], []))->clientIp());
+        self::assertSame('', (new Request('GET', '/', [], [], [], [], 'pas-une-adresse'))->clientIp());
+    }
 }

@@ -12,7 +12,9 @@ use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\Support\FastPasswordHasher;
+use App\Repository\MysqlLoginFailureRepository;
 use App\Service\AuthService;
+use App\Service\LoginThrottle;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,7 +28,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $hasher = new FastPasswordHasher();
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, $hasher, $session, $groupRepository);
-        $controller = new AuthApiController($authService);
+        $controller = new AuthApiController($authService, new LoginThrottle(new MysqlLoginFailureRepository($this->pdo)));
 
         return [$controller, $userRepository, $session, $groupRepository];
     }
@@ -183,5 +185,66 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $otherGroup->id()], []));
 
         self::assertSame(403, $response->statusCode());
+    }
+
+    #[Test]
+    public function testSelectGroupRefusesAMalformedIdentifierInsteadOfTruncatingIt(): void
+    {
+        [$controller, $userRepository, , $groupRepository] = $this->makeController();
+        $user = $userRepository->save(new User(0, 'mona@rehearsalbox.test', (new FastPasswordHasher())->hash('password123'), 'Mona', UserRole::Musicien, true, 0, null));
+        $group = $groupRepository->save(new Group(0, 'Groupe Mona', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id());
+        $controller->login(new Request('POST', '/api/auth/login', [], ['email' => 'mona@rehearsalbox.test', 'password' => 'password123'], []));
+
+        // « 12abc » ne doit pas devenir 12 (ici l'identifiant réel du groupe suivi de bruit).
+        $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $group->id() . 'abc'], []));
+
+        self::assertSame(403, $response->statusCode());
+    }
+
+    private function loginFrom(AuthApiController $controller, string $ip, string $email, string $password): \App\Http\JsonResponse
+    {
+        return $controller->login(new Request('POST', '/api/auth/login', [], ['email' => $email, 'password' => $password], [], [], $ip));
+    }
+
+    #[Test]
+    public function testAnAddressThatKeepsFailingIsRefusedEvenWithTheRightPassword(): void
+    {
+        [$controller, $userRepository] = $this->makeController();
+        $userRepository->save(new User(0, 'dana@rehearsalbox.test', (new FastPasswordHasher())->hash('password123'), 'Dana', UserRole::Musicien, true, 0, null));
+        // Des comptes DIFFÉRENTS (dont un inconnu) : la limite est par adresse, aucun compte n'est verrouillé.
+        for ($i = 0; $i < LoginThrottle::MAX_FAILURES; ++$i) {
+            self::assertSame(401, $this->loginFrom($controller, '203.0.113.7', "personne{$i}@rehearsalbox.test", 'faux')->statusCode());
+        }
+
+        $blocked = $this->loginFrom($controller, '203.0.113.7', 'dana@rehearsalbox.test', 'password123');
+
+        self::assertSame(429, $blocked->statusCode());
+        self::assertSame((string) LoginThrottle::RETRY_AFTER_SECONDS, $blocked->headers()['Retry-After']);
+        self::assertSame(0, $userRepository->findByEmail('dana@rehearsalbox.test')->failedLoginAttempts(), 'aucun compte touché par la limite');
+    }
+
+    #[Test]
+    public function testAnotherAddressStillSignsInNormally(): void
+    {
+        [$controller, $userRepository] = $this->makeController();
+        $userRepository->save(new User(0, 'dana@rehearsalbox.test', (new FastPasswordHasher())->hash('password123'), 'Dana', UserRole::Musicien, true, 0, null));
+        for ($i = 0; $i < LoginThrottle::MAX_FAILURES; ++$i) {
+            $this->loginFrom($controller, '203.0.113.7', "personne{$i}@rehearsalbox.test", 'faux');
+        }
+        self::assertSame(429, $this->loginFrom($controller, '203.0.113.7', 'dana@rehearsalbox.test', 'password123')->statusCode());
+
+        self::assertSame(200, $this->loginFrom($controller, '198.51.100.9', 'dana@rehearsalbox.test', 'password123')->statusCode());
+    }
+
+    #[Test]
+    public function testSuccessfulLoginsNeverCountAgainstTheAddress(): void
+    {
+        [$controller, $userRepository] = $this->makeController();
+        $userRepository->save(new User(0, 'dana@rehearsalbox.test', (new FastPasswordHasher())->hash('password123'), 'Dana', UserRole::Musicien, true, 0, null));
+
+        for ($i = 0; $i < LoginThrottle::MAX_FAILURES + 5; ++$i) {
+            self::assertSame(200, $this->loginFrom($controller, '203.0.113.7', 'dana@rehearsalbox.test', 'password123')->statusCode());
+        }
     }
 }

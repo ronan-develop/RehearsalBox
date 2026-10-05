@@ -77,40 +77,6 @@ final class User
         return $this->sessionVersion;
     }
 
-    /** Verrouille temporairement le compte après le seuil d'échecs (cf. plan §10.4). */
-    public function withFailedLoginAttempt(int $maxAttempts, \DateTimeImmutable $now, string $lockDuration): self
-    {
-        $attempts = $this->failedLoginAttempts + 1;
-        $lockedUntil = $attempts >= $maxAttempts ? $now->modify($lockDuration) : $this->lockedUntil;
-
-        return new self(
-            $this->id,
-            $this->email,
-            $this->passwordHash,
-            $this->displayName,
-            $this->role,
-            $this->isActive,
-            $attempts,
-            $lockedUntil,
-            $this->sessionVersion,
-        );
-    }
-
-    public function withResetFailedAttempts(): self
-    {
-        return new self(
-            $this->id,
-            $this->email,
-            $this->passwordHash,
-            $this->displayName,
-            $this->role,
-            $this->isActive,
-            0,
-            null,
-            $this->sessionVersion,
-        );
-    }
-
     /**
      * Nouveau mot de passe (déjà haché) : remet aussi à zéro les échecs de connexion et le verrouillage,
      * et ferme toutes les autres sessions (version incrémentée).

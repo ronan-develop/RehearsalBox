@@ -89,6 +89,30 @@ final class MysqlUserRepository implements UserRepositoryInterface
         return $this->findById($user->id());
     }
 
+    /** Plafond du compteur : la colonne est un petit entier, un compte attaqué pendant des jours ne doit pas la faire déborder. */
+    private const MAX_RECORDED_FAILURES = 100;
+
+    public function recordFailedLogin(int $userId, int $maxAttempts, \DateTimeImmutable $now, string $lockDuration): void
+    {
+        // « locked_until » AVANT le compteur : MariaDB évalue les affectations de gauche à droite, l'ordre fait lire l'ancienne valeur.
+        $this->pdo->prepare(
+            'UPDATE users SET
+                 locked_until = IF(failed_login_attempts + 1 >= :max_attempts, :locked_until, locked_until),
+                 failed_login_attempts = LEAST(failed_login_attempts + 1, :cap)
+             WHERE id = :id'
+        )->execute([
+            'max_attempts' => $maxAttempts,
+            'locked_until' => $now->modify($lockDuration)->format('Y-m-d H:i:s'),
+            'cap' => self::MAX_RECORDED_FAILURES,
+            'id' => $userId,
+        ]);
+    }
+
+    public function resetFailedLogins(int $userId): void
+    {
+        $this->pdo->prepare('UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = :id')->execute(['id' => $userId]);
+    }
+
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): User
     {

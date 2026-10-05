@@ -71,6 +71,14 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - Les assets servis directement par Apache (CSS, JS) reçoivent `nosniff` via `public/.htaccess`.
 - JS : tout HTML construit côté client échappe ses données avec `escapeHtml` de `assets/js/html.js` (module unique).
 
+## Connexion : verrou, limite par adresse, temps de réponse (#218)
+
+- **Verrou par compte** : 5 échecs → 15 minutes. Le compteur est incrémenté **en SQL, en une seule requête** (`UserRepositoryInterface::recordFailedLogin`) : jamais « lire, calculer en PHP, réécrire la ligne » (des tentatives simultanées s'écraseraient et le verrou serait contournable). Le compteur est plafonné (colonne étroite). Remise à zéro atomique aussi (`resetFailedLogins`, utilisée par la connexion réussie et le déblocage administrateur).
+- **Limite par adresse** (`LoginThrottle`, table `login_failures`) : 20 échecs en 15 minutes → 429 + `Retry-After`, **avant** de toucher à un compte (la limite ne verrouille jamais personne et ne dépend d'aucun compte). L'adresse (celle de la connexion TCP, jamais un en-tête falsifiable) est stockée en **empreinte SHA-256 propre à l'application**, jamais en clair, et purgée après 24 h. Adresse absente = personne n'est bloqué.
+- **Temps de réponse homogène** : compte inconnu, inactif ou verrouillé → `PasswordHasherInterface::simulateVerification` (un hachage jeté coûte autant qu'une vérification). Un test compte les opérations de hachage de chaque branche.
+- Risque résiduel connu : un attaquant qui change d'adresse peut encore verrouiller un compte précis 15 minutes (5 échecs) ; un administrateur peut le débloquer. Un compte n'est jamais verrouillé par la limite d'adresse.
+- Après un déploiement, vérifier que deux clients différents sont bien vus avec des adresses différentes (sinon la limite par adresse bloquerait tout le monde).
+
 ## Règle critique — pas d'ORM
 
 Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requêtes en PDO préparé (`PDO::ATTR_EMULATE_PREPARES => false`). Voir le point clé sur la concurrence ci-dessous et le plan de sécurité pour le détail des règles (injection, IDOR).

@@ -11,6 +11,7 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
+use App\Tests\Support\CountingPasswordHasher;
 use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Tests\RepositoryTestCase;
@@ -306,5 +307,37 @@ final class AuthServiceTest extends RepositoryTestCase
         $userRepository->save($userRepository->findById($user->id())->withActive(false));
 
         self::assertNull($service->currentUser(), 'une session ouverte avant la désactivation ne doit plus être valide');
+    }
+
+    #[Test]
+    public function testEveryOutcomeSpendsExactlyOneHashingOperationSoResponseTimeRevealsNothing(): void
+    {
+        $users = new MysqlUserRepository($this->pdo);
+        $hasher = new CountingPasswordHasher();
+        $service = new AuthService($users, $hasher, new InMemorySession(), new MysqlGroupRepository($this->pdo));
+        $this->createUser($users, 'alice@rehearsalbox.test', 'password123');
+        $inactive = $this->createUser($users, 'inactive@rehearsalbox.test', 'password123');
+        $users->save($inactive->withActive(false));
+        $locked = $this->createUser($users, 'locked@rehearsalbox.test', 'password123');
+        for ($i = 0; $i < AuthService::MAX_FAILED_ATTEMPTS; ++$i) {
+            $users->recordFailedLogin($locked->id(), AuthService::MAX_FAILED_ATTEMPTS, new \DateTimeImmutable(), AuthService::LOCK_DURATION);
+        }
+
+        $cases = [
+            'compte inconnu' => ['nobody@rehearsalbox.test', 'password123', 0, 1],
+            'compte inactif' => ['inactive@rehearsalbox.test', 'password123', 0, 1],
+            'compte verrouillé, bon mot de passe' => ['locked@rehearsalbox.test', 'password123', 0, 1],
+            'mauvais mot de passe' => ['alice@rehearsalbox.test', 'faux-mot-de-passe', 1, 0],
+            'connexion réussie' => ['alice@rehearsalbox.test', 'password123', 1, 0],
+        ];
+        foreach ($cases as $label => [$email, $password, $verifications, $simulations]) {
+            $hasher->verifications = 0;
+            $hasher->simulations = 0;
+
+            $service->attempt($email, $password);
+
+            self::assertSame($verifications, $hasher->verifications, "{$label} : vérifications");
+            self::assertSame($simulations, $hasher->simulations, "{$label} : simulations");
+        }
     }
 }

@@ -33,29 +33,22 @@ final class AuthService implements AuthServiceInterface
         $user = $this->userRepository->findByEmail($email);
         $now = new \DateTimeImmutable();
 
-        if ($user === null) {
-            return null;
-        }
+        // Compte inconnu, désactivé ou verrouillé : refus indiscernable d'un mauvais mot de passe, sans compter d'échec ni
+        // ouvrir de session. Une opération de hachage est dépensée dans tous les cas : le temps de réponse ne révèle rien.
+        if ($user === null || !$user->isActive() || $user->isLocked($now)) {
+            $this->passwordHasher->simulateVerification($plainPassword);
 
-        // Compte désactivé : refus indiscernable d'un mauvais mot de passe (même réponse),
-        // sans compter d'échec ni ouvrir de session.
-        if (!$user->isActive()) {
-            return null;
-        }
-
-        if ($user->isLocked($now)) {
             return null;
         }
 
         if (!$this->passwordHasher->verify($plainPassword, $user->passwordHash())) {
-            $this->userRepository->save(
-                $user->withFailedLoginAttempt(self::MAX_FAILED_ATTEMPTS, $now, self::LOCK_DURATION)
-            );
+            // Écriture atomique ciblée (pas de « lire, calculer, réécrire la ligne » : des tentatives simultanées s'écraseraient).
+            $this->userRepository->recordFailedLogin($user->id(), self::MAX_FAILED_ATTEMPTS, $now, self::LOCK_DURATION);
 
             return null;
         }
 
-        $user = $this->userRepository->save($user->withResetFailedAttempts());
+        $this->userRepository->resetFailedLogins($user->id());
 
         $this->session->regenerate();
         $this->session->set(self::SESSION_KEY_USER_ID, $user->id());
