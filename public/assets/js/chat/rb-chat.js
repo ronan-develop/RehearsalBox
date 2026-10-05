@@ -1,35 +1,30 @@
 /**
- * <rb-chat> : contrôleur de la messagerie (#169, #181). Il possède l'état (conversation ouverte, messages, brouillon),
- * écoute les événements des composants (<rb-sidebar>, <rb-thread-header>, <rb-message-list>, <rb-composer>) et parle à
- * l'API. Quasi temps réel par polling (mutualisé : ni WebSocket ni processus permanent) : des boucles async/await
- * annulables d'un seul AbortController, en pause quand l'onglet est caché.
+ * <rb-chat> : contrôleur du direct de la messagerie (#169, #181, #183). Les pages sont rendues par le serveur et la
+ * navigation est de la navigation classique (vrais liens) : ce contrôleur n'ajoute que ce qui doit vivre sans recharger
+ * la page — recevoir les nouveaux messages (polling), envoyer, signaler qu'on écrit, renommer. Il écoute les événements
+ * des composants (<rb-thread-header>, <rb-composer>) et ajoute les fragments HTML rendus par le serveur à <rb-message-list>.
+ * Boucles async/await annulables d'un seul AbortController, en pause quand l'onglet est caché ; les opérations qui
+ * touchent au fil sont sérialisées pour qu'une réponse et un polling ne s'entrecroisent jamais.
  */
 import './rb-sidebar.js';
 import './rb-thread-header.js';
 import './rb-message-list.js';
 import './rb-composer.js';
 import {
-  fetchList, fetchThread, sendMessage, renameConversation, sendTyping, startConversation,
+  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation,
 } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
 import { EVT } from './events.js';
-import {
-  typingText, seenText, nextPollDelay, routeFor, parseRoute, mergeMessages, lastMessageId,
-} from './model.js';
+import { nextPollDelay } from './model.js';
 import { showToast } from '../toast.js';
 
-const LIST_POLL_MS = 30000;
-
 export class RbChat extends HTMLElement {
-  #lifetime = new AbortController(); // vit autant que l'élément (boucle de la liste)
-  #session = null; // AbortController de la conversation ouverte (chargement + polling)
+  #lifetime = new AbortController();
   #activeId = null;
   #draftTargetId = null;
-  #inArchives = false;
-  #messages = [];
-  #pending = [];
-  #pendingSeq = 0;
+  #lastId = 0;
   #idle = 0;
+  #chain = Promise.resolve();
 
   connectedCallback() {
     this.sidebar = this.querySelector('rb-sidebar');
@@ -37,140 +32,40 @@ export class RbChat extends HTMLElement {
     this.messageList = this.querySelector('rb-message-list');
     this.composer = this.querySelector('rb-composer');
     this.statusEl = this.querySelector('[data-chat-status]');
-    this.placeholder = this.querySelector('[data-chat-placeholder]');
-    this.threadEl = this.querySelector('[data-chat-thread]');
 
     this.#activeId = this.dataset.activeId || null;
     this.#draftTargetId = this.dataset.draftTargetId || null;
+    this.#lastId = Number(this.dataset.lastId || 0);
 
-    this.addEventListener(EVT.SELECT, (event) => this.#open(event.detail.id));
-    this.addEventListener(EVT.ARCHIVES, (event) => this.#showArchives(event.detail.on));
-    this.addEventListener(EVT.BACK, () => this.#close());
-    this.addEventListener(EVT.RENAME, (event) => this.#rename(event.detail.title));
-    this.addEventListener(EVT.SUBMIT, (event) => this.#submit(event.detail.text));
+    this.addEventListener(EVT.RENAME, (event) => this.#serial(() => this.#rename(event.detail.title)));
+    this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail.text)));
     this.addEventListener(EVT.TYPING, () => {
       if (this.#activeId !== null) {
         sendTyping(this.#activeId).catch(() => {});
       }
     });
-    window.addEventListener('popstate', () => this.#onPopState(), { signal: this.#lifetime.signal });
 
-    this.#listLoop(this.#lifetime.signal);
     if (this.#draftTargetId !== null) {
       this.header.setDraft(true);
       this.composer.focus();
     } else if (this.#activeId !== null) {
-      this.#open(this.#activeId, { push: false });
-    } else {
-      this.#setView('list');
+      if (!this.messageList.scrollToUnread()) {
+        this.messageList.scrollToBottom();
+      }
+      this.#pollLoop(this.#lifetime.signal);
     }
   }
 
   disconnectedCallback() {
     this.#lifetime.abort();
-    this.#session?.abort();
   }
 
-  #setView(view) {
-    this.dataset.view = view;
-  }
+  /** Une seule opération sur le fil à la fois (envoi, renommage, polling) : jamais de doublon de message. */
+  #serial(task) {
+    const run = this.#chain.then(task, task);
+    this.#chain = run.catch(() => {});
 
-  // --- Liste ---------------------------------------------------------------------------------------------
-
-  async #listLoop(signal) {
-    let first = true;
-    while (!signal.aborted) {
-      try {
-        await whenVisible(document, signal);
-        await this.#loadList({ signal, quiet: !first });
-        first = false;
-        await sleep(LIST_POLL_MS, signal);
-      } catch (error) {
-        if (isAbort(error)) {
-          return;
-        }
-        await sleep(LIST_POLL_MS, signal).catch(() => {});
-      }
-    }
-  }
-
-  async #loadList({ signal, quiet = true } = {}) {
-    try {
-      const { conversations, unread } = await fetchList(this.#inArchives ? 'archived' : 'active', { signal });
-      this.sidebar.setConversations(conversations, this.#activeId, { archived: this.#inArchives });
-      this.sidebar.setArchivesUnread(unread.archived);
-    } catch (error) {
-      if (!isAbort(error) && !quiet) {
-        showToast(error.message, 'error');
-      }
-      throw error;
-    }
-  }
-
-  #refreshList() {
-    this.#loadList().catch(() => {});
-  }
-
-  #showArchives(on) {
-    this.#inArchives = on;
-    this.sidebar.showArchives(on);
-    this.#refreshList();
-  }
-
-  // --- Fil ---------------------------------------------------------------------------------------------------
-
-  async #open(id, { push = true } = {}) {
-    this.#session?.abort();
-    const session = new AbortController();
-    this.#session = session;
-    this.#activeId = String(id);
-    this.#draftTargetId = null;
-    this.#pending = [];
-    this.#idle = 0;
-    this.placeholder.hidden = true;
-    this.threadEl.hidden = false;
-    this.header.setDraft(false);
-    this.#setView('thread');
-    if (push) {
-      history.pushState({ id: this.#activeId }, '', routeFor(this.#activeId));
-    }
-
-    let data;
-    try {
-      data = await fetchThread(this.#activeId, undefined, { signal: session.signal });
-    } catch (error) {
-      if (!isAbort(error)) {
-        showToast(error.message, 'error');
-        this.#close({ push: false });
-      }
-      return;
-    }
-
-    this.#messages = data.messages;
-    this.header.setThread(data);
-    this.messageList.render(this.#messages, { firstUnreadId: data.firstUnreadId });
-    if (!this.messageList.scrollToUnread()) {
-      this.messageList.scrollToBottom();
-    }
-    this.#refreshStatus(data);
-    this.#refreshList();
-    this.#pollLoop(session.signal);
-  }
-
-  #close({ push = true } = {}) {
-    this.#session?.abort();
-    this.#session = null;
-    this.#activeId = null;
-    this.#draftTargetId = null;
-    this.#messages = [];
-    this.#pending = [];
-    this.threadEl.hidden = true;
-    this.placeholder.hidden = false;
-    this.#setView('list');
-    if (push) {
-      history.pushState({ id: null }, '', routeFor(null));
-    }
-    this.#refreshList();
+    return run;
   }
 
   async #pollLoop(signal) {
@@ -178,7 +73,7 @@ export class RbChat extends HTMLElement {
       try {
         await sleep(nextPollDelay(this.#idle), signal);
         await whenVisible(document, signal);
-        await this.#pollOnce(signal);
+        await this.#serial(() => this.#pollOnce(signal));
       } catch (error) {
         if (isAbort(error)) {
           return;
@@ -188,37 +83,29 @@ export class RbChat extends HTMLElement {
     }
   }
 
-  /** Une lecture incrémentale : les messages plus récents, qui écrit, « vu par », titre éventuellement renommé. */
-  async #pollOnce(signal = this.#session?.signal) {
-    const id = this.#activeId;
-    const update = await fetchThread(id, lastMessageId(this.#messages), { signal });
-    if (id !== this.#activeId) {
-      return;
-    }
+  /** Une lecture incrémentale : nouveaux messages, qui écrit, « vu par », titre éventuellement renommé. */
+  async #pollOnce(signal) {
+    this.#apply(await fetchUpdates(this.#activeId, this.#lastId, { signal }));
+  }
+
+  /** Applique une réponse du serveur : ajoute les nouveaux messages dessinés par PHP et met à jour l'état. */
+  #apply(update) {
     const stick = this.messageList.nearBottom();
-    const before = this.#messages.length;
-    this.#messages = mergeMessages(this.#messages, update.messages);
+    this.messageList.append(update.html);
+    this.#lastId = Math.max(this.#lastId, update.lastId);
     this.header.setThread(update);
-    this.messageList.render(this.#messages, { pending: this.#pending });
-    this.#refreshStatus(update);
-    if (this.#messages.length > before) {
+    this.statusEl.textContent = update.status;
+    this.statusEl.classList.toggle('rb-chat-status--typing', update.typing);
+    if (update.hasNew) {
       this.#idle = 0;
       if (stick) {
         this.messageList.scrollToBottom();
       }
-      this.#refreshList();
+      this.sidebar.refresh().catch(() => {});
     } else {
       this.#idle += 1;
     }
   }
-
-  #refreshStatus(data) {
-    const typing = typingText(data.typing ?? []);
-    this.statusEl.textContent = typing || seenText(data.seen ?? null);
-    this.statusEl.classList.toggle('rb-chat-status--typing', typing !== '');
-  }
-
-  // --- Envoi optimiste, brouillon, titre -------------------------------------------------------------------------------
 
   async #submit(text) {
     if (this.#draftTargetId !== null) {
@@ -228,80 +115,42 @@ export class RbChat extends HTMLElement {
     if (this.#activeId === null) {
       return;
     }
-    const id = this.#activeId;
-    const draftMessage = { tempId: `tmp-${++this.#pendingSeq}`, body: text, mine: true, failed: false };
-    this.#pending.push(draftMessage);
-    this.messageList.render(this.#messages, { pending: this.#pending });
-    this.messageList.scrollToBottom();
-
     try {
-      const { message } = await sendMessage(id, text);
-      this.#pending = this.#pending.filter((item) => item !== draftMessage);
-      if (id === this.#activeId) {
-        this.#messages = mergeMessages(this.#messages, [message]);
-        this.messageList.render(this.#messages, { pending: this.#pending });
-        this.messageList.scrollToBottom();
-        this.#idle = 0;
-        this.#refreshList();
-      }
+      this.#apply(await sendMessage(this.#activeId, text, this.#lastId));
+      this.messageList.scrollToBottom();
+      this.#idle = 0;
     } catch (error) {
-      this.#pending = this.#pending.filter((item) => item !== draftMessage);
-      this.messageList.render(this.#messages, { pending: this.#pending });
       this.composer.restore(text);
       showToast(error.message, 'error');
     }
   }
 
-  /** Premier message d'un brouillon : la conversation est créée, l'adresse devient /messages/{id} sans rechargement. */
+  /** Premier message d'un brouillon : la conversation est créée, puis navigation classique vers sa page. */
   async #submitDraft(text) {
-    const draftMessage = { tempId: `tmp-${++this.#pendingSeq}`, body: text, mine: true, failed: false };
-    this.messageList.render([], { pending: [draftMessage] });
     try {
       const { id } = await startConversation({
         groupId: this.header.senderId,
         targetGroupId: this.#draftTargetId,
         message: text,
       });
-      history.replaceState({ id: String(id) }, '', routeFor(id));
-      delete this.dataset.draftTargetId;
-      await this.#open(id, { push: false });
+      window.location.assign(`/messages/${id}`);
     } catch (error) {
-      this.messageList.render([]);
       this.composer.restore(text);
       showToast(error.message, 'error');
     }
   }
 
   async #rename(title) {
-    const id = this.#activeId;
-    if (id === null) {
+    if (this.#activeId === null) {
       return;
     }
     try {
-      await renameConversation(id, title);
+      await renameConversation(this.#activeId, title);
       this.header.closeRename();
       await this.#pollOnce();
       this.messageList.scrollToBottom();
     } catch (error) {
-      if (!isAbort(error)) {
-        showToast(error.message, 'error');
-      }
-    }
-  }
-
-  // --- Navigation --------------------------------------------------------------------------------------------------------------
-
-  #onPopState() {
-    if (window.location.pathname.startsWith('/messages/new/')) {
-      window.location.reload();
-
-      return;
-    }
-    const { id } = parseRoute(window.location.pathname);
-    if (id === null) {
-      this.#close({ push: false });
-    } else {
-      this.#open(id, { push: false });
+      showToast(error.message, 'error');
     }
   }
 }

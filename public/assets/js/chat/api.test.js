@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchList, fetchThread, sendMessage, renameConversation, sendTyping, startConversation } from './api.js';
+import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation } from './api.js';
 
 function mockFetch(payload = {}) {
   const calls = [];
@@ -13,28 +13,46 @@ function mockFetch(payload = {}) {
   return calls;
 }
 
-test('fetchList asks for the active or archived list', async () => {
-  const calls = mockFetch({ conversations: [], unread: { total: 0, archived: 0 } });
+test('fetchList reads the unread totals used by the dashboard badge', async () => {
+  const calls = mockFetch({ conversations: [], unread: { total: 2, archived: 0 } });
 
-  await fetchList('archived');
+  const result = await fetchList('active');
 
-  assert.deepEqual([calls[0].method, calls[0].url], ['GET', '/api/conversations?box=archived']);
+  assert.deepEqual([calls[0].method, calls[0].url], ['GET', '/api/conversations?box=active']);
+  assert.equal(result.unread.total, 2);
 });
 
-test('fetchThread opens the full thread without after and polls with after', async () => {
+test('fetchUpdates asks for the messages after the last one displayed', async () => {
+  const calls = mockFetch({ html: '', lastId: 5 });
+
+  await fetchUpdates('12', 5);
+
+  assert.deepEqual([calls[0].method, calls[0].url], ['GET', '/api/conversations/12/updates?after=5']);
+});
+
+test('fetchListFragment asks for the server-rendered list, optionally with the open conversation', async () => {
+  const calls = mockFetch({ html: '', empty: true, archivedUnread: 0 });
+
+  await fetchListFragment('archived');
+  await fetchListFragment('active', '12');
+
+  assert.deepEqual(calls.map((call) => call.url), ['/api/conversation-list?box=archived', '/api/conversation-list?box=active&active=12']);
+});
+
+test('reads accept an AbortSignal so a stale request can be cancelled', async () => {
   const calls = mockFetch({});
+  const controller = new AbortController();
 
-  await fetchThread('12');
-  await fetchThread('12', 30);
-  await fetchThread('12', 0);
+  await fetchUpdates('12', 0, { signal: controller.signal });
+  await fetchListFragment('active', null, { signal: controller.signal });
 
-  assert.deepEqual(calls.map((c) => c.url), ['/api/conversations/12', '/api/conversations/12?after=30', '/api/conversations/12?after=0']);
+  assert.ok(calls.every((call) => call.signal === controller.signal));
 });
 
 test('writes use POST/PATCH with the CSRF token and the expected bodies', async () => {
   const calls = mockFetch({});
 
-  await sendMessage('12', 'Salut');
+  await sendMessage('12', 'Salut', 30);
   await renameConversation('12', 'Concert');
   await renameConversation('12', null);
   await sendTyping('12');
@@ -45,22 +63,10 @@ test('writes use POST/PATCH with the CSRF token and the expected bodies', async 
     ['PATCH', '/api/conversations/12'],
     ['POST', '/api/conversations/12/typing'],
   ]);
-  assert.deepEqual(calls[0].body, { message: 'Salut' });
+  assert.deepEqual(calls[0].body, { message: 'Salut', after: 30 });
   assert.deepEqual(calls[1].body, { title: 'Concert' });
   assert.deepEqual(calls[2].body, { title: null });
   assert.ok(calls.every((c) => c.csrf === 'csrf-token'));
-});
-
-test('reads accept an AbortSignal so a stale request can be cancelled', async () => {
-  const calls = mockFetch({});
-  const controller = new AbortController();
-
-  await fetchList('active', { signal: controller.signal });
-  await fetchThread('12', undefined, { signal: controller.signal });
-  await fetchThread('12', 5, { signal: controller.signal });
-
-  assert.ok(calls.every((call) => call.signal === controller.signal));
-  assert.deepEqual(calls.map((call) => call.url), ['/api/conversations?box=active', '/api/conversations/12', '/api/conversations/12?after=5']);
 });
 
 test('startConversation creates the thread from the first message', async () => {

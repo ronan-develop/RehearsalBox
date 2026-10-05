@@ -1,21 +1,19 @@
 /**
- * <rb-message-list> : le fil en bulles (les miennes à droite, les autres à gauche avec leur pastille). Composant de
- * présentation : il reçoit des messages et les dessine, il ne charge rien. Le texte n'est jamais inséré en HTML.
+ * <rb-message-list> : le fil en bulles, dessiné par le serveur. Le composant n'ajoute que le défilement et l'ajout des
+ * nouveaux messages : le HTML reçu vient du même gabarit PHP que la page (tout contenu d'utilisateur y est échappé par
+ * e()) ; le navigateur ne construit jamais une bulle à partir de texte.
  */
-import { renderMessages } from './view.js';
-
 export class RbMessageList extends HTMLElement {
   connectedCallback() {
     this.list = this.querySelector('.rb-chat-messages-list');
-    if (!this.list) {
-      this.list = document.createElement('ol');
-      this.list.className = 'rb-chat-messages-list';
-      this.append(this.list);
-    }
   }
 
-  render(messages, { pending = [], firstUnreadId = null } = {}) {
-    renderMessages(this.list, messages, { pending, firstUnreadId });
+  /** Ajoute à la fin des lignes déjà dessinées par le serveur (fragment HTML). */
+  append(html) {
+    if (html.trim() === '') {
+      return;
+    }
+    this.list.insertAdjacentHTML('beforeend', html);
   }
 
   nearBottom() {

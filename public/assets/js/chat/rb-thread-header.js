@@ -1,7 +1,7 @@
 /**
- * <rb-thread-header> : en-tête d'une conversation. Mode brouillon (page « nouvelle conversation » : intitulé fixe + choix du
- * groupe émetteur) ou mode fil (titre modifiable au toucher, label des deux groupes). Émet header:rename { title } et
- * header:back ; ne connaît pas l'API.
+ * <rb-thread-header> : en-tête d'une conversation, rendu par le serveur. Mode brouillon (page « nouvelle conversation » :
+ * intitulé fixe + choix du groupe émetteur) ou mode fil (titre que l'on peut modifier au toucher, label des deux groupes).
+ * Émet header:rename { title } ; le retour est un vrai lien ; ne connaît pas l'API.
  */
 import { EVT, emit } from './events.js';
 
@@ -14,7 +14,7 @@ export class RbThreadHeader extends HTMLElement {
     this.renameForm = $('[data-chat-rename-form]');
     this.labelEl = $('[data-chat-label]');
     this.senderSelect = $('[data-chat-sender]');
-    this.currentTitle = '';
+    this.currentTitle = this.titleBtn.dataset.title ?? '';
 
     this.titleBtn.addEventListener('click', () => this.#openRename());
     this.renameForm.addEventListener('submit', (event) => {
@@ -24,12 +24,6 @@ export class RbThreadHeader extends HTMLElement {
     this.renameForm.title.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         this.closeRename();
-      }
-    });
-    $('[data-chat-back]').addEventListener('click', (event) => {
-      if (!(event.metaKey || event.ctrlKey)) {
-        event.preventDefault();
-        emit(this, EVT.BACK);
       }
     });
   }

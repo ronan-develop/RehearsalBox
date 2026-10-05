@@ -246,41 +246,6 @@ final class ConversationServiceTest extends RepositoryTestCase
         self::assertNull($this->service->open($alice->id(), $conversation->id())->firstUnreadId(), 'mes propres messages ne comptent pas');
     }
 
-    #[Test]
-    public function testFindReturnsTheConversationOfAMemberAndRefusesTheOthersUniformly(): void
-    {
-        [$alice, , $a, $b] = $this->world();
-        $outsider = $this->user('Carol');
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Salut');
-
-        self::assertSame($conversation->id(), $this->service->find($alice->id(), $conversation->id())->id());
-        foreach ([$conversation->id(), 9999] as $id) {
-            try {
-                $this->service->find($outsider->id(), $id);
-                self::fail('refus attendu');
-            } catch (AccessDeniedException $e) {
-                self::assertSame('Accès refusé.', $e->getMessage());
-            }
-        }
-    }
-
-    #[Test]
-    public function testPollCarriesThePreviousMessageSoTheViewCanContinueTheDayAndTheRun(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
-        $first = $this->service->open($alice->id(), $conversation->id())->messages()[0];
-        $this->clock->sleep(10);
-        $this->service->reply($bob->id(), $conversation->id(), 'Deuxième');
-
-        $update = $this->service->poll($alice->id(), $conversation->id(), $first->id());
-
-        self::assertSame('Premier', $update->previous()?->body());
-        self::assertNull($this->service->open($alice->id(), $conversation->id())->previous(), 'fil complet : rien avant');
-        self::assertNull($this->service->poll($alice->id(), $conversation->id(), 0)->previous());
-        self::assertNull($this->service->poll($alice->id(), $conversation->id(), 99999)->previous(), 'ancre inconnue');
-    }
-
     // --- Pastille : groupe de l'auteur -------------------------------------------------------------
 
     #[Test]

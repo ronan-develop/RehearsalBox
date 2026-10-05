@@ -93,6 +93,8 @@ rb-composer {
 
 .rb-chat-archives {
   display: flex;
+  box-sizing: border-box;
+  text-decoration: none;
   align-items: center;
   gap: var(--rb-space-2);
   width: 100%;
