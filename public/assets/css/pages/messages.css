@@ -784,3 +784,78 @@ rb-composer {
     navigation: auto;
   }
 }
+
+/* Corriger son message (#200) */
+.rb-chat-body {
+  display: contents; /* zone remplaçable par le polling : aucun effet sur la mise en page de la bulle */
+}
+
+.rb-chat-edited {
+  font-style: italic;
+}
+
+/* Le bouton précède la bulle (à gauche de mes messages) ; visible au survol d'une bulle ou au clavier. Sur mobile : appui long. */
+.rb-chat-edit {
+  order: -1;
+  align-self: center;
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  color: var(--rb-text-3);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.rb-chat-message:hover .rb-chat-edit,
+.rb-chat-edit:focus-visible {
+  opacity: 1;
+}
+
+.rb-chat-edit:hover,
+.rb-chat-edit:focus-visible {
+  color: var(--rb-accent);
+}
+
+@media (hover: none) {
+  /* Pas de survol sur un écran tactile : le bouton reste atteignable au lecteur d'écran, l'appui long est le geste. */
+  .rb-chat-edit {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+.rb-chat-editing {
+  display: flex;
+  flex: 1 0 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rb-space-2);
+  padding: var(--rb-space-1) 0;
+  color: var(--rb-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.rb-chat-editing[hidden] {
+  display: none;
+}
+
+.rb-chat-editing-cancel {
+  min-height: 44px;
+  padding: 0 var(--rb-space-2);
+  color: var(--rb-text-2);
+  background: transparent;
+  border: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

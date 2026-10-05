@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation, trashConversation, restoreConversation, purgeConversation, dismissAlert, searchMembers, removeGuest } from './api.js';
+import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation, trashConversation, restoreConversation, purgeConversation, dismissAlert, searchMembers, removeGuest, editMessage } from './api.js';
 
 function mockFetch(payload = {}) {
   const calls = [];
@@ -124,4 +124,33 @@ test('removeGuest deletes the guest of a conversation', async () => {
   await removeGuest('12', '7');
 
   assert.deepEqual([calls[0].method, calls[0].url], ['DELETE', '/api/conversations/12/guests/7']);
+});
+
+test('fetchUpdates asks for the corrections made since the cursor when it has one', async () => {
+  const calls = mockFetch({ html: '', edited: [], editedAt: 0 });
+
+  await fetchUpdates('12', 5, { editedAfter: 1700000000 });
+  await fetchUpdates('12', 5, { editedAfter: 0 });
+  await fetchUpdates('12', 5);
+
+  assert.deepEqual(calls.map((c) => c.url), [
+    '/api/conversations/12/updates?after=5&editedAfter=1700000000',
+    '/api/conversations/12/updates?after=5&editedAfter=0',
+    '/api/conversations/12/updates?after=5',
+  ]);
+});
+
+test('editMessage patches the message with its new text and only sends mentions when someone is tagged', async () => {
+  const calls = mockFetch({ status: 'ok', edited: [] });
+
+  await editMessage('12', '34', 'Texte corrigé');
+  await editMessage('12', '34', 'Avec @Denis', [9]);
+
+  assert.deepEqual(calls.map((c) => [c.method, c.url]), [
+    ['PATCH', '/api/conversations/12/messages/34'],
+    ['PATCH', '/api/conversations/12/messages/34'],
+  ]);
+  assert.deepEqual(calls[0].body, { message: 'Texte corrigé' });
+  assert.deepEqual(calls[1].body, { message: 'Avec @Denis', mentions: [9] });
+  assert.equal(calls[0].csrf, 'csrf-token');
 });

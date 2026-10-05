@@ -116,6 +116,18 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testEditingHasAHoverButtonAHiddenBannerAndATransparentBodyWrapper(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-body\s*\{[^}]*display:\s*contents/s', $css, 'le conteneur remplaçable ne change pas la mise en page');
+        self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-edit,\s*\.rb-chat-edit:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{\s*[^{}]*\.rb-chat-edit\s*\{[^}]*clip-path/s', $css, 'sur tactile : atteignable au lecteur d\'écran, appui long pour les autres');
+        self::assertMatchesRegularExpression('/\.rb-chat-editing\[hidden\]\s*\{[^}]*display:\s*none/', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-editing-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

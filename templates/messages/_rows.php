@@ -25,6 +25,12 @@ foreach ($rows as $row):
         <?php if (!$row['mine'] && $row['startsRun']): ?><span class="rb-chat-author"><?= e($row['author']) ?></span><?php endif; ?>
         <div class="rb-chat-body" data-message-body><?php require __DIR__ . '/_message-body.php'; ?></div>
     </div>
+    <?php if (!empty($row['editable'])): ?>
+        <?php /* Corriger : au survol ou au clavier sur ordinateur ; sur mobile, appui long sur la bulle. */ ?>
+        <button type="button" class="rb-chat-edit" data-edit-message aria-label="Modifier ce message" title="Modifier ce message">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+    <?php endif; ?>
 </li>
 <?php endif;
 endforeach;

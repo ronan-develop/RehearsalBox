@@ -364,6 +364,25 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheAuthorSeesTheEditButtonOnRecentOwnMessagesOnlyAndThePageCarriesTheCorrectionCursor(): void
+    {
+        [$alice, $bob, $id] = $this->conversationFromAlice();
+
+        $this->loginAs($alice);
+        $mine = $this->controller->show($this->request(), (string) $id)->body();
+        self::assertStringContainsString('data-edit-message', $mine);
+        self::assertStringContainsString('data-composer-edit', $mine, 'bandeau de modification dans la saisie');
+        self::assertStringContainsString('data-edited-at="0"', $mine);
+
+        $this->loginAs($bob);
+        self::assertStringNotContainsString('data-edit-message', $this->controller->show($this->request(), (string) $id)->body(), 'jamais sur les messages des autres');
+
+        $this->clock->modify('+16 minutes');
+        $this->loginAs($alice);
+        self::assertStringNotContainsString('data-edit-message', $this->controller->show($this->request(), (string) $id)->body(), 'plus de bouton après 15 minutes');
+    }
+
+    #[Test]
     public function testThePageCarriesTheViewersIdSoDraftsAreKeptPerUser(): void
     {
         [$alice, $bob] = $this->conversationFromAlice();

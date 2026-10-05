@@ -29,12 +29,16 @@ export class RbComposer extends HTMLElement {
   #drafts = null;
   #draftKey = '';
   #draftTimer = 0;
+  #editing = null; // identifiant du message en cours de correction (#200), null sinon
+  #stashed = ''; // texte de la saisie en cours, mis de côté pendant la correction
 
   connectedCallback() {
     this.form = this.querySelector('form');
     this.field = this.form.elements.message;
     this.list = this.querySelector('[data-mention-list]');
     this.notice = this.querySelector('[data-mention-notice]');
+    this.banner = this.querySelector('[data-composer-edit]');
+    this.querySelector('[data-composer-edit-cancel]')?.addEventListener('click', () => this.cancelEdit());
 
     this.form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -42,6 +46,12 @@ export class RbComposer extends HTMLElement {
     });
     this.field.addEventListener('keydown', (event) => {
       if (this.#handleListKey(event)) {
+        return;
+      }
+      if (event.key === 'Escape' && this.#editing !== null) {
+        event.preventDefault();
+        this.cancelEdit();
+
         return;
       }
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
@@ -88,6 +98,45 @@ export class RbComposer extends HTMLElement {
     }
   }
 
+  /**
+   * Correction d'un message (#200) : la saisie reçoit son texte, un bandeau le rappelle et permet d'annuler. La saisie en
+   * cours et son brouillon sont mis de côté et reviennent à la fin ; le brouillon n'est pas écrit pendant la correction.
+   */
+  startEdit({ id, text }) {
+    if (this.#editing === null) {
+      this.#stashed = this.field.value;
+    }
+    this.#editing = String(id);
+    this.field.value = text;
+    this.#autosize();
+    this.#closeList();
+    this.#refreshNotice();
+    if (this.banner) {
+      this.banner.hidden = false;
+    }
+    this.field.focus();
+    this.field.setSelectionRange(text.length, text.length);
+  }
+
+  /** Correction terminée ou annulée : la saisie d'avant revient. */
+  finishEdit() {
+    this.#editing = null;
+    this.field.value = this.#stashed;
+    this.#stashed = '';
+    this.#autosize();
+    this.#refreshNotice();
+    if (this.banner) {
+      this.banner.hidden = true;
+    }
+    this.field.focus({ preventScroll: true });
+  }
+
+  cancelEdit() {
+    if (this.#editing !== null) {
+      this.finishEdit();
+    }
+  }
+
   /** Remet le texte (envoi échoué) pour que rien ne soit perdu. */
   restore(text) {
     this.field.value = text;
@@ -106,6 +155,12 @@ export class RbComposer extends HTMLElement {
       return;
     }
     const mentions = mentionedIds(text, this.#picks);
+    if (this.#editing !== null) {
+      // Correction : le texte reste dans le champ tant que le serveur n'a pas répondu (rien n'est perdu en cas d'échec).
+      emit(this, EVT.EDIT, { id: this.#editing, text, mentions });
+
+      return;
+    }
     this.field.value = '';
     this.#autosize();
     this.#closeList();
@@ -117,11 +172,17 @@ export class RbComposer extends HTMLElement {
   }
 
   #scheduleDraftSave() {
+    if (this.#editing !== null) {
+      return;
+    }
     window.clearTimeout(this.#draftTimer);
     this.#draftTimer = window.setTimeout(() => this.#flushDraft(), DRAFT_SAVE_DELAY_MS);
   }
 
   #flushDraft() {
+    if (this.#editing !== null) {
+      return; // le texte du champ est celui d'un message déjà envoyé : jamais enregistré comme brouillon
+    }
     window.clearTimeout(this.#draftTimer);
     this.#drafts?.save(this.#draftKey, this.field?.value ?? '');
   }

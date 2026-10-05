@@ -8,9 +8,12 @@ export function fetchList(box, { signal } = {}) {
   return apiFetch(`/api/conversations?box=${encodeURIComponent(box)}`, { signal });
 }
 
-/** Messages plus récents que `after`, déjà dessinés par le serveur : { html, lastId, hasNew, status, typing, title, displayTitle, label }. */
-export function fetchUpdates(id, after, { signal } = {}) {
-  return apiFetch(`${base(id)}/updates?after=${encodeURIComponent(after)}`, { signal });
+/** Messages plus récents que `after`, déjà dessinés par le serveur : { html, lastId, hasNew, status, typing, title, displayTitle, label, edited, editedAt }. */
+export function fetchUpdates(id, after, { signal, editedAfter } = {}) {
+  // `editedAfter` : curseur des corrections déjà reçues (secondes Unix) ; sans lui, le serveur n'en renvoie aucune.
+  const edited = editedAfter === undefined || editedAfter === null ? '' : `&editedAfter=${encodeURIComponent(editedAfter)}`;
+
+  return apiFetch(`${base(id)}/updates?after=${encodeURIComponent(after)}${edited}`, { signal });
 }
 
 /** Liste des conversations dessinée par le serveur : { html, empty, archivedUnread }. */
@@ -77,4 +80,12 @@ export function purgeConversation(id) {
 
 export function dismissAlert(id) {
   return apiFetch(`/api/conversation-alerts/${encodeURIComponent(id)}/dismiss`, { method: 'POST', body: JSON.stringify({}) });
+}
+
+/** Corrige son propre message (15 minutes) : { status, edited: [{ id, html }], editedAt }. */
+export function editMessage(conversationId, messageId, message, mentions = []) {
+  return apiFetch(`${base(conversationId)}/messages/${encodeURIComponent(messageId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ message, ...(mentions.length > 0 ? { mentions } : {}) }),
+  });
 }
