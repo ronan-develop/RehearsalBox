@@ -36,6 +36,10 @@ Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/as
 - Confirmation d'action destructive : modale HTML/CSS maison pilotée en JS, jamais `confirm()` natif
 - Zones tactiles suffisamment grandes (mobile-first) sur les boutons d'action (claim, libérer, supprimer)
 
+## Principe : serveur d'abord, JS quand c'est nécessaire (règle du propriétaire)
+
+Le rendu et la **navigation** restent du **rendu serveur classique** (une URL = une page PHP) ; on ne construit pas une SPA. Le JS améliore l'existant : **XHR seulement quand il est nécessaire** (une action qui modifie des données, un rafraîchissement en direct), pas de routage côté client (`pushState`/`popstate`), pas de page vide remplie après coup. Quand une partie vivante doit se mettre à jour, le serveur renvoie des **fragments HTML rendus par le même gabarit PHP** (un seul endroit qui dessine), jamais du JSON que le client transformerait en DOM. Les **pages d'administration** restent peu dynamiques : liste rendue par le serveur, JS réduit aux actions.
+
 ## Composants Web (#181) — convention pour tout nouveau morceau d'interface
 
 La messagerie est construite en **éléments personnalisés natifs** (standard des navigateurs : aucune dépendance, rien à maintenir) dans `public/assets/js/chat/`. Même convention pour tout nouveau composant.
