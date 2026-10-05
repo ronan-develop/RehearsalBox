@@ -548,20 +548,16 @@ final class PageControllerTest extends RepositoryTestCase
     // --- Messagerie (#153) ------------------------------------------------------------------------
 
     #[Test]
-    public function testDashboardRendersTheMessagesSectionWithItsThreeBoxesAndTheThreadModal(): void
+    public function testDashboardLinksToTheMessagesPageWithAnUnreadBadgeSlot(): void
     {
         [$controller, , , $userRepository, $authService] = $this->makeController();
         $this->createLoggedInUser($userRepository, $authService);
 
         $body = $controller->dashboard()->body();
 
-        self::assertStringContainsString('data-messages', $body);
-        foreach (['received', 'sent', 'archived'] as $box) {
-            self::assertStringContainsString('data-messages-box="' . $box . '"', $body);
-        }
-        self::assertStringContainsString('data-thread-overlay', $body);
-        self::assertStringContainsString('data-thread-form', $body);
-        self::assertStringContainsString('data-messages-unread', $body);
+        self::assertStringContainsString('href="/messages"', $body);
+        self::assertStringContainsString('data-messages-link-badge', $body);
+        self::assertStringNotContainsString('data-thread-overlay', $body, 'le fil vit sur sa propre page');
     }
 
     #[Test]
@@ -585,7 +581,7 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('<b>Stars</b>', $body, 'nom de groupe échappé');
         self::assertStringNotContainsString('Groupe Étranger</option>', $body);
         self::assertStringNotContainsString((string) $notMine->id() . ',"name"', $matches[1]);
-        self::assertStringContainsString('name="subject"', $body);
+        self::assertStringNotContainsString('name="subject"', $body, 'plus de sujet obligatoire');
     }
 
     #[Test]

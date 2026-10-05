@@ -56,7 +56,7 @@ test('handleContactSubmit posts the message and closes the modal on success', as
   globalThis.fetch = async (url, options) => {
     calledUrl = url;
     calledBody = JSON.parse(options.body);
-    return { ok: true, json: async () => ({ status: 'ok' }) };
+    return { ok: true, json: async () => ({ id: 42 }) };
   };
   globalThis.document = {
     querySelector: () => null,
@@ -72,7 +72,6 @@ test('handleContactSubmit posts the message and closes the modal on success', as
   const formData = new RealFormData();
   formData.append('targetGroupId', '7');
   formData.append('fromGroupId', '3');
-  formData.append('subject', 'Créneau du jeudi');
   formData.append('message', 'Bonjour, un échange possible ?');
 
   const event = {
@@ -83,7 +82,8 @@ test('handleContactSubmit posts the message and closes the modal on success', as
     return formData;
   };
 
-  await handleContactSubmit(event, root);
+  let navigated = null;
+  await handleContactSubmit(event, root, (url) => { navigated = url; });
   globalThis.FormData = RealFormData;
 
   assert.equal(prevented, true);
@@ -91,9 +91,9 @@ test('handleContactSubmit posts the message and closes the modal on success', as
   assert.deepEqual(calledBody, {
     groupId: '3',
     targetGroupId: '7',
-    subject: 'Créneau du jeudi',
     message: 'Bonjour, un échange possible ?',
   });
+  assert.equal(navigated, '/messages/42', 'on arrive dans la conversation créée');
 });
 
 test('eligibleSenderGroups excludes the targeted group (a group cannot write to itself)', () => {
