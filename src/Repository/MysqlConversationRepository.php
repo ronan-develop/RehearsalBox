@@ -149,16 +149,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             'cutoff' => $inactiveBefore->format(self::DATE_FORMAT),
         ]);
 
-        return array_map(
-            fn (array $row): ConversationSummary => new ConversationSummary(
-                $this->hydrateConversation($row),
-                (string) $row['initiator_name'],
-                (string) $row['target_name'],
-                $this->hydrateMessage($row, (int) $row['id'], 'last_'),
-                (bool) $row['unread'],
-            ),
-            $statement->fetchAll(\PDO::FETCH_ASSOC),
-        );
+        return array_map($this->hydrateSummary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function moveToTrash(int $conversationId, \DateTimeImmutable $now): void
@@ -196,16 +187,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         );
         $statement->execute(['user_id' => $userId, 'since' => $trashedSince->format(self::DATE_FORMAT)]);
 
-        return array_map(
-            fn (array $row): ConversationSummary => new ConversationSummary(
-                $this->hydrateConversation($row),
-                (string) $row['initiator_name'],
-                (string) $row['target_name'],
-                $this->hydrateMessage($row, (int) $row['id'], 'last_'),
-                false,
-            ),
-            $statement->fetchAll(\PDO::FETCH_ASSOC),
-        );
+        return array_map($this->hydrateSummary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function purgeTrashedBefore(\DateTimeImmutable $cutoff): int
@@ -337,6 +319,18 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     private function boxCondition(string $box): string
     {
         return $box === self::BOX_ARCHIVED ? 'lm.created_at < :cutoff' : 'lm.created_at >= :cutoff';
+    }
+
+    /** @param array<string, mixed> $row ligne de liste ; `unread` absent (corbeille) = lu */
+    private function hydrateSummary(array $row): ConversationSummary
+    {
+        return new ConversationSummary(
+            $this->hydrateConversation($row),
+            (string) $row['initiator_name'],
+            (string) $row['target_name'],
+            $this->hydrateMessage($row, (int) $row['id'], 'last_'),
+            (bool) ($row['unread'] ?? false),
+        );
     }
 
     /** @param array<string, mixed> $row */
