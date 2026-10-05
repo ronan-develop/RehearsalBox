@@ -23,6 +23,7 @@ use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Routing\Router;
 use App\Security\CsrfTokenManager;
+use App\Security\SecurityHeaders;
 use App\Security\SessionInterface;
 use App\Service\Contract\AuthServiceInterface;
 use App\Tests\Support\RecordingMailer;
@@ -421,7 +422,7 @@ final class IdorMatrixTest extends TestCase
         }
 
         return self::$actors[$name] = [
-            new Kernel($router, $container, $container->get(CsrfTokenManager::class)),
+            new Kernel($router, $container, $container->get(CsrfTokenManager::class), new SecurityHeaders()),
             $container,
             $session,
         ];

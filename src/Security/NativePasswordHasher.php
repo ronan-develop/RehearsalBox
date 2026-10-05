@@ -15,4 +15,10 @@ final class NativePasswordHasher implements PasswordHasherInterface
     {
         return password_verify($plainPassword, $hash);
     }
+
+    /** Un hachage jeté coûte autant qu'une vérification au même coût, et suit automatiquement le coût par défaut. */
+    public function simulateVerification(string $plainPassword): void
+    {
+        password_hash($plainPassword, PASSWORD_DEFAULT);
+    }
 }

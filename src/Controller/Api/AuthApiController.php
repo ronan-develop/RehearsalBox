@@ -8,12 +8,15 @@ use App\Entity\Group;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\Exception\AccessDeniedException;
+use App\Support\StrictId;
 use App\Service\Contract\AuthServiceInterface;
+use App\Service\LoginThrottle;
 
 final class AuthApiController
 {
     public function __construct(
         private readonly AuthServiceInterface $authService,
+        private readonly LoginThrottle $loginThrottle,
     ) {
     }
 
@@ -22,9 +25,23 @@ final class AuthApiController
         $email = (string) $request->body('email', '');
         $password = (string) $request->body('password', '');
 
+        $now = new \DateTimeImmutable();
+        $ip = $request->clientIp();
+
+        // Limite par adresse, avant de toucher à un compte : la réponse ne dépend d'aucun compte (rien à énumérer).
+        if ($this->loginThrottle->isBlocked($ip, $now)) {
+            return new JsonResponse(
+                ['error' => 'Trop de tentatives. Réessayez dans quelques minutes.'],
+                429,
+                ['Retry-After' => (string) LoginThrottle::RETRY_AFTER_SECONDS],
+            );
+        }
+
         $user = $this->authService->attempt($email, $password);
 
         if ($user === null) {
+            $this->loginThrottle->recordFailure($ip, $now);
+
             return new JsonResponse(['error' => 'Identifiants invalides.'], 401);
         }
 
@@ -45,7 +62,7 @@ final class AuthApiController
 
     public function selectGroup(Request $request): JsonResponse
     {
-        $groupId = (int) $request->body('groupId', 0);
+        $groupId = StrictId::from($request->body('groupId')) ?? 0;
 
         try {
             $this->authService->selectActiveGroup($groupId);

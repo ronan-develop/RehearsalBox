@@ -23,4 +23,9 @@ final class FastPasswordHasher implements PasswordHasherInterface
     {
         return password_verify($plainPassword, $hash);
     }
+
+    public function simulateVerification(string $plainPassword): void
+    {
+        $this->hash($plainPassword);
+    }
 }

@@ -14,6 +14,7 @@ use App\Routing\Router;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\SafeRedirect;
+use App\Security\SecurityHeaders;
 use App\Security\Exception\UnauthenticatedException;
 
 final class Kernel
@@ -24,10 +25,17 @@ final class Kernel
         private readonly Router $router,
         private readonly ContainerInterface $container,
         private readonly CsrfTokenManager $csrfTokenManager,
+        private readonly SecurityHeaders $securityHeaders,
     ) {
     }
 
+    /** Point de sortie unique : toute réponse (page, API, erreur, redirection) reçoit les en-têtes de sécurité. */
     public function handle(Request $request): Response
+    {
+        return $this->securityHeaders->applyTo($this->dispatch($request));
+    }
+
+    private function dispatch(Request $request): Response
     {
         try {
             $matched = $this->router->match($request);

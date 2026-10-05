@@ -72,7 +72,9 @@ final class UserAdminService implements UserAdminServiceInterface
     {
         $user = $this->userRepository->findById($userId) ?? throw new UserNotFoundException("Utilisateur {$userId} introuvable.");
 
-        return $this->userRepository->save($user->withResetFailedAttempts());
+        $this->userRepository->resetFailedLogins($user->id());
+
+        return $this->userRepository->findById($user->id()) ?? $user;
     }
 
     /**

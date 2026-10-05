@@ -6,11 +6,7 @@
  *
  * Balise statique attendue une fois par page : <rb-confirm-modal></rb-confirm-modal>.
  */
-const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
-}
+import { escapeHtml } from './html.js';
 
 /**
  * @param {string} message texte ; un saut de ligne sépare deux paragraphes

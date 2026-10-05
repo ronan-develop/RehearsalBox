@@ -15,6 +15,7 @@
  */
 import { apiFetch } from './api.js';
 import { initTornPaper } from './tornpaper-init.js';
+import { escapeHtml } from './html.js';
 
 /** Vitesse historique : 1 px toutes les 40 ms. */
 const DEFAULT_SPEED_PX_PER_SECOND = 25;
@@ -149,12 +150,6 @@ export function initPlanningSlider(root = document, win = window) {
  * shouldAutoScroll — contrairement au planning fixe qui défile toujours.
  */
 const WEEKDAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
-}
 
 function formatTime(time) {
   return time.slice(0, 5);
