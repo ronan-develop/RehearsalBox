@@ -86,6 +86,7 @@ export function initSwipeDelete(list = document.querySelector('[data-chat-list]'
       closeAll();
     }
   });
+  list.dataset.swipeReady = ''; // les gestes sont écoutés (utile aux tests de bout en bout)
 }
 
 export { ACTION_WIDTH };
