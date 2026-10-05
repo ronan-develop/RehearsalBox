@@ -13,6 +13,7 @@ use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\PasswordResetApiController;
 use App\Controller\Api\SlotApiController;
+use App\Controller\MessagesPageController;
 use App\Controller\PageController;
 
 return [
@@ -28,6 +29,8 @@ return [
         ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
+        ['GET', '/messages', [MessagesPageController::class, 'list']],
+        ['GET', '/messages/{id}', [MessagesPageController::class, 'show']],
     ],
     'api' => [
         ['POST', '/api/auth/login', [AuthApiController::class, 'login']],

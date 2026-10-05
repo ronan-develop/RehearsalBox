@@ -251,6 +251,26 @@ final class IdorMatrixTest extends TestCase
         }
     }
 
+    #[Test]
+    public function testMessagesPagesAreRefusedToOutsidersAndIndistinguishableFromMissingOnes(): void
+    {
+        $conversation = (string) self::$ids['convAB'];
+
+        [$anonStatus, $anonBody] = $this->call('anon', 'GET', "/messages/{$conversation}");
+        self::assertSame(302, $anonStatus, 'anonyme : redirigé vers la connexion — ' . $anonBody);
+
+        $forbidden = $this->call('stranger', 'GET', "/messages/{$conversation}");
+        $missing = $this->call('stranger', 'GET', '/messages/' . self::MISSING_ID);
+        $malformed = $this->call('stranger', 'GET', '/messages/abc');
+        self::assertSame(403, $forbidden[0]);
+        self::assertSame($forbidden, $missing, 'interdit et inexistant indiscernables');
+        self::assertSame($forbidden, $malformed);
+        self::assertStringNotContainsString('Secret entre A et B', $forbidden[1]);
+
+        self::assertSame(200, $this->call('outsiderB', 'GET', "/messages/{$conversation}")[0], 'membre du groupe visé');
+        self::assertSame(200, $this->call('stranger', 'GET', '/messages')[0], 'la liste est ouverte à tout connecté (vide pour un inconnu)');
+    }
+
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------
 
     #[Test]

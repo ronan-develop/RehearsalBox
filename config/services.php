@@ -13,6 +13,7 @@ use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
+use App\Controller\MessagesPageController;
 use App\Controller\PageController;
 use App\Controller\Api\PasswordResetApiController;
 use App\Database\ConnectionFactory;
@@ -253,6 +254,13 @@ return static function (array $config): Container {
     ));
 
     $container->set(ConversationPresenter::class, static fn () => new ConversationPresenter());
+
+    $container->set(MessagesPageController::class, fn ($c) => new MessagesPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(ConversationService::class),
+    ));
 
     $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(
         $c->get(ConversationService::class),
