@@ -86,8 +86,8 @@ final class UserTest extends TestCase
     {
         $user = $this->lockedUser()->withSessionsRevoked()->withSessionsRevoked();
 
-        self::assertSame(2, $user->withResetFailedAttempts()->sessionVersion());
-        self::assertSame(2, $user->withFailedLoginAttempt(5, new \DateTimeImmutable(), '+15 minutes')->sessionVersion());
+        self::assertSame(2, $user->withLockedUntil(new \DateTimeImmutable('+1 day'))->sessionVersion());
+        self::assertSame(2, $user->withDisplayName('Autre nom')->sessionVersion());
     }
 
     #[Test]
@@ -95,11 +95,11 @@ final class UserTest extends TestCase
     {
         $until = new \DateTimeImmutable('+7 days');
 
-        $locked = $this->lockedUser()->withResetFailedAttempts()->withLockedUntil($until);
+        $locked = $this->lockedUser()->withLockedUntil($until);
 
         self::assertEquals($until, $locked->lockedUntil());
         self::assertSame('ancien-hash', $locked->passwordHash());
-        self::assertSame(0, $locked->failedLoginAttempts());
+        self::assertSame($this->lockedUser()->failedLoginAttempts(), $locked->failedLoginAttempts());
     }
 
     #[Test]

@@ -192,7 +192,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
     public function testResetPasswordChangesThePasswordAndClearsTheLock(): void
     {
         $user = $this->insertUser();
-        $this->users->save($this->users->findById($user->id())->withFailedLoginAttempt(1, $this->now, '+15 minutes'));
+        $this->users->recordFailedLogin($user->id(), 1, $this->now, '+15 minutes');
         $mailer = $this->recordingMailer();
         $service = $this->service($mailer);
         $service->requestReset('alice@rehearsalbox.test', $this->now);
