@@ -63,4 +63,13 @@ final class ConfirmModalCssTest extends TestCase
         self::assertSame(1, substr_count($base, '.rb-modal-backdrop {'));
         self::assertStringNotContainsString('.rb-modal-backdrop {', $admin, 'pas de copie dans la feuille admin');
     }
+
+    #[Test]
+    public function testTheModalTitleAndTextAreStyled(): void
+    {
+        $base = (string) file_get_contents(self::PUBLIC . '/assets/css/base.css');
+
+        self::assertMatchesRegularExpression('/\.rb-modal-title\s*\{/', $base);
+        self::assertMatchesRegularExpression('/\.rb-modal-text\s*\{[^}]*overflow-wrap:\s*anywhere/s', $base);
+    }
 }

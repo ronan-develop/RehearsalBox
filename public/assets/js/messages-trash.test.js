@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initMessagesTrash } from './messages-trash.js';
+import { CONFIRM_DELETE, CONFIRM_PURGE, initMessagesTrash } from './messages-trash.js';
 
 function setup({ confirmed = true, failWith = null } = {}) {
   const calls = [];
@@ -22,7 +22,7 @@ function setup({ confirmed = true, failWith = null } = {}) {
     querySelector: (selector) => (selector === '[data-trash-empty]' ? { set hidden(value) { log.emptyShown = !value; } } : null),
   };
   initMessagesTrash(root, {
-    confirm: async (message) => { log.confirms.push(message); return confirmed; },
+    confirm: async (message, options) => { log.confirms.push({ message, options }); return confirmed; },
     navigate: (url) => log.navigated.push(url),
     reload: () => { log.reloaded += 1; },
     notify: (message) => log.errors.push(message),
@@ -39,7 +39,7 @@ test('deleting asks for confirmation then goes back to the list', async () => {
 
   await click('delete');
 
-  assert.equal(log.confirms.length, 1);
+  assert.deepEqual(log.confirms, [{ message: CONFIRM_DELETE.message, options: CONFIRM_DELETE.options }]);
   assert.deepEqual(calls, ['DELETE /api/conversations/12']);
   assert.deepEqual(log.navigated, ['/messages']);
 });
@@ -90,4 +90,12 @@ test('a failure is reported and nothing is removed or navigated', async () => {
 
   assert.deepEqual(log.errors, ['Accès refusé.']);
   assert.deepEqual(log.navigated, []);
+});
+
+test('the confirmation warns about the other group and the 30-day trash, with named buttons', () => {
+  assert.match(CONFIRM_DELETE.message, /autre groupe/);
+  assert.match(CONFIRM_DELETE.message, /30 jours/);
+  assert.equal(CONFIRM_DELETE.options.confirmLabel, 'Mettre à la corbeille');
+  assert.match(CONFIRM_PURGE.message, /irréversible/);
+  assert.equal(CONFIRM_PURGE.options.confirmLabel, 'Supprimer définitivement');
 });

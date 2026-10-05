@@ -658,3 +658,14 @@ button:active::after, .rb-btn:active::after {
   background: var(--rb-err);
   color: #fff;
 }
+
+.rb-modal-title {
+  margin: 0 0 var(--rb-space-2);
+  font-size: 1.125rem;
+}
+
+.rb-modal-text {
+  margin: 0 0 var(--rb-space-2);
+  color: var(--rb-text-2);
+  overflow-wrap: anywhere;
+}
