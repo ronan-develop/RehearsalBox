@@ -239,13 +239,13 @@ final class IdorMatrixTest extends TestCase
 
     #[Test]
     #[DataProvider('resourceRoutesProvider')]
-    public function testEdgeCaseIdsNeverCauseServerErrors(string $method, string $path, array $body): void
+    public function testEdgeCaseIdsNeverCauseServerErrors(string $method, string $path, array $body, string $idKey): void
     {
         foreach (['0', '-1', 'abc', '99999999999999999999', '1.5', '%00'] as $edge) {
             [$status] = $this->call('stranger', $method, str_replace('{id}', $edge, $path), $body);
 
-            self::assertLessThan(500, $status, "{$method} {$path} avec l'id « {$edge} » ne doit pas faire une erreur serveur.");
-            self::assertNotSame(200, $status, "{$method} {$path} avec l'id « {$edge} » ne doit pas réussir pour un inconnu.");
+            self::assertLessThan(500, $status, "{$method} {$path} ({$idKey}) avec l'id « {$edge} » ne doit pas faire une erreur serveur.");
+            self::assertNotSame(200, $status, "{$method} {$path} ({$idKey}) avec l'id « {$edge} » ne doit pas réussir pour un inconnu.");
         }
     }
 
