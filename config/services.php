@@ -55,10 +55,10 @@ use App\Presenter\ConversationTimeline;
 use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
-use App\Repository\Contract\LoginFailureRepositoryInterface;
+use App\Repository\Contract\ThrottleEventRepositoryInterface;
 use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationNoticeRepository;
-use App\Repository\MysqlLoginFailureRepository;
+use App\Repository\MysqlThrottleEventRepository;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
@@ -87,7 +87,7 @@ use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\MysqlConversationRepository;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
-use App\Service\LoginThrottle;
+use App\Service\IpThrottle;
 use App\Service\PasswordChangeService;
 use App\Repository\Contract\EmailChangeRepositoryInterface;
 use App\Repository\MysqlEmailChangeRepository;
@@ -243,12 +243,13 @@ return static function (array $config): Container {
         $c->get(PasswordResetService::class),
     ));
 
-    $container->set(LoginFailureRepositoryInterface::class, fn ($c) => new MysqlLoginFailureRepository($c->get(PDO::class)));
-    $container->set(LoginThrottle::class, fn ($c) => new LoginThrottle($c->get(LoginFailureRepositoryInterface::class)));
+    // Limites par adresse : une instance par route sensible, chacune avec son étiquette (#218, #219).
+    $container->set(ThrottleEventRepositoryInterface::class, fn ($c) => new MysqlThrottleEventRepository($c->get(PDO::class)));
+    $container->set('throttle.login', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
         $c->get(AuthServiceInterface::class),
-        $c->get(LoginThrottle::class),
+        $c->get('throttle.login'),
     ));
 
     $container->set(AvailabilityApiController::class, fn ($c) => new AvailabilityApiController(
