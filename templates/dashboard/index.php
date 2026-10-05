@@ -225,7 +225,10 @@
             </div>
         </section>
 
-        <?php require __DIR__ . '/../partials/messages-section.php'; ?>
+        <a href="/messages" class="rb-messages-link" data-messages-link>
+            <span>Messages</span>
+            <span class="rb-badge rb-badge-warn" data-messages-link-badge hidden></span>
+        </a>
         <?php require __DIR__ . '/../partials/contact-modal.php'; ?>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>

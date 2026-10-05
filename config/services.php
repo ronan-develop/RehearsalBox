@@ -13,6 +13,7 @@ use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\SlotApiController;
+use App\Controller\MessagesPageController;
 use App\Controller\PageController;
 use App\Controller\Api\PasswordResetApiController;
 use App\Database\ConnectionFactory;
@@ -46,6 +47,7 @@ use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
+use App\Presenter\ConversationPresenter;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\MysqlConversationRepository;
@@ -248,10 +250,21 @@ return static function (array $config): Container {
         $c->get(ConversationRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(TransactionRunner::class),
+        $c->get(ClockInterface::class),
+    ));
+
+    $container->set(ConversationPresenter::class, static fn () => new ConversationPresenter());
+
+    $container->set(MessagesPageController::class, fn ($c) => new MessagesPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(ConversationService::class),
     ));
 
     $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(
         $c->get(ConversationService::class),
+        $c->get(ConversationPresenter::class),
         $c->get(AuthGuard::class),
     ));
 

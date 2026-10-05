@@ -14,47 +14,48 @@ final class ConversationInputPolicyTest extends TestCase
     #[Test]
     public function testNormalizeTrimsSurroundingWhitespaceOnly(): void
     {
+        self::assertSame("a\nb", (new ConversationInputPolicy())->normalize("  a\nb \n"));
+    }
+
+    #[Test]
+    public function testValidTitleAndBodyHaveNoViolation(): void
+    {
         $policy = new ConversationInputPolicy();
 
-        self::assertSame("a\nb", $policy->normalize("  a\nb \n"));
+        self::assertNull($policy->titleViolation('Concert du 12'));
+        self::assertNull($policy->titleViolation(str_repeat('é', 150)), 'borne incluse, en caractères');
+        self::assertNull($policy->bodyViolation("Salut,\r\nà jeudi\n\nmerci"), 'un message peut contenir des sauts de ligne');
+        self::assertNull($policy->bodyViolation(str_repeat('é', 5000)));
+    }
+
+    /** @return iterable<string, array{0: string}> */
+    public static function invalidTitleProvider(): iterable
+    {
+        yield 'trop long' => [str_repeat('x', 151)];
+        yield 'caractère de contrôle' => ["Titre\x00caché"];
+        yield 'saut de ligne' => ["Titre\nsur deux lignes"];
+        yield 'inversion de texte' => ["Titre\u{202E}piégé"];
+        yield 'séparateur de ligne unicode' => ["Titre\u{2028}suite"];
     }
 
     #[Test]
-    public function testValidInputHasNoViolation(): void
+    #[DataProvider('invalidTitleProvider')]
+    public function testInvalidTitleIsRefused(string $title): void
     {
-        $policy = new ConversationInputPolicy();
-
-        self::assertSame([], $policy->violations('Créneau du jeudi', "Salut,\nà jeudi"));
-        self::assertSame([], $policy->violations(null, 'Réponse seule'), 'une réponse n\'a pas de sujet');
-        self::assertSame([], $policy->violations(str_repeat('é', 150), str_repeat('é', 5000)), 'bornes incluses, en caractères');
+        self::assertNotNull((new ConversationInputPolicy())->titleViolation($title));
     }
 
-    /** @return iterable<string, array{0: ?string, 1: string, 2: string}> */
-    public static function invalidProvider(): iterable
+    /** @return iterable<string, array{0: string}> */
+    public static function invalidBodyProvider(): iterable
     {
-        yield 'sujet vide' => ['', 'Message', 'subject'];
-        yield 'sujet trop long' => [str_repeat('x', 151), 'Message', 'subject'];
-        yield 'sujet avec caractère de contrôle' => ["Sujet\x00caché", 'Message', 'subject'];
-        yield 'sujet avec saut de ligne' => ["Sujet\nsur deux lignes", 'Message', 'subject'];
-        yield 'sujet avec inversion de texte' => ["Sujet\u{202E}piégé", 'Message', 'subject'];
-        yield 'message vide' => ['Sujet', '', 'message'];
-        yield 'message trop long' => ['Sujet', str_repeat('x', 5001), 'message'];
-        yield 'réponse vide' => [null, '', 'message'];
+        yield 'vide' => [''];
+        yield 'trop long' => [str_repeat('x', 5001)];
     }
 
     #[Test]
-    #[DataProvider('invalidProvider')]
-    public function testInvalidInputIsReportedPerField(?string $subject, string $body, string $field): void
+    #[DataProvider('invalidBodyProvider')]
+    public function testInvalidBodyIsRefused(string $body): void
     {
-        $violations = (new ConversationInputPolicy())->violations($subject, $body);
-
-        self::assertArrayHasKey($field, $violations);
-        self::assertCount(1, $violations);
-    }
-
-    #[Test]
-    public function testAMessageMayContainLineBreaks(): void
-    {
-        self::assertSame([], (new ConversationInputPolicy())->violations(null, "ligne 1\r\nligne 2\n\nligne 4"));
+        self::assertNotNull((new ConversationInputPolicy())->bodyViolation($body));
     }
 }

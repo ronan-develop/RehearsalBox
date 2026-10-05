@@ -11,7 +11,7 @@ final class Conversation
         private readonly int $id,
         private readonly int $initiatorGroupId,
         private readonly int $targetGroupId,
-        private readonly string $subject,
+        private readonly ?string $title,
         private readonly \DateTimeImmutable $createdAt,
     ) {
     }
@@ -31,18 +31,14 @@ final class Conversation
         return $this->targetGroupId;
     }
 
-    public function subject(): string
+    /** Titre choisi par les membres ; null tant que la conversation n'a pas été nommée. */
+    public function title(): ?string
     {
-        return $this->subject;
+        return $this->title;
     }
 
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function involvesGroup(int $groupId): bool
-    {
-        return $groupId === $this->initiatorGroupId || $groupId === $this->targetGroupId;
     }
 }

@@ -17,10 +17,6 @@
                 <select id="contact-from" name="fromGroupId" class="rb-input" data-contact-from-select></select>
             </div>
             <div class="rb-field">
-                <label for="contact-subject">Sujet</label>
-                <input type="text" id="contact-subject" name="subject" class="rb-input" maxlength="150" required>
-            </div>
-            <div class="rb-field">
                 <label for="contact-message">Message</label>
                 <textarea id="contact-message" name="message" class="rb-input" rows="4" maxlength="5000" required></textarea>
             </div>

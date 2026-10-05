@@ -75,24 +75,23 @@ export function closeContactModal(root = document) {
   overlay.querySelector('[data-contact-form]').reset();
 }
 
-export async function handleContactSubmit(event, root = document) {
+export async function handleContactSubmit(event, root = document, navigate = (url) => { window.location.href = url; }) {
   event.preventDefault();
   const form = event.target;
   const formData = new FormData(form);
 
   try {
-    await apiFetch('/api/conversations', {
+    const { id } = await apiFetch('/api/conversations', {
       method: 'POST',
       body: JSON.stringify({
         groupId: formData.get('fromGroupId'),
         targetGroupId: formData.get('targetGroupId'),
-        subject: formData.get('subject'),
         message: formData.get('message'),
       }),
     });
 
-    showToast('Conversation démarrée : retrouvez-la dans vos messages.', 'success');
     closeContactModal(root);
+    navigate(`/messages/${id}`);
   } catch (error) {
     showToast(error.message, 'error');
   }

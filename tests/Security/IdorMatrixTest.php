@@ -168,8 +168,9 @@ final class IdorMatrixTest extends TestCase
             ['GET', '/api/conversations', [], ['anon']],
             ['GET', '/api/conversations/{convAB}', [], ['anon', 'stranger']],
             ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus'], ['anon', 'stranger']],
-            ['PATCH', '/api/conversations/{convAB}', ['archived' => true], ['anon', 'stranger']],
-            ['POST', '/api/conversations', ['groupId' => '{groupA}', 'targetGroupId' => '{groupB}', 'subject' => 'Usurpation', 'message' => 'Je parle pour A'], ['anon', 'stranger', 'outsiderB']],
+            ['PATCH', '/api/conversations/{convAB}', ['title' => 'Piraté'], ['anon', 'stranger']],
+            ['POST', '/api/conversations/{convAB}/typing', [], ['anon', 'stranger']],
+            ['POST', '/api/conversations', ['groupId' => '{groupA}', 'targetGroupId' => '{groupB}', 'message' => 'Je parle pour A'], ['anon', 'stranger', 'outsiderB']],
             // Documents
             ['GET', '/api/groups/{groupA}/documents', [], ['anon', 'stranger', 'outsiderB']],
             ['POST', '/api/groups/{groupA}/documents', ['__upload' => true], ['anon', 'stranger', 'outsiderB', 'memberA']],
@@ -218,7 +219,8 @@ final class IdorMatrixTest extends TestCase
             ['DELETE', '/api/documents/{id}', [], 'docA'],
             ['GET', '/api/conversations/{id}', [], 'convAB'],
             ['POST', '/api/conversations/{id}/messages', ['message' => 'Intrus'], 'convAB'],
-            ['PATCH', '/api/conversations/{id}', ['archived' => true], 'convAB'],
+            ['PATCH', '/api/conversations/{id}', ['title' => 'Piraté'], 'convAB'],
+            ['POST', '/api/conversations/{id}/typing', [], 'convAB'],
         ];
 
         foreach ($routes as [$method, $path, $body, $idKey]) {
@@ -247,6 +249,26 @@ final class IdorMatrixTest extends TestCase
             self::assertLessThan(500, $status, "{$method} {$path} ({$idKey}) avec l'id « {$edge} » ne doit pas faire une erreur serveur.");
             self::assertNotSame(200, $status, "{$method} {$path} ({$idKey}) avec l'id « {$edge} » ne doit pas réussir pour un inconnu.");
         }
+    }
+
+    #[Test]
+    public function testMessagesPagesAreRefusedToOutsidersAndIndistinguishableFromMissingOnes(): void
+    {
+        $conversation = (string) self::$ids['convAB'];
+
+        [$anonStatus, $anonBody] = $this->call('anon', 'GET', "/messages/{$conversation}");
+        self::assertSame(302, $anonStatus, 'anonyme : redirigé vers la connexion — ' . $anonBody);
+
+        $forbidden = $this->call('stranger', 'GET', "/messages/{$conversation}");
+        $missing = $this->call('stranger', 'GET', '/messages/' . self::MISSING_ID);
+        $malformed = $this->call('stranger', 'GET', '/messages/abc');
+        self::assertSame(403, $forbidden[0]);
+        self::assertSame($forbidden, $missing, 'interdit et inexistant indiscernables');
+        self::assertSame($forbidden, $malformed);
+        self::assertStringNotContainsString('Secret entre A et B', $forbidden[1]);
+
+        self::assertSame(200, $this->call('outsiderB', 'GET', "/messages/{$conversation}")[0], 'membre du groupe visé');
+        self::assertSame(200, $this->call('stranger', 'GET', '/messages')[0], 'la liste est ouverte à tout connecté (vide pour un inconnu)');
     }
 
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------

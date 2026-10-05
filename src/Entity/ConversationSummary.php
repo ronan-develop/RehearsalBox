@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-/** Ligne de liste d'une boîte (Reçues / Envoyées / Archivées) pour une personne donnée. */
+/** Ligne de la liste « Conversations » ou « Archivées » pour une personne donnée. */
 final class ConversationSummary
 {
     public function __construct(
@@ -12,7 +12,6 @@ final class ConversationSummary
         private readonly string $initiatorGroupName,
         private readonly string $targetGroupName,
         private readonly ConversationMessage $lastMessage,
-        private readonly ?ConversationMessage $myLastMessage,
         private readonly bool $unread,
     ) {
     }
@@ -22,21 +21,21 @@ final class ConversationSummary
         return $this->conversation;
     }
 
-    /** Label d'identification partout dans l'interface. */
+    /** Identifie la conversation par ses deux groupes. */
     public function label(): string
     {
         return $this->initiatorGroupName . ' ↔ ' . $this->targetGroupName;
     }
 
+    /** Titre affiché : celui choisi par les membres, sinon le label des deux groupes. */
+    public function displayTitle(): string
+    {
+        return $this->conversation->title() ?? $this->label();
+    }
+
     public function lastMessage(): ConversationMessage
     {
         return $this->lastMessage;
-    }
-
-    /** Dernier message écrit par la personne connectée, null si elle n'a jamais écrit dans ce fil. */
-    public function myLastMessage(): ?ConversationMessage
-    {
-        return $this->myLastMessage;
     }
 
     public function isUnread(): bool
