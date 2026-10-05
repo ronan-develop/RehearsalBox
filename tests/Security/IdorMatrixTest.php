@@ -171,6 +171,11 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus'], ['anon', 'stranger']],
             ['PATCH', '/api/conversations/{convAB}', ['title' => 'Piraté'], ['anon', 'stranger']],
             ['POST', '/api/conversations/{convAB}/typing', [], ['anon', 'stranger']],
+            // Corbeille (#190) : seul l'initiateur ; la conversation du jeu d'essai n'en a pas, personne ne peut donc agir
+            ['DELETE', '/api/conversations/{convAB}', [], ['anon', 'stranger', 'outsiderB', 'memberA']],
+            ['POST', '/api/conversations/{convAB}/restore', [], ['anon', 'stranger', 'outsiderB', 'memberA']],
+            ['DELETE', '/api/conversations/{convAB}/permanent', [], ['anon', 'stranger', 'outsiderB', 'memberA']],
+            ['POST', '/api/conversation-alerts/1/dismiss', [], ['anon']],
             ['POST', '/api/conversations', ['groupId' => '{groupA}', 'targetGroupId' => '{groupB}', 'message' => 'Je parle pour A'], ['anon', 'stranger', 'outsiderB']],
             // Documents
             ['GET', '/api/groups/{groupA}/documents', [], ['anon', 'stranger', 'outsiderB']],
@@ -222,6 +227,9 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/conversations/{id}/messages', ['message' => 'Intrus'], 'convAB'],
             ['PATCH', '/api/conversations/{id}', ['title' => 'Piraté'], 'convAB'],
             ['POST', '/api/conversations/{id}/typing', [], 'convAB'],
+            ['DELETE', '/api/conversations/{id}', [], 'convAB'],
+            ['POST', '/api/conversations/{id}/restore', [], 'convAB'],
+            ['DELETE', '/api/conversations/{id}/permanent', [], 'convAB'],
         ];
 
         foreach ($routes as [$method, $path, $body, $idKey]) {
