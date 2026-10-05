@@ -16,6 +16,14 @@ final class ReminderWiringTest extends TestCase
     public function testTheContainerBuildsTheNotifierAndTheReminderService(): void
     {
         $config = require __DIR__ . '/../../config/config.php';
+        // Base de test (comme IdorMatrixTest) : la configuration par défaut dépend du poste et échoue en CI.
+        $config['db'] = [
+            'host' => getenv('DB_TEST_HOST') ?: '127.0.0.1',
+            'port' => getenv('DB_TEST_PORT') ?: '3307',
+            'name' => getenv('DB_TEST_NAME') ?: 'rehearsalbox_test',
+            'user' => getenv('DB_TEST_USER') ?: 'root',
+            'password' => getenv('DB_TEST_PASSWORD') ?: 'root',
+        ];
         $container = (require __DIR__ . '/../../config/services.php')($config);
 
         self::assertInstanceOf(ConversationNotifier::class, $container->get(ConversationNotifier::class));
