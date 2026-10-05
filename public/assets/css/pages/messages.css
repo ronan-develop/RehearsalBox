@@ -821,15 +821,19 @@ rb-composer {
 }
 
 @media (hover: none) {
-  /* Pas de survol sur un écran tactile : le bouton reste atteignable au lecteur d'écran, l'appui long est le geste. */
+  /* Écran tactile (#212) : pas de survol, donc le crayon reste visible (zone de 44 px) en plus de l'appui long, qui ne doit
+     pas dépendre du seul geste : Safari iOS démarre la sélection de texte et le menu système vers 500 ms et l'annule.
+     Le texte de mes bulles encore modifiables n'est donc pas sélectionnable au toucher pendant leurs 15 minutes. */
   .rb-chat-edit {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
+    min-width: 44px;
+    min-height: 44px;
+    opacity: 0.7;
+  }
+
+  .rb-chat-message[data-editable] .rb-chat-bubble {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 

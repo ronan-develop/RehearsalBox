@@ -89,5 +89,5 @@ test('a second touch or a cancel gesture stops it, and a new press starts clean'
 });
 
 test('the delay is long enough to avoid accidental triggers', () => {
-  assert.ok(LONG_PRESS_MS >= 450 && LONG_PRESS_MS <= 800);
+  assert.ok(LONG_PRESS_MS >= 400 && LONG_PRESS_MS <= 550, 'sous le délai où Safari iOS démarre sa sélection de texte (≈ 500 ms), sans déclencher par accident');
 });

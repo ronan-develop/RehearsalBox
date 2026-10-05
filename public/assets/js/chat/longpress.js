@@ -1,9 +1,10 @@
 /**
  * Appui long (#200) : un doigt posé sans bouger pendant LONG_PRESS_MS sur un message à soi, sur mobile, passe en mode
- * modification. Logique pure (minuteur injectable pour les tests) : le composant branche les évènements du doigt.
+ * modification. Sur iPhone (#212), le texte des bulles modifiables n'est pas sélectionnable au toucher (CSS), sinon Safari
+ * démarre sa sélection et annule le geste. Logique pure (minuteur injectable pour les tests) : le composant branche les évènements du doigt.
  * Un mouvement de plus de MOVE_TOLERANCE_PX (défilement, glissement) l'annule ; un tremblement léger non.
  */
-export const LONG_PRESS_MS = 600;
+export const LONG_PRESS_MS = 500; // sous le délai où Safari iOS démarre sa sélection de texte (≈ 500 ms)
 export const MOVE_TOLERANCE_PX = 10;
 
 export function createLongPress({ onLongPress, timers = { setTimeout: (fn, ms) => window.setTimeout(fn, ms), clearTimeout: (id) => window.clearTimeout(id) } }) {

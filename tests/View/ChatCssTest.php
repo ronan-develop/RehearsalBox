@@ -122,9 +122,18 @@ final class ChatCssTest extends TestCase
 
         self::assertMatchesRegularExpression('/\.rb-chat-body\s*\{[^}]*display:\s*contents/s', $css, 'le conteneur remplaçable ne change pas la mise en page');
         self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-edit,\s*\.rb-chat-edit:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier');
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{\s*[^{}]*\.rb-chat-edit\s*\{[^}]*clip-path/s', $css, 'sur tactile : atteignable au lecteur d\'écran, appui long pour les autres');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-edit\s*\{[^}]*min-width:\s*44px[^}]*opacity:\s*0?\.[0-9]+/s', $css, 'sur tactile : le crayon reste visible, zone de 44 px (pas seulement l\'appui long)');
         self::assertMatchesRegularExpression('/\.rb-chat-editing\[hidden\]\s*\{[^}]*display:\s*none/', $css);
         self::assertMatchesRegularExpression('/\.rb-chat-editing-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
+    }
+
+    #[Test]
+    public function testOnTouchScreensMyEditableBubblesDoNotSelectTextSoALongPressReachesTheEditGesture(): void
+    {
+        $css = $this->css();
+
+        // iPhone (#212) : Safari démarre la sélection de texte et le menu système vers 500 ms et annule le geste.
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message\[data-editable\] \.rb-chat-bubble\s*\{[^}]*-webkit-touch-callout:\s*none[^}]*-webkit-user-select:\s*none[^}]*user-select:\s*none/s', $css);
     }
 
     #[Test]
