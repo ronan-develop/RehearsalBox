@@ -371,6 +371,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return (int) $statement->fetchColumn();
     }
 
+    /** @return list<array{body: string, savedAt: \DateTimeImmutable}> */
     public function versionsOf(int $messageId): array
     {
         $statement = $this->pdo->prepare('SELECT body, saved_at FROM conversation_message_versions WHERE message_id = :id ORDER BY id ASC');

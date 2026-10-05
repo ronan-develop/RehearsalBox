@@ -10,7 +10,11 @@ final class TransactionRunner
     {
     }
 
-    /** @template T @param callable(): T $callback @return T */
+    /**
+     * @template T
+     * @param callable(): T $callback
+     * @return T
+     */
     public function run(callable $callback): mixed
     {
         $this->pdo->beginTransaction();
