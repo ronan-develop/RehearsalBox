@@ -13,7 +13,7 @@ interface ConversationRepositoryInterface
     public const BOX_ACTIVE = 'active';
     public const BOX_ARCHIVED = 'archived';
 
-    public function create(int $initiatorGroupId, int $targetGroupId, ?string $title, \DateTimeImmutable $now): Conversation;
+    public function create(int $initiatorGroupId, int $targetGroupId, ?string $title, \DateTimeImmutable $now, ?int $createdBy = null): Conversation;
 
     /** @param string|null $title null pour retirer le titre (la conversation reprend le label de ses deux groupes) */
     public function rename(int $conversationId, ?string $title): void;
@@ -68,4 +68,22 @@ interface ConversationRepositoryInterface
 
     /** Nombre de personnes membres de l'un des deux groupes de la conversation. */
     public function participantCount(int $conversationId): int;
+
+    /** Met la conversation à la corbeille : elle disparaît des listes et des compteurs des deux groupes. */
+    public function moveToTrash(int $conversationId, \DateTimeImmutable $now): void;
+
+    public function restore(int $conversationId): void;
+
+    /** Suppression définitive (messages, lectures et avis d'envoi partent avec elle). */
+    public function delete(int $conversationId): void;
+
+    /**
+     * Corbeille de la personne : ses conversations mises à la corbeille à partir de $trashedSince.
+     *
+     * @return list<ConversationSummary> la plus récemment supprimée d'abord
+     */
+    public function listTrashedBy(int $userId, \DateTimeImmutable $trashedSince): array;
+
+    /** Supprime pour de bon les conversations à la corbeille avant $cutoff ; renvoie leur nombre. */
+    public function purgeTrashedBefore(\DateTimeImmutable $cutoff): int;
 }

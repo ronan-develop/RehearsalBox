@@ -447,4 +447,118 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
 
         self::assertNull($this->repository->findById($thread->id()));
     }
+
+    // --- Corbeille (#190) ------------------------------------------------------------------------------
+
+    #[Test]
+    public function testTheCreatorIsRememberedAndTheThreadStartsOutsideTheTrash(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now, $alice->id());
+
+        $found = $this->repository->findById($thread->id());
+        self::assertSame($alice->id(), $found->createdBy());
+        self::assertNull($found->deletedAt());
+    }
+
+    #[Test]
+    public function testATrashedThreadLeavesEveryListAndTheUnreadCountOfBothGroups(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), 'Concert', $this->now, $alice->id());
+        $this->repository->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
+        self::assertSame(['Concert'], $this->titles($bob->id(), Box::BOX_ACTIVE));
+        self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
+
+        $this->repository->moveToTrash($thread->id(), $this->now);
+
+        self::assertSame([], $this->titles($alice->id(), Box::BOX_ACTIVE));
+        self::assertSame([], $this->titles($bob->id(), Box::BOX_ACTIVE));
+        self::assertSame([], $this->titles($bob->id(), Box::BOX_ARCHIVED));
+        self::assertSame(0, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
+        self::assertEquals($this->now, $this->repository->findById($thread->id())->deletedAt());
+    }
+
+    #[Test]
+    public function testRestoringPutsTheThreadBackEverywhere(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), 'Concert', $this->now, $alice->id());
+        $this->repository->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
+        $this->repository->moveToTrash($thread->id(), $this->now);
+
+        $this->repository->restore($thread->id());
+
+        self::assertSame(['Concert'], $this->titles($bob->id(), Box::BOX_ACTIVE));
+        self::assertNull($this->repository->findById($thread->id())->deletedAt());
+    }
+
+    #[Test]
+    public function testTheTrashListsOnlyTheCreatorsOwnRecentlyTrashedThreads(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $carole = $this->user('Carole');
+        $this->groups->addMember($a->id(), $carole->id());
+        $mine = $this->repository->create($a->id(), $b->id(), 'Récent', $this->now, $alice->id());
+        $old = $this->repository->create($a->id(), $b->id(), 'Expiré', $this->now, $alice->id());
+        $theirs = $this->repository->create($b->id(), $a->id(), 'De Bob', $this->now, $bob->id());
+        $untouched = $this->repository->create($a->id(), $b->id(), 'Actif', $this->now, $alice->id());
+        foreach ([$mine, $old, $theirs, $untouched] as $thread) {
+            $this->repository->addMessage($thread->id(), $alice->id(), 'm', $this->now);
+        }
+        $this->repository->moveToTrash($mine->id(), $this->at('-2 days'));
+        $this->repository->moveToTrash($old->id(), $this->at('-31 days'));
+        $this->repository->moveToTrash($theirs->id(), $this->at('-1 day'));
+
+        $titles = fn (int $userId): array => array_map(static fn ($s) => $s->displayTitle(), $this->repository->listTrashedBy($userId, $this->at('-30 days')));
+
+        self::assertSame(['Récent'], $titles($alice->id()));
+        self::assertSame(['De Bob'], $titles($bob->id()));
+        self::assertSame([], $titles($carole->id()), "un autre membre du groupe n'y voit rien");
+    }
+
+    #[Test]
+    public function testDeletingForGoodRemovesTheThreadItsMessagesAndItsStates(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now, $alice->id());
+        $this->repository->addMessage($thread->id(), $alice->id(), 'm', $this->now);
+        $this->repository->markRead($thread->id(), $alice->id(), $this->now);
+
+        $this->repository->delete($thread->id());
+
+        self::assertNull($this->repository->findById($thread->id()));
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_messages')->fetchColumn());
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_states')->fetchColumn());
+    }
+
+    #[Test]
+    public function testPurgeRemovesOnlyThreadsTrashedBeforeTheCutoff(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $old = $this->repository->create($a->id(), $b->id(), 'Vieux', $this->now, $alice->id());
+        $recent = $this->repository->create($a->id(), $b->id(), 'Récent', $this->now, $alice->id());
+        $active = $this->repository->create($a->id(), $b->id(), 'Actif', $this->now, $alice->id());
+        $this->repository->moveToTrash($old->id(), $this->at('-31 days'));
+        $this->repository->moveToTrash($recent->id(), $this->at('-5 days'));
+
+        $purged = $this->repository->purgeTrashedBefore($this->at('-30 days'));
+
+        self::assertSame(1, $purged);
+        self::assertNull($this->repository->findById($old->id()));
+        self::assertNotNull($this->repository->findById($recent->id()));
+        self::assertNotNull($this->repository->findById($active->id()));
+    }
+
+    #[Test]
+    public function testAThreadWhoseCreatorIsDeletedKeepsExistingWithoutCreator(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now, $alice->id());
+
+        $this->pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$alice->id()]);
+
+        self::assertNull($this->repository->findById($thread->id())->createdBy());
+    }
 }

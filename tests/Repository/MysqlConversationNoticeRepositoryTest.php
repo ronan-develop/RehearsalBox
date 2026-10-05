@@ -111,6 +111,18 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testATrashedConversationIsNeverReminded(): void
+    {
+        [$alice] = $this->people();
+        $this->say($alice->id(), '2026-10-05 10:00:00');
+        self::assertCount(1, $this->due());
+
+        (new MysqlConversationRepository($this->pdo))->moveToTrash($this->conversationId, $this->now);
+
+        self::assertSame([], $this->due());
+    }
+
+    #[Test]
     public function testNothingIsDueBefore24HoursNorAfterSevenDays(): void
     {
         [$alice] = $this->people();

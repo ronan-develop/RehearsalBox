@@ -47,7 +47,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
-        $service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock, alerts: new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new ConversationApiController(
             $service,
@@ -373,5 +373,76 @@ final class ConversationApiControllerTest extends RepositoryTestCase
 
         self::assertCount(0, $active['conversations']);
         self::assertCount(1, $archived['conversations']);
+    }
+
+    // --- Corbeille et avis (#190) ----------------------------------------------------------------------
+
+    #[Test]
+    public function testTheInitiatorTrashesRestoresAndDeletesForGood(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        [$status] = $this->call('destroy', [], [], $id);
+        self::assertSame(200, $status);
+        [, $list] = $this->call('index');
+        self::assertSame([], $list['conversations']);
+
+        $this->loginAs($bob);
+        try {
+            $this->call('updates', ['after' => '0'], [], $id);
+            self::fail('la conversation a disparu chez le destinataire');
+        } catch (AccessDeniedException) {
+            $this->addToAssertionCount(1);
+        }
+
+        $this->loginAs($alice);
+        self::assertSame(200, $this->call('restore', [], [], $id)[0]);
+        self::assertCount(1, $this->call('index')[1]['conversations']);
+
+        $this->call('destroy', [], [], $id);
+        self::assertSame(200, $this->call('destroyPermanently', [], [], $id)[0]);
+        $this->loginAs($bob);
+        self::assertSame([], $this->call('index')[1]['conversations']);
+    }
+
+    #[Test]
+    public function testOnlyTheInitiatorMayTrashRestoreOrDeleteForGood(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+        $outsider = $this->user('Erin');
+
+        foreach ([$bob, $outsider] as $intruder) {
+            $this->loginAs($intruder);
+            foreach (['destroy', 'restore', 'destroyPermanently'] as $action) {
+                try {
+                    $this->call($action, [], [], $id);
+                    self::fail('refus attendu : ' . $action);
+                } catch (AccessDeniedException) {
+                    $this->addToAssertionCount(1);
+                }
+            }
+        }
+        $this->loginAs($alice);
+        self::assertCount(1, $this->call('index')[1]['conversations'], "rien n'a bougé");
+    }
+
+    #[Test]
+    public function testTheRecipientSeesAnAlertCountedInTheBadgeAndCanDismissIt(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+        $this->call('destroy', [], [], $id);
+
+        $this->loginAs($bob);
+        [, $list] = $this->call('index');
+        self::assertSame(1, $list['unread']['total'], 'l\'avis compte dans la pastille');
+        self::assertSame(1, $list['unread']['alerts']);
+        $alertId = (string) $this->pdo->query('SELECT id FROM conversation_alerts LIMIT 1')->fetchColumn();
+
+        self::assertSame(200, $this->call('dismissAlert', [], [], $alertId)[0]);
+
+        self::assertSame(0, $this->call('index')[1]['unread']['alerts']);
     }
 }

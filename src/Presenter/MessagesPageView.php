@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Presenter;
 
+use App\Entity\ConversationAlert;
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationThread;
 use App\Repository\Contract\ConversationRepositoryInterface;
@@ -28,7 +29,7 @@ final class MessagesPageView
     /**
      * Colonne de gauche. Sans $box imposé : la liste active, ou les archives si la conversation ouverte y est.
      *
-     * @return array{items: list<array<string, mixed>>, box: string, archivedUnread: int}
+     * @return array{items: list<array<string, mixed>>, box: string, archivedUnread: int, alerts: list<array{id: int, text: string, url: ?string}>, trashCount: int}
      */
     public function sidebar(int $userId, ?int $activeId, ?string $box = null): array
     {
@@ -48,11 +49,23 @@ final class MessagesPageView
             'items' => $this->listView->items($summaries, $userId, $now, $activeId),
             'box' => $chosen,
             'archivedUnread' => $this->conversations->unreadCount($userId, ConversationRepositoryInterface::BOX_ARCHIVED),
+            'alerts' => array_map($this->alert(...), $this->conversations->alertsFor($userId)),
+            'trashCount' => $this->conversations->trashCount($userId),
         ];
     }
 
     /**
-     * @return array{id: int, title: ?string, displayTitle: string, label: string, rows: list<array<string, mixed>>, status: string, typing: bool, lastId: int}
+     * Page « Corbeille » : conversations que la personne a supprimées et qu'elle peut encore restaurer.
+     *
+     * @return list<array{id: int, title: string, deletedOn: string, daysLeft: int}>
+     */
+    public function trash(int $userId): array
+    {
+        return $this->listView->trash($this->conversations->trash($userId), $this->clock->now(), ConversationService::TRASH_RETENTION);
+    }
+
+    /**
+     * @return array{id: int, title: ?string, displayTitle: string, label: string, rows: list<array<string, mixed>>, status: string, typing: bool, lastId: int, canDelete: bool}
      */
     public function thread(ConversationThread $thread, int $userId): array
     {
@@ -71,6 +84,19 @@ final class MessagesPageView
             'status' => $typing !== '' ? $typing : $this->formatter->seenText($thread->seen()),
             'typing' => $typing !== '',
             'lastId' => $this->lastId($thread->messages()),
+            'canDelete' => $thread->conversation()->createdBy() === $userId,
+        ];
+    }
+
+    /** @return array{id: int, text: string, url: ?string} */
+    private function alert(ConversationAlert $alert): array
+    {
+        $restored = $alert->kind() === ConversationAlert::RESTORED;
+
+        return [
+            'id' => $alert->id(),
+            'text' => $alert->label() . ' : ' . ($restored ? 'la conversation a été restaurée.' : "la conversation a été supprimée par la personne qui l'avait ouverte."),
+            'url' => $restored && $alert->conversationId() !== null ? '/messages/' . $alert->conversationId() : null,
         ];
     }
 

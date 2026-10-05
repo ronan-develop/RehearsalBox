@@ -55,17 +55,18 @@ Le mot de passe, s'il y en a un, passe par l'environnement (jamais en argument).
 
 `bin/send-reminders.php` envoie à l'adresse de contact d'un groupe **une relance** quand un message de l'autre côté est resté **24 h sans lecture** par ce groupe (jamais le contenu du message), seulement entre 9 h et 20 h (heure locale `app.timezone`) ; hors plage il ne fait rien et les relances dues partent le matin. Un message de plus de 7 jours n'est plus relancé. Idempotent : peut être relancé sans doublon.
 
-À créer **une fois** dans le cPanel (*Tâches cron*, vérifier qu'elles sont disponibles sur l'hébergement), **toutes les heures** (`0 * * * *`), avec le PHP CLI explicite du déploiement :
+Installée **une fois** (entrée `0 * * * *`, par SSH avec `crontab`, ou dans le cPanel *Tâches cron* si l'hébergeur le propose), avec le PHP CLI explicite du déploiement. La commande porte un **garde** : tant que la release active ne contient pas le script, elle ne fait rien (aucune erreur avant le premier déploiement qui l'embarque).
 
 ```bash
-cd ~/rehearsalbox/current && /usr/local/bin/php bin/send-reminders.php >> ~/rehearsalbox/shared/reminders.log 2>&1
+cd "$HOME/rehearsalbox/current" && [ -f bin/send-reminders.php ] && /usr/local/bin/php bin/send-reminders.php >> "$HOME/rehearsalbox/shared/reminders.log" 2>&1
 ```
 
+- L'installation est **idempotente** (relancer remplace l'entrée, jamais de doublon) ; l'ancienne table cron est sauvegardée dans `shared/crontab.bak`. Vérification : `crontab -l | grep -c send-reminders` doit valoir 1.
 - La commande passe par le lien `current` : elle suit toujours la release active, sans rien changer à chaque déploiement.
 - Sortie : une ligne de bilan (`n envoyée(s), n échec(s), n ignorée(s)`), **sans adresse ni contenu** ; code de sortie non nul en cas d'échec d'envoi (réessayé à l'exécution suivante).
 - Le journal `reminders.log` est dans `shared/` (hors webroot) ; le purger ou le faire tourner de temps en temps.
 - Aucun secret dans la commande : la configuration (transport e-mail, adresse d'expédition, fuseau) vient de `config.local.php`.
-- Un e-mail immédiat part aussi à la création d'une conversation (sans cron) ; si le cron n'est pas créé, seules les relances manquent.
+- Un e-mail immédiat part aussi à la création d'une conversation (sans cron) ; si le cron n'est pas installé, seules les relances manquent. Les conversations **antérieures** au déploiement des e-mails n'en reçoivent aucun (migration 017).
 
 ## Réinitialisation de mot de passe
 

@@ -43,6 +43,15 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testTheDeleteButtonAndTheTrashBlocksStayHiddenWhenAsked(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-delete\[hidden\]\s*\{[^}]*display:\s*none/', $css);
+        self::assertMatchesRegularExpression('/\.rb-trash \[hidden\]\s*\{[^}]*display:\s*none/', $css);
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

@@ -13,6 +13,8 @@ final class Conversation
         private readonly int $targetGroupId,
         private readonly ?string $title,
         private readonly \DateTimeImmutable $createdAt,
+        private readonly ?int $createdBy = null,
+        private readonly ?\DateTimeImmutable $deletedAt = null,
     ) {
     }
 
@@ -40,5 +42,17 @@ final class Conversation
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /** Personne qui a ouvert la conversation ; null si son compte a disparu. Seule elle peut la supprimer. */
+    public function createdBy(): ?int
+    {
+        return $this->createdBy;
+    }
+
+    /** Date de mise à la corbeille, null si la conversation est en service. */
+    public function deletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
     }
 }

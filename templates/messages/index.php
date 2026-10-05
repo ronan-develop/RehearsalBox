@@ -42,6 +42,7 @@ $hasPane = $thread !== null || $draft !== null;
             </div>
         </section>
     </rb-chat>
+    <rb-confirm-modal></rb-confirm-modal>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>

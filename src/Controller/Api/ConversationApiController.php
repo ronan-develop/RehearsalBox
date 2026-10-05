@@ -51,7 +51,8 @@ final class ConversationApiController
                 $this->conversationService->listFor($user->id(), $box),
             ),
             'unread' => [
-                'total' => $this->conversationService->unreadCount($user->id()),
+                'total' => $this->conversationService->unreadCount($user->id()) + $this->conversationService->alertCount($user->id()),
+                'alerts' => $this->conversationService->alertCount($user->id()),
                 'archived' => $this->conversationService->unreadCount($user->id(), ConversationRepositoryInterface::BOX_ARCHIVED),
             ],
         ]);
@@ -151,6 +152,41 @@ final class ConversationApiController
 
             return new JsonResponse(['status' => 'ok']);
         });
+    }
+
+    /** Met la conversation à la corbeille (initiateur seulement). */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $this->conversationService->delete($user->id(), $this->idOrDenied($id));
+
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    public function restore(Request $request, string $id): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $this->conversationService->restore($user->id(), $this->idOrDenied($id));
+
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    /** Suppression définitive d'une conversation déjà à la corbeille. */
+    public function destroyPermanently(Request $request, string $id): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $this->conversationService->deletePermanently($user->id(), $this->idOrDenied($id));
+
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    /** Ferme un avis de la personne connectée (celui d'un autre est ignoré). */
+    public function dismissAlert(Request $request, string $id): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $this->conversationService->dismissAlert($user->id(), $this->idOrDenied($id));
+
+        return new JsonResponse(['status' => 'ok']);
     }
 
     /** Signal « en train d'écrire » (le service et le dépôt limitent le débit). */
