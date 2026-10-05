@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   groupByDay, formatTime, formatListDate, typingText, seenText, safeColor, previewText,
   nextPollDelay, shouldSendTyping, systemLine, parseRoute, routeFor, mergeMessages, lastMessageId, TYPING_MIN_INTERVAL_MS,
-} from './chat-model.js';
+} from './model.js';
 
 const NOW = new Date(2026, 9, 4, 18, 0, 0);
 const iso = (y, m, d, h = 9, min = 5) => new Date(y, m - 1, d, h, min, 0).toISOString();

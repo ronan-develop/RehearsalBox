@@ -4,7 +4,7 @@
  */
 import {
   groupByDay, formatTime, formatListDate, safeColor, previewText, systemLine, routeFor,
-} from './chat-model.js';
+} from './model.js';
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
