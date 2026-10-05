@@ -12,6 +12,7 @@ import { shouldSendTyping } from './model.js';
 import { activeQuery, applyMention, mentionedIds, pendingGuests } from './mentions.js';
 
 const SUGGEST_DELAY_MS = 200;
+const DRAFT_SAVE_DELAY_MS = 300;
 const MIN_QUERY = 2;
 
 export class RbComposer extends HTMLElement {
@@ -24,6 +25,10 @@ export class RbComposer extends HTMLElement {
 
   /** Fournie par <rb-chat> : (requête) => Promise<[{ id, name, groups, participant }]>. */
   suggest = null;
+
+  #drafts = null;
+  #draftKey = '';
+  #draftTimer = 0;
 
   connectedCallback() {
     this.form = this.querySelector('form');
@@ -52,8 +57,12 @@ export class RbComposer extends HTMLElement {
       }
       this.#refreshNotice();
       this.#onMentionInput();
+      this.#scheduleDraftSave();
     });
     this.field.addEventListener('blur', () => this.#closeList());
+    // On quitte la page ou l'onglet passe en arrière-plan : le brouillon est écrit tout de suite, sans attendre le délai.
+    window.addEventListener('pagehide', () => this.#flushDraft());
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && this.#flushDraft());
     // pointerdown + preventDefault : le champ garde le focus, l'option est choisie au toucher comme à la souris.
     this.list?.addEventListener('pointerdown', (event) => {
       const option = event.target.closest('[data-index]');
@@ -64,10 +73,26 @@ export class RbComposer extends HTMLElement {
     });
   }
 
+  /**
+   * Brouillon conservé dans le navigateur (#187) : restauré maintenant, réécrit à chaque saisie, effacé à l'envoi.
+   * `drafts` : createDraftStore(...) ; `key` : une clé par conversation (ou par brouillon de page de démarrage).
+   */
+  configureDrafts(drafts, key) {
+    this.#drafts = drafts;
+    this.#draftKey = key;
+    drafts.clearExpired();
+    const saved = drafts.load(key);
+    if (saved !== '' && this.field.value.trim() === '') {
+      this.field.value = saved;
+      this.#autosize();
+    }
+  }
+
   /** Remet le texte (envoi échoué) pour que rien ne soit perdu. */
   restore(text) {
     this.field.value = text;
     this.#autosize();
+    this.#flushDraft();
     this.field.focus();
   }
 
@@ -85,7 +110,18 @@ export class RbComposer extends HTMLElement {
     this.#autosize();
     this.#closeList();
     this.#refreshNotice();
+    this.#flushDraft(); // champ vidé : le brouillon est effacé (réécrit par restore() si l'envoi échoue)
     emit(this, EVT.SUBMIT, { text, mentions });
+  }
+
+  #scheduleDraftSave() {
+    window.clearTimeout(this.#draftTimer);
+    this.#draftTimer = window.setTimeout(() => this.#flushDraft(), DRAFT_SAVE_DELAY_MS);
+  }
+
+  #flushDraft() {
+    window.clearTimeout(this.#draftTimer);
+    this.#drafts?.save(this.#draftKey, this.field?.value ?? '');
   }
 
   #onMentionInput() {

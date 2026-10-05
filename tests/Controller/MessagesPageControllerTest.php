@@ -344,6 +344,20 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testThePageCarriesTheViewersIdSoDraftsAreKeptPerUser(): void
+    {
+        [$alice, $bob] = $this->conversationFromAlice();
+
+        $this->loginAs($alice);
+        self::assertStringContainsString('data-user-id="' . $alice->id() . '"', $this->controller->list($this->request())->body());
+
+        $this->loginAs($bob);
+        $body = $this->controller->list($this->request())->body();
+        self::assertStringContainsString('data-user-id="' . $bob->id() . '"', $body);
+        self::assertStringNotContainsString('data-user-id="' . $alice->id() . '"', $body);
+    }
+
+    #[Test]
     public function testOnlyTheInitiatorSeesTheDeleteButton(): void
     {
         [$alice, $bob, $id] = $this->conversationFromAlice();
