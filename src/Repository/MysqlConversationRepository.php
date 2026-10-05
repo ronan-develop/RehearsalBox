@@ -6,30 +6,11 @@ namespace App\Repository;
 
 use App\Entity\Conversation;
 use App\Entity\ConversationMessage;
-use App\Entity\ConversationSummary;
 use App\Repository\Contract\ConversationRepositoryInterface;
 
 final class MysqlConversationRepository implements ConversationRepositoryInterface
 {
-    private const DATE_FORMAT = 'Y-m-d H:i:s';
-
-    // Dernier message du fil : sert à l'aperçu, au tri et à l'archivage dérivé (inactivité).
-    private const LAST_MESSAGE_JOIN = 'JOIN conversation_messages lm ON lm.id = (
-        SELECT MAX(x.id) FROM conversation_messages x WHERE x.conversation_id = c.id
-    )';
-
-    // Mention non lue : un message qui désigne la personne, plus récent que sa dernière lecture.
-    private const MENTIONED_USER = 'EXISTS (
-        SELECT 1 FROM message_mentions mm JOIN conversation_messages mmsg ON mmsg.id = mm.message_id
-        WHERE mmsg.conversation_id = c.id AND mm.user_id = :mention_user
-          AND (s.last_read_at IS NULL OR mmsg.created_at > s.last_read_at)
-    )';
-
-    private const UNREAD_FOR_USER = 'EXISTS (
-        SELECT 1 FROM conversation_messages um
-        WHERE um.conversation_id = c.id AND um.author_id <> :unread_user
-          AND (s.last_read_at IS NULL OR um.created_at > s.last_read_at)
-    )';
+    private const DATE_FORMAT = ConversationSql::DATE_FORMAT;
 
     public function __construct(private readonly \PDO $pdo)
     {
@@ -91,7 +72,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement->execute(['conversation_id' => $conversationId, 'id' => $messageId]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : $this->hydrateMessage($row, $conversationId);
+        return $row === false ? null : ConversationRows::message($row, $conversationId);
     }
 
     public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage
@@ -105,7 +86,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement->execute(['conversation_id' => $conversationId, 'author_id' => $authorId]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : $this->hydrateMessage($row, $conversationId);
+        return $row === false ? null : ConversationRows::message($row, $conversationId);
     }
 
     public function findById(int $id): ?Conversation
@@ -116,7 +97,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement->execute(['id' => $id]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : $this->hydrateConversation($row);
+        return $row === false ? null : ConversationRows::conversation($row);
     }
 
     public function messagesOf(int $conversationId, int $afterId = 0): array
@@ -129,7 +110,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         );
         $statement->execute(['conversation_id' => $conversationId, 'after_id' => $afterId]);
 
-        return array_map(fn (array $row): ConversationMessage => $this->hydrateMessage($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(fn (array $row): ConversationMessage => ConversationRows::message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function listFor(int $userId, string $box, \DateTimeImmutable $inactiveBefore): array
@@ -138,15 +119,15 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
                        gi.name AS initiator_name, gt.name AS target_name,
                        lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
                        lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at,
-                       ' . self::UNREAD_FOR_USER . ' AS unread,
-                       ' . self::MENTIONED_USER . ' AS mentioned
+                       ' . ConversationSql::UNREAD_FOR_USER . ' AS unread,
+                       ' . ConversationSql::MENTIONED_USER . ' AS mentioned
                 FROM conversations c
                 JOIN `groups` gi ON gi.id = c.initiator_group_id
                 JOIN `groups` gt ON gt.id = c.target_group_id
-                ' . self::LAST_MESSAGE_JOIN . '
+                ' . ConversationSql::LAST_MESSAGE_JOIN . '
                 JOIN users lu ON lu.id = lm.author_id
                 LEFT JOIN conversation_states s ON s.conversation_id = c.id AND s.user_id = :state_user
-                WHERE c.deleted_at IS NULL AND ' . $this->visibleTo(':visible_user') . ' AND ' . $this->boxCondition($box) . '
+                WHERE c.deleted_at IS NULL AND ' . ConversationSql::visibleTo(':visible_user') . ' AND ' . ConversationSql::boxCondition($box) . '
                 ORDER BY lm.created_at DESC, lm.id DESC';
 
         $statement = $this->pdo->prepare($sql);
@@ -158,7 +139,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             'cutoff' => $inactiveBefore->format(self::DATE_FORMAT),
         ]);
 
-        return array_map($this->hydrateSummary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(ConversationRows::summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function moveToTrash(int $conversationId, \DateTimeImmutable $now): void
@@ -189,14 +170,14 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
              FROM conversations c
              JOIN `groups` gi ON gi.id = c.initiator_group_id
              JOIN `groups` gt ON gt.id = c.target_group_id
-             ' . self::LAST_MESSAGE_JOIN . '
+             ' . ConversationSql::LAST_MESSAGE_JOIN . '
              JOIN users lu ON lu.id = lm.author_id
              WHERE c.created_by = :user_id AND c.deleted_at IS NOT NULL AND c.deleted_at >= :since
              ORDER BY c.deleted_at DESC, c.id DESC'
         );
         $statement->execute(['user_id' => $userId, 'since' => $trashedSince->format(self::DATE_FORMAT)]);
 
-        return array_map($this->hydrateSummary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(ConversationRows::summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function purgeTrashedBefore(\DateTimeImmutable $cutoff): int
@@ -229,9 +210,9 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     {
         $statement = $this->pdo->prepare(
             'SELECT COUNT(*) FROM conversations c
-             ' . self::LAST_MESSAGE_JOIN . '
+             ' . ConversationSql::LAST_MESSAGE_JOIN . '
              LEFT JOIN conversation_states s ON s.conversation_id = c.id AND s.user_id = :state_user
-             WHERE c.deleted_at IS NULL AND ' . $this->visibleTo(':visible_user') . ' AND ' . ($box === null ? '1 = 1' : $this->boxCondition($box)) . ' AND ' . self::UNREAD_FOR_USER
+             WHERE c.deleted_at IS NULL AND ' . ConversationSql::visibleTo(':visible_user') . ' AND ' . ($box === null ? '1 = 1' : ConversationSql::boxCondition($box)) . ' AND ' . ConversationSql::UNREAD_FOR_USER
         );
         $parameters = ['state_user' => $userId, 'visible_user' => $userId, 'unread_user' => $userId];
         if ($box !== null) {
@@ -307,7 +288,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
              JOIN conversations c ON c.id = s.conversation_id
              JOIN users u ON u.id = s.user_id
              WHERE s.conversation_id = :conversation_id AND s.user_id <> :except_user AND ' . $column . ' >= :since
-               AND ' . $this->visibleTo('s.user_id') . '
+               AND ' . ConversationSql::visibleTo('s.user_id') . '
              ORDER BY u.display_name, u.id'
         );
         $statement->execute([
@@ -317,25 +298,6 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         ]);
 
         return array_map('strval', $statement->fetchAll(\PDO::FETCH_COLUMN));
-    }
-
-    /**
-     * Condition SQL : la personne désignée par $userExpr participe à c, c'est-à-dire membre de l'un des deux groupes ou
-     * invitée à cette conversation (comptée une seule fois). $userExpr n'apparaît qu'une fois (paramètre nommé).
-     */
-    private function visibleTo(string $userExpr): string
-    {
-        return $userExpr . ' IN (
-            SELECT gu.user_id FROM group_user gu WHERE gu.group_id IN (c.initiator_group_id, c.target_group_id)
-            UNION
-            SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
-        )';
-    }
-
-    /** Active = dernier message à partir de la limite d'inactivité (:cutoff incluse) ; archivée = antérieur. */
-    private function boxCondition(string $box): string
-    {
-        return $box === self::BOX_ARCHIVED ? 'lm.created_at < :cutoff' : 'lm.created_at >= :cutoff';
     }
 
     public function updateBody(int $messageId, string $body, \DateTimeImmutable $now): void
@@ -357,7 +319,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         );
         $statement->execute(['conversation_id' => $conversationId, 'up_to' => $upToMessageId, 'since' => $since->format(self::DATE_FORMAT)]);
 
-        return array_map(fn (array $row): ConversationMessage => $this->hydrateMessage($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(fn (array $row): ConversationMessage => ConversationRows::message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function countEditsBySince(int $authorId, \DateTimeImmutable $since): int
@@ -380,51 +342,6 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return array_map(
             static fn (array $row): array => ['body' => (string) $row['body'], 'savedAt' => new \DateTimeImmutable($row['saved_at'])],
             $statement->fetchAll(\PDO::FETCH_ASSOC),
-        );
-    }
-
-    /** @param array<string, mixed> $row ligne de liste ; `unread` absent (corbeille) = lu */
-    private function hydrateSummary(array $row): ConversationSummary
-    {
-        return new ConversationSummary(
-            $this->hydrateConversation($row),
-            (string) $row['initiator_name'],
-            (string) $row['target_name'],
-            $this->hydrateMessage($row, (int) $row['id'], 'last_'),
-            (bool) ($row['unread'] ?? false),
-            (bool) ($row['mentioned'] ?? false),
-        );
-    }
-
-    /** @param array<string, mixed> $row */
-    private function hydrateConversation(array $row): Conversation
-    {
-        return new Conversation(
-            (int) $row['id'],
-            (int) $row['initiator_group_id'],
-            (int) $row['target_group_id'],
-            $row['title'] === null ? null : (string) $row['title'],
-            new \DateTimeImmutable($row['created_at']),
-            $row['created_by'] === null ? null : (int) $row['created_by'],
-            $row['deleted_at'] === null ? null : new \DateTimeImmutable($row['deleted_at']),
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $row    colonnes id, author_id, author_name, body, created_at, éventuellement préfixées
-     * @param string               $prefix préfixe des colonnes du message dans la ligne (ex. « last_ »)
-     */
-    private function hydrateMessage(array $row, int $conversationId, string $prefix = ''): ConversationMessage
-    {
-        return new ConversationMessage(
-            (int) $row[$prefix . 'id'],
-            $conversationId,
-            (int) $row[$prefix . 'author_id'],
-            (string) $row[$prefix . 'author_name'],
-            (string) $row[$prefix . 'body'],
-            new \DateTimeImmutable($row[$prefix . 'created_at']),
-            (bool) $row[$prefix . 'is_system'],
-            isset($row[$prefix . 'edited_at']) ? new \DateTimeImmutable($row[$prefix . 'edited_at']) : null,
         );
     }
 }
