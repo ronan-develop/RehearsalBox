@@ -305,6 +305,7 @@ rb-composer {
 .rb-chat-messages {
   display: flex;
   flex-direction: column-reverse;
+  overflow-x: hidden; /* le crayon de correction attend hors écran, à droite des bulles (#212) */
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--rb-space-3);
@@ -821,15 +822,28 @@ rb-composer {
 }
 
 @media (hover: none) {
-  /* Pas de survol sur un écran tactile : le bouton reste atteignable au lecteur d'écran, l'appui long est le geste. */
+  /* Écran tactile (#212) : un glissement vers la gauche sur sa bulle récente la corrige. La bulle suit le doigt (--swipe-x,
+     posé par swipe-edit.js) et le crayon, accroché à son bord droit, entre à l'écran ; le texte reste sélectionnable (copier). */
+  .rb-chat-message[data-editable] {
+    position: relative;
+    touch-action: pan-y; /* le défilement vertical reste au navigateur */
+    transform: translateX(var(--swipe-x, 0px));
+    transition: transform 0.2s ease;
+  }
+
+  .rb-chat-message--dragging {
+    transition: none;
+  }
+
   .rb-chat-edit {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
+    top: 50%;
+    left: calc(100% + 8px);
+    min-width: 44px;
+    min-height: 44px;
+    color: var(--rb-accent);
+    opacity: 1;
+    transform: translateY(-50%);
   }
 }
 

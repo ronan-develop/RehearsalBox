@@ -122,9 +122,20 @@ final class ChatCssTest extends TestCase
 
         self::assertMatchesRegularExpression('/\.rb-chat-body\s*\{[^}]*display:\s*contents/s', $css, 'le conteneur remplaçable ne change pas la mise en page');
         self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-edit,\s*\.rb-chat-edit:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier');
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{\s*[^{}]*\.rb-chat-edit\s*\{[^}]*clip-path/s', $css, 'sur tactile : atteignable au lecteur d\'écran, appui long pour les autres');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message\[data-editable\]\s*\{[^}]*touch-action:\s*pan-y[^}]*transform:\s*translateX\(var\(--swipe-x/s', $css, 'tactile : la bulle suit le doigt, le défilement vertical reste possible');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-edit\s*\{[^}]*position:\s*absolute[^}]*left:\s*calc\(100% \+ 8px\)/s', $css, 'le crayon est révélé par le glissement');
         self::assertMatchesRegularExpression('/\.rb-chat-editing\[hidden\]\s*\{[^}]*display:\s*none/', $css);
         self::assertMatchesRegularExpression('/\.rb-chat-editing-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
+    }
+
+    #[Test]
+    public function testTheTextOfMyEditableBubblesStaysSelectableAndTheFeedNeverScrollsSideways(): void
+    {
+        $css = $this->css();
+
+        // #212 : plus d'appui long, donc plus de conflit avec la sélection de texte d'iOS : copier reste possible.
+        self::assertStringNotContainsString('-webkit-touch-callout', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-messages\s*\{[^}]*overflow-x:\s*hidden/s', $css, 'le crayon attend hors écran');
     }
 
     #[Test]
