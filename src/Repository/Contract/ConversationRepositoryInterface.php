@@ -18,7 +18,10 @@ interface ConversationRepositoryInterface
     /** @param string|null $title null pour retirer le titre (la conversation reprend le label de ses deux groupes) */
     public function rename(int $conversationId, ?string $title): void;
 
-    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now): ConversationMessage;
+    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false): ConversationMessage;
+
+    /** Dernier message ordinaire (hors lignes système) écrit par la personne dans la conversation. */
+    public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage;
 
     public function findById(int $id): ?Conversation;
 
@@ -44,7 +47,7 @@ interface ConversationRepositoryInterface
 
     public function countMessagesBySince(int $authorId, \DateTimeImmutable $since): int;
 
-    /** Signale que la personne est en train d'écrire (écrase le signal précédent). */
+    /** Signale que la personne est en train d'écrire ; au plus un signal pris en compte toutes les 2 secondes. */
     public function setTyping(int $conversationId, int $userId, \DateTimeImmutable $now): void;
 
     /** @return list<string> noms des autres membres qui écrivent depuis $since, par ordre alphabétique */

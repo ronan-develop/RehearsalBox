@@ -13,6 +13,7 @@ final class ConversationMessage
         private readonly string $authorName,
         private readonly string $body,
         private readonly \DateTimeImmutable $createdAt,
+        private readonly bool $system = false,
     ) {
     }
 
@@ -39,6 +40,12 @@ final class ConversationMessage
     public function body(): string
     {
         return $this->body;
+    }
+
+    /** Ligne générée par l'application (ex. renommage), affichée au centre du fil et non comme un message. */
+    public function isSystem(): bool
+    {
+        return $this->system;
     }
 
     public function createdAt(): \DateTimeImmutable

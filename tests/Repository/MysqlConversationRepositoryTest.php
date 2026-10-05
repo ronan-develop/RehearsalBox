@@ -348,6 +348,52 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+90 seconds')), 'lire ne supprime pas le signal');
     }
 
+    // --- Message système, dernier message de l'auteur, débit du signal « écrit… » ----------------
+
+    #[Test]
+    public function testSystemMessagesAreFlaggedAndOrdinaryOnesAreNot(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
+        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
+        $this->repository->addMessage($thread->id(), $alice->id(), 'Alice a renommé la conversation', $this->at('+2 minutes'), true);
+
+        $messages = $this->repository->messagesOf($thread->id());
+
+        self::assertSame([false, true], array_map(static fn ($m) => $m->isSystem(), $messages));
+    }
+
+    #[Test]
+    public function testLastMessageByIsTheAuthorsLastOrdinaryMessage(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
+        $this->repository->addMessage($thread->id(), $alice->id(), 'premier', $this->at('+1 minute'));
+        $this->repository->addMessage($thread->id(), $alice->id(), 'dernier ordinaire', $this->at('+2 minutes'));
+        $this->repository->addMessage($thread->id(), $alice->id(), 'Alice a renommé la conversation', $this->at('+3 minutes'), true);
+        $this->repository->addMessage($thread->id(), $bob->id(), 'de Bob', $this->at('+4 minutes'));
+
+        self::assertSame('dernier ordinaire', $this->repository->lastMessageBy($thread->id(), $alice->id())?->body());
+        self::assertSame('de Bob', $this->repository->lastMessageBy($thread->id(), $bob->id())?->body());
+        self::assertNull($this->repository->lastMessageBy($thread->id(), $this->user('Carol')->id()));
+    }
+
+    #[Test]
+    public function testTypingSignalsAreThrottledToOneEveryTwoSeconds(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
+        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
+
+        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+10 seconds'));
+        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+11 seconds'));
+        self::assertSame([], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+11 seconds')), 'le second signal (1 s plus tard) est ignoré');
+        self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+10 seconds')));
+
+        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+13 seconds'));
+        self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+13 seconds')), 'au-delà de 2 s le signal est pris en compte');
+    }
+
     // --- Autres --------------------------------------------------------------------------------
 
     #[Test]

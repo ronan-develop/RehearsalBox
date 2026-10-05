@@ -50,16 +50,17 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement->execute(['title' => $title, 'id' => $conversationId]);
     }
 
-    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now): ConversationMessage
+    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false): ConversationMessage
     {
         $statement = $this->pdo->prepare(
-            'INSERT INTO conversation_messages (conversation_id, author_id, body, created_at)
-             VALUES (:conversation_id, :author_id, :body, :created_at)'
+            'INSERT INTO conversation_messages (conversation_id, author_id, body, is_system, created_at)
+             VALUES (:conversation_id, :author_id, :body, :is_system, :created_at)'
         );
         $statement->execute([
             'conversation_id' => $conversationId,
             'author_id' => $authorId,
             'body' => $body,
+            'is_system' => (int) $system,
             'created_at' => $now->format(self::DATE_FORMAT),
         ]);
 
@@ -69,7 +70,21 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $name = $this->pdo->prepare('SELECT display_name FROM users WHERE id = :id');
         $name->execute(['id' => $authorId]);
 
-        return new ConversationMessage($id, $conversationId, $authorId, (string) $name->fetchColumn(), $body, $now);
+        return new ConversationMessage($id, $conversationId, $authorId, (string) $name->fetchColumn(), $body, $now, $system);
+    }
+
+    public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at
+             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+             WHERE m.conversation_id = :conversation_id AND m.author_id = :author_id AND m.is_system = 0
+             ORDER BY m.created_at DESC, m.id DESC LIMIT 1'
+        );
+        $statement->execute(['conversation_id' => $conversationId, 'author_id' => $authorId]);
+        $row = $statement->fetch(\PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $this->hydrateMessage($row, $conversationId);
     }
 
     public function findById(int $id): ?Conversation
@@ -86,7 +101,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function messagesOf(int $conversationId, int $afterId = 0): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.created_at
+            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at
              FROM conversation_messages m JOIN users u ON u.id = m.author_id
              WHERE m.conversation_id = :conversation_id AND m.id > :after_id
              ORDER BY m.created_at ASC, m.id ASC'
@@ -101,7 +116,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $sql = 'SELECT c.id, c.initiator_group_id, c.target_group_id, c.title, c.created_at,
                        gi.name AS initiator_name, gt.name AS target_name,
                        lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
-                       lm.body AS last_body, lm.created_at AS last_created_at,
+                       lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at,
                        ' . self::UNREAD_FOR_USER . ' AS unread
                 FROM conversations c
                 JOIN `groups` gi ON gi.id = c.initiator_group_id
@@ -168,11 +183,17 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
 
     public function setTyping(int $conversationId, int $userId, \DateTimeImmutable $now): void
     {
+        // Atomique et sans lecture préalable : un signal moins de 2 s après le précédent est ignoré.
         $statement = $this->pdo->prepare(
             'INSERT INTO conversation_states (conversation_id, user_id, typing_at) VALUES (:conversation_id, :user_id, :now)
-             ON DUPLICATE KEY UPDATE typing_at = VALUES(typing_at)'
+             ON DUPLICATE KEY UPDATE typing_at = IF(typing_at IS NULL OR typing_at <= :min_previous, VALUES(typing_at), typing_at)'
         );
-        $statement->execute(['conversation_id' => $conversationId, 'user_id' => $userId, 'now' => $now->format(self::DATE_FORMAT)]);
+        $statement->execute([
+            'conversation_id' => $conversationId,
+            'user_id' => $userId,
+            'now' => $now->format(self::DATE_FORMAT),
+            'min_previous' => $now->modify('-2 seconds')->format(self::DATE_FORMAT),
+        ]);
     }
 
     public function typingNames(int $conversationId, int $exceptUserId, \DateTimeImmutable $since): array
@@ -265,6 +286,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             (string) $row[$prefix . 'author_name'],
             (string) $row[$prefix . 'body'],
             new \DateTimeImmutable($row[$prefix . 'created_at']),
+            (bool) $row[$prefix . 'is_system'],
         );
     }
 }
