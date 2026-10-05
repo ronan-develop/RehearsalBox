@@ -94,6 +94,12 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testTheFeedIsAnchoredAtTheBottomByCssAlone(): void
+    {
+        self::assertMatchesRegularExpression('/\.rb-chat-messages\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column-reverse/s', $this->css(), 'ouverture sur le dernier message sans flash ni JS');
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

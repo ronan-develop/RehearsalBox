@@ -300,8 +300,11 @@ rb-composer {
   overflow-wrap: anywhere;
 }
 
+/* #187 : conteneur en column-reverse (un seul enfant, la liste, qui garde son ordre) : le navigateur ancre le défilement
+   en BAS dès le premier affichage, sans script ni flash, et sans JS. Les messages d'une courte conversation se posent en bas. */
 .rb-chat-messages {
-  display: block;
+  display: flex;
+  flex-direction: column-reverse;
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--rb-space-3);

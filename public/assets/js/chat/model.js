@@ -20,3 +20,13 @@ export function nextPollDelay(idlePolls) {
 export function shouldSendTyping(lastSentAt, now) {
   return lastSentAt === null || now - lastSentAt >= TYPING_MIN_INTERVAL_MS;
 }
+
+const NEAR_BOTTOM_PX = 80;
+
+/**
+ * Le fil est ancré en bas par le CSS (conteneur en `column-reverse`, #187) : l'origine du défilement est le BAS, 0 = tout en
+ * bas et les valeurs s'éloignent de 0 en remontant. Le signe dépend du navigateur : on ne regarde que la distance.
+ */
+export function isNearBottom(scrollTop) {
+  return Math.abs(scrollTop) < NEAR_BOTTOM_PX;
+}
