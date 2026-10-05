@@ -81,6 +81,10 @@ final class ConversationService
             return [$conversation, $first];
         });
 
+        if ($plan !== null) {
+            $this->mentions->notify($plan, $conversation, $userId, $first->authorName(), $now);
+        }
+
         // Après la validation de la transaction : le groupe visé est prévenu par e-mail (une fois, sans le contenu).
         // Un échec d'envoi ne remonte jamais : le message est déjà envoyé.
         $initiator = $this->groups->findById($initiatorGroupId);
@@ -108,7 +112,7 @@ final class ConversationService
         $now = $this->clock->now();
         $this->assertWithinRateLimit($userId, $now);
 
-        return $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan): ConversationMessage {
+        $message = $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan): ConversationMessage {
             if ($plan !== null) {
                 $this->mentions->addGuests($plan, $userId, $conversationId, $now);
             }
@@ -119,6 +123,13 @@ final class ConversationService
 
             return $message;
         });
+
+        // Après la validation de la transaction : les personnes taguées sont prévenues par e-mail (jamais le contenu).
+        if ($plan !== null) {
+            $this->mentions->notify($plan, $conversation, $userId, $message->authorName(), $now);
+        }
+
+        return $message;
     }
 
     /**

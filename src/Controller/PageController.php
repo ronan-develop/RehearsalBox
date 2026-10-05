@@ -12,6 +12,7 @@ use App\Entity\SlotException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
+use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
@@ -34,6 +35,7 @@ final class PageController
         private readonly SlotServiceInterface $slotService,
         private readonly GroupServiceInterface $groupService,
         private readonly GroupDocumentRepositoryInterface $groupDocumentRepository,
+        private readonly ?NotificationPreferenceRepositoryInterface $preferences = null,
     ) {
     }
 
@@ -78,6 +80,7 @@ final class PageController
             'currentUserRole' => $user->role(),
             'displayName' => $user->displayName(),
             'email' => $user->email(),
+            'emailNotifications' => $this->preferences?->emailEnabled($user->id()) ?? true,
         ]));
     }
 

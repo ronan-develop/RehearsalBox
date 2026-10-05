@@ -60,6 +60,12 @@ use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
+use App\Repository\Contract\MentionNoticeRepositoryInterface;
+use App\Repository\MysqlMentionNoticeRepository;
+use App\Service\MentionNotifier;
+use App\Service\MentionReminderService;
+use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
+use App\Repository\MysqlNotificationPreferenceRepository;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlMemberDirectory;
@@ -155,6 +161,7 @@ return static function (array $config): Container {
         $c->get(SlotServiceInterface::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupDocumentRepositoryInterface::class),
+        $c->get(NotificationPreferenceRepositoryInterface::class),
     ));
 
     $container->set(PasswordPolicy::class, fn () => new PasswordPolicy());
@@ -223,7 +230,8 @@ return static function (array $config): Container {
         $c->get(MailRenderer::class),
     ));
 
-    $container->set(ProfileService::class, fn ($c) => new ProfileService($c->get(UserRepositoryInterface::class)));
+    $container->set(NotificationPreferenceRepositoryInterface::class, fn ($c) => new MysqlNotificationPreferenceRepository($c->get(PDO::class)));
+    $container->set(ProfileService::class, fn ($c) => new ProfileService($c->get(UserRepositoryInterface::class), $c->get(NotificationPreferenceRepositoryInterface::class)));
 
     $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(
         $c->get(PasswordResetService::class),
@@ -302,12 +310,35 @@ return static function (array $config): Container {
         $c->get(ConversationGuestRepositoryInterface::class),
     ));
 
+    $container->set(MentionNoticeRepositoryInterface::class, fn ($c) => new MysqlMentionNoticeRepository($c->get(PDO::class)));
+
+    $container->set(MentionNotifier::class, fn ($c) => new MentionNotifier(
+        $c->get(MailerInterface::class),
+        $c->get(MentionNoticeRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(NotificationPreferenceRepositoryInterface::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
+    ));
+
     $container->set(ConversationMentionService::class, fn ($c) => new ConversationMentionService(
         $c->get(UserRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(ConversationGuestRepositoryInterface::class),
         $c->get(ConversationMentionRepositoryInterface::class),
         $c->get(ConversationRepositoryInterface::class),
+        $c->get(MentionNotifier::class),
+    ));
+
+    $container->set(MentionReminderService::class, fn ($c) => new MentionReminderService(
+        $c->get(MentionNoticeRepositoryInterface::class),
+        $c->get(MailerInterface::class),
+        $c->get(ClockInterface::class),
+        new \DateTimeZone($config['app']['timezone']),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
     ));
 
     $container->set(ConversationService::class, fn ($c) => new ConversationService(
