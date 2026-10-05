@@ -49,6 +49,7 @@ final class AccountPagesTest extends RepositoryTestCase
             new SlotService($slotRepository, $groupRepository, $exceptionRepository),
             new GroupService($groupRepository, $this->users),
             new MysqlGroupDocumentRepository($this->pdo),
+            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
         );
     }
 
@@ -71,6 +72,22 @@ final class AccountPagesTest extends RepositoryTestCase
         $this->expectException(UnauthenticatedException::class);
 
         $controller->accountPassword();
+    }
+
+    #[Test]
+    public function testAccountPageOffersTheMentionEmailChoiceWithTheCurrentState(): void
+    {
+        $controller = $this->controller();
+        $this->logIn(UserRole::Musicien);
+
+        $on = $controller->accountPassword()->body();
+        self::assertStringContainsString('data-endpoint="/api/account/notifications"', $on);
+        self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="1"\\s+checked/', $on, 'activé par défaut');
+        self::assertDoesNotMatchRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $on);
+
+        (new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->users->findByEmail('alice@rehearsalbox.test')->id(), false);
+        $off = $controller->accountPassword()->body();
+        self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $off, 'désinscrit');
     }
 
     #[Test]

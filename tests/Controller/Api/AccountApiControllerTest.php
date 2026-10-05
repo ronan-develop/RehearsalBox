@@ -53,7 +53,7 @@ final class AccountApiControllerTest extends RepositoryTestCase
             $this->auth,
             new PasswordChangeService($this->users, $hasher, $policy, $this->security),
             $this->security,
-            new ProfileService($this->users),
+            new ProfileService($this->users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo)),
             new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $hasher, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
         );
     }
@@ -355,5 +355,70 @@ final class AccountApiControllerTest extends RepositoryTestCase
 
             self::assertSame(422, $response->statusCode(), json_encode($body));
         }
+    }
+
+    // --- Mes e-mails de mention (#178) -----------------------------------------------------------------
+
+    private function patchNotifications(mixed $value): \App\Http\JsonResponse
+    {
+        return $this->controller->updateNotifications(new Request('PATCH', '/api/account/notifications', [], ['emailNotifications' => $value], []));
+    }
+
+    #[Test]
+    public function testNotificationsRequireALoggedInUser(): void
+    {
+        $this->expectException(UnauthenticatedException::class);
+
+        $this->patchNotifications(false);
+    }
+
+    #[Test]
+    public function testIUnsubscribeAndResubscribeAndOnlyMyOwnPreferenceChanges(): void
+    {
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $bob = $this->insertUser('bob@rehearsalbox.test');
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+        $preferences = new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo);
+
+        foreach ([false, '0', 'false'] as $off) {
+            $preferences->setEmailEnabled($alice->id(), true);
+            self::assertSame(200, $this->patchNotifications($off)->statusCode());
+            self::assertFalse($preferences->emailEnabled($alice->id()), json_encode($off));
+        }
+        self::assertTrue($preferences->emailEnabled($bob->id()), 'celle des autres ne bouge pas');
+
+        foreach ([true, '1', 'true'] as $on) {
+            $preferences->setEmailEnabled($alice->id(), false);
+            self::assertSame(200, $this->patchNotifications($on)->statusCode());
+            self::assertTrue($preferences->emailEnabled($alice->id()), json_encode($on));
+        }
+    }
+
+    #[Test]
+    public function testTheTargetIsAlwaysTheSessionUserNeverAnIdFromTheRequest(): void
+    {
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $bob = $this->insertUser('bob@rehearsalbox.test');
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+
+        $this->controller->updateNotifications(new Request('PATCH', '/api/account/notifications', [], ['emailNotifications' => '0', 'userId' => $bob->id(), 'id' => $bob->id()], []));
+
+        $preferences = new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo);
+        self::assertFalse($preferences->emailEnabled($alice->id()));
+        self::assertTrue($preferences->emailEnabled($bob->id()));
+    }
+
+    #[Test]
+    public function testAnUnclearValueAnswers422WithTheFieldAndChangesNothing(): void
+    {
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $this->auth->attempt('alice@rehearsalbox.test', 'ancien-mdp');
+
+        foreach ([null, 'peut-être', ['x'], 2, ''] as $value) {
+            $response = $this->patchNotifications($value);
+            self::assertSame(422, $response->statusCode(), json_encode($value));
+            self::assertArrayHasKey('emailNotifications', json_decode($response->body(), true)['fields']);
+        }
+        self::assertTrue((new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo))->emailEnabled($alice->id()));
     }
 }

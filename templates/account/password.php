@@ -25,6 +25,19 @@
             </form>
         </div>
         <div class="rb-auth-card rb-card">
+            <h2 class="rb-account-section-title">Notifications par e-mail</h2>
+            <p class="rb-auth-intro">Quand quelqu'un vous <strong>mentionne</strong> dans une conversation, un e-mail vous prévient (jamais le contenu du message), au plus un toutes les 24 heures par conversation. Vous pouvez vous en désinscrire à tout moment.</p>
+            <form data-async data-endpoint="/api/account/notifications" data-method="PATCH">
+                <fieldset class="rb-field rb-radio-group">
+                    <legend>Recevoir un e-mail quand on me mentionne</legend>
+                    <label class="rb-radio"><input type="radio" name="emailNotifications" value="1"<?= ($emailNotifications ?? true) ? ' checked' : '' ?>> Oui</label>
+                    <label class="rb-radio"><input type="radio" name="emailNotifications" value="0"<?= ($emailNotifications ?? true) ? '' : ' checked' ?>> Non</label>
+                    <span class="rb-field-error" data-field-error="emailNotifications"></span>
+                </fieldset>
+                <button type="submit" class="rb-btn-primary">Enregistrer</button>
+            </form>
+        </div>
+        <div class="rb-auth-card rb-card">
             <h2 class="rb-account-section-title">Adresse e-mail</h2>
             <p class="rb-auth-intro">Un lien de confirmation (valable 1 heure) sera envoyé à la <strong>nouvelle</strong> adresse, et l'ancienne sera prévenue. Vous serez ensuite déconnecté de vos appareils et vous vous reconnecterez avec la nouvelle adresse.</p>
             <form data-async data-endpoint="/api/account/email" data-method="PATCH">

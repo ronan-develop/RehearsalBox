@@ -51,6 +51,28 @@ final class AccountApiController
     }
 
     /**
+     * Recevoir ou non les e-mails de mention (#178) : MA préférence (celle de la session, aucun identifiant lu dans la
+     * requête). Valeur claire exigée : booléen, « 1 »/« 0 » (boutons radio) ou « true »/« false ».
+     */
+    public function updateNotifications(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $enabled = match ($request->body('emailNotifications')) {
+            true, 1, '1', 'true' => true,
+            false, 0, '0', 'false' => false,
+            default => null,
+        };
+        if ($enabled === null) {
+            return new JsonResponse(['error' => 'Validation échouée', 'fields' => ['emailNotifications' => 'Choisissez recevoir ou ne pas recevoir ces e-mails.']], 422);
+        }
+
+        $this->profile->updateEmailNotifications($user->id(), $enabled);
+
+        return new JsonResponse(['emailNotifications' => $enabled]);
+    }
+
+    /**
      * Demande de changement de MON adresse e-mail (#164) : nouvelle adresse + mot de passe actuel. Le compte est
      * celui de la session (aucun identifiant lu dans la requête). Réponse identique que l'adresse soit libre ou
      * déjà utilisée : on ne révèle pas quelles adresses ont un compte. Le jeton ne sort jamais de l'e-mail.

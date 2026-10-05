@@ -17,12 +17,14 @@ final class ProfileServiceTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;
     private ProfileService $service;
+    private \App\Repository\MysqlNotificationPreferenceRepository $preferences;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
-        $this->service = new ProfileService($this->users);
+        $this->preferences = new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo);
+        $this->service = new ProfileService($this->users, $this->preferences);
     }
 
     private function user(string $email, string $name): User
@@ -101,5 +103,25 @@ final class ProfileServiceTest extends RepositoryTestCase
         $this->expectException(UserNotFoundException::class);
 
         $this->service->updateDisplayName(9999, 'Alice');
+    }
+
+    #[Test]
+    public function testAPersonCanUnsubscribeFromAndResubscribeToMentionEmails(): void
+    {
+        $user = $this->users->save(new User(0, 'alice@rehearsalbox.test', 'hash', 'Alice', UserRole::Musicien, true, 0, null));
+
+        $this->service->updateEmailNotifications($user->id(), false);
+        self::assertFalse($this->preferences->emailEnabled($user->id()));
+
+        $this->service->updateEmailNotifications($user->id(), true);
+        self::assertTrue($this->preferences->emailEnabled($user->id()));
+    }
+
+    #[Test]
+    public function testUpdatingThePreferenceOfAnUnknownPersonIsRefused(): void
+    {
+        $this->expectException(\App\Service\Exception\UserNotFoundException::class);
+
+        $this->service->updateEmailNotifications(999999, false);
     }
 }

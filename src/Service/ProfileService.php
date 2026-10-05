@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\User;
+use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\DisplayNamePolicy;
 use App\Service\Exception\UserNotFoundException;
@@ -18,6 +19,7 @@ final class ProfileService
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly NotificationPreferenceRepositoryInterface $preferences,
         private readonly DisplayNamePolicy $displayNamePolicy = new DisplayNamePolicy(),
     ) {
     }
@@ -38,5 +40,16 @@ final class ProfileService
         $user = $this->userRepository->findById($userId) ?? throw new UserNotFoundException("Utilisateur {$userId} introuvable.");
 
         return $this->userRepository->save($user->withDisplayName($displayName));
+    }
+
+    /**
+     * Recevoir ou non les e-mails de mention (#178). Ne touche qu'à la préférence de la personne désignée (celle de la session).
+     *
+     * @throws UserNotFoundException
+     */
+    public function updateEmailNotifications(int $userId, bool $enabled): void
+    {
+        $this->userRepository->findById($userId) ?? throw new UserNotFoundException("Utilisateur {$userId} introuvable.");
+        $this->preferences->setEmailEnabled($userId, $enabled);
     }
 }
