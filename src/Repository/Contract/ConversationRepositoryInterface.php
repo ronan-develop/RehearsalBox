@@ -66,7 +66,7 @@ interface ConversationRepositoryInterface
      */
     public function readersOf(int $conversationId, \DateTimeImmutable $messageDate, int $exceptUserId): array;
 
-    /** Nombre de personnes membres de l'un des deux groupes de la conversation. */
+    /** Nombre de personnes qui participent à la conversation : membres des deux groupes et invités. */
     public function participantCount(int $conversationId): int;
 
     /** Met la conversation à la corbeille : elle disparaît des listes et des compteurs des deux groupes. */

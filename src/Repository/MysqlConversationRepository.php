@@ -269,11 +269,15 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function participantCount(int $conversationId): int
     {
         $statement = $this->pdo->prepare(
-            'SELECT COUNT(DISTINCT gu.user_id) FROM conversations c
-             JOIN group_user gu ON gu.group_id IN (c.initiator_group_id, c.target_group_id)
-             WHERE c.id = :conversation_id'
+            'SELECT COUNT(*) FROM (
+                 SELECT gu.user_id FROM conversations c
+                 JOIN group_user gu ON gu.group_id IN (c.initiator_group_id, c.target_group_id)
+                 WHERE c.id = :conversation_id
+                 UNION
+                 SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = :guest_conversation_id
+             ) participants'
         );
-        $statement->execute(['conversation_id' => $conversationId]);
+        $statement->execute(['conversation_id' => $conversationId, 'guest_conversation_id' => $conversationId]);
 
         return (int) $statement->fetchColumn();
     }
@@ -306,12 +310,16 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return array_map('strval', $statement->fetchAll(\PDO::FETCH_COLUMN));
     }
 
-    /** Condition SQL : la personne désignée par $userExpr est membre de l'un des deux groupes de c (comptée une seule fois). */
+    /**
+     * Condition SQL : la personne désignée par $userExpr participe à c, c'est-à-dire membre de l'un des deux groupes ou
+     * invitée à cette conversation (comptée une seule fois). $userExpr n'apparaît qu'une fois (paramètre nommé).
+     */
     private function visibleTo(string $userExpr): string
     {
-        return 'EXISTS (
-            SELECT 1 FROM group_user gu
-            WHERE gu.user_id = ' . $userExpr . ' AND gu.group_id IN (c.initiator_group_id, c.target_group_id)
+        return $userExpr . ' IN (
+            SELECT gu.user_id FROM group_user gu WHERE gu.group_id IN (c.initiator_group_id, c.target_group_id)
+            UNION
+            SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
         )';
     }
 
