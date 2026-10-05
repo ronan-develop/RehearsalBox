@@ -6,6 +6,7 @@ namespace App\Tests\Service;
 
 use App\Entity\Conversation;
 use App\Entity\Group;
+use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupRepository;
@@ -100,6 +101,33 @@ final class ConversationNotifierTest extends RepositoryTestCase
         $mailer = new RecordingMailer();
         $this->notifier($mailer)->newConversation($this->conversation, 'Alice', 'Alpha', $this->target, $this->now->modify('+5 minutes'));
         self::assertCount(1, $mailer->sent);
+    }
+
+    #[Test]
+    public function testAnyInternalFailureIsSwallowedBecauseTheMessageIsAlreadySent(): void
+    {
+        $brokenNotices = new class implements ConversationNoticeRepositoryInterface {
+            public function claimInitial(int $conversationId, int $groupId, \DateTimeImmutable $now): bool
+            {
+                throw new \PDOException('base indisponible');
+            }
+
+            public function releaseInitial(int $conversationId, int $groupId): void
+            {
+                throw new \PDOException('base indisponible');
+            }
+
+            public function initialNotifiedAt(int $conversationId, int $groupId): ?\DateTimeImmutable
+            {
+                return null;
+            }
+        };
+        $mailer = new RecordingMailer();
+
+        (new ConversationNotifier($mailer, $brokenNotices, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'))
+            ->newConversation($this->conversation, 'Alice', 'Alpha', $this->target, $this->now);
+
+        self::assertSame([], $mailer->sent);
     }
 
     #[Test]

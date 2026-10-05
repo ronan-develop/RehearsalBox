@@ -8,7 +8,6 @@ use App\Entity\Conversation;
 use App\Entity\Group;
 use App\Mail\MailRenderer;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -33,6 +32,17 @@ final class ConversationNotifier
 
     public function newConversation(Conversation $conversation, string $authorName, string $authorGroupName, Group $targetGroup, \DateTimeImmutable $now): void
     {
+        try {
+            $this->notify($conversation, $authorName, $authorGroupName, $targetGroup, $now);
+        } catch (\Throwable $e) {
+            // Le message est déjà envoyé : AUCUNE panne de notification (base, gabarit, transport) ne doit l'annuler ni
+            // remonter à l'utilisateur. Ni adresse ni contenu dans le journal.
+            error_log(sprintf('Notification de conversation : échec (%s, conversation #%d, groupe #%d).', $e::class, $conversation->id(), $targetGroup->id()));
+        }
+    }
+
+    private function notify(Conversation $conversation, string $authorName, string $authorGroupName, Group $targetGroup, \DateTimeImmutable $now): void
+    {
         if (filter_var($targetGroup->contactEmail(), FILTER_VALIDATE_EMAIL) === false) {
             error_log(sprintf('Notification de conversation : adresse de contact invalide (groupe #%d).', $targetGroup->id()));
 
@@ -44,10 +54,10 @@ final class ConversationNotifier
 
         try {
             $this->mailer->send($this->buildMail($conversation, $authorName, $authorGroupName, $targetGroup->contactEmail()));
-        } catch (TransportExceptionInterface) {
-            // Rien n'est resté « envoyé » : un nouvel essai reste possible. Ni adresse ni contenu dans le journal.
+        } catch (\Throwable $e) {
+            // Rien n'est resté « envoyé » : un nouvel essai reste possible.
             $this->notices->releaseInitial($conversation->id(), $targetGroup->id());
-            error_log(sprintf('Notification de conversation : envoi impossible (conversation #%d, groupe #%d).', $conversation->id(), $targetGroup->id()));
+            throw $e;
         }
     }
 
