@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { revealConfirmation, isPasswordResetAnnouncement, applyProfileResult, applyEmailChangeRequested } from './auth.js';
+import { revealConfirmation, isPasswordResetAnnouncement, applyProfileResult, applyEmailChangeRequested, postLoginDestination } from './auth.js';
 
 function fakeForm() {
   const confirmation = {
@@ -73,4 +73,16 @@ test('applyEmailChangeRequested clears the form (the typed password never stays 
   // Message générique : il ne dit pas si l'adresse était libre ou déjà utilisée (pas d'énumération de comptes).
   assert.match(message, /Si cette adresse est utilisable/);
   assert.match(message, /1 heure/);
+});
+
+test('postLoginDestination returns the requested same-site page, otherwise the dashboard', () => {
+  assert.equal(postLoginDestination('/messages/12'), '/messages/12');
+  assert.equal(postLoginDestination('/messages'), '/messages');
+  assert.equal(postLoginDestination(undefined), '/');
+  assert.equal(postLoginDestination(''), '/');
+  assert.equal(postLoginDestination('https://evil.example/messages/1'), '/');
+  assert.equal(postLoginDestination('//evil.example'), '/');
+  assert.equal(postLoginDestination('/\\evil.example'), '/');
+  assert.equal(postLoginDestination('javascript:alert(1)'), '/');
+  assert.equal(postLoginDestination('/messages/1 onload=x'), '/');
 });

@@ -13,6 +13,7 @@ use App\Routing\Exception\RouteNotFoundException;
 use App\Routing\Router;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\SafeRedirect;
 use App\Security\Exception\UnauthenticatedException;
 
 final class Kernel
@@ -52,7 +53,10 @@ final class Kernel
                 return $this->errorResponse($request, 401, $e->getMessage());
             }
 
-            return new Response(statusCode: 302, headers: ['Location' => '/login']);
+            // Une page de la messagerie ouverte depuis un e-mail : on y revient après la connexion (liste blanche stricte).
+            $next = $request->method() === 'GET' ? SafeRedirect::afterLogin($request->path()) : null;
+
+            return new Response(statusCode: 302, headers: ['Location' => $next === null ? '/login' : '/login?next=' . rawurlencode($next)]);
         } catch (AccessDeniedException $e) {
             return $this->errorResponse($request, 403, $e->getMessage());
         }

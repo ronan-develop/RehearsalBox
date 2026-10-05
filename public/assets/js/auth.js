@@ -30,6 +30,14 @@ export function applyEmailChangeRequested(form) {
 }
 
 /** Vrai quand la page de connexion arrive après une réinitialisation réussie (?reset=1). */
+/**
+ * Page où aller après la connexion : le retour demandé (lien d'un e-mail), déjà validé par le serveur (liste blanche des
+ * pages de la messagerie) ; par prudence on n'accepte ici qu'un chemin du même site, sinon le tableau de bord.
+ */
+export function postLoginDestination(next) {
+  return typeof next === 'string' && /^\/(?![/\\])[^\s]*$/.test(next) ? next : '/';
+}
+
 export function isPasswordResetAnnouncement(search) {
   return new URLSearchParams(search).get('reset') === '1';
 }
@@ -84,7 +92,7 @@ export function initAuth() {
   document.querySelectorAll('form[data-async][data-endpoint*="/auth/login"]')
     .forEach((form) => {
       form.addEventListener('async-success', () => {
-        window.location.href = '/';
+        window.location.href = postLoginDestination(form.dataset.next);
       });
       form.addEventListener('async-error', (event) => {
         showToast(event.detail.message, 'error');
