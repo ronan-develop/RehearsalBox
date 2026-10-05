@@ -81,7 +81,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             ),
             access: $access,
         );
-        $this->trash = new ConversationTrashService($access, $this->conversations, $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
+        $this->trash = new ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
         $this->guestService = new ConversationGuestService($access, $this->guests, $this->conversations, $users, $transactions, $this->clock);
         $this->conversationId = $this->service->start($this->id('alice'), $this->alpha, $this->beta, 'Bonjour', 'Concert')->id();
     }

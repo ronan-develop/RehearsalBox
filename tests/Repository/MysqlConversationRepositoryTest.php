@@ -4,61 +4,25 @@ declare(strict_types=1);
 
 namespace App\Tests\Repository;
 
-use App\Entity\Enum\UserRole;
-use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlGroupRepository;
-use App\Repository\MysqlUserRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Tests\RepositoryTestCase;
+use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlConversationRepositoryTest extends RepositoryTestCase
 {
-    private \DateTimeImmutable $now;
-    private \DateTimeImmutable $cutoff;
+    use MessagingScenario;
+
     private MysqlConversationRepository $repository;
-    private MysqlGroupRepository $groups;
-    private MysqlUserRepository $users;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->now = new \DateTimeImmutable('2026-10-04 12:00:00');
-        $this->cutoff = $this->now->modify('-30 days');
+        $this->setUpScenario();
         $this->repository = new MysqlConversationRepository($this->pdo);
-        $this->groups = new MysqlGroupRepository($this->pdo);
-        $this->users = new MysqlUserRepository($this->pdo);
-    }
-
-    private function user(string $name): User
-    {
-        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', 'hash', $name, UserRole::Musicien, true, 0, null));
-    }
-
-    private function group(string $name, User ...$members): Group
-    {
-        $group = $this->groups->save(new Group(0, $name, null, null, strtolower($name) . '@rehearsalbox.test'));
-        foreach ($members as $member) {
-            $this->groups->addMember($group->id(), $member->id());
-        }
-
-        return $group;
-    }
-
-    private function at(string $modifier): \DateTimeImmutable
-    {
-        return $this->now->modify($modifier);
-    }
-
-    /** @return array{User, User, Group, Group} Alice (Alpha) et Bob (Beta) */
-    private function pair(): array
-    {
-        $alice = $this->user('Alice');
-        $bob = $this->user('Bob');
-
-        return [$alice, $bob, $this->group('Alpha', $alice), $this->group('Beta', $bob)];
     }
 
     /** @return list<string> */
@@ -448,7 +412,7 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         self::assertNull($this->repository->findById($thread->id()));
     }
 
-    // --- Corbeille (#190) ------------------------------------------------------------------------------
+    // --- Propriétaire de la conversation (#190) --------------------------------------------------------
 
     #[Test]
     public function testTheCreatorIsRememberedAndTheThreadStartsOutsideTheTrash(): void
@@ -460,95 +424,6 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         $found = $this->repository->findById($thread->id());
         self::assertSame($alice->id(), $found->createdBy());
         self::assertNull($found->deletedAt());
-    }
-
-    #[Test]
-    public function testATrashedThreadLeavesEveryListAndTheUnreadCountOfBothGroups(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), 'Concert', $this->now, $alice->id());
-        $this->repository->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
-        self::assertSame(['Concert'], $this->titles($bob->id(), Box::BOX_ACTIVE));
-        self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
-
-        $this->repository->moveToTrash($thread->id(), $this->now);
-
-        self::assertSame([], $this->titles($alice->id(), Box::BOX_ACTIVE));
-        self::assertSame([], $this->titles($bob->id(), Box::BOX_ACTIVE));
-        self::assertSame([], $this->titles($bob->id(), Box::BOX_ARCHIVED));
-        self::assertSame(0, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
-        self::assertEquals($this->now, $this->repository->findById($thread->id())->deletedAt());
-    }
-
-    #[Test]
-    public function testRestoringPutsTheThreadBackEverywhere(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), 'Concert', $this->now, $alice->id());
-        $this->repository->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
-        $this->repository->moveToTrash($thread->id(), $this->now);
-
-        $this->repository->restore($thread->id());
-
-        self::assertSame(['Concert'], $this->titles($bob->id(), Box::BOX_ACTIVE));
-        self::assertNull($this->repository->findById($thread->id())->deletedAt());
-    }
-
-    #[Test]
-    public function testTheTrashListsOnlyTheCreatorsOwnRecentlyTrashedThreads(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $carole = $this->user('Carole');
-        $this->groups->addMember($a->id(), $carole->id());
-        $mine = $this->repository->create($a->id(), $b->id(), 'Récent', $this->now, $alice->id());
-        $old = $this->repository->create($a->id(), $b->id(), 'Expiré', $this->now, $alice->id());
-        $theirs = $this->repository->create($b->id(), $a->id(), 'De Bob', $this->now, $bob->id());
-        $untouched = $this->repository->create($a->id(), $b->id(), 'Actif', $this->now, $alice->id());
-        foreach ([$mine, $old, $theirs, $untouched] as $thread) {
-            $this->repository->addMessage($thread->id(), $alice->id(), 'm', $this->now);
-        }
-        $this->repository->moveToTrash($mine->id(), $this->at('-2 days'));
-        $this->repository->moveToTrash($old->id(), $this->at('-31 days'));
-        $this->repository->moveToTrash($theirs->id(), $this->at('-1 day'));
-
-        $titles = fn (int $userId): array => array_map(static fn ($s) => $s->displayTitle(), $this->repository->listTrashedBy($userId, $this->at('-30 days')));
-
-        self::assertSame(['Récent'], $titles($alice->id()));
-        self::assertSame(['De Bob'], $titles($bob->id()));
-        self::assertSame([], $titles($carole->id()), "un autre membre du groupe n'y voit rien");
-    }
-
-    #[Test]
-    public function testDeletingForGoodRemovesTheThreadItsMessagesAndItsStates(): void
-    {
-        [$alice, , $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now, $alice->id());
-        $this->repository->addMessage($thread->id(), $alice->id(), 'm', $this->now);
-        $this->repository->markRead($thread->id(), $alice->id(), $this->now);
-
-        $this->repository->delete($thread->id());
-
-        self::assertNull($this->repository->findById($thread->id()));
-        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_messages')->fetchColumn());
-        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_states')->fetchColumn());
-    }
-
-    #[Test]
-    public function testPurgeRemovesOnlyThreadsTrashedBeforeTheCutoff(): void
-    {
-        [$alice, , $a, $b] = $this->pair();
-        $old = $this->repository->create($a->id(), $b->id(), 'Vieux', $this->now, $alice->id());
-        $recent = $this->repository->create($a->id(), $b->id(), 'Récent', $this->now, $alice->id());
-        $active = $this->repository->create($a->id(), $b->id(), 'Actif', $this->now, $alice->id());
-        $this->repository->moveToTrash($old->id(), $this->at('-31 days'));
-        $this->repository->moveToTrash($recent->id(), $this->at('-5 days'));
-
-        $purged = $this->repository->purgeTrashedBefore($this->at('-30 days'));
-
-        self::assertSame(1, $purged);
-        self::assertNull($this->repository->findById($old->id()));
-        self::assertNotNull($this->repository->findById($recent->id()));
-        self::assertNotNull($this->repository->findById($active->id()));
     }
 
     #[Test]
@@ -640,7 +515,7 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         [, , $conversationId, $messageId] = $this->threadWithAMessage();
         $this->repository->updateBody($messageId, 'Corrigé', $this->now);
 
-        $this->repository->delete($conversationId);
+        (new MysqlConversationTrashRepository($this->pdo))->delete($conversationId);
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_message_versions')->fetchColumn());
     }

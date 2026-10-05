@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
 use App\Repository\MysqlNotificationPreferenceRepository;
@@ -182,9 +183,9 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
         self::assertSame([], $this->due(), 'désinscrit : aucune relance');
         (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->id('denis'), true);
 
-        $this->conversations->moveToTrash($this->conversationId, $this->now);
+        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($this->conversationId, $this->now);
         self::assertSame([], $this->due(), 'conversation à la corbeille');
-        $this->conversations->restore($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo))->restore($this->conversationId);
 
         (new MysqlConversationGuestRepository($this->pdo))->remove($this->conversationId, $this->id('denis'));
         self::assertSame([], $this->due(), 'plus participant');
@@ -195,7 +196,7 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
     {
         $this->notices->claimNotice($this->conversationId, $this->id('denis'), $this->id('alice'), $this->now, $this->notBefore());
 
-        $this->conversations->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
 
         self::assertNull($this->notices->find($this->conversationId, $this->id('denis')));
     }

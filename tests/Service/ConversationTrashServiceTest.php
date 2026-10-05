@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
@@ -51,7 +52,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $this->service = new ConversationService($this->conversations, $groups, new TransactionRunner($this->pdo), $this->clock);
         $this->trash = new ConversationTrashService(
             new ConversationAccess($this->conversations, $groups),
-            $this->conversations,
+            new MysqlConversationTrashRepository($this->pdo),
             new TransactionRunner($this->pdo),
             $this->clock,
             new MysqlConversationAlertRepository($this->pdo),

@@ -9,6 +9,7 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
@@ -86,7 +87,7 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         $id = $this->say('@Bob');
         $this->mentions->record($id, [$this->people['bob']->id() => '@Bob']);
 
-        $this->conversations->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM message_mentions')->fetchColumn());
     }

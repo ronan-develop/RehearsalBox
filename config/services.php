@@ -82,7 +82,9 @@ use App\Controller\Api\MemberApiController;
 use App\Service\ConversationReminderService;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationTrashRepositoryInterface;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
 use App\Service\PasswordChangeService;
@@ -279,6 +281,7 @@ return static function (array $config): Container {
     ));
 
     $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
+    $container->set(ConversationTrashRepositoryInterface::class, fn ($c) => new MysqlConversationTrashRepository($c->get(PDO::class)));
 
     $container->set(ConversationNoticeRepositoryInterface::class, fn ($c) => new MysqlConversationNoticeRepository($c->get(PDO::class)));
 
@@ -356,7 +359,7 @@ return static function (array $config): Container {
 
     $container->set(ConversationTrashService::class, fn ($c) => new ConversationTrashService(
         $c->get(ConversationAccess::class),
-        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationTrashRepositoryInterface::class),
         $c->get(TransactionRunner::class),
         $c->get(ClockInterface::class),
         $c->get(ConversationAlertRepositoryInterface::class),

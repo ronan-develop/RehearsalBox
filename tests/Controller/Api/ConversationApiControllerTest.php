@@ -60,7 +60,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
             mentions: $mentionService,
             access: $access,
         );
-        $trash = new \App\Service\ConversationTrashService($access, new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $trash = new \App\Service\ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $guestService = new \App\Service\ConversationGuestService($access, $guests, new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
         $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
         $editService = new \App\Service\MessageEditService($access, new MysqlConversationRepository($this->pdo), $mentionService, new TransactionRunner($this->pdo), $this->clock);

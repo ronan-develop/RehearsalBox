@@ -9,6 +9,7 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
@@ -117,7 +118,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
         $this->say($alice->id(), '2026-10-05 10:00:00');
         self::assertCount(1, $this->due());
 
-        (new MysqlConversationRepository($this->pdo))->moveToTrash($this->conversationId, $this->now);
+        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($this->conversationId, $this->now);
 
         self::assertSame([], $this->due());
     }

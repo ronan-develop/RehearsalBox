@@ -9,7 +9,7 @@ use App\Entity\Conversation;
 use App\Entity\ConversationAlert;
 use App\Entity\ConversationSummary;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
-use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationTrashRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -24,7 +24,7 @@ final class ConversationTrashService
 
     public function __construct(
         private readonly ConversationAccess $access,
-        private readonly ConversationRepositoryInterface $conversations,
+        private readonly ConversationTrashRepositoryInterface $trashed,
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
         private readonly ?ConversationAlertRepositoryInterface $alerts = null,
@@ -44,7 +44,7 @@ final class ConversationTrashService
         }
         $now = $this->clock->now();
         $this->transactions->run(function () use ($conversationId, $userId, $now): void {
-            $this->conversations->moveToTrash($conversationId, $now);
+            $this->trashed->moveToTrash($conversationId, $now);
             $this->alerts?->notifyParticipants($conversationId, $userId, ConversationAlert::DELETED, $now);
         });
     }
@@ -55,7 +55,7 @@ final class ConversationTrashService
         $conversation = $this->trashedConversation($userId, $conversationId);
         $now = $this->clock->now();
         $this->transactions->run(function () use ($conversation, $userId, $now): void {
-            $this->conversations->restore($conversation->id());
+            $this->trashed->restore($conversation->id());
             $this->alerts?->notifyParticipants($conversation->id(), $userId, ConversationAlert::RESTORED, $now);
         });
     }
@@ -63,7 +63,7 @@ final class ConversationTrashService
     /** Suppression définitive d'une conversation déjà à la corbeille. @throws AccessDeniedException */
     public function deletePermanently(int $userId, int $conversationId): void
     {
-        $this->conversations->delete($this->trashedConversation($userId, $conversationId)->id());
+        $this->trashed->delete($this->trashedConversation($userId, $conversationId)->id());
     }
 
     /**
@@ -74,15 +74,15 @@ final class ConversationTrashService
     public function trash(int $userId): array
     {
         $cutoff = $this->cutoff();
-        $this->conversations->purgeTrashedBefore($cutoff);
+        $this->trashed->purgeTrashedBefore($cutoff);
 
-        return $this->conversations->listTrashedBy($userId, $cutoff);
+        return $this->trashed->listTrashedBy($userId, $cutoff);
     }
 
     /** Nombre de conversations dans la corbeille (lecture seule : aucune purge). */
     public function trashCount(int $userId): int
     {
-        return count($this->conversations->listTrashedBy($userId, $this->cutoff()));
+        return count($this->trashed->listTrashedBy($userId, $this->cutoff()));
     }
 
     /** @return list<ConversationAlert> avis non fermés des 30 derniers jours */

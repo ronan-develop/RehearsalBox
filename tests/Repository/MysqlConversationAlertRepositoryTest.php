@@ -10,6 +10,7 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
@@ -118,7 +119,7 @@ final class MysqlConversationAlertRepositoryTest extends RepositoryTestCase
     {
         $this->alerts->notifyParticipants($this->conversationId, $this->id('alice'), ConversationAlert::DELETED, $this->now);
 
-        (new MysqlConversationRepository($this->pdo))->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
 
         $alert = $this->alerts->findActiveFor($this->id('bob'), $this->now->modify('-1 day'))[0];
         self::assertNull($alert->conversationId());

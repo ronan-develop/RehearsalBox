@@ -50,7 +50,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
         $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
-        $this->trash = new \App\Service\ConversationTrashService(new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $this->trash = new \App\Service\ConversationTrashService(new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),

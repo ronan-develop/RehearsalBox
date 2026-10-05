@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
 use App\Repository\MysqlNotificationPreferenceRepository;
@@ -137,7 +138,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
         $this->denied(fn () => $this->editor->edit($this->id('alice'), $this->conversationId, $system, 'x'));
         $this->denied(fn () => $this->editor->edit($this->id('alice'), 999999, $this->messageId, 'x'));
 
-        $this->conversations->moveToTrash($this->conversationId, $this->clock->now());
+        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($this->conversationId, $this->clock->now());
         $this->denied(fn () => $this->editor->edit($this->id('alice'), $this->conversationId, $this->messageId, 'x'));
     }
 
