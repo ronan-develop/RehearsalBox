@@ -45,6 +45,7 @@ L'application n'est pas un projet Symfony, mais elle est **prête à en accueill
 | `symfony/validator` | Écarté | Trop de dépendances pour trois petites politiques de saisie. |
 | `symfony/mercure` | Impossible | Demande un hub permanent, impossible sur mutualisé (polling à la place). |
 | `routing`, `http-foundation`, `http-kernel` | Écarté | Remplacer le socle minimal = réécrire tous les contrôleurs, pour un gain faible. |
+| `API Platform` | À évaluer (https://github.com/ronan-develop/RehearsalBox/issues/172) | Utile surtout pour une API publique ou un client natif ; demande le framework Symfony complet. Spike borné avant toute décision. |
 
 **Mises à jour** : `.github/dependabot.yml` propose les PR (composer + GitHub Actions) chaque semaine ; `composer audit` tourne en CI et avant chaque déploiement. Symfony 8.x est une branche à versions mineures courtes (passer à la mineure suivante à chaque sortie) ; la branche LTS reste une option si le rythme pèse.
 
