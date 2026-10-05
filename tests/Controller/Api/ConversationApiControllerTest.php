@@ -273,7 +273,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         [, $without] = $this->call('reply', [], ['message' => 'Sans citation'], $id);
         [, $withNull] = $this->call('reply', [], ['message' => 'Citation nulle', 'replyTo' => null], $id);
 
-        self::assertStringNotContainsString('rb-chat-quote', $without['html'] . $withNull['html']);
+        self::assertStringNotContainsString('class="rb-chat-quote"', $without['html'] . $withNull['html'], 'aucun bloc de citation');
     }
 
     #[Test]

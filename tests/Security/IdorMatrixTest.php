@@ -171,7 +171,8 @@ final class IdorMatrixTest extends TestCase
             ['GET', '/api/conversations', [], ['anon']],
             ['GET', '/api/conversations/{convAB}/updates', [], ['anon', 'stranger']],
             ['GET', '/api/conversation-list', [], ['anon']],
-            ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus'], ['anon', 'stranger']],
+            // (#214) la réponse cite un message : un étranger n'y gagne rien, même en devinant l'identifiant d'un message
+            ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus', 'replyTo' => '1'], ['anon', 'stranger']],
             ['PATCH', '/api/conversations/{convAB}', ['title' => 'Piraté'], ['anon', 'stranger']],
             ['POST', '/api/conversations/{convAB}/typing', [], ['anon', 'stranger']],
             // Corbeille (#190) : seul l'initiateur ; la conversation du jeu d'essai n'en a pas, personne ne peut donc agir
