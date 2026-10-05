@@ -194,4 +194,75 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_message_versions')->fetchColumn());
     }
+
+    // --- Citer un message (#214) ---------------------------------------------------------------------
+
+    #[Test]
+    public function testAMessageThatQuotesAnotherCarriesAQuoteWithItsAuthorAndText(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->conversations->create($a->id(), $b->id(), null, $this->now);
+        $original = $this->messages->addMessage($thread->id(), $bob->id(), 'Jeudi à 20h ?', $this->at('-1 hour'));
+
+        $reply = $this->messages->addMessage($thread->id(), $alice->id(), 'Oui !', $this->now, false, $original->id());
+
+        self::assertSame($original->id(), $reply->quote()?->messageId());
+        self::assertSame('Bob', $reply->quote()->authorName());
+        self::assertSame('Jeudi à 20h ?', $reply->quote()->excerpt());
+        $read = $this->messages->messagesOf($thread->id());
+        self::assertNull($read[0]->quote(), 'le message cité ne cite rien');
+        self::assertSame($original->id(), $read[1]->quote()?->messageId());
+        self::assertSame($original->id(), $this->messages->messageById($thread->id(), $reply->id())->quote()?->messageId());
+    }
+
+    #[Test]
+    public function testTheQuoteShowsTheCorrectedTextOnceTheQuotedMessageIsEdited(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->conversations->create($a->id(), $b->id(), null, $this->now);
+        $original = $this->messages->addMessage($thread->id(), $bob->id(), 'Jeudi à 20h ?', $this->at('-1 hour'));
+        $reply = $this->messages->addMessage($thread->id(), $alice->id(), 'Oui !', $this->now, false, $original->id());
+
+        $this->messages->updateBody($original->id(), 'Vendredi à 21h ?', $this->now);
+
+        self::assertSame('Vendredi à 21h ?', $this->messages->messageById($thread->id(), $reply->id())->quote()->excerpt());
+    }
+
+    #[Test]
+    public function testAnEditedMessageKeepsItsQuoteInThePollingOfCorrections(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->conversations->create($a->id(), $b->id(), null, $this->now);
+        $original = $this->messages->addMessage($thread->id(), $bob->id(), 'Jeudi ?', $this->at('-2 hours'));
+        $reply = $this->messages->addMessage($thread->id(), $alice->id(), 'Oui', $this->at('-1 hour'), false, $original->id());
+
+        $this->messages->updateBody($reply->id(), 'Oui, avec plaisir', $this->now);
+
+        $edited = $this->messages->editedSince($thread->id(), $this->at('-1 minute'), $reply->id());
+        self::assertSame($original->id(), $edited[0]->quote()?->messageId());
+    }
+
+    #[Test]
+    public function testAMessageWithoutQuoteHasNone(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $thread = $this->conversations->create($a->id(), $b->id(), null, $this->now);
+
+        $message = $this->messages->addMessage($thread->id(), $alice->id(), 'Bonjour', $this->now);
+
+        self::assertNull($message->quote());
+    }
+
+    #[Test]
+    public function testDeletingTheConversationDeletesQuotingMessagesWithoutAnError(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->conversations->create($a->id(), $b->id(), null, $this->now, $alice->id());
+        $original = $this->messages->addMessage($thread->id(), $bob->id(), 'Jeudi ?', $this->at('-1 hour'));
+        $this->messages->addMessage($thread->id(), $alice->id(), 'Oui', $this->now, false, $original->id());
+
+        (new MysqlConversationTrashRepository($this->pdo))->delete($thread->id());
+
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_messages')->fetchColumn());
+    }
 }

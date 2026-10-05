@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Conversation;
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationSummary;
+use App\Entity\MessageQuote;
 
 /** Lignes SQL de la messagerie → entités. Fonctions pures, partagées par les dépôts de la messagerie. */
 final class ConversationRows
@@ -53,6 +54,7 @@ final class ConversationRows
             new \DateTimeImmutable($row[$prefix . 'created_at']),
             (bool) $row[$prefix . 'is_system'],
             isset($row[$prefix . 'edited_at']) ? new \DateTimeImmutable($row[$prefix . 'edited_at']) : null,
+            isset($row[$prefix . 'quote_id']) ? new MessageQuote((int) $row[$prefix . 'quote_id'], (string) $row[$prefix . 'quote_author'], (string) $row[$prefix . 'quote_body']) : null,
         );
     }
 }

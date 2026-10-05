@@ -11,26 +11,39 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
 {
     private const DATE_FORMAT = ConversationSql::DATE_FORMAT;
 
+    // Un message avec son auteur et, s'il en cite un (#214), l'auteur et le texte ACTUELS du message cité.
+    private const SELECT_MESSAGE = 'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at,
+                q.id AS quote_id, qu.display_name AS quote_author, q.body AS quote_body
+         FROM conversation_messages m
+         JOIN users u ON u.id = m.author_id
+         LEFT JOIN conversation_messages q ON q.id = m.reply_to_message_id
+         LEFT JOIN users qu ON qu.id = q.author_id';
+
     public function __construct(private readonly \PDO $pdo)
     {
     }
 
-    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false): ConversationMessage
+    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false, ?int $replyToId = null): ConversationMessage
     {
         $statement = $this->pdo->prepare(
-            'INSERT INTO conversation_messages (conversation_id, author_id, body, is_system, created_at)
-             VALUES (:conversation_id, :author_id, :body, :is_system, :created_at)'
+            'INSERT INTO conversation_messages (conversation_id, author_id, body, is_system, reply_to_message_id, created_at)
+             VALUES (:conversation_id, :author_id, :body, :is_system, :reply_to, :created_at)'
         );
         $statement->execute([
             'conversation_id' => $conversationId,
             'author_id' => $authorId,
             'body' => $body,
             'is_system' => (int) $system,
+            'reply_to' => $replyToId,
             'created_at' => $now->format(self::DATE_FORMAT),
         ]);
 
         // Lu AVANT toute autre requête : lastInsertId() renvoie 0 après un SELECT.
         $id = (int) $this->pdo->lastInsertId();
+
+        if ($replyToId !== null) {
+            return $this->messageById($conversationId, $id) ?? throw new \LogicException('Message introuvable après insertion.');
+        }
 
         $name = $this->pdo->prepare('SELECT display_name FROM users WHERE id = :id');
         $name->execute(['id' => $authorId]);
@@ -41,8 +54,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
     public function messageById(int $conversationId, int $messageId): ?ConversationMessage
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at
-             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+            self::SELECT_MESSAGE . '
              WHERE m.conversation_id = :conversation_id AND m.id = :id'
         );
         $statement->execute(['conversation_id' => $conversationId, 'id' => $messageId]);
@@ -54,8 +66,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
     public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at
-             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+            self::SELECT_MESSAGE . '
              WHERE m.conversation_id = :conversation_id AND m.author_id = :author_id AND m.is_system = 0
              ORDER BY m.created_at DESC, m.id DESC LIMIT 1'
         );
@@ -68,8 +79,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
     public function messagesOf(int $conversationId, int $afterId = 0): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at
-             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+            self::SELECT_MESSAGE . '
              WHERE m.conversation_id = :conversation_id AND m.id > :after_id
              ORDER BY m.created_at ASC, m.id ASC'
         );
@@ -90,8 +100,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
     public function editedSince(int $conversationId, \DateTimeImmutable $since, int $upToMessageId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at
-             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+            self::SELECT_MESSAGE . '
              WHERE m.conversation_id = :conversation_id AND m.id <= :up_to AND m.edited_at > :since
              ORDER BY m.edited_at ASC, m.id ASC'
         );

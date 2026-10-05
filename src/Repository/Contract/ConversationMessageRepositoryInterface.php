@@ -9,7 +9,8 @@ use App\Entity\ConversationMessage;
 /** Messages d'une conversation : écriture, lecture, correction (#200) et comptages pour la limite de débit. */
 interface ConversationMessageRepositoryInterface
 {
-    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false): ConversationMessage;
+    /** @param int|null $replyToId message de la même conversation cité par celui-ci (déjà vérifié par l'appelant) */
+    public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false, ?int $replyToId = null): ConversationMessage;
 
     /** Un message précis de la conversation (ancre d'une lecture incrémentale), null s'il n'en fait pas partie. */
     public function messageById(int $conversationId, int $messageId): ?ConversationMessage;
