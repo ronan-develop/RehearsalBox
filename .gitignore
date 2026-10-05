@@ -12,3 +12,4 @@
 /design-plan.md
 /mockups/
 *.zip
+/.phpstan.cache/
