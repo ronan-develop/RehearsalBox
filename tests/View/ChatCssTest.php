@@ -73,6 +73,27 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testSwipeRevealsTheDeleteActionOnMobileAndDesktopKeepsAColumnOnTheRight(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-item\s*\{[^}]*touch-action:\s*pan-y/s', $css, 'le défilement vertical reste possible');
+        self::assertMatchesRegularExpression('/\.rb-chat-item--open\s*\{[^}]*--swipe-x:\s*-88px/s', $css, 'même largeur que ACTION_WIDTH du script');
+        self::assertMatchesRegularExpression('/\.rb-chat-item-delete\s*\{[^}]*position:\s*absolute/s', $css, 'mobile : sous la ligne, révélé par le glissement');
+        self::assertMatchesRegularExpression('/@media \(min-width: 900px\)\s*\{[^@]*\.rb-chat-item-delete\s*\{[^}]*position:\s*static[^}]*width:\s*44px/s', $css, 'ordinateur : colonne de 44 px à droite');
+        self::assertMatchesRegularExpression('/:has\(\.rb-chat-item-delete:focus-visible\)/', $css, 'le clavier révèle le bouton');
+    }
+
+    #[Test]
+    public function testTheSwipeWidthMatchesBetweenTheScriptAndTheStylesheet(): void
+    {
+        $script = (string) file_get_contents(__DIR__ . '/../../public/assets/js/chat/swipe.js');
+
+        self::assertMatchesRegularExpression('/ACTION_WIDTH = 88;/', $script);
+        self::assertStringContainsString('--swipe-x: -88px', $this->css());
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

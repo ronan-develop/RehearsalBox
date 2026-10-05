@@ -674,3 +674,73 @@ rb-composer {
   color: var(--rb-warn);
   font-size: 0.8125rem;
 }
+
+/* Suppression depuis la liste (#202) : mobile = glissement vers la gauche, ordinateur = colonne de droite. */
+.rb-chat-item {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y; /* le défilement vertical reste au navigateur, le geste horizontal est géré par le script */
+}
+
+.rb-chat-item-link {
+  z-index: 1;
+  background: var(--rb-bg);
+  transform: translateX(var(--swipe-x, 0px));
+  transition: transform 0.2s ease;
+}
+
+.rb-chat-item--dragging .rb-chat-item-link {
+  transition: none;
+}
+
+.rb-chat-item--open {
+  --swipe-x: -88px; /* = ACTION_WIDTH (swipe.js) */
+}
+
+/* Clavier : atteindre le bouton le révèle (le glissement n'est jamais la seule voie). */
+.rb-chat-item[data-can-delete]:has(.rb-chat-item-delete:focus-visible) {
+  --swipe-x: -88px;
+}
+
+.rb-chat-item-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 88px;
+  color: #fff;
+  background: var(--rb-err);
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (min-width: 900px) {
+  .rb-chat-item[data-can-delete] {
+    display: flex;
+  }
+
+  .rb-chat-item[data-can-delete] .rb-chat-item-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    transform: none;
+  }
+
+  /* Petite colonne à droite de la conversation : un bouton discret, rouge au survol. */
+  .rb-chat-item-delete {
+    position: static;
+    flex: 0 0 44px;
+    width: 44px;
+    color: var(--rb-text-3);
+    background: transparent;
+    border-bottom: 1px solid var(--rb-border);
+    border-left: 1px solid var(--rb-border);
+  }
+
+  .rb-chat-item-delete:hover,
+  .rb-chat-item-delete:focus-visible {
+    color: #fff;
+    background: var(--rb-err);
+  }
+}
