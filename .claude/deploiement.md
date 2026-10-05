@@ -74,6 +74,7 @@ cd "$HOME/rehearsalbox/current" && [ -f bin/send-reminders.php ] && /usr/local/b
 - Jeton aléatoire de 256 bits, **stocké haché** (SHA-256) dans `password_resets` (migration 010), valable 1 heure, **à usage unique** (`UPDATE … WHERE used_at IS NULL AND expires_at > :now`). Un nouveau jeton annule les précédents ; 3 demandes par heure et par compte au maximum.
 - Réponse **identique** que le compte existe ou non (pas d'énumération). Le lien du mail est construit depuis `APP_URL` (`app.base_url`), **jamais** depuis l'en-tête `Host`.
 - La page de réinitialisation envoie `Referrer-Policy: no-referrer` et `Cache-Control: no-store` (le jeton est dans l'URL).
+- En-têtes de sécurité globaux (CSP, anti-iframe, HSTS…) : voir `.claude/architecture.md`. Après un déploiement, `curl -sI` la page de connexion et vérifier leur présence ; HSTS est à 30 jours, à allonger une fois le HTTPS validé de bout en bout.
 - Premier déploiement de la fonctionnalité : `APP_URL` doit être dans le fichier de secrets et la configuration serveur régénérée (`RB_REGEN_CONFIG=1 ./bin/deploy.sh`) ; la migration 010 est appliquée par le déploiement (sauvegarde préalable automatique).
 - Limite connue : les sessions déjà ouvertes ne sont pas fermées après un changement de mot de passe (sessions PHP natives).
 

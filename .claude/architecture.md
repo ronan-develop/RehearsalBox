@@ -61,6 +61,16 @@ L'application n'est pas un projet Symfony, mais elle est **prête à en accueill
 
 **Mises à jour** : `.github/dependabot.yml` propose les PR (composer + GitHub Actions) chaque semaine ; `composer audit` tourne en CI et avant chaque déploiement. Symfony 8.x est une branche à versions mineures courtes (passer à la mineure suivante à chaque sortie) ; la branche LTS reste une option si le rythme pèse.
 
+## En-têtes de sécurité (#226)
+
+Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel à **toute** réponse dynamique (pages, API, erreurs 4xx/5xx, redirections) : CSP stricte (`script-src 'self'`, aucun script inline, `style-src-attr 'unsafe-inline'` seulement pour les `style=` des couleurs de groupe, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri` et `form-action` sur `'self'`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrictive, `Cross-Origin-Opener-Policy`, et `Cache-Control: private, no-store` par défaut. HSTS (30 jours, sans sous-domaines) seulement si `app.base_url` est en HTTPS.
+
+- Un en-tête déjà posé par un contrôleur est **prioritaire** (`Response::withDefaultHeaders`, insensible à la casse) : les pages à jeton gardent `Referrer-Policy: no-referrer`, un téléchargement peut définir son propre cache.
+- **Ne pas** poser de `Cache-Control`/`Referrer-Policy` « par habitude » dans un contrôleur : c'est le défaut.
+- Aucun script inline, aucune ressource externe, aucun `on…=` : toute nouvelle dépendance externe doit d'abord élargir la CSP (et un test). Vérifier une nouvelle page dans le navigateur avec la console ouverte (violation = erreur `security`).
+- Les assets servis directement par Apache (CSS, JS) reçoivent `nosniff` via `public/.htaccess`.
+- JS : tout HTML construit côté client échappe ses données avec `escapeHtml` de `assets/js/html.js` (module unique).
+
 ## Connexion : verrou, limite par adresse, temps de réponse (#218)
 
 - **Verrou par compte** : 5 échecs → 15 minutes. Le compteur est incrémenté **en SQL, en une seule requête** (`UserRepositoryInterface::recordFailedLogin`) : jamais « lire, calculer en PHP, réécrire la ligne » (des tentatives simultanées s'écraseraient et le verrou serait contournable). Le compteur est plafonné (colonne étroite). Remise à zéro atomique aussi (`resetFailedLogins`, utilisée par la connexion réussie et le déblocage administrateur).

@@ -61,7 +61,7 @@ final class HtaccessTest extends TestCase
         // app.js importe d'autres modules par chemin relatif : on ne peut pas les versionner
         // un par un, donc CSS et JS sont revalidés à chaque chargement (#150).
         self::assertMatchesRegularExpression(
-            '/<IfModule mod_headers\.c>\s*<FilesMatch "\\\.\(css\|js\|mjs\)\$">\s*Header set Cache-Control "no-cache"\s*<\/FilesMatch>\s*<\/IfModule>/',
+            '/<IfModule mod_headers\.c>\s*<FilesMatch "\\\.\(css\|js\|mjs\)\$">\s*Header set Cache-Control "no-cache"\s*Header set X-Content-Type-Options "nosniff"\s*<\/FilesMatch>\s*<\/IfModule>/',
             $content,
         );
     }

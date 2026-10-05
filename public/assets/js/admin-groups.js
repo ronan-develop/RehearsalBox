@@ -6,12 +6,7 @@ import { initAsyncForms } from './forms.js';
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
 import { confirmAction } from './rb-confirm-modal.js';
-
-const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
-}
+import { escapeHtml } from './html.js';
 
 export function renderGroupCard(group) {
   return `

@@ -58,7 +58,6 @@ final class MessagesPageController
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'items' => $this->view->trash($user->id()),
             ]),
-            headers: ['Cache-Control' => 'private, no-store'],
         );
     }
 
@@ -125,7 +124,6 @@ final class MessagesPageController
                 'thread' => $thread,
                 'draft' => $draft,
             ]),
-            headers: ['Cache-Control' => 'private, no-store'],
         );
     }
 }

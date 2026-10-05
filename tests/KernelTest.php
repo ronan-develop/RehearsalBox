@@ -7,11 +7,13 @@ namespace App\Tests;
 use App\Container\Container;
 use App\Http\JsonResponse;
 use App\Http\Request;
+use App\Http\Response;
 use App\Kernel;
 use App\Routing\Router;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
+use App\Security\SecurityHeaders;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -20,7 +22,7 @@ final class KernelTest extends TestCase
 {
     private function kernel(Router $router, Container $container): Kernel
     {
-        return new Kernel($router, $container, new CsrfTokenManager(new InMemorySession()));
+        return new Kernel($router, $container, new CsrfTokenManager(new InMemorySession()), new SecurityHeaders());
     }
 
     #[Test]
@@ -248,7 +250,7 @@ final class KernelTest extends TestCase
         $csrf = new CsrfTokenManager($session);
         $token = $csrf->getToken();
 
-        $kernel = new Kernel($router, $container, $csrf);
+        $kernel = new Kernel($router, $container, $csrf, new SecurityHeaders());
         $response = $kernel->handle(new Request('POST', '/api/availability/1/claim', [], [], ['X-CSRF-TOKEN' => $token]));
 
         self::assertSame(200, $response->statusCode());
@@ -273,5 +275,77 @@ final class KernelTest extends TestCase
         $response = $kernel->handle(new Request('GET', '/api/availability', [], [], []));
 
         self::assertSame(200, $response->statusCode());
+    }
+
+    #[Test]
+    public function testEveryKindOfResponseCarriesTheSecurityHeaders(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/page', ['c', 'page']);
+        $router->add('GET', '/private', ['c', 'private']);
+        $router->add('POST', '/api/thing', ['c', 'thing']);
+        $container = new Container();
+        $container->set('c', fn () => new class () {
+            public function page(): Response
+            {
+                return new Response('<p>ok</p>');
+            }
+
+            public function private(): Response
+            {
+                throw new UnauthenticatedException('non connecté');
+            }
+
+            public function thing(): JsonResponse
+            {
+                return new JsonResponse(['status' => 'ok']);
+            }
+        });
+        $kernel = $this->kernel($router, $container);
+
+        $responses = [
+            'page' => $kernel->handle(new Request('GET', '/page', [], [], [])),
+            'redirection vers la connexion' => $kernel->handle(new Request('GET', '/private', [], [], [])),
+            'API refusée (CSRF)' => $kernel->handle(new Request('POST', '/api/thing', [], [], [])),
+            '404 page' => $kernel->handle(new Request('GET', '/nulle-part', [], [], [])),
+            '404 API' => $kernel->handle(new Request('GET', '/api/nulle-part', [], [], [])),
+            '405 méthode non autorisée' => $kernel->handle(new Request('DELETE', '/page', [], [], [])),
+        ];
+
+        foreach ($responses as $label => $response) {
+            self::assertSame("frame-ancestors 'none'", $this->directive($response, 'frame-ancestors'), $label);
+            self::assertSame('DENY', $response->headers()['X-Frame-Options'] ?? null, $label);
+            self::assertSame('nosniff', $response->headers()['X-Content-Type-Options'] ?? null, $label);
+            self::assertSame('private, no-store', $response->headers()['Cache-Control'] ?? null, $label);
+        }
+    }
+
+    #[Test]
+    public function testAControllerHeaderIsKeptByTheKernel(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/reset', ['c', 'reset']);
+        $container = new Container();
+        $container->set('c', fn () => new class () {
+            public function reset(): Response
+            {
+                return new Response('ok', 200, ['Referrer-Policy' => 'no-referrer']);
+            }
+        });
+
+        $response = $this->kernel($router, $container)->handle(new Request('GET', '/reset', [], [], []));
+
+        self::assertSame('no-referrer', $response->headers()['Referrer-Policy']);
+    }
+
+    private function directive(Response $response, string $name): ?string
+    {
+        foreach (explode(';', $response->headers()['Content-Security-Policy'] ?? '') as $part) {
+            if (str_starts_with(trim($part), $name)) {
+                return trim($part);
+            }
+        }
+
+        return null;
     }
 }
