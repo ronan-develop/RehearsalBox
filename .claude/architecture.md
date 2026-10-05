@@ -55,7 +55,7 @@ L'application n'est pas un projet Symfony, mais elle est **prête à en accueill
 | `symfony/security-csrf` | À évaluer | Remplacerait `CsrfTokenManager` (code maison sur un point de sécurité) ; dépendances à mesurer. |
 | `symfony/rate-limiter` | Écarté pour l'instant | Nos limites comptent des lignes déjà stockées (testé, sans cache). À revoir si elles se multiplient. |
 | `symfony/validator` | Écarté | Trop de dépendances pour trois petites politiques de saisie. |
-| `symfony/mercure` | Impossible | Demande un hub permanent, impossible sur mutualisé (polling à la place). |
+| `symfony/mercure` | Non retenu | Optionnel, y compris avec API Platform (qui fonctionne sans, ex. un autre projet du dépôt voisin `home-cloud`). Le push temps réel demande un hub permanent, impossible sur mutualisé : on garde le polling. |
 | `routing`, `http-foundation`, `http-kernel` | Écarté | Remplacer le socle minimal = réécrire tous les contrôleurs, pour un gain faible. |
 | `API Platform` | À évaluer (https://github.com/ronan-develop/RehearsalBox/issues/172) | Utile surtout pour une API publique ou un client natif ; demande le framework Symfony complet. Spike borné avant toute décision. |
 
