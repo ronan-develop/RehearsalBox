@@ -57,3 +57,12 @@ composer audit                   # avant tout déploiement
 ./vendor/bin/phpunit --filter NomDuTest
 npm test                         # tests JS (node --test sur assets/js/*)
 ```
+
+## Contrôles de qualité (aussi exécutés par la CI)
+
+```bash
+./vendor/bin/phpstan analyse --memory-limit=512M   # analyse statique, niveau 6 (phpstan.neon.dist)
+php bin/check-size.php                             # budget de taille : 250 lignes et 10 méthodes publiques par classe
+```
+
+Le budget de taille a un **cliquet** : les classes déjà trop grosses sont listées dans `config/size-budget-exceptions.php` à leur taille actuelle, elles ne peuvent plus grossir et leur entrée doit être retirée dès qu'elles repassent sous le budget (le contrôle l'exige). PHPUnit échoue aussi sur un test risqué, un avertissement, une dépréciation ou une notice.

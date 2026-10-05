@@ -4,8 +4,8 @@
 
 |Job|Déclencheur|Détail|
 |-|-|-|
-|PHPUnit + MariaDB|push / PR sur `main`|PHP 8.4, MariaDB 10.11, `composer audit` avant les tests|
-|Tests JS|push / PR sur `main`|Node.js 22, `node --test` sur `assets/js/*`|
+|PHPUnit + MariaDB|push / PR sur `main`|PHP 8.4, MariaDB 10.11 ; avant les tests : `composer audit`, PHPStan (niveau 6), budget de taille des classes (`bin/check-size.php`)|
+|Tests JS|push / PR sur `main`|Node.js 22, `npm audit`, `node --test` sur `assets/js/*`|
 
 Défini dans [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
