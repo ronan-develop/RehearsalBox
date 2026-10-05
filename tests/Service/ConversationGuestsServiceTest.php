@@ -21,6 +21,8 @@ use App\Service\ConversationGuestService;
 use App\Service\ConversationMentionService;
 use App\Service\ConversationService;
 use App\Service\ConversationTrashService;
+use App\Service\MentionNotifier;
+use App\Tests\Support\RecordingMailer;
 use App\Service\Exception\ConversationValidationException;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -33,6 +35,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
     private ConversationService $service;
     private ConversationTrashService $trash;
     private ConversationGuestService $guestService;
+    private RecordingMailer $mailer;
     private MysqlConversationRepository $conversations;
     private MysqlConversationGuestRepository $guests;
     private MysqlConversationMentionRepository $mentions;
@@ -60,6 +63,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $this->conversations = new MysqlConversationRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
+        $this->mailer = new RecordingMailer();
         $transactions = new TransactionRunner($this->pdo);
         $access = new ConversationAccess($this->conversations, $groups, $this->guests);
         $this->service = new ConversationService(
@@ -67,7 +71,14 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $groups,
             $transactions,
             $this->clock,
-            mentions: new ConversationMentionService($users, $groups, $this->guests, $this->mentions, $this->conversations),
+            mentions: new ConversationMentionService(
+                $users,
+                $groups,
+                $this->guests,
+                $this->mentions,
+                $this->conversations,
+                new MentionNotifier($this->mailer, new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+            ),
             access: $access,
         );
         $this->trash = new ConversationTrashService($access, $this->conversations, $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
@@ -119,6 +130,48 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         self::assertSame(['Bonjour', '[système] a ajouté Denis à la conversation', 'Viens voir @Denis'], $lines);
         $last = $messages[array_key_last($messages)];
         self::assertSame([$this->id('denis') => '@Denis'], $this->mentions->forMessages([$last->id()])[$last->id()]);
+    }
+
+    #[Test]
+    public function testTaggingSomeoneSendsThemOneEmailAfterTheMessageIsSaved(): void
+    {
+        $this->tagDenis();
+
+        self::assertCount(1, $this->mailer->sent);
+        self::assertSame('denis@rehearsalbox.test', $this->mailer->sent[0]->getTo()[0]->getAddress());
+        self::assertStringContainsString('/messages/' . $this->conversationId, (string) $this->mailer->sent[0]->getTextBody());
+        self::assertStringNotContainsString('Concert', (string) $this->mailer->sent[0]->getTextBody() . $this->mailer->sent[0]->getSubject(), 'le titre n\'est jamais envoyé');
+    }
+
+    #[Test]
+    public function testTaggingAnExistingParticipantAlsoNotifiesThemButNotWithoutATag(): void
+    {
+        $this->service->reply($this->id('alice'), $this->conversationId, 'Sans tag');
+        self::assertSame([], $this->mailer->sent);
+
+        $this->service->reply($this->id('alice'), $this->conversationId, 'Salut @Bob', [$this->id('bob')]);
+
+        self::assertCount(1, $this->mailer->sent);
+        self::assertSame('bob@rehearsalbox.test', $this->mailer->sent[0]->getTo()[0]->getAddress());
+    }
+
+    #[Test]
+    public function testTheFirstMessageOfANewConversationNotifiesTheTaggedPersonToo(): void
+    {
+        $this->service->start($this->id('alice'), $this->alpha, $this->beta, 'Avec @Denis', null, [$this->id('denis')]);
+
+        self::assertCount(1, $this->mailer->sent);
+        self::assertSame('denis@rehearsalbox.test', $this->mailer->sent[0]->getTo()[0]->getAddress());
+    }
+
+    #[Test]
+    public function testTenTagsInARowSendOnlyOneEmail(): void
+    {
+        foreach (range(1, 3) as $i) {
+            $this->service->reply($this->id('alice'), $this->conversationId, "Encore @Denis {$i}", [$this->id('denis')]);
+        }
+
+        self::assertCount(1, $this->mailer->sent);
     }
 
     #[Test]

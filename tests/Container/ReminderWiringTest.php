@@ -6,6 +6,9 @@ namespace App\Tests\Container;
 
 use App\Service\ConversationNotifier;
 use App\Service\ConversationReminderService;
+use App\Service\ConversationService;
+use App\Service\MentionNotifier;
+use App\Service\MentionReminderService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -28,6 +31,9 @@ final class ReminderWiringTest extends TestCase
 
         self::assertInstanceOf(ConversationNotifier::class, $container->get(ConversationNotifier::class));
         self::assertInstanceOf(ConversationReminderService::class, $container->get(ConversationReminderService::class));
+        self::assertInstanceOf(MentionNotifier::class, $container->get(MentionNotifier::class));
+        self::assertInstanceOf(MentionReminderService::class, $container->get(MentionReminderService::class));
+        self::assertInstanceOf(ConversationService::class, $container->get(ConversationService::class), 'le service de messagerie reçoit le notificateur de mention');
     }
 
     #[Test]
@@ -36,7 +42,9 @@ final class ReminderWiringTest extends TestCase
         $script = __DIR__ . '/../../bin/send-reminders.php';
 
         self::assertSame(0, $this->exitCodeOf('php -l ' . escapeshellarg($script)));
-        self::assertStringContainsString("PHP_SAPI !== 'cli'", (string) file_get_contents($script), 'jamais exécutable depuis le web');
+        $source = (string) file_get_contents($script);
+        self::assertStringContainsString("PHP_SAPI !== 'cli'", $source, 'jamais exécutable depuis le web');
+        self::assertStringContainsString('MentionReminderService', $source, 'le même cron envoie aussi les relances de mention');
     }
 
     private function exitCodeOf(string $command): int

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Conversation;
 use App\Entity\ConversationMessage;
 use App\Entity\MentionPlan;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
@@ -29,6 +30,7 @@ final class ConversationMentionService
         private readonly ConversationGuestRepositoryInterface $guests,
         private readonly ConversationMentionRepositoryInterface $mentions,
         private readonly ConversationRepositoryInterface $conversations,
+        private readonly ?MentionNotifier $notifier = null,
     ) {
     }
 
@@ -88,6 +90,17 @@ final class ConversationMentionService
             if ($this->guests->add($conversationId, $userId, $actorId, $now)) {
                 $this->conversations->addMessage($conversationId, $actorId, "a ajouté {$name} à la conversation", $now, true);
             }
+        }
+    }
+
+    /**
+     * Prévient par e-mail les personnes mentionnées. À appeler APRÈS la validation de la transaction : le message est déjà
+     * enregistré, un échec d'envoi ne remonte jamais (MentionNotifier).
+     */
+    public function notify(MentionPlan $plan, Conversation $conversation, int $authorId, string $authorName, \DateTimeImmutable $now): void
+    {
+        if (!$plan->isEmpty()) {
+            $this->notifier?->mentioned($conversation, $authorId, $authorName, array_keys($plan->labels()), $now);
         }
     }
 

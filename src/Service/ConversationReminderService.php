@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\DueReminder;
 use App\Mail\MailRenderer;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
+use App\Support\DaytimeWindow;
 use App\Support\HeaderText;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -23,8 +24,6 @@ final class ConversationReminderService
 {
     public const MIN_AGE = '-24 hours';
     public const MAX_AGE = '-7 days';
-    public const WINDOW_START_HOUR = 9;
-    public const WINDOW_END_HOUR = 20;
 
     public function __construct(
         private readonly ConversationNoticeRepositoryInterface $notices,
@@ -40,8 +39,7 @@ final class ConversationReminderService
     public function sendDue(): ReminderReport
     {
         $now = $this->clock->now();
-        $hour = (int) $now->setTimezone($this->localTimezone)->format('G');
-        if ($hour < self::WINDOW_START_HOUR || $hour >= self::WINDOW_END_HOUR) {
+        if (!DaytimeWindow::contains($now, $this->localTimezone)) {
             return new ReminderReport(outsideWindow: true);
         }
 
