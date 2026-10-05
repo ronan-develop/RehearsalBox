@@ -8,6 +8,7 @@ use App\Entity\ConversationSummary;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Presenter\ConversationPresenter;
+use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
@@ -15,6 +16,7 @@ use App\Service\ConversationService;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;
+use App\View\TemplateRendererInterface;
 
 /**
  * Messagerie entre groupes (#153, #169). Les identifiants de l'auteur et de l'utilisateur viennent UNIQUEMENT de la
@@ -29,6 +31,8 @@ final class ConversationApiController
         private readonly ConversationService $conversationService,
         private readonly ConversationPresenter $presenter,
         private readonly AuthGuard $authGuard,
+        private readonly MessagesPageView $view,
+        private readonly TemplateRendererInterface $renderer,
     ) {
     }
 
@@ -75,34 +79,58 @@ final class ConversationApiController
         });
     }
 
-    /** Sans `after` : fil complet, marqué lu. Avec `after=<id>` : lecture incrémentale (polling). */
-    public function show(Request $request, string $id): JsonResponse
+    /**
+     * Mises à jour d'un fil ouvert (polling) : les messages plus récents que `after`, déjà dessinés par le serveur
+     * (fragment HTML issu du même gabarit que la page), avec qui écrit, « vu par » et le titre. Recevoir en direct un
+     * message des autres vaut lecture.
+     */
+    public function updates(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
         $conversationId = $this->idOrDenied($id);
 
-        $after = $request->query('after');
-        if ($after !== null && (!is_string($after) || preg_match('/^[0-9]{1,10}$/', $after) !== 1)) {
+        $after = $request->query('after', '0');
+        if (!is_string($after) || preg_match('/^[0-9]{1,10}$/', $after) !== 1) {
             return new JsonResponse(['error' => 'Paramètre « after » invalide.'], 422);
         }
 
-        $thread = $after === null
-            ? $this->conversationService->open($user->id(), $conversationId)
-            : $this->conversationService->poll($user->id(), $conversationId, (int) $after);
-
-        return new JsonResponse($this->presenter->thread($thread, $user->id()));
+        return $this->updatesResponse($user->id(), $conversationId, (int) $after);
     }
 
+    /** Liste des conversations en fragment HTML (rafraîchissement de la colonne de gauche). */
+    public function listFragment(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $box = $request->query('box', ConversationRepositoryInterface::BOX_ACTIVE);
+        if (!is_string($box) || !in_array($box, self::BOXES, true)) {
+            return new JsonResponse(['error' => 'Liste invalide.'], 422);
+        }
+        $active = $request->query('active');
+        $activeId = $active === null ? null : StrictId::from($active);
+
+        $sidebar = $this->view->sidebar($user->id(), $activeId, $box);
+
+        return new JsonResponse([
+            'html' => $this->renderer->render('messages/_conversation-items', ['items' => $sidebar['items']]),
+            'empty' => $sidebar['items'] === [],
+            'archivedUnread' => $sidebar['archivedUnread'],
+        ]);
+    }
+
+    /** Envoie un message ; la réponse contient les messages plus récents que `after` (dont le mien), déjà dessinés. */
     public function reply(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
         $conversationId = $this->idOrDenied($id);
         $message = $request->body('message');
+        $after = $request->body('after');
 
-        return $this->guarded(function () use ($user, $conversationId, $message): JsonResponse {
+        return $this->guarded(function () use ($user, $conversationId, $message, $after): JsonResponse {
             $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '');
+            $anchor = StrictId::from($after) ?? max(0, $created->id() - 1);
 
-            return new JsonResponse(['message' => $this->presenter->message($created, null, $user->id())], 201);
+            return $this->updatesResponse($user->id(), $conversationId, min($anchor, $created->id() - 1), 201);
         });
     }
 
@@ -132,6 +160,22 @@ final class ConversationApiController
         $this->conversationService->typing($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
+    }
+
+    private function updatesResponse(int $userId, int $conversationId, int $after, int $status = 200): JsonResponse
+    {
+        $view = $this->view->thread($this->conversationService->poll($userId, $conversationId, $after), $userId);
+
+        return new JsonResponse([
+            'html' => $this->renderer->render('messages/_rows', ['rows' => $view['rows']]),
+            'lastId' => $view['lastId'],
+            'hasNew' => $view['rows'] !== [],
+            'status' => $view['status'],
+            'typing' => $view['typing'],
+            'title' => $view['title'],
+            'displayTitle' => $view['displayTitle'],
+            'label' => $view['label'],
+        ], $status);
     }
 
     /** @param callable(): JsonResponse $action */

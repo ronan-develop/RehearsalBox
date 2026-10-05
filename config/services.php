@@ -284,6 +284,8 @@ return static function (array $config): Container {
         $c->get(ConversationService::class),
         $c->get(ConversationPresenter::class),
         $c->get(AuthGuard::class),
+        $c->get(MessagesPageView::class),
+        $c->get(TemplateRendererInterface::class),
     ));
 
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(
