@@ -477,3 +477,110 @@ rb-composer {
 .rb-messages-link .rb-badge[hidden] {
   display: none;
 }
+
+/* Corbeille et avis (#190) */
+.rb-chat-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rb-space-2);
+  padding: var(--rb-space-2) var(--rb-space-3);
+  background: var(--rb-bg-2);
+  border-bottom: 1px solid var(--rb-border);
+  color: var(--rb-text);
+  font-size: 0.875rem;
+}
+
+.rb-chat-alert p {
+  flex: 1 1 auto;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rb-chat-alert a {
+  color: inherit;
+}
+
+.rb-chat-alert-close {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  margin: calc(-1 * var(--rb-space-2)) calc(-1 * var(--rb-space-3)) calc(-1 * var(--rb-space-2)) 0;
+  color: var(--rb-text-2);
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.rb-chat-delete {
+  align-self: flex-start;
+  margin: var(--rb-space-1) 0 0;
+  padding: 0;
+  color: var(--rb-err);
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rb-chat-delete[hidden] {
+  display: none;
+}
+
+.rb-trash {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--rb-space-3);
+}
+
+.rb-trash-head {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+}
+
+.rb-trash-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rb-trash-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rb-space-2);
+  padding: var(--rb-space-3) 0;
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-trash-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rb-trash-title {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rb-trash-meta,
+.rb-trash-help {
+  color: var(--rb-text-3);
+  font-size: 0.8125rem;
+}
+
+.rb-trash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+}
+
+.rb-trash [hidden] {
+  display: none;
+}

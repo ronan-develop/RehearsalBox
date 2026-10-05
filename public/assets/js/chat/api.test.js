@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation } from './api.js';
+import { fetchList, fetchUpdates, fetchListFragment, sendMessage, renameConversation, sendTyping, startConversation, trashConversation, restoreConversation, purgeConversation, dismissAlert } from './api.js';
 
 function mockFetch(payload = {}) {
   const calls = [];
@@ -78,4 +78,21 @@ test('startConversation creates the thread from the first message', async () => 
   assert.deepEqual(calls[0].body, { groupId: '3', targetGroupId: '7', message: 'Salut' });
   assert.equal(calls[0].csrf, 'csrf-token');
   assert.deepEqual(result, { id: 42 });
+});
+
+test('the trash calls use the right verbs and routes', async () => {
+  const calls = mockFetch({ status: 'ok' });
+
+  await trashConversation('12');
+  await restoreConversation('12');
+  await purgeConversation('12');
+  await dismissAlert('7');
+
+  assert.deepEqual(calls.map((call) => [call.method, call.url]), [
+    ['DELETE', '/api/conversations/12'],
+    ['POST', '/api/conversations/12/restore'],
+    ['DELETE', '/api/conversations/12/permanent'],
+    ['POST', '/api/conversation-alerts/7/dismiss'],
+  ]);
+  assert.ok(calls.every((call) => call.csrf === 'csrf-token'));
 });

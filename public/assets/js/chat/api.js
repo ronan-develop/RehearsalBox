@@ -37,3 +37,20 @@ export function sendTyping(id) {
 export function startConversation({ groupId, targetGroupId, message }) {
   return apiFetch('/api/conversations', { method: 'POST', body: JSON.stringify({ groupId, targetGroupId, message }) });
 }
+
+/** Corbeille (#190) : mise à la corbeille (initiateur), restauration, suppression définitive, fermeture d'un avis. */
+export function trashConversation(id) {
+  return apiFetch(base(id), { method: 'DELETE' });
+}
+
+export function restoreConversation(id) {
+  return apiFetch(`${base(id)}/restore`, { method: 'POST', body: JSON.stringify({}) });
+}
+
+export function purgeConversation(id) {
+  return apiFetch(`${base(id)}/permanent`, { method: 'DELETE' });
+}
+
+export function dismissAlert(id) {
+  return apiFetch(`/api/conversation-alerts/${encodeURIComponent(id)}/dismiss`, { method: 'POST', body: JSON.stringify({}) });
+}
