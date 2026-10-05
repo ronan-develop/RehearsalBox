@@ -30,6 +30,8 @@ final class MailRendererTest extends TestCase
             ['account-alert', ['link' => self::LINK]],
             ['conversation-new', ['authorName' => 'Alice', 'groupName' => 'Alpha', 'link' => self::LINK]],
             ['conversation-reminder', ['counterpartName' => 'Alpha', 'link' => self::LINK]],
+            ['mention-new', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]],
+            ['mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]],
         ] as [$template, $data]) {
             $html = $this->renderer->render($template, $data)['html'];
 
@@ -190,5 +192,34 @@ final class MailRendererTest extends TestCase
         $html = $this->renderer->render('email-changed', ['newEmailMasked' => '"><img src=x onerror=alert(1)>'])['html'];
 
         self::assertStringNotContainsString('<img src=x', $html);
+    }
+
+    // --- E-mails de mention (#178) --------------------------------------------------------------------
+
+    #[Test]
+    public function testMentionEmailsNameTheAuthorLinkToTheConversationAndToTheUnsubscribeAndEscapeEverything(): void
+    {
+        foreach (['mention-new', 'mention-reminder'] as $template) {
+            $mail = $this->renderer->render($template, ['mentionerName' => '<b>Alice</b>', 'link' => self::LINK, 'accountLink' => 'https://rehearsalbox.example/account/password']);
+
+            self::assertStringContainsString('&lt;b&gt;Alice&lt;/b&gt;', $mail['html'], $template);
+            self::assertStringNotContainsString('<b>Alice</b>', $mail['html'], $template);
+            self::assertStringContainsString('href="https://rehearsalbox.example/reset-password?token=abc123&amp;x=1"', $mail['html'], $template);
+            self::assertStringContainsString(self::LINK, $mail['text'], $template);
+            foreach ([$mail['html'], $mail['text']] as $body) {
+                self::assertStringContainsString('https://rehearsalbox.example/account/password', $body, $template . ' : lien de désinscription');
+                self::assertStringContainsString('se lit sur le site', $body, $template . ' : le contenu n\'est pas envoyé');
+            }
+        }
+    }
+
+    #[Test]
+    public function testTheMentionReminderSaysTheMentionIsStillUnread(): void
+    {
+        $mail = $this->renderer->render('mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]);
+
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('pas encore', $body);
+        }
     }
 }
