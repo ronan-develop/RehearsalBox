@@ -41,6 +41,9 @@ jobs:
       - name: Static analysis (PHPStan)
         run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
+      - name: Code style (PSR-12)
+        run: ./vendor/bin/php-cs-fixer fix --dry-run --diff --using-cache=no
+
       - name: Class size budget
         run: php bin/check-size.php
 

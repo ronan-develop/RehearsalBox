@@ -62,6 +62,7 @@ npm test                         # tests JS (node --test sur assets/js/*)
 
 ```bash
 ./vendor/bin/phpstan analyse --memory-limit=512M   # analyse statique, niveau 6 (phpstan.neon.dist)
+./vendor/bin/php-cs-fixer fix --dry-run --diff     # style PSR-12 ; sans --dry-run, corrige
 php bin/check-size.php                             # budget de taille : 250 lignes et 10 méthodes publiques par classe
 ```
 
