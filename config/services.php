@@ -60,6 +60,8 @@ use App\Service\PasswordResetService;
 use App\Service\SlotService;
 use App\Service\UserProvisioningService;
 use App\View\PhpTemplateRenderer;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\ClockInterface;
 use App\View\TemplateRendererInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mailer\Transport;
@@ -131,6 +133,9 @@ return static function (array $config): Container {
     ));
 
     $container->set(PasswordPolicy::class, fn () => new PasswordPolicy());
+
+    // Le temps est un port (PSR-20) : le métier dépend de ClockInterface, les tests posent un MockClock.
+    $container->set(ClockInterface::class, static fn () => new Clock());
 
     $container->set(TransactionRunner::class, fn ($c) => new TransactionRunner($c->get(PDO::class)));
     $container->set(PasswordResetRepositoryInterface::class, fn ($c) => new MysqlPasswordResetRepository($c->get(PDO::class)));
