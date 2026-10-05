@@ -29,6 +29,7 @@ final class MailRendererTest extends TestCase
             ['password-reset', ['link' => self::LINK]],
             ['account-alert', ['link' => self::LINK]],
             ['conversation-new', ['authorName' => 'Alice', 'groupName' => 'Alpha', 'link' => self::LINK]],
+            ['conversation-reminder', ['counterpartName' => 'Alpha', 'link' => self::LINK]],
         ] as [$template, $data]) {
             $html = $this->renderer->render($template, $data)['html'];
 

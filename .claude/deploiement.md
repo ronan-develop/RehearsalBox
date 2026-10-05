@@ -51,6 +51,22 @@ RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> admin  #
 
 Le mot de passe, s'il y en a un, passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. **Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Les groupes sont créés depuis l'écran Groupes.
 
+## Tâche planifiée : relances de la messagerie (#180)
+
+`bin/send-reminders.php` envoie à l'adresse de contact d'un groupe **une relance** quand un message de l'autre côté est resté **24 h sans lecture** par ce groupe (jamais le contenu du message), seulement entre 9 h et 20 h (heure locale `app.timezone`) ; hors plage il ne fait rien et les relances dues partent le matin. Un message de plus de 7 jours n'est plus relancé. Idempotent : peut être relancé sans doublon.
+
+À créer **une fois** dans le cPanel (*Tâches cron*, vérifier qu'elles sont disponibles sur l'hébergement), **toutes les heures** (`0 * * * *`), avec le PHP CLI explicite du déploiement :
+
+```bash
+cd ~/rehearsalbox/current && /usr/local/bin/php bin/send-reminders.php >> ~/rehearsalbox/shared/reminders.log 2>&1
+```
+
+- La commande passe par le lien `current` : elle suit toujours la release active, sans rien changer à chaque déploiement.
+- Sortie : une ligne de bilan (`n envoyée(s), n échec(s), n ignorée(s)`), **sans adresse ni contenu** ; code de sortie non nul en cas d'échec d'envoi (réessayé à l'exécution suivante).
+- Le journal `reminders.log` est dans `shared/` (hors webroot) ; le purger ou le faire tourner de temps en temps.
+- Aucun secret dans la commande : la configuration (transport e-mail, adresse d'expédition, fuseau) vient de `config.local.php`.
+- Un e-mail immédiat part aussi à la création d'une conversation (sans cron) ; si le cron n'est pas créé, seules les relances manquent.
+
 ## Réinitialisation de mot de passe
 
 - Pages publiques `/forgot-password` et `/reset-password?token=…` ; API `POST /api/auth/forgot-password` et `/api/auth/reset-password`.

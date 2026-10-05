@@ -55,6 +55,7 @@ use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Service\ConversationNotifier;
+use App\Service\ConversationReminderService;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\MysqlConversationRepository;
@@ -258,6 +259,16 @@ return static function (array $config): Container {
     $container->set(ConversationNotifier::class, fn ($c) => new ConversationNotifier(
         $c->get(MailerInterface::class),
         $c->get(ConversationNoticeRepositoryInterface::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
+    ));
+
+    $container->set(ConversationReminderService::class, fn ($c) => new ConversationReminderService(
+        $c->get(ConversationNoticeRepositoryInterface::class),
+        $c->get(MailerInterface::class),
+        $c->get(ClockInterface::class),
+        new \DateTimeZone($config['app']['timezone']),
         $config['mailer']['from'],
         $config['app']['base_url'],
         $c->get(MailRenderer::class),

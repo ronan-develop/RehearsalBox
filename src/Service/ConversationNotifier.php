@@ -8,6 +8,7 @@ use App\Entity\Conversation;
 use App\Entity\Group;
 use App\Mail\MailRenderer;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
+use App\Support\HeaderText;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -19,8 +20,6 @@ use Symfony\Component\Mime\Email;
  */
 final class ConversationNotifier
 {
-    private const MAX_SUBJECT_NAME_LENGTH = 100;
-
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly ConversationNoticeRepositoryInterface $notices,
@@ -67,7 +66,7 @@ final class ConversationNotifier
             (new Email())
                 ->from($this->fromAddress)
                 ->to($to)
-                ->subject('RehearsalBox — nouvelle conversation de ' . $this->oneLine($authorGroupName)),
+                ->subject('RehearsalBox — nouvelle conversation de ' . HeaderText::oneLine($authorGroupName)),
             'conversation-new',
             [
                 'authorName' => $authorName,
@@ -76,13 +75,5 @@ final class ConversationNotifier
                 'preheader' => $authorName . ' vous a écrit.',
             ],
         );
-    }
-
-    /** Un nom de groupe dans un objet : une seule ligne, sans caractère de contrôle ni de mise en forme (injection d'en-tête). */
-    private function oneLine(string $text): string
-    {
-        $clean = trim((string) preg_replace('/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]+/u', ' ', $text));
-
-        return mb_substr($clean, 0, self::MAX_SUBJECT_NAME_LENGTH);
     }
 }

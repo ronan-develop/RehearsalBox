@@ -121,6 +121,25 @@ final class ConversationNotifierTest extends RepositoryTestCase
             {
                 return null;
             }
+
+            public function findDueReminders(\DateTimeImmutable $dueBefore, \DateTimeImmutable $notBefore): array
+            {
+                return [];
+            }
+
+            public function remindedAt(int $conversationId, int $groupId): ?\DateTimeImmutable
+            {
+                return null;
+            }
+
+            public function claimReminder(int $conversationId, int $groupId, \DateTimeImmutable $now): bool
+            {
+                return false;
+            }
+
+            public function restoreReminder(int $conversationId, int $groupId, ?\DateTimeImmutable $previous): void
+            {
+            }
         };
         $mailer = new RecordingMailer();
 
