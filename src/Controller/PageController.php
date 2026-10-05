@@ -169,20 +169,7 @@ final class PageController
             'currentUserGroupRole' => $primaryGroupRole,
             'currentUserGroupId' => $primaryGroup?->id(),
             'currentUserInitials' => Initials::from($user->displayName()),
-            'userGroups' => $this->groupChoices($groups),
         ]));
-    }
-
-    /**
-     * Groupes proposés dans « Écrire en tant que » (modale de conversation, #153).
-     *
-     * @param list<\App\Entity\Group> $groups
-     *
-     * @return list<array{id: int, name: string}>
-     */
-    private function groupChoices(array $groups): array
-    {
-        return array_map(static fn (\App\Entity\Group $group): array => ['id' => $group->id(), 'name' => $group->name()], $groups);
     }
 
     /** @param array<int, RecurringSlot> $slotsById */
@@ -228,7 +215,6 @@ final class PageController
             'currentUserRole' => $user?->role(),
             'currentUserGroupRole' => $isMember ? $this->groupRepository->roleOf($group->id(), $user->id()) : null,
             'documents' => $isMember ? $this->groupDocumentRepository->findByGroup($group->id()) : [],
-            'userGroups' => $user !== null ? $this->groupChoices($this->groupRepository->findByMember($user->id())) : [],
         ]));
     }
 

@@ -132,12 +132,11 @@
             </section>
         <?php else: ?>
             <section class="rb-group-space-section">
-                <button type="button" class="rb-btn rb-btn-primary" data-contact-group-id="<?= e((string) $group->id()) ?>" data-contact-group-name="<?= e($group->name()) ?>">Contacter ce groupe</button>
+                <a href="/messages/new/<?= e((string) $group->id()) ?>" class="rb-btn rb-btn-primary">Contacter ce groupe</a>
             </section>
         <?php endif; ?>
     </div>
 
-    <?php require __DIR__ . '/../partials/contact-modal.php'; ?>
     <?php require __DIR__ . '/../partials/nav.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
