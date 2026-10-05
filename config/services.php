@@ -8,6 +8,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
+use App\Controller\Api\ConversationFeedApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
@@ -52,6 +53,7 @@ use App\Presenter\ConversationFormatter;
 use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
 use App\Presenter\ConversationTimeline;
+use App\Presenter\ConversationUpdates;
 use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
@@ -81,6 +83,8 @@ use App\Service\MemberSearchService;
 use App\Controller\Api\MemberApiController;
 use App\Service\ConversationReminderService;
 use App\Service\ConversationService;
+use App\Service\ConversationReader;
+use App\Service\ConversationThreadBuilder;
 use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
@@ -365,6 +369,25 @@ return static function (array $config): Container {
         access: $c->get(ConversationAccess::class),
     ));
 
+    $container->set(ConversationThreadBuilder::class, fn ($c) => new ConversationThreadBuilder(
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
+        $c->get(ConversationPresenceRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(ClockInterface::class),
+        $c->get(ConversationMentionService::class),
+    ));
+
+    $container->set(ConversationReader::class, fn ($c) => new ConversationReader(
+        $c->get(ConversationAccess::class),
+        $c->get(ConversationThreadBuilder::class),
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
+        $c->get(ConversationPresenceRepositoryInterface::class),
+        $c->get(ClockInterface::class),
+        $c->get(ConversationMentionService::class),
+    ));
+
     $container->set(ConversationTrashService::class, fn ($c) => new ConversationTrashService(
         $c->get(ConversationAccess::class),
         $c->get(ConversationTrashRepositoryInterface::class),
@@ -389,7 +412,7 @@ return static function (array $config): Container {
     $container->set(ConversationTimeline::class, fn ($c) => new ConversationTimeline($c->get(ConversationFormatter::class)));
     $container->set(ConversationListView::class, fn ($c) => new ConversationListView($c->get(ConversationFormatter::class)));
     $container->set(MessagesPageView::class, fn ($c) => new MessagesPageView(
-        $c->get(ConversationService::class),
+        $c->get(ConversationReader::class),
         $c->get(ConversationListView::class),
         $c->get(ConversationTimeline::class),
         $c->get(ConversationFormatter::class),
@@ -401,20 +424,33 @@ return static function (array $config): Container {
         $c->get(TemplateRendererInterface::class),
         $c->get(CsrfTokenManager::class),
         $c->get(AuthGuard::class),
-        $c->get(ConversationService::class),
+        $c->get(ConversationReader::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(MessagesPageView::class),
     ));
 
+    $container->set(ConversationUpdates::class, fn ($c) => new ConversationUpdates(
+        $c->get(ConversationReader::class),
+        $c->get(MessagesPageView::class),
+        $c->get(TemplateRendererInterface::class),
+        $c->get(EditedMessageFragments::class),
+    ));
+
     $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(
         $c->get(ConversationService::class),
+        $c->get(ConversationUpdates::class),
+        $c->get(AuthGuard::class),
+        $c->get(ConversationGuestService::class),
+    ));
+
+    $container->set(ConversationFeedApiController::class, fn ($c) => new ConversationFeedApiController(
+        $c->get(ConversationReader::class),
+        $c->get(ConversationUpdates::class),
         $c->get(ConversationPresenter::class),
         $c->get(AuthGuard::class),
         $c->get(MessagesPageView::class),
         $c->get(TemplateRendererInterface::class),
         $c->get(ConversationTrashService::class),
-        $c->get(ConversationGuestService::class),
-        $c->get(EditedMessageFragments::class),
     ));
 
     $container->set(MessageEditService::class, fn ($c) => new MessageEditService(
@@ -434,7 +470,7 @@ return static function (array $config): Container {
         $c->get(MessageEditService::class),
         $c->get(AuthGuard::class),
         $c->get(EditedMessageFragments::class),
-        $c->get(ConversationService::class),
+        $c->get(ConversationReader::class),
     ));
 
     $container->set(ConversationTrashApiController::class, fn ($c) => new ConversationTrashApiController(

@@ -30,6 +30,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
 {
     private MockClock $clock;
     private ConversationService $service;
+    private \App\Service\ConversationReader $reader;
     private ConversationTrashService $trash;
     private MysqlConversationRepository $conversations;
     /** @var array<string, User> */
@@ -52,8 +53,19 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $groups->addMember($beta->id(), $this->people['bob']->id());
         $this->conversations = new MysqlConversationRepository($this->pdo);
         $this->service = new ConversationService($this->conversations, new MysqlConversationMessageRepository($this->pdo), new MysqlConversationPresenceRepository($this->pdo), $groups, new TransactionRunner($this->pdo), $this->clock);
+        $access = new ConversationAccess($this->conversations, $groups);
+        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $presence = new MysqlConversationPresenceRepository($this->pdo);
+        $this->reader = new \App\Service\ConversationReader(
+            $access,
+            new \App\Service\ConversationThreadBuilder($this->conversations, $messages, $presence, $groups, $this->clock),
+            $this->conversations,
+            $messages,
+            $presence,
+            $this->clock,
+        );
         $this->trash = new ConversationTrashService(
-            new ConversationAccess($this->conversations, $groups),
+            $access,
             new MysqlConversationTrashRepository($this->pdo),
             new TransactionRunner($this->pdo),
             $this->clock,
@@ -83,10 +95,10 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $this->trash->delete($this->id('alice'), $this->conversationId);
 
         foreach (['alice', 'carole', 'bob'] as $name) {
-            self::assertSame([], $this->service->listFor($this->id($name), Box::BOX_ACTIVE), $name);
-            $this->denied(fn () => $this->service->open($this->id($name), $this->conversationId));
+            self::assertSame([], $this->reader->listFor($this->id($name), Box::BOX_ACTIVE), $name);
+            $this->denied(fn () => $this->reader->open($this->id($name), $this->conversationId));
         }
-        self::assertSame(0, $this->service->unreadCount($this->id('bob')));
+        self::assertSame(0, $this->reader->unreadCount($this->id('bob')));
     }
 
     #[Test]
@@ -96,7 +108,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
             $this->denied(fn () => $this->trash->delete($this->id($name), $this->conversationId));
         }
         $this->denied(fn () => $this->trash->delete($this->id('alice'), 999999));
-        self::assertCount(1, $this->service->listFor($this->id('bob'), Box::BOX_ACTIVE), 'rien n\'a été supprimé');
+        self::assertCount(1, $this->reader->listFor($this->id('bob'), Box::BOX_ACTIVE), 'rien n\'a été supprimé');
     }
 
     #[Test]
@@ -113,8 +125,8 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $this->trash->delete($this->id('alice'), $this->conversationId);
 
         $this->denied(fn () => $this->service->reply($this->id('bob'), $this->conversationId, 'encore là ?'));
-        $this->denied(fn () => $this->service->poll($this->id('bob'), $this->conversationId, 0));
-        $this->denied(fn () => $this->service->typing($this->id('bob'), $this->conversationId));
+        $this->denied(fn () => $this->reader->poll($this->id('bob'), $this->conversationId, 0));
+        $this->denied(fn () => $this->reader->typing($this->id('bob'), $this->conversationId));
         $this->denied(fn () => $this->service->rename($this->id('bob'), $this->conversationId, 'Nouveau'));
     }
 
@@ -150,7 +162,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $this->trash->delete($this->id('alice'), $this->conversationId);
         $this->trash->restore($this->id('alice'), $this->conversationId);
 
-        self::assertCount(1, $this->service->listFor($this->id('bob'), Box::BOX_ACTIVE));
+        self::assertCount(1, $this->reader->listFor($this->id('bob'), Box::BOX_ACTIVE));
         self::assertSame([], $this->trash->trash($this->id('alice')));
         $kinds = array_map(static fn ($a) => $a->kind(), $this->trash->alertsFor($this->id('bob')));
         self::assertSame([ConversationAlert::RESTORED, ConversationAlert::DELETED], $kinds);

@@ -8,7 +8,7 @@ use App\Entity\ConversationAlert;
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationThread;
 use App\Repository\Contract\ConversationRepositoryInterface;
-use App\Service\ConversationService;
+use App\Service\ConversationReader;
 use App\Service\ConversationTrashService;
 use App\Service\MessageEditService;
 use Symfony\Component\Clock\ClockInterface;
@@ -20,7 +20,7 @@ use Symfony\Component\Clock\ClockInterface;
 final class MessagesPageView
 {
     public function __construct(
-        private readonly ConversationService $conversations,
+        private readonly ConversationReader $conversations,
         private readonly ConversationListView $listView,
         private readonly ConversationTimeline $timeline,
         private readonly ConversationFormatter $formatter,

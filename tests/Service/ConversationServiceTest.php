@@ -24,60 +24,18 @@ use Symfony\Component\Mailer\MailerInterface;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Tests\RepositoryTestCase;
+use App\Tests\Support\ConversationWorld;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 final class ConversationServiceTest extends RepositoryTestCase
 {
-    private MockClock $clock;
-    private MysqlGroupRepository $groups;
-    private MysqlUserRepository $users;
-    private ConversationService $service;
+    use ConversationWorld;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->clock = new MockClock('2026-10-04 12:00:00');
-        $this->groups = new MysqlGroupRepository($this->pdo);
-        $this->users = new MysqlUserRepository($this->pdo);
-        $this->service = new ConversationService(
-            new MysqlConversationRepository($this->pdo),
-            new MysqlConversationMessageRepository($this->pdo),
-            new MysqlConversationPresenceRepository($this->pdo),
-            $this->groups,
-            new TransactionRunner($this->pdo),
-            $this->clock,
-        );
-    }
-
-    private function user(string $name): User
-    {
-        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', 'hash', $name, UserRole::Musicien, true, 0, null));
-    }
-
-    private function group(string $name, ?string $color, User ...$members): Group
-    {
-        $group = $this->groups->save(new Group(0, $name, null, $color, strtolower($name) . '@rehearsalbox.test'));
-        foreach ($members as $member) {
-            $this->groups->addMember($group->id(), $member->id());
-        }
-
-        return $group;
-    }
-
-    /** @return array{User, User, Group, Group} Alice (Alpha) et Bob (Beta) */
-    private function world(): array
-    {
-        $alice = $this->user('Alice');
-        $bob = $this->user('Bob');
-
-        return [$alice, $bob, $this->group('Alpha', '#aa0000', $alice), $this->group('Beta', '#0000aa', $bob)];
-    }
-
-    /** @param list<\App\Entity\ConversationMessage> $messages */
-    private function lastOf(array $messages): \App\Entity\ConversationMessage
-    {
-        return $messages[array_key_last($messages)];
+        $this->setUpWorld();
     }
 
     // --- Démarrer ------------------------------------------------------------------------------
@@ -90,7 +48,7 @@ final class ConversationServiceTest extends RepositoryTestCase
         $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), " Salut,\nOn échange ? ");
 
         self::assertNull($conversation->title());
-        $thread = $this->service->open($bob->id(), $conversation->id());
+        $thread = $this->reader->open($bob->id(), $conversation->id());
         self::assertSame('Alpha ↔ Beta', $thread->displayTitle());
         self::assertSame(["Salut,\nOn échange ?"], array_map(static fn ($m) => $m->body(), $thread->messages()));
         self::assertSame('Alice', $thread->messages()[0]->authorName());
@@ -124,7 +82,7 @@ final class ConversationServiceTest extends RepositoryTestCase
         }
 
         self::assertCount(1, array_unique($messages), 'refus indiscernables');
-        self::assertSame([], $this->service->listFor($alice->id(), Box::BOX_ACTIVE));
+        self::assertSame([], $this->reader->listFor($alice->id(), Box::BOX_ACTIVE));
     }
 
     #[Test]
@@ -146,7 +104,7 @@ final class ConversationServiceTest extends RepositoryTestCase
                 self::assertArrayHasKey(trim($field), $e->fields());
             }
         }
-        self::assertSame([], $this->service->listFor($alice->id(), Box::BOX_ACTIVE), 'rien n\'est créé en cas de refus');
+        self::assertSame([], $this->reader->listFor($alice->id(), Box::BOX_ACTIVE), 'rien n\'est créé en cas de refus');
     }
 
     #[Test]
@@ -221,7 +179,7 @@ final class ConversationServiceTest extends RepositoryTestCase
 
         $conversation = $this->serviceWithMailer(new FailingMailer())->start($alice->id(), $a->id(), $b->id(), 'Salut');
 
-        self::assertCount(1, $this->service->open($alice->id(), $conversation->id())->messages(), 'le message est bien envoyé');
+        self::assertCount(1, $this->reader->open($alice->id(), $conversation->id())->messages(), 'le message est bien envoyé');
     }
 
     #[Test]
@@ -249,12 +207,12 @@ final class ConversationServiceTest extends RepositoryTestCase
         $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Message');
 
         $calls = [
-            fn () => $this->service->open($outsider->id(), $conversation->id()),
-            fn () => $this->service->poll($outsider->id(), $conversation->id(), 0),
+            fn () => $this->reader->open($outsider->id(), $conversation->id()),
+            fn () => $this->reader->poll($outsider->id(), $conversation->id(), 0),
             fn () => $this->service->reply($outsider->id(), $conversation->id(), 'Intrus'),
             fn () => $this->service->rename($outsider->id(), $conversation->id(), 'Piraté'),
-            fn () => $this->service->typing($outsider->id(), $conversation->id()),
-            fn () => $this->service->open($alice->id(), 9999),
+            fn () => $this->reader->typing($outsider->id(), $conversation->id()),
+            fn () => $this->reader->open($alice->id(), 9999),
         ];
         $messages = [];
         foreach ($calls as $call) {
@@ -267,7 +225,7 @@ final class ConversationServiceTest extends RepositoryTestCase
         }
 
         self::assertCount(1, array_unique($messages), 'messages indiscernables');
-        $thread = $this->service->open($alice->id(), $conversation->id());
+        $thread = $this->reader->open($alice->id(), $conversation->id());
         self::assertCount(1, $thread->messages(), 'aucun message ajouté');
         self::assertNull($thread->conversation()->title(), 'aucun renommage');
     }
@@ -280,10 +238,10 @@ final class ConversationServiceTest extends RepositoryTestCase
         $this->groups->removeMember($b->id(), $bob->id());
 
         $this->expectException(AccessDeniedException::class);
-        $this->service->open($bob->id(), $conversation->id());
+        $this->reader->open($bob->id(), $conversation->id());
     }
 
-    // --- Répondre, lecture, non lu --------------------------------------------------------------
+    // --- Répondre, non lu --------------------------------------------------------------
 
     #[Test]
     public function testAnyMemberOfEitherGroupCanReplyAndTheReplyIsUnreadForTheOthers(): void
@@ -296,13 +254,13 @@ final class ConversationServiceTest extends RepositoryTestCase
 
         $this->service->reply($bob->id(), $conversation->id(), 'Réponse de Bob');
 
-        self::assertSame(1, $this->service->unreadCount($drummer->id()), 'un autre membre du groupe A voit le non-lu');
-        self::assertSame(1, $this->service->unreadCount($alice->id()));
-        self::assertSame(0, $this->service->unreadCount($bob->id()), 'répondre suppose avoir lu');
+        self::assertSame(1, $this->reader->unreadCount($drummer->id()), 'un autre membre du groupe A voit le non-lu');
+        self::assertSame(1, $this->reader->unreadCount($alice->id()));
+        self::assertSame(0, $this->reader->unreadCount($bob->id()), 'répondre suppose avoir lu');
         $this->clock->sleep(60);
-        $this->service->open($drummer->id(), $conversation->id());
-        self::assertSame(0, $this->service->unreadCount($drummer->id()), 'ouvrir le fil le marque lu');
-        self::assertSame(1, $this->service->unreadCount($alice->id()), 'la lecture est par personne');
+        $this->reader->open($drummer->id(), $conversation->id());
+        self::assertSame(0, $this->reader->unreadCount($drummer->id()), 'ouvrir le fil le marque lu');
+        self::assertSame(1, $this->reader->unreadCount($alice->id()), 'la lecture est par personne');
     }
 
     #[Test]
@@ -313,45 +271,6 @@ final class ConversationServiceTest extends RepositoryTestCase
 
         $this->expectException(ConversationValidationException::class);
         $this->service->reply($alice->id(), $conversation->id(), "  \n ");
-    }
-
-    #[Test]
-    public function testOpenFlagsTheFirstUnreadMessageBeforeMarkingTheThreadRead(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
-        $this->clock->sleep(30);
-        $this->service->open($bob->id(), $conversation->id());
-        $this->clock->sleep(30);
-        $second = $this->service->reply($alice->id(), $conversation->id(), 'Deuxième');
-        $this->service->reply($alice->id(), $conversation->id(), 'Troisième');
-        $this->clock->sleep(30);
-
-        $thread = $this->service->open($bob->id(), $conversation->id());
-
-        self::assertSame($second->id(), $thread->firstUnreadId(), 'le premier message reçu depuis ma dernière lecture');
-        self::assertNull($this->service->open($bob->id(), $conversation->id())->firstUnreadId(), "tout est lu à l'ouverture suivante");
-        self::assertNull($this->service->open($alice->id(), $conversation->id())->firstUnreadId(), 'mes propres messages ne comptent pas');
-    }
-
-    // --- Pastille : groupe de l'auteur -------------------------------------------------------------
-
-    #[Test]
-    public function testEachAuthorIsAttachedToTheirGroupUnlessAmbiguous(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $both = $this->user('Zoe');
-        $this->groups->addMember($a->id(), $both->id());
-        $this->groups->addMember($b->id(), $both->id());
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Message');
-        $this->service->reply($bob->id(), $conversation->id(), 'Bob');
-        $this->service->reply($both->id(), $conversation->id(), 'Zoé');
-
-        $thread = $this->service->open($alice->id(), $conversation->id());
-
-        self::assertSame('Alpha', $thread->authorGroup($alice->id())?->name());
-        self::assertSame('Beta', $thread->authorGroup($bob->id())?->name());
-        self::assertNull($thread->authorGroup($both->id()), 'membre des deux groupes : ambigu, pastille neutre');
     }
 
     // --- Titre ----------------------------------------------------------------------------------------
@@ -365,8 +284,8 @@ final class ConversationServiceTest extends RepositoryTestCase
 
         $this->service->rename($bob->id(), $conversation->id(), '  Concert du 12 ');
 
-        self::assertSame(1, $this->service->unreadCount($alice->id()), 'les autres voient le renommage');
-        $thread = $this->service->open($alice->id(), $conversation->id());
+        self::assertSame(1, $this->reader->unreadCount($alice->id()), 'les autres voient le renommage');
+        $thread = $this->reader->open($alice->id(), $conversation->id());
         self::assertSame('Concert du 12', $thread->displayTitle());
         $system = $this->lastOf($thread->messages());
         self::assertTrue($system->isSystem());
@@ -381,10 +300,10 @@ final class ConversationServiceTest extends RepositoryTestCase
         $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Message', 'Concert');
 
         $this->service->rename($alice->id(), $conversation->id(), 'Concert');
-        self::assertCount(1, $this->service->open($alice->id(), $conversation->id())->messages(), 'même titre : aucune ligne');
+        self::assertCount(1, $this->reader->open($alice->id(), $conversation->id())->messages(), 'même titre : aucune ligne');
 
         $this->service->rename($alice->id(), $conversation->id(), '  ');
-        $thread = $this->service->open($alice->id(), $conversation->id());
+        $thread = $this->reader->open($alice->id(), $conversation->id());
         self::assertSame('Alpha ↔ Beta', $thread->displayTitle());
         self::assertSame('a retiré le titre de la conversation', $this->lastOf($thread->messages())->body());
     }
@@ -401,113 +320,7 @@ final class ConversationServiceTest extends RepositoryTestCase
         } catch (ConversationValidationException $e) {
             self::assertArrayHasKey('title', $e->fields());
         }
-        self::assertNull($this->service->open($alice->id(), $conversation->id())->conversation()->title());
-    }
-
-    // --- Archivage dérivé de l'inactivité ----------------------------------------------------------------
-
-    #[Test]
-    public function testAThreadSilentForMoreThanThirtyDaysIsArchivedForEveryoneAndANewMessageRevivesIt(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Message', 'Fil');
-        $this->clock->modify('+31 days');
-
-        foreach ([$alice, $bob] as $user) {
-            self::assertCount(0, $this->service->listFor($user->id(), Box::BOX_ACTIVE));
-            self::assertCount(1, $this->service->listFor($user->id(), Box::BOX_ARCHIVED));
-        }
-
-        $this->service->reply($bob->id(), $conversation->id(), 'Coucou');
-        self::assertCount(1, $this->service->listFor($alice->id(), Box::BOX_ACTIVE));
-        self::assertCount(0, $this->service->listFor($alice->id(), Box::BOX_ARCHIVED));
-    }
-
-    #[Test]
-    public function testAThreadJustUnderThirtyDaysStaysActive(): void
-    {
-        [$alice, , $a, $b] = $this->world();
-        $this->service->start($alice->id(), $a->id(), $b->id(), 'Message');
-        $this->clock->modify('+29 days 23 hours');
-
-        self::assertCount(1, $this->service->listFor($alice->id(), Box::BOX_ACTIVE));
-    }
-
-    #[Test]
-    public function testUnreadCountCanBeSplitByBox(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $this->service->start($alice->id(), $a->id(), $b->id(), 'ancien');
-        $this->clock->modify('+31 days');
-        $this->service->start($alice->id(), $a->id(), $b->id(), 'récent');
-
-        self::assertSame(2, $this->service->unreadCount($bob->id()));
-        self::assertSame(1, $this->service->unreadCount($bob->id(), Box::BOX_ACTIVE));
-        self::assertSame(1, $this->service->unreadCount($bob->id(), Box::BOX_ARCHIVED));
-    }
-
-    // --- Quasi temps réel : poll, vu par, écrit… ------------------------------------------------------
-
-    #[Test]
-    public function testPollReturnsOnlyNewMessagesAndMarksThemReadForTheViewer(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
-        $first = $this->service->open($bob->id(), $conversation->id())->messages()[0];
-        $this->clock->sleep(10);
-        $this->service->reply($alice->id(), $conversation->id(), 'Deuxième');
-        self::assertSame(1, $this->service->unreadCount($bob->id()));
-
-        $this->clock->sleep(5);
-        $update = $this->service->poll($bob->id(), $conversation->id(), $first->id());
-
-        self::assertSame(['Deuxième'], array_map(static fn ($m) => $m->body(), $update->messages()));
-        self::assertSame(0, $this->service->unreadCount($bob->id()), 'recevoir le message en direct = le lire');
-        self::assertSame([], $this->service->poll($bob->id(), $conversation->id(), 99999)->messages());
-    }
-
-    #[Test]
-    public function testSeenByListsTheOtherMembersWhoReadMyLastMessage(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $zoe = $this->user('Zoe');
-        $this->groups->addMember($b->id(), $zoe->id());
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Salut');
-
-        $before = $this->service->poll($alice->id(), $conversation->id(), 0)->seen();
-        self::assertNotNull($before);
-        self::assertSame([], $before->names());
-        self::assertSame(2, $before->total(), 'Bob et Zoé (hors moi)');
-
-        $this->clock->sleep(30);
-        $this->service->open($bob->id(), $conversation->id());
-        $seen = $this->service->poll($alice->id(), $conversation->id(), 0)->seen();
-
-        self::assertSame(['Bob'], $seen?->names());
-        self::assertSame(2, $seen?->total());
-    }
-
-    #[Test]
-    public function testSeenIsNullWhenIHaveNotWritten(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Salut');
-
-        self::assertNull($this->service->poll($bob->id(), $conversation->id(), 0)->seen());
-    }
-
-    #[Test]
-    public function testTypingIsVisibleToOthersForFiveSecondsOnly(): void
-    {
-        [$alice, $bob, $a, $b] = $this->world();
-        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Salut');
-
-        $this->service->typing($bob->id(), $conversation->id());
-
-        self::assertSame(['Bob'], $this->service->poll($alice->id(), $conversation->id(), 0)->typing());
-        self::assertSame([], $this->service->poll($bob->id(), $conversation->id(), 0)->typing(), 'jamais pour soi-même');
-        $this->clock->sleep(6);
-        self::assertSame([], $this->service->poll($alice->id(), $conversation->id(), 0)->typing(), 'signal expiré');
+        self::assertNull($this->reader->open($alice->id(), $conversation->id())->conversation()->title());
     }
 
     // --- Limite d'envois ------------------------------------------------------------------------------

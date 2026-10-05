@@ -38,6 +38,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     private MessagesPageController $controller;
     private MockClock $clock;
     private ConversationService $service;
+    private \App\Service\ConversationReader $reader;
     private \App\Service\ConversationTrashService $trash;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
@@ -52,15 +53,26 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
         $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), new MysqlConversationMessageRepository($this->pdo), new MysqlConversationPresenceRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $conversations = new MysqlConversationRepository($this->pdo);
+        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $presence = new MysqlConversationPresenceRepository($this->pdo);
+        $this->reader = new \App\Service\ConversationReader(
+            new \App\Service\ConversationAccess($conversations, $this->groups),
+            new \App\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->clock),
+            $conversations,
+            $messages,
+            $presence,
+            $this->clock,
+        );
         $this->trash = new \App\Service\ConversationTrashService(new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
             new CsrfTokenManager($session),
             new AuthGuard($this->auth),
-            $this->service,
+            $this->reader,
             $this->groups,
-            new MessagesPageView($this->service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $this->trash),
+            new MessagesPageView($this->reader, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $this->trash),
         );
     }
 
@@ -160,7 +172,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $bob = $this->user('Bob');
         $conversation = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Message <i>confidentiel</i>', 'Titre du fil');
         $this->loginAs($bob);
-        self::assertSame(1, $this->service->unreadCount($bob->id()));
+        self::assertSame(1, $this->reader->unreadCount($bob->id()));
 
         $body = $this->controller->show($this->request(), (string) $conversation->id())->body();
 
@@ -172,7 +184,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Messages non lus', $body);
         self::assertStringContainsString('rb-chat-item--active', $body);
         self::assertStringContainsString('data-last-id="', $body);
-        self::assertSame(0, $this->service->unreadCount($bob->id()), 'ouvrir la page lit la conversation');
+        self::assertSame(0, $this->reader->unreadCount($bob->id()), 'ouvrir la page lit la conversation');
     }
 
     #[Test]
@@ -259,7 +271,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('data-view="thread"', $body);
         self::assertStringNotContainsString('data-draft-blocked', $body);
         self::assertStringContainsString('<option value="' . $mine->id() . '">Alpha</option>', $body);
-        self::assertSame([], $this->service->listFor($alice->id(), 'active'), 'ouvrir la page ne crée rien : la conversation naît au premier message');
+        self::assertSame([], $this->reader->listFor($alice->id(), 'active'), 'ouvrir la page ne crée rien : la conversation naît au premier message');
     }
 
     #[Test]

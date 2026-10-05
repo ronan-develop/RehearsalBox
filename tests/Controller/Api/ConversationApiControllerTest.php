@@ -37,6 +37,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private const PASSWORD = 'mot-de-passe-de-test';
 
     private ConversationApiController $controller;
+    private \App\Controller\Api\ConversationFeedApiController $feedController;
     private \App\Controller\Api\ConversationTrashApiController $trashController;
     private \App\Controller\Api\MessageApiController $messageController;
     private MysqlGroupRepository $groups;
@@ -70,20 +71,24 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $guestService = new \App\Service\ConversationGuestService($access, $guests, $messages, $this->users, new TransactionRunner($this->pdo), $this->clock);
         $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
         $editService = new \App\Service\MessageEditService($access, $messages, $mentionService, new TransactionRunner($this->pdo), $this->clock);
-        $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
-        $pageView = new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash);
-        $fragments = new \App\Presenter\EditedMessageFragments(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), $pageView);
-        $this->messageController = new \App\Controller\Api\MessageApiController($editService, new AuthGuard($this->auth), $fragments, $service);
-        $this->controller = new ConversationApiController(
-            $service,
-            new ConversationPresenter(),
-            new AuthGuard($this->auth),
-            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash),
-            new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
-            $trash,
-            $guestService,
-            $fragments,
+        $conversations = new MysqlConversationRepository($this->pdo);
+        $reader = new \App\Service\ConversationReader(
+            $access,
+            new \App\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->clock, $mentionService),
+            $conversations,
+            $messages,
+            $presence,
+            $this->clock,
+            $mentionService,
         );
+        $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
+        $renderer = new PhpTemplateRenderer(__DIR__ . '/../../../templates');
+        $pageView = new MessagesPageView($reader, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash);
+        $fragments = new \App\Presenter\EditedMessageFragments($renderer, $pageView);
+        $updates = new \App\Presenter\ConversationUpdates($reader, $pageView, $renderer, $fragments);
+        $this->messageController = new \App\Controller\Api\MessageApiController($editService, new AuthGuard($this->auth), $fragments, $reader);
+        $this->controller = new ConversationApiController($service, $updates, new AuthGuard($this->auth), $guestService);
+        $this->feedController = new \App\Controller\Api\ConversationFeedApiController($reader, $updates, new ConversationPresenter(), new AuthGuard($this->auth), $pageView, $renderer, $trash);
     }
 
     private function user(string $name): User
@@ -118,6 +123,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $controller = match (true) {
             in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) => $this->trashController,
             $action === 'edit' => $this->messageController,
+            in_array($action, ['index', 'listFragment', 'updates', 'typing'], true) => $this->feedController,
             default => $this->controller,
         };
         $response = $controller->{$action}($request, ...$args);

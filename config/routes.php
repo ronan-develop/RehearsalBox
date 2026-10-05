@@ -7,6 +7,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
+use App\Controller\Api\ConversationFeedApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\MemberApiController;
 use App\Controller\Api\MessageApiController;
@@ -70,18 +71,18 @@ return [
         ['POST',   '/api/admin/users/{id}/unlock', [UserAdminApiController::class, 'unlock']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
-        ['GET',    '/api/conversations', [ConversationApiController::class, 'index']],
+        ['GET',    '/api/conversations', [ConversationFeedApiController::class, 'index']],
         ['POST',   '/api/conversations', [ConversationApiController::class, 'start']],
         ['GET',    '/api/members', [MemberApiController::class, 'search']],
-        ['GET',    '/api/conversation-list', [ConversationApiController::class, 'listFragment']],
-        ['GET',    '/api/conversations/{id}/updates', [ConversationApiController::class, 'updates']],
+        ['GET',    '/api/conversation-list', [ConversationFeedApiController::class, 'listFragment']],
+        ['GET',    '/api/conversations/{id}/updates', [ConversationFeedApiController::class, 'updates']],
         ['PATCH',  '/api/conversations/{id}', [ConversationApiController::class, 'rename']],
         ['DELETE', '/api/conversations/{id}', [ConversationTrashApiController::class, 'destroy']],
         ['POST',   '/api/conversations/{id}/restore', [ConversationTrashApiController::class, 'restore']],
         ['DELETE', '/api/conversations/{id}/permanent', [ConversationTrashApiController::class, 'destroyPermanently']],
         ['DELETE', '/api/conversations/{id}/guests/{userId}', [ConversationApiController::class, 'removeGuest']],
         ['POST',   '/api/conversation-alerts/{id}/dismiss', [ConversationTrashApiController::class, 'dismissAlert']],
-        ['POST',   '/api/conversations/{id}/typing', [ConversationApiController::class, 'typing']],
+        ['POST',   '/api/conversations/{id}/typing', [ConversationFeedApiController::class, 'typing']],
         ['POST',   '/api/conversations/{id}/messages', [ConversationApiController::class, 'reply']],
         ['PATCH',  '/api/conversations/{id}/messages/{messageId}', [MessageApiController::class, 'edit']],
         ['GET',    '/api/groups/{id}/space', [GroupSpaceApiController::class, 'show']],

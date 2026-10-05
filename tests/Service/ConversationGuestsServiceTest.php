@@ -35,6 +35,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
 {
     private MockClock $clock;
     private ConversationService $service;
+    private \App\Service\ConversationReader $reader;
     private ConversationTrashService $trash;
     private ConversationGuestService $guestService;
     private RecordingMailer $mailer;
@@ -72,6 +73,14 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $this->mailer = new RecordingMailer();
         $transactions = new TransactionRunner($this->pdo);
         $access = new ConversationAccess($this->conversations, $groups, $this->guests);
+        $mentionService = new ConversationMentionService(
+            $users,
+            $groups,
+            $this->guests,
+            $this->mentions,
+            $this->messages,
+            new MentionNotifier($this->mailer, new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+        );
         $this->service = new ConversationService(
             $this->conversations,
             $this->messages,
@@ -79,15 +88,17 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $groups,
             $transactions,
             $this->clock,
-            mentions: new ConversationMentionService(
-                $users,
-                $groups,
-                $this->guests,
-                $this->mentions,
-                $this->messages,
-                new MentionNotifier($this->mailer, new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
-            ),
+            mentions: $mentionService,
             access: $access,
+        );
+        $this->reader = new \App\Service\ConversationReader(
+            $access,
+            new \App\Service\ConversationThreadBuilder($this->conversations, $this->messages, $this->presence, $groups, $this->clock, $mentionService),
+            $this->conversations,
+            $this->messages,
+            $this->presence,
+            $this->clock,
+            $mentionService,
         );
         $this->trash = new ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
         $this->guestService = new ConversationGuestService($access, $this->guests, $this->messages, $users, $transactions, $this->clock);
@@ -117,15 +128,15 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
     #[Test]
     public function testTaggingSomeoneFromAThirdGroupOpensTheConversationToThemOnly(): void
     {
-        $this->denied(fn () => $this->service->open($this->id('denis'), $this->conversationId));
+        $this->denied(fn () => $this->reader->open($this->id('denis'), $this->conversationId));
 
         $this->tagDenis();
 
-        $thread = $this->service->open($this->id('denis'), $this->conversationId);
+        $thread = $this->reader->open($this->id('denis'), $this->conversationId);
         self::assertSame('Concert', $thread->conversation()->title());
-        self::assertCount(1, $this->service->listFor($this->id('denis'), Box::BOX_ACTIVE));
+        self::assertCount(1, $this->reader->listFor($this->id('denis'), Box::BOX_ACTIVE));
         $other = $this->service->start($this->id('alice'), $this->alpha, $this->beta, 'Autre fil')->id();
-        $this->denied(fn () => $this->service->open($this->id('denis'), $other));
+        $this->denied(fn () => $this->reader->open($this->id('denis'), $other));
     }
 
     #[Test]
@@ -187,7 +198,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
     {
         $this->tagDenis();
 
-        $thread = $this->service->open($this->id('denis'), $this->conversationId);
+        $thread = $this->reader->open($this->id('denis'), $this->conversationId);
 
         $tagged = array_values(array_filter($thread->messages(), static fn ($m) => !$m->isSystem() && $m->body() === 'Viens voir @Denis'))[0];
         self::assertSame([$this->id('denis') => '@Denis'], $thread->mentions()[$tagged->id()]);
@@ -200,8 +211,8 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $this->tagDenis();
 
         $this->service->reply($this->id('denis'), $this->conversationId, 'Je suis là');
-        $this->service->typing($this->id('denis'), $this->conversationId);
-        $thread = $this->service->poll($this->id('bob'), $this->conversationId, 0);
+        $this->reader->typing($this->id('denis'), $this->conversationId);
+        $thread = $this->reader->poll($this->id('bob'), $this->conversationId, 0);
 
         self::assertSame('Je suis là', $thread->messages()[array_key_last($thread->messages())]->body());
         self::assertSame(['Denis'], $thread->typing());
@@ -222,7 +233,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $id = $this->service->start($this->id('alice'), $this->alpha, $this->beta, 'Avec @Denis', null, [$this->id('denis')])->id();
 
         self::assertTrue($this->guests->isGuest($id, $this->id('denis')));
-        $this->service->open($this->id('denis'), $id);
+        $this->reader->open($this->id('denis'), $id);
     }
 
     #[Test]
@@ -248,7 +259,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $this->tagDenis();
             $this->guestService->remove($this->id($remover), $this->conversationId, $this->id('denis'));
             self::assertFalse($this->guests->isGuest($this->conversationId, $this->id('denis')), $remover);
-            $this->denied(fn () => $this->service->open($this->id('denis'), $this->conversationId));
+            $this->denied(fn () => $this->reader->open($this->id('denis'), $this->conversationId));
         }
         $lines = array_map(static fn ($m) => $m->body(), array_filter($this->messages->messagesOf($this->conversationId), static fn ($m) => $m->isSystem()));
         self::assertContains('a retiré Denis de la conversation', $lines);
@@ -279,7 +290,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
 
         $this->trash->delete($this->id('alice'), $this->conversationId);
 
-        self::assertSame([], $this->service->listFor($this->id('denis'), Box::BOX_ACTIVE));
+        self::assertSame([], $this->reader->listFor($this->id('denis'), Box::BOX_ACTIVE));
         self::assertCount(1, $this->trash->alertsFor($this->id('denis')), 'les invités sont prévenus comme les autres participants');
     }
 }
