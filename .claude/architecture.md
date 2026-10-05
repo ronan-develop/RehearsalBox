@@ -78,13 +78,17 @@ Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requ�
 - **Réponse** : un objet interdit et un objet inexistant renvoient la **même réponse** (403, même message) pour les ressources de groupe, document et demande ; 401 si anonyme. Ne jamais distinguer « n'existe pas » de « pas à vous » (énumération des identifiants). Les routes admin gardent leurs codes propres.
 - **Test** : toute nouvelle route à identifiant s'ajoute à `tests/Security/IdorMatrixTest.php` (acteurs refusés, identifiant inexistant, cas limites).
 
-## Messagerie entre groupes (#153)
+## Messagerie entre groupes (#153, #169)
 
-- **Modèle** : `conversations` (groupe initiateur, groupe visé, sujet), `conversation_messages` (auteur, texte brut), `conversation_states` (par personne : dernière lecture, archivée) — migration 014. Le « non lu » se déduit de `last_read_at` (aucun compteur à maintenir) ; l'archivage est **par personne**, un nouveau message d'un autre ramène le fil dans sa boîte.
-- **Accès** : tout membre de l'un des deux groupes lit et répond (`ConversationService`). Pour démarrer, la personne doit appartenir au groupe émetteur choisi (liste « Écrire en tant que » seulement si elle a plusieurs groupes) ; un groupe ne s'écrit pas à lui-même. Auteur et utilisateur viennent **toujours de la session**. Fil interdit, inexistant ou identifiant mal formé : même 403 « Accès refusé. ».
-- **Boîtes** : Reçues = fils de mes groupes non archivés ; Envoyées = fils où j'ai écrit (aperçu = **mon** dernier message) ; Archivées = fils que j'ai archivés. L'unité est le fil, jamais le message isolé.
-- **Saisie** : `ConversationInputPolicy` (sujet ≤ 150 caractères sans caractère de contrôle, message ≤ 5 000), limite de 30 messages par heure et par personne (429). Le texte n'est jamais inséré en HTML côté client (`textContent`).
-- **Pas d'e-mail** à chaque message dans cette première version : badge « non lu » seulement.
+- **Modèle** : `conversations` (groupe initiateur, groupe visé, **titre facultatif**), `conversation_messages` (auteur, texte brut, `is_system` pour les lignes générées comme « a renommé la conversation »), `conversation_states` (par personne : `last_read_at`, `typing_at`) — migrations 014 et 015. Le « non lu » se déduit de `last_read_at`.
+- **Archivage dérivé** : une conversation sans message depuis 30 jours (`ConversationService::ARCHIVE_AFTER`) est « archivée » pour tout le monde ; un nouveau message la ramène. Rien n'est stocké ni planifié (pas de cron). Le service calcule la limite avec `ClockInterface` et la passe au dépôt.
+- **Accès** : tout membre de l'un des deux groupes lit, répond et renomme (`ConversationService`). Pour démarrer, il faut appartenir au groupe émetteur choisi ; un groupe ne s'écrit pas à lui-même. Auteur et utilisateur viennent **toujours de la session**. Fil interdit, inexistant ou identifiant mal formé (`StrictId`) : même 403 « Accès refusé. », API **et** pages.
+- **Routes** : API `GET/POST /api/conversations`, `GET|PATCH /api/conversations/{id}` (`?after=<id>` = lecture incrémentale), `POST …/messages`, `POST …/typing` ; pages `/messages` et `/messages/{id}` (une route par conversation, même gabarit, contenu servi par l'API).
+- **Quasi temps réel sans push** : polling (fil ouvert ≈ 4 s, ralenti jusqu'à 15 s sans activité ; liste ≈ 30 s ; arrêt onglet caché). « Vu par » = lecteurs dont `last_read_at` ≥ date de mon dernier message ; « écrit… » = signal limité à un toutes les 2 s (dépôt) valable 5 s, jamais pour soi-même.
+- **Pastille** : initiales de l'auteur, couleur du groupe d'appartenance parmi les deux groupes de la conversation (neutre si ambigu) ; aucun changement de schéma, aucun identifiant interne exposé (`ConversationPresenter`).
+- **Saisie** : `ConversationInputPolicy` (titre ≤ 150 caractères sans caractère de contrôle, message ≤ 5 000), limite de 30 messages par heure et par personne (429). Le texte n'est jamais inséré en HTML côté client (`textContent`).
+- **Front** : `chat-model.js` (logique pure), `chat-api.js` (appels, CSRF), `chat-view.js` (rendu), `chat.js` (contrôleur) ; mise en page à la Signal (mobile : liste OU fil ; ≥ 900 px : deux colonnes).
+- **Pas d'e-mail** à chaque message pour l'instant (#171 : chiffrement ; notification e-mail : ticket à part).
 
 ## Point clé — concurrence sur les créneaux libérés
 
