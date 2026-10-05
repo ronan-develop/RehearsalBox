@@ -10,6 +10,7 @@ use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\ConversationService;
+use App\Support\StrictId;
 use App\View\TemplateRendererInterface;
 
 /**
@@ -37,10 +38,8 @@ final class MessagesPageController
         $user = $this->authGuard->requireLogin();
 
         // Identifiant mal formé, inexistant ou interdit : même refus (rien ne révèle l'existence d'une conversation).
-        if (preg_match('/^[1-9][0-9]{0,9}$/', $id) !== 1) {
-            throw new AccessDeniedException('Accès refusé.');
-        }
-        $conversation = $this->conversationService->find($user->id(), (int) $id);
+        $conversationId = StrictId::from($id) ?? throw new AccessDeniedException('Accès refusé.');
+        $conversation = $this->conversationService->find($user->id(), $conversationId);
 
         return $this->render($conversation->id());
     }

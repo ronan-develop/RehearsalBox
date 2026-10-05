@@ -14,6 +14,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Service\ConversationService;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
+use App\Support\StrictId;
 
 /**
  * Messagerie entre groupes (#153, #169). Les identifiants de l'auteur et de l'utilisateur viennent UNIQUEMENT de la
@@ -147,13 +148,6 @@ final class ConversationApiController
 
     private function idOrDenied(mixed $value): int
     {
-        if (is_int($value) && $value > 0) {
-            return $value;
-        }
-        if (is_string($value) && preg_match('/^[1-9][0-9]{0,9}$/', $value) === 1) {
-            return (int) $value;
-        }
-
-        throw new AccessDeniedException('Accès refusé.');
+        return StrictId::from($value) ?? throw new AccessDeniedException('Accès refusé.');
     }
 }
