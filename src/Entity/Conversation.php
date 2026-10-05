@@ -41,9 +41,4 @@ final class Conversation
     {
         return $this->createdAt;
     }
-
-    public function involvesGroup(int $groupId): bool
-    {
-        return $groupId === $this->initiatorGroupId || $groupId === $this->targetGroupId;
-    }
 }

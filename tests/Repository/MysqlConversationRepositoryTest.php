@@ -81,9 +81,6 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         $found = $this->repository->findById($conversation->id());
         self::assertNotNull($found);
         self::assertNull($found->title());
-        self::assertTrue($found->involvesGroup($a->id()));
-        self::assertTrue($found->involvesGroup($b->id()));
-        self::assertFalse($found->involvesGroup($b->id() + 100));
 
         $messages = $this->repository->messagesOf($conversation->id());
         self::assertSame(['Salut', 'Hello'], array_map(static fn ($m) => $m->body(), $messages));
