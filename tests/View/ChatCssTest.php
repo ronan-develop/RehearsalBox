@@ -48,6 +48,7 @@ final class ChatCssTest extends TestCase
         $css = $this->css();
 
         self::assertMatchesRegularExpression('/\.rb-chat-delete\[hidden\]\s*\{[^}]*display:\s*none/', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-delete\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
         self::assertMatchesRegularExpression('/\.rb-trash \[hidden\]\s*\{[^}]*display:\s*none/', $css);
     }
 

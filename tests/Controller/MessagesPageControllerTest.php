@@ -349,7 +349,10 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         [$alice, $bob, $id] = $this->conversationFromAlice();
 
         $this->loginAs($alice);
-        self::assertStringContainsString('data-trash-action="delete"', $this->controller->show($this->request(), (string) $id)->body());
+        $body = $this->controller->show($this->request(), (string) $id)->body();
+        self::assertStringContainsString('data-trash-action="delete"', $body);
+        self::assertMatchesRegularExpression('/<button[^>]*class="rb-btn rb-btn-danger rb-chat-delete"[^>]*data-trash-action="delete"/', $body, 'un vrai bouton, plus un lien discret');
+        self::assertMatchesRegularExpression('/<header class="rb-chat-thread-head">.*data-trash-action="delete".*<\/header>/s', $body, 'dans l\'en-tête du fil');
 
         $this->loginAs($bob);
         self::assertStringNotContainsString('data-trash-action', $this->controller->show($this->request(), (string) $id)->body());

@@ -516,16 +516,20 @@ rb-composer {
 }
 
 .rb-chat-delete {
-  align-self: flex-start;
-  margin: var(--rb-space-1) 0 0;
-  padding: 0;
-  color: var(--rb-err);
-  background: transparent;
-  border: none;
-  font: inherit;
-  font-size: 0.8125rem;
-  text-decoration: underline;
-  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--rb-space-1);
+  width: auto;
+  min-height: 44px;
+  padding: 0 var(--rb-space-3);
+}
+
+/* Sur petit écran, l'icône seule suffit (le libellé reste lu par les lecteurs d'écran via aria-label). */
+@media (max-width: 480px) {
+  .rb-chat-delete-label {
+    display: none;
+  }
 }
 
 .rb-chat-delete[hidden] {
