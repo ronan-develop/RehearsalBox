@@ -101,10 +101,17 @@ export function safeColor(value) {
   return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : null;
 }
 
-export function previewText(message) {
-  const author = message.mine ? 'Vous' : message.authorName;
+/** Ligne système (renommage…) : « Bob a renommé… » ; pour moi « Vous avez renommé… » (le texte stocké est à la 3e personne). */
+export function systemLine(message) {
+  return message.mine ? `Vous ${message.body.replace(/^a /, 'avez ')}` : `${message.authorName} ${message.body}`;
+}
 
-  return message.system ? `${author} ${message.body}` : `${author} : ${message.body}`;
+export function previewText(message) {
+  if (message.system) {
+    return systemLine(message);
+  }
+
+  return `${message.mine ? 'Vous' : message.authorName} : ${message.body}`;
 }
 
 /** Délai avant le prochain polling du fil : plus on n'a rien reçu, plus on espace. */

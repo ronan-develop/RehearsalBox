@@ -8,7 +8,7 @@ import {
 } from './chat-api.js';
 import {
   groupByDay, formatTime, formatListDate, typingText, seenText, safeColor, previewText,
-  nextPollDelay, shouldSendTyping, parseRoute, routeFor, mergeMessages, lastMessageId,
+  nextPollDelay, shouldSendTyping, systemLine, parseRoute, routeFor, mergeMessages, lastMessageId,
 } from './chat-model.js';
 import { showToast } from './toast.js';
 
@@ -53,7 +53,7 @@ export function renderMessages(container, messages, { firstUnreadId = null, pend
         previousAuthor = null;
       }
       if (message.system) {
-        nodes.push(el('li', 'rb-chat-system', `${message.mine ? 'Vous' : message.authorName} ${message.body}`));
+        nodes.push(el('li', 'rb-chat-system', systemLine(message)));
         previousAuthor = null;
         continue;
       }

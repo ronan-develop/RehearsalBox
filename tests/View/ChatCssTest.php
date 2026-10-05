@@ -59,6 +59,12 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testTheComposerInheritsTheSiteFont(): void
+    {
+        self::assertMatchesRegularExpression('/\.rb-chat-form textarea\s*\{[^}]*font:\s*inherit/s', $this->css());
+    }
+
+    #[Test]
     public function testTheSenderBadgeUsesTheGroupColourWithAFallback(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-avatar\s*\{[^}]*var\(--group-color, var\(--rb-accent-2\)\)/s', $this->css());

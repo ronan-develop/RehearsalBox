@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   groupByDay, formatTime, formatListDate, typingText, seenText, safeColor, previewText,
-  nextPollDelay, shouldSendTyping, parseRoute, routeFor, mergeMessages, lastMessageId, TYPING_MIN_INTERVAL_MS,
+  nextPollDelay, shouldSendTyping, systemLine, parseRoute, routeFor, mergeMessages, lastMessageId, TYPING_MIN_INTERVAL_MS,
 } from './chat-model.js';
 
 const NOW = new Date(2026, 9, 4, 18, 0, 0);
@@ -66,7 +66,13 @@ test('previewText: Vous for mine, the author otherwise, and the action for a sys
   assert.equal(previewText(msg(1, { mine: true, body: 'Salut' })), 'Vous : Salut');
   assert.equal(previewText(msg(1, { authorName: 'Bob', body: 'Hello' })), 'Bob : Hello');
   assert.equal(previewText(msg(1, { authorName: 'Bob', body: 'a renommé la conversation « X »', system: true })), 'Bob a renommé la conversation « X »');
-  assert.equal(previewText(msg(1, { mine: true, body: 'a retiré le titre de la conversation', system: true })), 'Vous a retiré le titre de la conversation');
+  assert.equal(previewText(msg(1, { mine: true, body: 'a retiré le titre de la conversation', system: true })), 'Vous avez retiré le titre de la conversation');
+});
+
+test('systemLine conjugates for me (Vous avez) and names the author otherwise', () => {
+  assert.equal(systemLine(msg(1, { mine: true, system: true, body: 'a renommé la conversation « X »' })), 'Vous avez renommé la conversation « X »');
+  assert.equal(systemLine(msg(1, { mine: true, system: true, body: 'a retiré le titre de la conversation' })), 'Vous avez retiré le titre de la conversation');
+  assert.equal(systemLine(msg(1, { authorName: 'Bob', system: true, body: 'a renommé la conversation « X »' })), 'Bob a renommé la conversation « X »');
 });
 
 test('nextPollDelay slows down when nothing happens and caps', () => {
