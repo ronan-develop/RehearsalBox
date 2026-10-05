@@ -13,6 +13,8 @@ use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
+use App\Repository\MysqlThrottleEventRepository;
+use App\Service\IpThrottle;
 use App\Service\PasswordResetService;
 use App\Tests\Support\RecordingMailer;
 use App\Tests\RepositoryTestCase;
@@ -30,6 +32,8 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
         $this->mailer = new RecordingMailer();
     }
 
+    private const THROTTLE_LIMIT = 3;
+
     private function controller(): PasswordResetApiController
     {
         return new PasswordResetApiController(new PasswordResetService(
@@ -41,7 +45,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
             new TransactionRunner($this->pdo),
             'no-reply@rehearsalbox.example',
             'https://rehearsalbox.example',
-        ));
+        ), new IpThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour'));
     }
 
     private function insertUser(): User
@@ -135,5 +139,54 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
         $response = $this->controller()->resetPassword($this->post('/api/auth/reset-password', ['password' => 'nouveau-mdp']));
 
         self::assertSame(422, $response->statusCode());
+    }
+
+    private function forgotFrom(PasswordResetApiController $controller, string $ip, string $email): \App\Http\JsonResponse
+    {
+        return $controller->forgotPassword(new Request('POST', '/api/auth/forgot-password', [], ['email' => $email], [], [], $ip));
+    }
+
+    #[Test]
+    public function testAnAddressThatKeepsAskingIsRefusedWithoutAnyWorkDone(): void
+    {
+        $this->insertUser();
+        $controller = $this->controller();
+        for ($i = 0; $i < self::THROTTLE_LIMIT; ++$i) {
+            self::assertSame(200, $this->forgotFrom($controller, '203.0.113.7', "personne{$i}@rehearsalbox.test")->statusCode());
+        }
+
+        $blocked = $this->forgotFrom($controller, '203.0.113.7', 'alice@rehearsalbox.test');
+
+        self::assertSame(429, $blocked->statusCode());
+        self::assertSame('3600', $blocked->headers()['Retry-After']);
+        self::assertCount(0, $this->mailer->sent, 'une adresse bloquée ne déclenche aucun envoi');
+    }
+
+    #[Test]
+    public function testAnotherAddressIsNotBlockedAndKnownAndUnknownAccountsGetTheSameAnswer(): void
+    {
+        $this->insertUser();
+        $controller = $this->controller();
+        for ($i = 0; $i < self::THROTTLE_LIMIT; ++$i) {
+            $this->forgotFrom($controller, '203.0.113.7', "personne{$i}@rehearsalbox.test");
+        }
+
+        $known = $this->forgotFrom($controller, '198.51.100.9', 'alice@rehearsalbox.test');
+        $unknown = $this->forgotFrom($controller, '198.51.100.9', 'inconnu@rehearsalbox.test');
+
+        self::assertSame(200, $known->statusCode());
+        self::assertSame($known->statusCode(), $unknown->statusCode());
+        self::assertSame($known->body(), $unknown->body(), 'aucun indice dans la réponse');
+    }
+
+    #[Test]
+    public function testAnEmptyEmailIsRefusedAndDoesNotCountAgainstTheAddress(): void
+    {
+        $controller = $this->controller();
+        for ($i = 0; $i < self::THROTTLE_LIMIT + 2; ++$i) {
+            self::assertSame(422, $this->forgotFrom($controller, '203.0.113.7', '  ')->statusCode());
+        }
+
+        self::assertSame(200, $this->forgotFrom($controller, '203.0.113.7', 'inconnu@rehearsalbox.test')->statusCode());
     }
 }

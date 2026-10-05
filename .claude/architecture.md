@@ -79,6 +79,14 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - Risque résiduel connu : un attaquant qui change d'adresse peut encore verrouiller un compte précis 15 minutes (5 échecs) ; un administrateur peut le débloquer. Un compte n'est jamais verrouillé par la limite d'adresse.
 - Après un déploiement, vérifier que deux clients différents sont bien vus avec des adresses différentes (sinon la limite par adresse bloquerait tout le monde).
 
+## Mot de passe oublié sans énumération de comptes (#219)
+
+- **Réponse identique ET instantanée** : `PasswordResetService::requestReset` ne fait que **mettre en file** son travail (`AfterResponseInterface`) ; la recherche du compte, la création du jeton et l'e-mail se font **après** que la réponse est partie (`DeferredAfterResponse::run()`, appelé par `public/index.php`, qui libère d'abord le client via `litespeed_finish_request` ou `fastcgi_finish_request`). La durée de la requête ne dépend donc ni de l'existence du compte ni de l'envoi d'un e-mail.
+- **Limite par adresse** : 10 demandes par heure et par adresse (`IpThrottle`, étiquette `password-reset`), chaque demande compte, 429 + `Retry-After` au-delà ; indépendante de tout compte. Même mécanisme que la connexion (#218), table `throttle_events` (empreinte de l'adresse et de l'étiquette, jamais l'adresse en clair, purge 24 h).
+- **Toute exception** pendant l'envoi (transport, gabarit, bogue) est absorbée : le jeton est annulé, seuls l'identifiant numérique et la **classe** de l'erreur sont journalisés (jamais de message : il pourrait contenir une adresse ou un jeton). Une tâche différée qui échoue ne casse jamais la requête.
+- `ImmediateAfterResponse` (scripts, tests) exécute la tâche tout de suite ; c'est le défaut des services, la production câble `DeferredAfterResponse`.
+- **Limite connue** : sur un serveur sans fonction pour libérer le client (serveur de développement `php -S`), le travail suit la réponse sans la couper et l'écart de temps réapparaît. **À vérifier en production après chaque changement d'hébergement ou de version de PHP** (voir `.claude/deploiement.md`).
+
 ## Règle critique — pas d'ORM
 
 Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requêtes en PDO préparé (`PDO::ATTR_EMULATE_PREPARES => false`). Voir le point clé sur la concurrence ci-dessous et le plan de sécurité pour le détail des règles (injection, IDOR).

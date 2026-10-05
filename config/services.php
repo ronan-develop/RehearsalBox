@@ -44,6 +44,8 @@ use App\Service\AvailabilityService;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
+use App\Http\AfterResponseInterface;
+use App\Http\DeferredAfterResponse;
 use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
@@ -194,6 +196,7 @@ return static function (array $config): Container {
         $config['mailer']['from'],
         $config['app']['base_url'],
         $c->get(MailRenderer::class),
+        $c->get(AfterResponseInterface::class),
     ));
 
     $container->set(AccountSecurityService::class, fn ($c) => new AccountSecurityService(
@@ -241,11 +244,16 @@ return static function (array $config): Container {
 
     $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(
         $c->get(PasswordResetService::class),
+        $c->get('throttle.password-reset'),
     ));
 
     // Limites par adresse : une instance par route sensible, chacune avec son étiquette (#218, #219).
     $container->set(ThrottleEventRepositoryInterface::class, fn ($c) => new MysqlThrottleEventRepository($c->get(PDO::class)));
     $container->set('throttle.login', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
+    $container->set('throttle.password-reset', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
+
+    // Travail fait APRÈS l'envoi de la réponse (le front controller appelle run()) : sa durée ne dépend plus du compte (#219).
+    $container->set(AfterResponseInterface::class, static fn () => new DeferredAfterResponse(DeferredAfterResponse::finishRequest(...)));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
         $c->get(AuthServiceInterface::class),

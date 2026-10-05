@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Database\TransactionRunner;
+use App\Http\AfterResponseInterface;
+use App\Http\ImmediateAfterResponse;
 use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\PasswordHasherInterface;
@@ -13,7 +15,7 @@ use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\UserValidationException;
 use App\Mail\MailRenderer;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use App\Mail\SafeMail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -33,17 +35,24 @@ final class PasswordResetService
         private readonly string $fromAddress,
         private readonly string $baseUrl,
         private readonly ?MailRenderer $mailRenderer = null,
+        private readonly AfterResponseInterface $afterResponse = new ImmediateAfterResponse(),
     ) {
     }
 
     /**
-     * Ne révèle jamais l'existence du compte : compte inconnu, inactif, limite
-     * atteinte ou échec d'envoi ne produisent ni erreur ni signal observable.
+     * Ne révèle jamais l'existence du compte : la réponse est identique ET instantanée, parce que TOUT le travail (recherche du
+     * compte, jeton, e-mail) est fait après qu'elle est partie (AfterResponseInterface). Compte inconnu, inactif, limite
+     * atteinte ou échec d'envoi ne produisent ni erreur ni signal observable, pas même un écart de temps de réponse.
      */
     public function requestReset(string $email, ?\DateTimeImmutable $now = null): void
     {
         $now ??= new \DateTimeImmutable();
 
+        $this->afterResponse->defer(fn () => $this->processRequest($email, $now));
+    }
+
+    private function processRequest(string $email, \DateTimeImmutable $now): void
+    {
         $user = $this->userRepository->findByEmail($email);
         if ($user === null || !$user->isActive()) {
             return;
@@ -61,13 +70,9 @@ final class PasswordResetService
             $this->resetRepository->create($user->id(), ResetToken::hash($token), $now->modify(self::TOKEN_TTL), $now);
         });
 
-        try {
-            $this->mailer->send($this->buildMail($user->email(), $token));
-        } catch (TransportExceptionInterface) {
-            // Le jeton n'a pas pu être remis : on l'annule, sans rien révéler à l'appelant.
-            // Aucun jeton ni adresse dans le journal.
+        // Le jeton n'a pas pu être remis (serveur SMTP, gabarit, bogue…) : on l'annule, sans rien révéler à l'appelant.
+        if (!SafeMail::send($this->mailer, fn () => $this->buildMail($user->email(), $token), sprintf('Réinitialisation de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
             $this->resetRepository->invalidateAllForUser($user->id(), $now);
-            error_log(sprintf('Réinitialisation de mot de passe : envoi du mail impossible (utilisateur #%d).', $user->id()));
         }
     }
 

@@ -12,6 +12,7 @@ if (PHP_SAPI === 'cli-server') {
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Deploy\ReleaseMarker;
+use App\Http\AfterResponseInterface;
 use App\Http\Request;
 use App\Kernel;
 use App\Routing\Router;
@@ -43,3 +44,7 @@ if ($releaseMarker !== null) {
 }
 
 $kernel->handle($request)->send();
+
+// Le travail différé (ex. e-mail de réinitialisation) part une fois la réponse livrée : le client n'attend pas, et le temps
+// de réponse ne révèle rien (#219).
+$container->get(AfterResponseInterface::class)->run();
