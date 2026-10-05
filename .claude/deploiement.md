@@ -51,9 +51,9 @@ RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> admin  #
 
 Le mot de passe, s'il y en a un, passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. **Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Les groupes sont créés depuis l'écran Groupes.
 
-## Tâche planifiée : relances de la messagerie (#180)
+## Tâche planifiée : relances de la messagerie (#180, #178)
 
-`bin/send-reminders.php` envoie à l'adresse de contact d'un groupe **une relance** quand un message de l'autre côté est resté **24 h sans lecture** par ce groupe (jamais le contenu du message), seulement entre 9 h et 20 h (heure locale `app.timezone`) ; hors plage il ne fait rien et les relances dues partent le matin. Un message de plus de 7 jours n'est plus relancé. Idempotent : peut être relancé sans doublon.
+`bin/send-reminders.php` envoie, **en deux temps** (relances de groupe puis relances de mention, deux lignes de bilan), à l'adresse de contact d'un groupe **une relance** quand un message de l'autre côté est resté **24 h sans lecture** par ce groupe (jamais le contenu du message), seulement entre 9 h et 20 h (heure locale `app.timezone`) ; hors plage il ne fait rien et les relances dues partent le matin. Un message de plus de 7 jours n'est plus relancé. La **relance de mention** (#178) part à l'adresse du compte d'une personne taguée qui n'a pas lu la conversation 24 h après l'e-mail de mention (une seule par e-mail de mention, jamais le contenu) ; la même plage de jour s'applique. Le script s'arrête en erreur (code 1) si l'un des deux envois échoue. Idempotent : peut être relancé sans doublon.
 
 Installée **une fois** (entrée `0 * * * *`, par SSH avec `crontab`, ou dans le cPanel *Tâches cron* si l'hébergeur le propose), avec le PHP CLI explicite du déploiement. La commande porte un **garde** : tant que la release active ne contient pas le script, elle ne fait rien (aucune erreur avant le premier déploiement qui l'embarque).
 
