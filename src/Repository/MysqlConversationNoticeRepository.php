@@ -55,7 +55,7 @@ final class MysqlConversationNoticeRepository implements ConversationNoticeRepos
              JOIN `groups` og ON og.id = IF(g.id = c.initiator_group_id, c.target_group_id, c.initiator_group_id)
              JOIN conversation_messages m ON m.conversation_id = c.id AND m.is_system = 0
              LEFT JOIN conversation_group_notices n ON n.conversation_id = c.id AND n.group_id = g.id
-             WHERE m.created_at <= :due_before AND m.created_at >= :not_before
+             WHERE c.deleted_at IS NULL AND m.created_at <= :due_before AND m.created_at >= :not_before
                AND (n.reminded_at IS NULL OR m.created_at > n.reminded_at)
                AND EXISTS (SELECT 1 FROM group_user go WHERE go.group_id = og.id AND go.user_id = m.author_id)
                AND NOT EXISTS (SELECT 1 FROM group_user ga WHERE ga.group_id = g.id AND ga.user_id = m.author_id)
