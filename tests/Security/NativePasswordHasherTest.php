@@ -50,4 +50,31 @@ final class NativePasswordHasherTest extends TestCase
         self::assertTrue($fast->verify('secret', $real->hash('secret')));
         self::assertSame(4, password_get_info($fast->hash('x'))['options']['cost']);
     }
+
+    #[Test]
+    public function testSimulatedVerificationCostsAboutAsMuchAsARealOne(): void
+    {
+        $hasher = new NativePasswordHasher();
+        $hash = $hasher->hash('mot-de-passe');
+
+        $real = $this->fastest(static fn () => $hasher->verify('autre', $hash));
+        $simulated = $this->fastest(static fn () => $hasher->simulateVerification('autre'));
+
+        // Sans cela, un compte inconnu répondrait ~100 fois plus vite qu'un compte existant (énumération par temps de réponse).
+        self::assertGreaterThan($real * 0.5, $simulated);
+        self::assertLessThan($real * 2.0, $simulated);
+    }
+
+    /** Meilleur de trois mesures, en secondes (réduit le bruit d'une machine chargée). */
+    private function fastest(callable $operation): float
+    {
+        $best = INF;
+        for ($i = 0; $i < 3; ++$i) {
+            $start = hrtime(true);
+            $operation();
+            $best = min($best, (hrtime(true) - $start) / 1e9);
+        }
+
+        return $best;
+    }
 }
