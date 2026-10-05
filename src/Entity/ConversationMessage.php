@@ -15,6 +15,7 @@ final class ConversationMessage
         private readonly \DateTimeImmutable $createdAt,
         private readonly bool $system = false,
         private readonly ?\DateTimeImmutable $editedAt = null,
+        private readonly ?MessageQuote $quote = null,
     ) {
     }
 
@@ -58,5 +59,11 @@ final class ConversationMessage
     public function editedAt(): ?\DateTimeImmutable
     {
         return $this->editedAt;
+    }
+
+    /** Message cité par celui-ci (#214) ; null s'il n'en cite aucun. */
+    public function quote(): ?MessageQuote
+    {
+        return $this->quote;
     }
 }

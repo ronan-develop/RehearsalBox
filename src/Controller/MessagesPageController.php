@@ -12,7 +12,7 @@ use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
-use App\Service\ConversationService;
+use App\Service\ConversationReader;
 use App\Support\StrictId;
 use App\View\TemplateRendererInterface;
 
@@ -27,7 +27,7 @@ final class MessagesPageController
         private readonly TemplateRendererInterface $renderer,
         private readonly CsrfTokenManager $csrfTokenManager,
         private readonly AuthGuard $authGuard,
-        private readonly ConversationService $conversationService,
+        private readonly ConversationReader $conversationReader,
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly MessagesPageView $view,
     ) {
@@ -70,7 +70,7 @@ final class MessagesPageController
         $user = $this->authGuard->requireLogin();
 
         $conversationId = StrictId::from($id) ?? throw new AccessDeniedException('Accès refusé.');
-        $thread = $this->conversationService->open($user->id(), $conversationId);
+        $thread = $this->conversationReader->open($user->id(), $conversationId);
 
         return $this->render(
             $this->view->sidebar($user->id(), $conversationId),

@@ -122,7 +122,7 @@ final class ChatCssTest extends TestCase
 
         self::assertMatchesRegularExpression('/\.rb-chat-body\s*\{[^}]*display:\s*contents/s', $css, 'le conteneur remplaçable ne change pas la mise en page');
         self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-edit,\s*\.rb-chat-edit:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier');
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message\[data-editable\]\s*\{[^}]*touch-action:\s*pan-y[^}]*transform:\s*translateX\(var\(--swipe-x/s', $css, 'tactile : la bulle suit le doigt, le défilement vertical reste possible');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message\[data-message-id\]\s*\{[^}]*touch-action:\s*pan-y[^}]*transform:\s*translateX\(var\(--swipe-x/s', $css, 'tactile : toute bulle suit le doigt, le défilement vertical reste possible');
         self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-edit\s*\{[^}]*position:\s*absolute[^}]*left:\s*calc\(100% \+ 8px\)/s', $css, 'le crayon est révélé par le glissement');
         self::assertMatchesRegularExpression('/\.rb-chat-editing\[hidden\]\s*\{[^}]*display:\s*none/', $css);
         self::assertMatchesRegularExpression('/\.rb-chat-editing-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
@@ -164,5 +164,30 @@ final class ChatCssTest extends TestCase
     public function testTheSenderBadgeUsesTheGroupColourWithAFallback(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-avatar\s*\{[^}]*var\(--group-color, var\(--rb-accent-2\)\)/s', $this->css());
+    }
+
+    #[Test]
+    public function testQuotingHasABubbleBlockAHoverButtonARevealedIconAndAComposerPreview(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-quote\s*\{[^}]*border-left:\s*3px solid var\(--rb-accent\)/s', $css, 'citation dans la bulle');
+        self::assertMatchesRegularExpression('/\.rb-chat-quote-text\s*\{[^}]*-webkit-line-clamp:\s*2/s', $css, 'l\'aperçu reste court');
+        self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-quote-action,\s*\.rb-chat-quote-action:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier sur ordinateur');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-quote-action\s*\{[^}]*position:\s*absolute[^}]*right:\s*calc\(100% \+ 8px\)/s', $css, 'l\'icône est révélée par le glissement vers la droite');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-quote-action\s*\{[^}]*opacity:\s*0/s', $css, 'tactile : l\'icône n\'est jamais visible en permanence');
+        self::assertMatchesRegularExpression('/\.rb-chat-message--swiping-right \.rb-chat-quote-action\s*\{[^}]*opacity:\s*1/s', $css, 'elle apparaît pendant le glissement vers la droite');
+        self::assertMatchesRegularExpression('/\.rb-chat-quoting\[hidden\]\s*\{[^}]*display:\s*none/', $css, 'aperçu masqué par défaut');
+        self::assertMatchesRegularExpression('/\.rb-chat-quoting-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
+        self::assertMatchesRegularExpression('/@keyframes rb-chat-flash/', $css, 'le message cité clignote');
+        self::assertMatchesRegularExpression('/prefers-reduced-motion: reduce\)\s*\{[^@]*\.rb-chat-message--flash \.rb-chat-bubble\s*\{[^}]*animation:\s*none/s', $css, 'sans animation si on les réduit');
+    }
+
+    #[Test]
+    public function testTheQuoteSwipeDistanceIsDeclaredByItsScript(): void
+    {
+        $script = (string) file_get_contents(__DIR__ . '/../../public/assets/js/chat/swipe-quote.js');
+
+        self::assertMatchesRegularExpression('/QUOTE_SWIPE_WIDTH = 72;/', $script);
     }
 }

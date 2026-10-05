@@ -122,7 +122,7 @@ final class MessageRowsTemplateTest extends TestCase
         $html = $this->rows([$this->message(['color' => null, 'groupName' => null])]);
 
         self::assertStringNotContainsString('style=', $html);
-        self::assertStringNotContainsString('title=', $html);
+        self::assertDoesNotMatchRegularExpression('/rb-chat-avatar[^>]*title=/', $html, 'aucune infobulle de groupe sur la pastille');
     }
 
     #[Test]
@@ -188,5 +188,39 @@ final class MessageRowsTemplateTest extends TestCase
         self::assertStringNotContainsString('<b>Concert</b>', $html);
         self::assertStringContainsString('&lt;b&gt;Concert&lt;/b&gt;', $html);
         self::assertStringNotContainsString('<i>Salut</i>', $html);
+    }
+
+    #[Test]
+    public function testAQuoteIsDrawnAboveTheTextWithItsAuthorAndAJumpLinkAndEverythingIsEscaped(): void
+    {
+        $html = $this->rows([$this->message(['quote' => ['id' => 7, 'author' => 'Bob <i>', 'excerpt' => 'Jeudi & "vendredi" <script>x</script>']])]);
+
+        self::assertStringContainsString('<a class="rb-chat-quote" href="#message-7">', $html);
+        self::assertStringContainsString('Bob &lt;i&gt;', $html);
+        self::assertStringContainsString('Jeudi &amp; &quot;vendredi&quot; &lt;script&gt;x&lt;/script&gt;', $html);
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertLessThan(strpos($html, 'rb-chat-text'), strpos($html, 'rb-chat-quote"'), 'la citation précède le texte');
+    }
+
+    #[Test]
+    public function testNoQuoteMeansNoQuoteBlock(): void
+    {
+        $html = $this->rows([$this->message(['quote' => null])]);
+
+        self::assertStringNotContainsString('class="rb-chat-quote"', $html);
+    }
+
+    #[Test]
+    public function testEveryMessageCanBeAnsweredButSeparatorsAndSystemLinesCannot(): void
+    {
+        $html = $this->rows([
+            ['type' => 'day', 'label' => 'Hier'],
+            $this->message(['id' => 4, 'author' => 'Bob']),
+            ['type' => 'system', 'text' => 'Bob a renommé la conversation'],
+        ]);
+
+        self::assertSame(1, substr_count($html, 'data-quote-message'), 'le message seulement');
+        self::assertStringContainsString('data-author="Bob"', $html);
+        self::assertStringContainsString('id="message-4"', $html, 'cible du lien de la citation');
     }
 }

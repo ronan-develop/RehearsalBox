@@ -27,7 +27,7 @@ final class ConversationTrashApiController
     public function destroy(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->trash->delete($user->id(), $this->idOrDenied($id));
+        $this->trash->delete($user->id(), StrictId::orDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -35,7 +35,7 @@ final class ConversationTrashApiController
     public function restore(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->trash->restore($user->id(), $this->idOrDenied($id));
+        $this->trash->restore($user->id(), StrictId::orDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -44,7 +44,7 @@ final class ConversationTrashApiController
     public function destroyPermanently(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->trash->deletePermanently($user->id(), $this->idOrDenied($id));
+        $this->trash->deletePermanently($user->id(), StrictId::orDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -53,13 +53,8 @@ final class ConversationTrashApiController
     public function dismissAlert(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->trash->dismissAlert($user->id(), $this->idOrDenied($id));
+        $this->trash->dismissAlert($user->id(), StrictId::orDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
-    }
-
-    private function idOrDenied(mixed $value): int
-    {
-        return StrictId::from($value) ?? throw new AccessDeniedException('Accès refusé.');
     }
 }

@@ -9,7 +9,7 @@ use App\Http\Request;
 use App\Presenter\EditedMessageFragments;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
-use App\Service\ConversationService;
+use App\Service\ConversationReader;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Service\MessageEditService;
@@ -25,7 +25,7 @@ final class MessageApiController
         private readonly MessageEditService $editor,
         private readonly AuthGuard $authGuard,
         private readonly EditedMessageFragments $fragments,
-        private readonly ConversationService $conversationService,
+        private readonly ConversationReader $conversationReader,
     ) {
     }
 
@@ -33,8 +33,8 @@ final class MessageApiController
     public function edit(Request $request, string $id, string $messageId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $conversationId = $this->idOrDenied($id);
-        $messageId = $this->idOrDenied($messageId);
+        $conversationId = StrictId::orDenied($id);
+        $messageId = StrictId::orDenied($messageId);
 
         $text = $request->body('message');
         $mentions = $request->body('mentions');
@@ -55,17 +55,12 @@ final class MessageApiController
 
         // Le corps corrigé, dessiné par le même gabarit que la page ; relu avec ses mentions pour le surlignage.
         $since = ($message->editedAt() ?? $message->createdAt())->modify('-1 second');
-        $edited = $this->conversationService->edited($user->id(), $conversationId, $since, $message->id());
+        $edited = $this->conversationReader->edited($user->id(), $conversationId, $since, $message->id());
 
         return new JsonResponse([
             'status' => 'ok',
             'edited' => $this->fragments->fragments($edited['messages'], $edited['mentions'], $user->id()),
             'editedAt' => EditedMessageFragments::cursor($edited['messages']),
         ]);
-    }
-
-    private function idOrDenied(mixed $value): int
-    {
-        return StrictId::from($value) ?? throw new AccessDeniedException('Accès refusé.');
     }
 }

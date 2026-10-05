@@ -23,9 +23,12 @@ export function fetchListFragment(box, activeId = null, { signal } = {}) {
   return apiFetch(`/api/conversation-list?box=${encodeURIComponent(box)}${active}`, { signal });
 }
 
-/** Envoie un message ; la réponse contient les messages plus récents que `after` (dont le mien), déjà dessinés. */
-export function sendMessage(id, message, after, mentions = []) {
-  return apiFetch(`${base(id)}/messages`, { method: 'POST', body: JSON.stringify({ message, after, ...(mentions.length > 0 ? { mentions } : {}) }) });
+/** Envoie un message (en citant éventuellement `replyTo`, #214) ; la réponse contient les messages plus récents que `after` (dont le mien), déjà dessinés. */
+export function sendMessage(id, message, after, mentions = [], replyTo = null) {
+  return apiFetch(`${base(id)}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message, after, ...(mentions.length > 0 ? { mentions } : {}), ...(replyTo !== null ? { replyTo } : {}) }),
+  });
 }
 
 export function renameConversation(id, title) {

@@ -41,9 +41,10 @@ export class RbChat extends HTMLElement {
     this.#editedAt = Number(this.dataset.editedAt || 0);
 
     this.addEventListener(EVT.EDIT_REQUEST, (event) => this.composer.startEdit(event.detail));
+    this.addEventListener(EVT.QUOTE_REQUEST, (event) => this.composer.startQuote(event.detail));
     this.addEventListener(EVT.EDIT, (event) => this.#serial(() => this.#edit(event.detail)));
     this.addEventListener(EVT.RENAME, (event) => this.#serial(() => this.#rename(event.detail.title)));
-    this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail.text, event.detail.mentions ?? [])));
+    this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail)));
     this.composer.suggest = (query) => this.#suggestMembers(query);
     // Brouillon conservé par utilisateur et par conversation (ou par page de démarrage), jamais envoyé avant l'envoi.
     this.composer.configureDrafts(
@@ -153,7 +154,8 @@ export class RbChat extends HTMLElement {
     return members;
   }
 
-  async #submit(text, mentions = []) {
+  /** @param {{ text: string, mentions?: number[], replyTo?: number | null, quote?: object | null }} message */
+  async #submit({ text, mentions = [], replyTo = null, quote = null }) {
     if (this.#draftTargetId !== null) {
       await this.#submitDraft(text, mentions);
       return;
@@ -162,11 +164,11 @@ export class RbChat extends HTMLElement {
       return;
     }
     try {
-      this.#apply(await sendMessage(this.#activeId, text, this.#lastId, mentions));
+      this.#apply(await sendMessage(this.#activeId, text, this.#lastId, mentions, replyTo));
       this.messageList.scrollToBottom();
       this.#idle = 0;
     } catch (error) {
-      this.composer.restore(text);
+      this.composer.restore(text, quote);
       showToast(error.message, 'error');
     }
   }
