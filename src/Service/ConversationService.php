@@ -297,6 +297,12 @@ final class ConversationService
         return $this->conversations->listTrashedBy($userId, $cutoff);
     }
 
+    /** Nombre de conversations dans la corbeille (lecture seule : aucune purge). */
+    public function trashCount(int $userId): int
+    {
+        return count($this->conversations->listTrashedBy($userId, $this->trashCutoff()));
+    }
+
     /** @return list<ConversationAlert> avis non fermés des 30 derniers jours */
     public function alertsFor(int $userId): array
     {

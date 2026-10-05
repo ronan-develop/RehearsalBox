@@ -31,6 +31,7 @@ return [
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],
         ['GET', '/messages/archives', [MessagesPageController::class, 'archives']],
+        ['GET', '/messages/trash', [MessagesPageController::class, 'trash']],
         ['GET', '/messages/new/{groupId}', [MessagesPageController::class, 'compose']],
         ['GET', '/messages/{id}', [MessagesPageController::class, 'show']],
     ],

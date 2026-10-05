@@ -48,7 +48,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
-        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock, alerts: new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
@@ -327,5 +327,83 @@ final class MessagesPageControllerTest extends RepositoryTestCase
             }
         }
         self::assertCount(1, array_unique($messages));
+    }
+
+    // --- Corbeille et avis (#190) ----------------------------------------------------------------------
+
+    /** @return array{User, User, int} Alice (Alpha, initiatrice), Bob (Beta) et l'identifiant de la conversation */
+    private function conversationFromAlice(): array
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $id = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Salut', 'Concert du 12')->id();
+
+        return [$alice, $bob, $id];
+    }
+
+    #[Test]
+    public function testOnlyTheInitiatorSeesTheDeleteButton(): void
+    {
+        [$alice, $bob, $id] = $this->conversationFromAlice();
+
+        $this->loginAs($alice);
+        self::assertStringContainsString('data-trash-action="delete"', $this->controller->show($this->request(), (string) $id)->body());
+
+        $this->loginAs($bob);
+        self::assertStringNotContainsString('data-trash-action', $this->controller->show($this->request(), (string) $id)->body());
+    }
+
+    #[Test]
+    public function testTheRecipientSeesADismissibleAlertAndNobodyElseDoes(): void
+    {
+        [$alice, $bob, $id] = $this->conversationFromAlice();
+        $this->service->delete($alice->id(), $id);
+
+        $this->loginAs($bob);
+        $body = $this->controller->list($this->request())->body();
+        self::assertStringContainsString('Alpha ↔ Beta', $body);
+        self::assertStringContainsString('a été supprimée', $body);
+        self::assertStringContainsString('data-trash-action="dismiss"', $body);
+        self::assertStringNotContainsString('Concert du 12', $body, 'le titre n\'apparaît jamais dans un avis');
+
+        $this->loginAs($alice);
+        self::assertStringNotContainsString('data-trash-action="dismiss"', $this->controller->list($this->request())->body());
+    }
+
+    #[Test]
+    public function testTheTrashPageListsTheInitiatorsConversationsWithRestoreAndPurgeButtons(): void
+    {
+        [$alice, $bob, $id] = $this->conversationFromAlice();
+        $this->service->delete($alice->id(), $id);
+
+        $this->loginAs($alice);
+        $body = $this->controller->trash($this->request())->body();
+        self::assertStringContainsString('Concert du 12', $body);
+        self::assertStringContainsString('data-trash-action="restore"', $body);
+        self::assertStringContainsString('data-trash-action="purge"', $body);
+        self::assertStringContainsString('jours', $body, 'durée restante avant la suppression définitive');
+        self::assertStringContainsString('href="/messages/trash"', $this->controller->list($this->request())->body(), 'lien Corbeille dans la liste');
+
+        $this->loginAs($bob);
+        $other = $this->controller->trash($this->request())->body();
+        self::assertStringNotContainsString('Concert du 12', $other);
+        self::assertStringNotContainsString('href="/messages/trash"', $this->controller->list($this->request())->body(), 'pas de lien sans rien à y voir');
+    }
+
+    #[Test]
+    public function testTheTrashPageRequiresALoginAndATrashedConversationIsGoneFromItsUrl(): void
+    {
+        try {
+            $this->controller->trash($this->request());
+            self::fail('connexion exigée');
+        } catch (UnauthenticatedException) {
+            $this->addToAssertionCount(1);
+        }
+
+        [$alice, , $id] = $this->conversationFromAlice();
+        $this->service->delete($alice->id(), $id);
+        $this->loginAs($alice);
+        $this->expectException(\App\Security\Exception\AccessDeniedException::class);
+        $this->controller->show($this->request(), (string) $id);
     }
 }

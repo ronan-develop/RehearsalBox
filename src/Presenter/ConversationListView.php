@@ -37,4 +37,26 @@ final class ConversationListView
             ];
         }, $summaries);
     }
+
+    /**
+     * Corbeille (#190) : conversations mises à la corbeille, avec le délai avant leur suppression définitive.
+     *
+     * @param list<ConversationSummary> $summaries
+     *
+     * @return list<array{id: int, title: string, deletedOn: string, daysLeft: int}>
+     */
+    public function trash(array $summaries, \DateTimeImmutable $now, string $retention): array
+    {
+        return array_map(function (ConversationSummary $summary) use ($now, $retention): array {
+            $deletedAt = $summary->conversation()->deletedAt() ?? $now;
+            $expires = $deletedAt->modify(str_replace('-', '+', $retention));
+
+            return [
+                'id' => $summary->conversation()->id(),
+                'title' => $summary->displayTitle(),
+                'deletedOn' => $deletedAt->setTimezone($this->formatter->timezone())->format('d/m/Y'),
+                'daysLeft' => max(0, (int) ceil(($expires->getTimestamp() - $now->getTimestamp()) / 86400)),
+            ];
+        }, $summaries);
+    }
 }

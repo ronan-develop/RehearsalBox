@@ -48,6 +48,20 @@ final class MessagesPageController
         return $this->render($this->view->sidebar($user->id(), null, ConversationRepositoryInterface::BOX_ARCHIVED));
     }
 
+    /** Corbeille (#190) : ce que l'initiateur a supprimé, restaurable pendant 30 jours. */
+    public function trash(Request $request): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        return new Response(
+            $this->renderer->render('messages/trash', [
+                'csrfToken' => $this->csrfTokenManager->getToken(),
+                'items' => $this->view->trash($user->id()),
+            ]),
+            headers: ['Cache-Control' => 'private, no-store'],
+        );
+    }
+
     /**
      * Une conversation : la page est rendue par le serveur (liste, titre, messages, « vu par »). L'ouvrir la marque lue
      * pour cette personne. Identifiant mal formé, inexistant ou interdit : même refus, rien ne révèle l'existence d'un fil.
@@ -94,7 +108,7 @@ final class MessagesPageController
     }
 
     /**
-     * @param array{items: list<array<string, mixed>>, box: string, archivedUnread: int}                                                                                $sidebar
+     * @param array{items: list<array<string, mixed>>, box: string, archivedUnread: int, alerts: list<array{id: int, text: string, url: ?string}>, trashCount: int} $sidebar
      * @param array<string, mixed>|null                                                                                                                                  $thread
      * @param array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null                                                  $draft
      */

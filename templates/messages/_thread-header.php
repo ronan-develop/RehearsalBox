@@ -28,6 +28,9 @@ $hasTitle = $thread !== null && $thread['title'] !== null;
             <form data-chat-rename-form data-chat-thread-part hidden>
                 <input type="text" name="title" class="rb-input" maxlength="150" placeholder="Titre de la conversation" aria-label="Titre de la conversation">
             </form>
+            <?php if ($thread !== null && $thread['canDelete'] && !$isDraft): ?>
+                <button type="button" class="rb-chat-delete" data-trash-action="delete" data-id="<?= e((string) $thread['id']) ?>" data-chat-thread-part>Supprimer la conversation</button>
+            <?php endif; ?>
             <p class="rb-chat-label" data-chat-label data-chat-thread-part<?= $hasTitle && !$isDraft ? '' : ' hidden' ?>><?= $hasTitle ? e($thread['label']) : '' ?></p>
         </div>
     </header>
