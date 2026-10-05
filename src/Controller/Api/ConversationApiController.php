@@ -161,46 +161,11 @@ final class ConversationApiController
         });
     }
 
-    /** Met la conversation à la corbeille (initiateur seulement). */
-    public function destroy(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->trashService->delete($user->id(), $this->idOrDenied($id));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
-    public function restore(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->trashService->restore($user->id(), $this->idOrDenied($id));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
-    /** Suppression définitive d'une conversation déjà à la corbeille. */
-    public function destroyPermanently(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->trashService->deletePermanently($user->id(), $this->idOrDenied($id));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
     /** Retire un invité (celui qui l'a ajouté, l'initiateur de la conversation, ou l'invité qui quitte). */
     public function removeGuest(Request $request, string $id, string $userId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
         $this->guestService->remove($user->id(), $this->idOrDenied($id), $this->idOrDenied($userId));
-
-        return new JsonResponse(['status' => 'ok']);
-    }
-
-    /** Ferme un avis de la personne connectée (celui d'un autre est ignoré). */
-    public function dismissAlert(Request $request, string $id): JsonResponse
-    {
-        $user = $this->authGuard->requireLogin();
-        $this->trashService->dismissAlert($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }

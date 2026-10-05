@@ -35,6 +35,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private const PASSWORD = 'mot-de-passe-de-test';
 
     private ConversationApiController $controller;
+    private \App\Controller\Api\ConversationTrashApiController $trashController;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
     private AuthService $auth;
@@ -59,6 +60,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         );
         $trash = new \App\Service\ConversationTrashService($access, new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $guestService = new \App\Service\ConversationGuestService($access, $guests, new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
+        $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new ConversationApiController(
             $service,
@@ -100,7 +102,8 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private function call(string $action, array $query = [], array $body = [], string ...$args): array
     {
         $request = new Request('POST', '/api/conversations', $query, $body, []);
-        $response = $this->controller->{$action}($request, ...$args);
+        $controller = in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) ? $this->trashController : $this->controller;
+        $response = $controller->{$action}($request, ...$args);
 
         return [$response->statusCode(), json_decode($response->body(), true) ?? []];
     }

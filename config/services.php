@@ -8,6 +8,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
+use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
@@ -368,6 +369,11 @@ return static function (array $config): Container {
         $c->get(TemplateRendererInterface::class),
         $c->get(ConversationTrashService::class),
         $c->get(ConversationGuestService::class),
+    ));
+
+    $container->set(ConversationTrashApiController::class, fn ($c) => new ConversationTrashApiController(
+        $c->get(ConversationTrashService::class),
+        $c->get(AuthGuard::class),
     ));
 
     $container->set(MemberSearchService::class, fn ($c) => new MemberSearchService(
