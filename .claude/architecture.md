@@ -35,6 +35,18 @@ Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, insér
 
 L'application n'est pas un projet Symfony, mais elle est **prête à en accueillir les composants** : le métier (`Service/`, `Entity/`) ne dépend que d'interfaces (ports) — `*RepositoryInterface`, `MailerInterface`, `ClockInterface`, `PasswordHasherInterface`, `SessionInterface` — et chaque implémentation (adaptateur) se lie dans `config/services.php`. Brancher un composant = l'ajouter à `composer.json` (dernière version, bibliothèque **maintenue**), écrire ou lier l'adaptateur dans `services.php`, jamais de classe concrète Symfony dans une signature du métier quand une interface existe.
 
+### Règles pour rester « branchable » (sans réécrire l'architecture)
+
+À respecter dans tout nouveau code ; rien à refaire d'avance, seulement ne pas creuser l'écart.
+
+1. **Le métier ignore HTTP** : aucun `Request`/`Response`/session/`$_*` dans `Service/`, `Entity/`, `Repository/` (vérifié : c'est le cas). Un service reçoit des scalaires ou des entités et l'**identité de l'acteur en paramètre** (`$actorUserId`), jamais l'objet d'une requête : un State Provider, un contrôleur Symfony ou une commande console l'appellent de la même façon.
+2. **Autorisation dans le service** (IDOR), jamais seulement dans le contrôleur : tout adaptateur (API Platform comprise) hérite des mêmes garde-fous.
+3. **Exceptions métier sans dépendance framework** (`AccessDeniedException`, `*ValidationException` étendent `\RuntimeException` / `\InvalidArgumentException`) : le noyau actuel les traduit en 403/422, un listener Symfony le ferait de la même façon.
+4. **Dépendances par interface** : le temps (`ClockInterface`), les dépôts, le hasher, la session, le moteur de gabarits. Écarts connus et acceptés pour l'instant : `TransactionRunner` et `MailRenderer` sont des classes concrètes (à passer derrière une interface le jour où un second adaptateur existe, pas avant).
+5. **Un contrôleur mince** : lire la requête, appeler un service, présenter. La présentation JSON (tableaux `*ToArray`) est le candidat naturel à extraire en **objets de lecture** (read models) réutilisables par les pages, l'API et plus tard un sérialiseur ou des ressources API Platform.
+6. **Constructeurs explicites et typés, pas de localisateur de services** dans les classes métier : l'autowiring Symfony n'aurait rien à deviner.
+7. **Routes en données** (`config/routes.php`) et migrations en fichiers SQL : convertibles mécaniquement vers le routage et Doctrine Migrations.
+
 | Composant | Statut | Remarque |
 |---|---|---|
 | `symfony/mailer`, `mime` | En place | `MailerInterface` injecté ; gabarits dans `templates/mail`. |
