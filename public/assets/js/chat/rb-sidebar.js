@@ -24,6 +24,10 @@ export class RbSidebar extends HTMLElement {
 
   /** Rafraîchit la liste maintenant (après un envoi, par exemple). */
   async refresh(signal) {
+    // Une ligne est en cours de glissement ou ouverte (#202) : on ne la remplace pas sous le doigt.
+    if (this.listEl.querySelector('.rb-chat-item--dragging, .rb-chat-item--open')) {
+      return;
+    }
     const box = this.dataset.box ?? 'active';
     const activeId = this.closest('[data-chat]')?.dataset.activeId || null;
     const { html, empty, archivedUnread } = await fetchListFragment(box, activeId, { signal });

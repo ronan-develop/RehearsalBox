@@ -6,8 +6,15 @@
 import { confirmAction } from './rb-confirm-modal.js';
 import { dismissAlert, purgeConversation, restoreConversation, trashConversation } from './chat/api.js';
 
-const CONFIRM_DELETE = "Supprimer cette conversation ? Elle disparaît tout de suite chez l'autre groupe et reste 30 jours dans votre corbeille.";
-const CONFIRM_PURGE = 'Supprimer définitivement cette conversation ? Cette action est irréversible.';
+// Un seul texte pour tous les points d'entrée (bouton de l'en-tête, colonne de la liste, glissement).
+export const CONFIRM_DELETE = {
+  message: "Elle disparaît tout de suite chez l'autre groupe.\nVous pouvez la restaurer pendant 30 jours depuis la corbeille, puis elle est supprimée définitivement.",
+  options: { title: 'Supprimer cette conversation ?', confirmLabel: 'Mettre à la corbeille', cancelLabel: 'Garder' },
+};
+export const CONFIRM_PURGE = {
+  message: 'Cette action est irréversible : la conversation et tous ses messages sont effacés pour tout le monde.',
+  options: { title: 'Supprimer définitivement ?', confirmLabel: 'Supprimer définitivement', cancelLabel: 'Annuler' },
+};
 
 export function initMessagesTrash(root = document, {
   confirm = confirmAction,
@@ -44,7 +51,7 @@ export function initMessagesTrash(root = document, {
     if (!action) {
       return;
     }
-    if (action.ask && !(await confirm(action.ask))) {
+    if (action.ask && !(await confirm(action.ask.message, action.ask.options))) {
       return;
     }
     try {

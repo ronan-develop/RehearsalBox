@@ -13,6 +13,7 @@ import { initContact } from './contact.js';
 import './chat/rb-chat.js';
 import { initMessagesBadge } from './messages-badge.js';
 import { initMessagesTrash } from './messages-trash.js';
+import { initSwipeDelete } from './chat/swipe-delete.js';
 import { initGroupDocuments } from './group-documents.js';
 import { initGroupSpaceEditor } from './group-space.js';
 
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initExceptionTabs();
   initContact();
   initMessagesTrash();
+  initSwipeDelete();
   initMessagesBadge();
   initGroupDocuments();
   initGroupSpaceEditor();
