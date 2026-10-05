@@ -30,7 +30,7 @@ final class CurrentPasswordVerifier
         }
 
         if (!$this->passwordHasher->verify($currentPassword, $user->passwordHash())) {
-            $this->userRepository->save($user->withFailedLoginAttempt(AuthService::MAX_FAILED_ATTEMPTS, $now, AuthService::LOCK_DURATION));
+            $this->userRepository->recordFailedLogin($user->id(), AuthService::MAX_FAILED_ATTEMPTS, $now, AuthService::LOCK_DURATION);
 
             throw new UserValidationException(['currentPassword' => 'Mot de passe actuel incorrect.']);
         }
