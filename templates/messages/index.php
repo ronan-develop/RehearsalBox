@@ -4,12 +4,14 @@
  * sur mobile, la liste OU le fil en plein écran (data-view). Rempli par chat.js ; aucun contenu de message ici.
  *
  * @var string   $csrfToken
- * @var int|null $activeId conversation ouverte (route /messages/{id}), null sur /messages
+ * @var array{items: list<array<string, mixed>>, box: string, archivedUnread: int} $sidebar liste (rendue par le serveur)
+ * @var array<string, mixed>|null $thread conversation ouverte (route /messages/{id}), null ailleurs
  * @var array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null $draft
  *            brouillon de la page /messages/new/{groupId} (aucune conversation n'existe avant le premier message)
  */
-$activeId = $activeId ?? null;
+$thread = $thread ?? null;
 $draft = $draft ?? null;
+$hasPane = $thread !== null || $draft !== null;
 ?>
 <!doctype html>
 <html lang="fr">
@@ -22,20 +24,20 @@ $draft = $draft ?? null;
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body class="rb-chat-body">
-    <rb-chat class="rb-chat" data-chat data-active-id="<?= e($activeId === null ? '' : (string) $activeId) ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $activeId === null && $draft === null ? 'list' : 'thread' ?>">
+    <rb-chat class="rb-chat" data-chat data-active-id="<?= $thread !== null ? e((string) $thread['id']) : '' ?>" data-last-id="<?= $thread !== null ? e((string) $thread['lastId']) : '0' ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $hasPane ? 'thread' : 'list' ?>">
         <?php require __DIR__ . '/_sidebar.php'; ?>
 
         <section class="rb-chat-main" aria-label="Conversation">
-            <div class="rb-chat-placeholder" data-chat-placeholder<?= $activeId === null && $draft === null ? '' : ' hidden' ?>>
+            <div class="rb-chat-placeholder" data-chat-placeholder<?= $hasPane ? ' hidden' : '' ?>>
                 <p>Choisissez une conversation.</p>
             </div>
-            <div class="rb-chat-thread" data-chat-thread<?= $activeId === null && $draft === null ? ' hidden' : '' ?>>
+            <div class="rb-chat-thread" data-chat-thread<?= $hasPane ? '' : ' hidden' ?>>
                 <?php require __DIR__ . '/_thread-header.php'; ?>
-                <rb-message-list class="rb-chat-messages" data-chat-messages aria-live="polite"></rb-message-list>
+                <rb-message-list class="rb-chat-messages" data-chat-messages aria-live="polite"><ol class="rb-chat-messages-list"><?php $rows = $thread['rows'] ?? []; require __DIR__ . '/_rows.php'; ?></ol></rb-message-list>
                 <?php if ($draft !== null && $draft['blocked']): ?>
                     <p class="rb-chat-notice" role="alert">Vous devez appartenir à un autre groupe pour écrire à celui-ci.</p>
                 <?php endif; ?>
-                <p class="rb-chat-status" data-chat-status aria-live="polite"></p>
+                <p class="rb-chat-status<?= $thread !== null && $thread['typing'] ? ' rb-chat-status--typing' : '' ?>" data-chat-status aria-live="polite"><?= $thread !== null ? e($thread['status']) : '' ?></p>
                 <?php $composerHidden = $draft !== null && $draft['blocked']; require __DIR__ . '/_composer.php'; ?>
             </div>
         </section>

@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Controller\MessagesPageController;
+use App\Presenter\ConversationFormatter;
+use App\Presenter\ConversationListView;
+use App\Presenter\ConversationTimeline;
+use App\Presenter\MessagesPageView;
 use App\Database\TransactionRunner;
 use App\Entity\Enum\UserRole;
 use App\Entity\Group;
@@ -30,6 +34,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     private const PASSWORD = 'mot-de-passe-de-test';
 
     private MessagesPageController $controller;
+    private MockClock $clock;
     private ConversationService $service;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
@@ -42,13 +47,16 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), $session, $this->groups);
-        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), new MockClock('2026-10-04 12:00:00'));
+        $this->clock = new MockClock('2026-10-04 12:00:00');
+        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
             new CsrfTokenManager($session),
             new AuthGuard($this->auth),
             $this->service,
             $this->groups,
+            new MessagesPageView($this->service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock),
         );
     }
 
@@ -80,7 +88,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     #[Test]
     public function testBothPagesRequireALogin(): void
     {
-        foreach ([fn () => $this->controller->list(), fn () => $this->controller->show($this->request(), '1')] as $call) {
+        foreach ([fn () => $this->controller->list($this->request()), fn () => $this->controller->show($this->request(), '1')] as $call) {
             try {
                 $call();
                 self::fail('connexion exigée');
@@ -91,37 +99,110 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testListPageRendersTheChatShellWithNoActiveConversation(): void
+    public function testListPageRendersTheConversationsOnTheServerWithNoOpenThread(): void
     {
-        $this->loginAs($this->user('Alice'));
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Salut <b>Bob</b>', 'Concert du 12');
+        $this->loginAs($bob);
 
-        $response = $this->controller->list();
+        $response = $this->controller->list($this->request());
         $body = $response->body();
 
         self::assertSame(200, $response->statusCode());
         self::assertStringContainsString('data-chat', $body);
-        self::assertStringContainsString('data-chat-list', $body);
-        self::assertStringContainsString('data-chat-messages', $body);
-        self::assertStringContainsString('data-chat-form', $body);
-        self::assertStringContainsString('data-chat-archives', $body);
-        self::assertStringContainsString('name="csrf-token"', $body);
+        self::assertStringContainsString('Concert du 12', $body, 'le titre est rendu par le serveur (aucun appel XHR pour le premier affichage)');
+        self::assertStringContainsString('Alice : Salut &lt;b&gt;Bob&lt;/b&gt;', $body, 'aperçu échappé');
+        self::assertStringContainsString('rb-chat-item--unread', $body);
+        self::assertStringContainsString('data-view="list"', $body);
         self::assertStringContainsString('data-active-id=""', $body);
+        self::assertStringContainsString('href="/messages/archives"', $body);
     }
 
     #[Test]
-    public function testShowPageForAMemberExposesTheActiveConversationWithoutReadingIt(): void
+    public function testListPageForSomeoneWithoutConversationShowsTheEmptyMessage(): void
+    {
+        $this->loginAs($this->user('Zoe'));
+
+        $body = $this->controller->list($this->request())->body();
+
+        self::assertDoesNotMatchRegularExpression('/data-chat-empty hidden/', $body);
+        self::assertStringContainsString('Aucune conversation', $body);
+    }
+
+    #[Test]
+    public function testArchivesPageListsSilentConversationsAndLinksBack(): void
     {
         $alice = $this->user('Alice');
         $bob = $this->user('Bob');
-        $conversation = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Message confidentiel', 'Titre secret');
+        $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Vieux fil', 'Ancien');
+        $this->clock->modify('+31 days');
         $this->loginAs($bob);
+
+        $archives = $this->controller->archives($this->request())->body();
+        $active = $this->controller->list($this->request())->body();
+
+        self::assertStringContainsString('Ancien', $archives);
+        self::assertStringContainsString('<h1 data-chat-list-title>Archivées</h1>', $archives);
+        self::assertStringContainsString('href="/messages"', $archives);
+        self::assertStringNotContainsString('Vieux fil', $active, 'plus dans la liste active');
+        self::assertStringContainsString('data-chat-archives-unread>1<', $active, 'le badge compte les non lus des archives');
+    }
+
+    #[Test]
+    public function testShowPageIsRenderedByTheServerAndMarksTheConversationRead(): void
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $conversation = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Message <i>confidentiel</i>', 'Titre du fil');
+        $this->loginAs($bob);
+        self::assertSame(1, $this->service->unreadCount($bob->id()));
 
         $body = $this->controller->show($this->request(), (string) $conversation->id())->body();
 
         self::assertStringContainsString('data-active-id="' . $conversation->id() . '"', $body);
-        self::assertStringNotContainsString('Message confidentiel', $body, 'le contenu n\'est servi que par l\'API');
-        self::assertStringNotContainsString('Titre secret', $body);
-        self::assertSame(1, $this->service->unreadCount($bob->id()), 'la page ne marque rien comme lu (c\'est le JS qui ouvre le fil)');
+        self::assertStringContainsString('data-view="thread"', $body);
+        self::assertStringContainsString('>Titre du fil</button>', $body);
+        self::assertStringContainsString('Alpha ↔ Beta', $body, 'le label des deux groupes sous le titre');
+        self::assertStringContainsString('Message &lt;i&gt;confidentiel&lt;/i&gt;', $body, 'le message est dessiné par le serveur, échappé');
+        self::assertStringContainsString('Messages non lus', $body);
+        self::assertStringContainsString('rb-chat-item--active', $body);
+        self::assertStringContainsString('data-last-id="', $body);
+        self::assertSame(0, $this->service->unreadCount($bob->id()), 'ouvrir la page lit la conversation');
+    }
+
+    #[Test]
+    public function testShowPageOfAnArchivedConversationShowsTheArchivesInTheSidebar(): void
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $conversation = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Ancien', 'Fil ancien');
+        $this->clock->modify('+31 days');
+        $this->loginAs($bob);
+
+        $body = $this->controller->show($this->request(), (string) $conversation->id())->body();
+
+        self::assertStringContainsString('<h1 data-chat-list-title>Archivées</h1>', $body);
+        self::assertStringContainsString('rb-chat-item--active', $body);
+    }
+
+    #[Test]
+    public function testShowPageNeverLeaksTheConversationToAnOutsider(): void
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $outsider = $this->user('Carol');
+        $this->group('Gamma', $outsider);
+        $conversation = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Message confidentiel', 'Titre secret');
+        $this->loginAs($outsider);
+
+        try {
+            $this->controller->show($this->request(), (string) $conversation->id());
+            self::fail('refus attendu');
+        } catch (AccessDeniedException) {
+            $this->addToAssertionCount(1);
+        }
+        self::assertStringNotContainsString('Titre secret', $this->controller->list($this->request())->body(), 'ni dans sa liste');
     }
 
     #[Test]

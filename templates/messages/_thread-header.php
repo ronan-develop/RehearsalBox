@@ -1,14 +1,16 @@
 <?php
 /**
- * Composant <rb-thread-header> : retour (mobile), puis soit l'intitulé fixe d'un brouillon avec le choix du groupe
- * émetteur, soit le titre modifiable d'une conversation. Les deux jeux d'éléments sont toujours présents : le composant
- * bascule du brouillon au fil (après l'envoi du premier message) sans recharger la page.
+ * En-tête d'une conversation : retour (vrai lien, mobile), puis soit l'intitulé fixe d'un brouillon avec le choix du
+ * groupe émetteur, soit le titre (rendu par le serveur) que le composant rend modifiable.
  *
  * @var array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null $draft
+ * @var array<string, mixed>|null $thread
  */
 $draft = $draft ?? null;
+$thread = $thread ?? null;
 $isDraft = $draft !== null;
 $severalSenders = $isDraft && count($draft['senders']) > 1;
+$hasTitle = $thread !== null && $thread['title'] !== null;
 ?>
 <rb-thread-header>
     <header class="rb-chat-thread-head">
@@ -22,11 +24,11 @@ $severalSenders = $isDraft && count($draft['senders']) > 1;
                     <?php endforeach; ?>
                 </select>
             </label>
-            <button type="button" class="rb-chat-title" data-chat-title data-chat-thread-part title="Modifier le titre"<?= $isDraft ? ' hidden' : '' ?>></button>
+            <button type="button" class="rb-chat-title" data-chat-title data-chat-thread-part data-title="<?= $thread !== null ? e((string) ($thread['title'] ?? '')) : '' ?>" title="Modifier le titre"<?= $isDraft ? ' hidden' : '' ?>><?= $thread !== null ? e($thread['displayTitle']) : '' ?></button>
             <form data-chat-rename-form data-chat-thread-part hidden>
                 <input type="text" name="title" class="rb-input" maxlength="150" placeholder="Titre de la conversation" aria-label="Titre de la conversation">
             </form>
-            <p class="rb-chat-label" data-chat-label data-chat-thread-part<?= $isDraft ? ' hidden' : '' ?>></p>
+            <p class="rb-chat-label" data-chat-label data-chat-thread-part<?= $hasTitle && !$isDraft ? '' : ' hidden' ?>><?= $hasTitle ? e($thread['label']) : '' ?></p>
         </div>
     </header>
 </rb-thread-header>
