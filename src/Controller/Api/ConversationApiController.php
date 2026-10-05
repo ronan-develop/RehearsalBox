@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Entity\ConversationMessage;
 use App\Entity\ConversationSummary;
 use App\Http\JsonResponse;
 use App\Http\Request;
+use App\Presenter\ConversationPresenter;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
@@ -16,19 +16,17 @@ use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 
 /**
- * Messagerie entre groupes (#153). Les identifiants de l'auteur et de l'utilisateur viennent
- * UNIQUEMENT de la session ; un identifiant mal formé est refusé comme un accès interdit.
+ * Messagerie entre groupes (#153, #169). Les identifiants de l'auteur et de l'utilisateur viennent UNIQUEMENT de la
+ * session ; un identifiant mal formé est refusé comme un accès interdit. Contrôleur mince : lit la requête, appelle
+ * le service, présente le résultat (ConversationPresenter).
  */
 final class ConversationApiController
 {
-    private const BOXES = [
-        ConversationRepositoryInterface::BOX_RECEIVED,
-        ConversationRepositoryInterface::BOX_SENT,
-        ConversationRepositoryInterface::BOX_ARCHIVED,
-    ];
+    private const BOXES = [ConversationRepositoryInterface::BOX_ACTIVE, ConversationRepositoryInterface::BOX_ARCHIVED];
 
     public function __construct(
         private readonly ConversationService $conversationService,
+        private readonly ConversationPresenter $presenter,
         private readonly AuthGuard $authGuard,
     ) {
     }
@@ -37,17 +35,20 @@ final class ConversationApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        $box = $request->query('box', ConversationRepositoryInterface::BOX_RECEIVED);
+        $box = $request->query('box', ConversationRepositoryInterface::BOX_ACTIVE);
         if (!is_string($box) || !in_array($box, self::BOXES, true)) {
-            return new JsonResponse(['error' => 'Boîte invalide.'], 422);
+            return new JsonResponse(['error' => 'Liste invalide.'], 422);
         }
 
         return new JsonResponse([
             'conversations' => array_map(
-                fn (ConversationSummary $summary): array => $this->summaryToArray($summary, $user->id()),
+                fn (ConversationSummary $summary): array => $this->presenter->summary($summary, $user->id()),
                 $this->conversationService->listFor($user->id(), $box),
             ),
-            'unread' => $this->conversationService->unreadCount($user->id()),
+            'unread' => [
+                'total' => $this->conversationService->unreadCount($user->id()),
+                'archived' => $this->conversationService->unreadCount($user->id(), ConversationRepositoryInterface::BOX_ARCHIVED),
+            ],
         ]);
     }
 
@@ -57,35 +58,38 @@ final class ConversationApiController
 
         $initiatorGroupId = $this->idOrDenied($request->body('groupId'));
         $targetGroupId = $this->idOrDenied($request->body('targetGroupId'));
-        $subject = $request->body('subject');
         $message = $request->body('message');
+        $title = $request->body('title');
 
-        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $subject, $message): JsonResponse {
+        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $message, $title): JsonResponse {
             $conversation = $this->conversationService->start(
                 $user->id(),
                 $initiatorGroupId,
                 $targetGroupId,
-                is_string($subject) ? $subject : '',
                 is_string($message) ? $message : '',
+                is_string($title) ? $title : null,
             );
 
             return new JsonResponse(['id' => $conversation->id()], 201);
         });
     }
 
+    /** Sans `after` : fil complet, marqué lu. Avec `after=<id>` : lecture incrémentale (polling). */
     public function show(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
         $conversationId = $this->idOrDenied($id);
 
-        $thread = $this->conversationService->open($user->id(), $conversationId);
+        $after = $request->query('after');
+        if ($after !== null && (!is_string($after) || preg_match('/^[0-9]{1,10}$/', $after) !== 1)) {
+            return new JsonResponse(['error' => 'Paramètre « after » invalide.'], 422);
+        }
 
-        return new JsonResponse([
-            'id' => $thread->conversation()->id(),
-            'subject' => $thread->conversation()->subject(),
-            'label' => $thread->label(),
-            'messages' => array_map(fn (ConversationMessage $m): array => $this->messageToArray($m, $user->id()), $thread->messages()),
-        ]);
+        $thread = $after === null
+            ? $this->conversationService->open($user->id(), $conversationId)
+            : $this->conversationService->poll($user->id(), $conversationId, (int) $after);
+
+        return new JsonResponse($this->presenter->thread($thread, $user->id()));
     }
 
     public function reply(Request $request, string $id): JsonResponse
@@ -97,24 +101,34 @@ final class ConversationApiController
         return $this->guarded(function () use ($user, $conversationId, $message): JsonResponse {
             $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '');
 
-            return new JsonResponse(['message' => $this->messageToArray($created, $user->id())], 201);
+            return new JsonResponse(['message' => $this->presenter->message($created, null, $user->id())], 201);
         });
     }
 
-    public function archive(Request $request, string $id): JsonResponse
+    /** Titre : texte, ou null / vide pour le retirer. */
+    public function rename(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
         $conversationId = $this->idOrDenied($id);
 
-        $archived = $request->body('archived');
-        if (!is_bool($archived)) {
-            // Contrôle d'accès d'abord : un étranger reçoit 403 quelle que soit la forme de la requête.
-            $this->conversationService->open($user->id(), $conversationId);
-
-            return new JsonResponse(['error' => 'Valeur « archived » invalide.'], 422);
+        $body = $request->allBody();
+        if (!array_key_exists('title', $body) || !(is_string($body['title']) || $body['title'] === null)) {
+            return new JsonResponse(['error' => 'Le titre est invalide.'], 422);
         }
+        $title = $body['title'];
 
-        $this->conversationService->archive($user->id(), $conversationId, $archived);
+        return $this->guarded(function () use ($user, $conversationId, $title): JsonResponse {
+            $this->conversationService->rename($user->id(), $conversationId, $title);
+
+            return new JsonResponse(['status' => 'ok']);
+        });
+    }
+
+    /** Signal « en train d'écrire » (le service et le dépôt limitent le débit). */
+    public function typing(Request $request, string $id): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $this->conversationService->typing($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -141,32 +155,5 @@ final class ConversationApiController
         }
 
         throw new AccessDeniedException('Accès refusé.');
-    }
-
-    /** @return array<string, mixed> */
-    private function summaryToArray(ConversationSummary $summary, int $userId): array
-    {
-        $mine = $summary->myLastMessage();
-
-        return [
-            'id' => $summary->conversation()->id(),
-            'subject' => $summary->conversation()->subject(),
-            'label' => $summary->label(),
-            'unread' => $summary->isUnread(),
-            'lastMessage' => $this->messageToArray($summary->lastMessage(), $userId),
-            'myLastMessage' => $mine === null ? null : $this->messageToArray($mine, $userId),
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private function messageToArray(ConversationMessage $message, int $userId): array
-    {
-        return [
-            'id' => $message->id(),
-            'authorName' => $message->authorName(),
-            'body' => $message->body(),
-            'createdAt' => $message->createdAt()->format(\DATE_ATOM),
-            'mine' => $message->authorId() === $userId,
-        ];
     }
 }

@@ -10,6 +10,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\Group;
 use App\Entity\User;
 use App\Http\Request;
+use App\Presenter\ConversationPresenter;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -22,6 +23,7 @@ use App\Service\ConversationService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\Clock\MockClock;
 
 final class ConversationApiControllerTest extends RepositoryTestCase
 {
@@ -31,15 +33,18 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
     private AuthService $auth;
+    private MockClock $clock;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->clock = new MockClock('2026-10-04 12:00:00');
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
         $this->controller = new ConversationApiController(
-            new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo)),
+            new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock),
+            new ConversationPresenter(),
             new AuthGuard($this->auth),
         );
     }
@@ -51,7 +56,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
 
     private function group(string $name, User ...$members): Group
     {
-        $group = $this->groups->save(new Group(0, $name, null, null, strtolower($name) . '@rehearsalbox.test'));
+        $group = $this->groups->save(new Group(0, $name, null, '#aa0000', strtolower($name) . '@rehearsalbox.test'));
         foreach ($members as $member) {
             $this->groups->addMember($group->id(), $member->id());
         }
@@ -64,13 +69,18 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->auth->attempt($user->email(), self::PASSWORD);
     }
 
-    /** @param array<string, mixed> $body @return array{int, array<string, mixed>} */
-    private function call(string $method, array $query = [], array $body = [], string ...$args): array
+    /**
+     * @param array<string, mixed> $query
+     * @param array<string, mixed> $body
+     *
+     * @return array{int, array<string, mixed>}
+     */
+    private function call(string $action, array $query = [], array $body = [], string ...$args): array
     {
-        $request = new Request(strtoupper($method === 'archive' ? 'PATCH' : 'POST'), '/api/conversations', $query, $body, []);
-        $response = $this->controller->{$method}($request, ...$args);
+        $request = new Request('POST', '/api/conversations', $query, $body, []);
+        $response = $this->controller->{$action}($request, ...$args);
 
-        return [$response->statusCode(), json_decode($response->body(), true)];
+        return [$response->statusCode(), json_decode($response->body(), true) ?? []];
     }
 
     /** @return array{User, User, Group, Group} */
@@ -82,10 +92,19 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         return [$alice, $bob, $this->group('Alpha', $alice), $this->group('Beta', $bob)];
     }
 
+    /** @return string identifiant de la conversation créée par Alice */
+    private function startAsAlice(User $alice, Group $a, Group $b, array $extra = []): string
+    {
+        $this->loginAs($alice);
+        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Salut'] + $extra);
+
+        return (string) $json['id'];
+    }
+
     #[Test]
     public function testEveryRouteRequiresALogin(): void
     {
-        foreach ([['index'], ['start'], ['show', [], [], '1'], ['reply', [], [], '1'], ['archive', [], [], '1']] as $call) {
+        foreach ([['index'], ['start'], ['show', [], [], '1'], ['reply', [], [], '1'], ['rename', [], [], '1'], ['typing', [], [], '1']] as $call) {
             try {
                 $this->call(...$call);
                 self::fail('connexion exigée : ' . $call[0]);
@@ -96,47 +115,91 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testStartThenBothSidesSeeItInTheirBoxesAndCanReply(): void
+    public function testStartWithoutTitleThenBothSidesSeeItAndCanReply(): void
     {
         [$alice, $bob, $a, $b] = $this->world();
-        $this->loginAs($alice);
+        $id = $this->startAsAlice($alice, $a, $b);
 
-        [$status, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => 'Jeudi', 'message' => 'Salut']);
-        self::assertSame(201, $status);
-        $id = (string) $json['id'];
-
-        [, $sent] = $this->call('index', ['box' => 'sent']);
-        self::assertSame('Alpha ↔ Beta', $sent['conversations'][0]['label']);
-        self::assertSame('Salut', $sent['conversations'][0]['myLastMessage']['body']);
+        [, $mine] = $this->call('index');
+        self::assertSame('Alpha ↔ Beta', $mine['conversations'][0]['displayTitle']);
+        self::assertNull($mine['conversations'][0]['title']);
+        self::assertFalse($mine['conversations'][0]['unread']);
 
         $this->loginAs($bob);
-        [, $received] = $this->call('index', ['box' => 'received']);
+        [, $received] = $this->call('index');
         self::assertCount(1, $received['conversations']);
         self::assertTrue($received['conversations'][0]['unread']);
-        self::assertSame(1, $received['unread']);
+        self::assertSame(1, $received['unread']['total']);
 
+        $this->clock->sleep(30);
         [$status] = $this->call('reply', [], ['message' => 'Réponse'], $id);
         self::assertSame(201, $status);
         [, $thread] = $this->call('show', [], [], $id);
         self::assertSame(['Salut', 'Réponse'], array_column($thread['messages'], 'body'));
         self::assertSame([false, true], array_column($thread['messages'], 'mine'));
-        self::assertSame('Jeudi', $thread['subject']);
+        self::assertSame(['Alpha', 'Beta'], array_column($thread['messages'], 'groupName'));
     }
 
     #[Test]
-    public function testForbiddenAndMissingThreadsAreIndistinguishable(): void
+    public function testStartWithATitleAndRenameLater(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b, ['title' => 'Concert']);
+        $this->loginAs($bob);
+
+        [, $thread] = $this->call('show', [], [], $id);
+        self::assertSame('Concert', $thread['displayTitle']);
+
+        [$status] = $this->call('rename', [], ['title' => 'Concert du 12'], $id);
+        self::assertSame(200, $status);
+        [, $thread] = $this->call('show', [], [], $id);
+        self::assertSame('Concert du 12', $thread['title']);
+        self::assertTrue(end($thread['messages'])['system']);
+
+        $this->call('rename', [], ['title' => null], $id);
+        [, $thread] = $this->call('show', [], [], $id);
+        self::assertSame('Alpha ↔ Beta', $thread['displayTitle']);
+    }
+
+    #[Test]
+    public function testPollReturnsOnlyNewMessagesTypingAndSeen(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+        [, $first] = $this->call('show', [], [], $id);
+        $firstId = $first['messages'][0]['id'];
+
+        $this->loginAs($bob);
+        $this->clock->sleep(10);
+        $this->call('show', [], [], $id);
+        [$status] = $this->call('typing', [], [], $id);
+        self::assertSame(200, $status);
+
+        $this->loginAs($alice);
+        $this->clock->sleep(2);
+        [, $update] = $this->call('show', ['after' => (string) $firstId], [], $id);
+
+        self::assertSame([], $update['messages']);
+        self::assertSame(['Bob'], $update['typing']);
+        self::assertSame(['Bob'], $update['seen']['names']);
+        self::assertSame(1, $update['seen']['total']);
+    }
+
+    #[Test]
+    public function testForbiddenMissingAndMalformedThreadsAreIndistinguishable(): void
     {
         [$alice, , $a, $b] = $this->world();
         $outsider = $this->user('Carol');
         $this->group('Gamma', $outsider);
-        $this->loginAs($alice);
-        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => 'S', 'message' => 'M']);
-        $id = (string) $json['id'];
+        $id = $this->startAsAlice($alice, $a, $b);
 
         $this->loginAs($outsider);
         $messages = [];
-        foreach ([['show', [], [], $id], ['show', [], [], '9999'], ['show', [], [], 'abc'], ['reply', [], ['message' => 'x'], $id], ['archive', [], ['archived' => true], $id],
-                  ['start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => 'S', 'message' => 'M']]] as $call) {
+        foreach ([
+            ['show', [], [], $id], ['show', [], [], '9999'], ['show', [], [], 'abc'], ['show', ['after' => '0'], [], $id],
+            ['reply', [], ['message' => 'x'], $id], ['rename', [], ['title' => 'Piraté'], $id], ['typing', [], [], $id],
+            ['start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Usurpation']],
+        ] as $call) {
             try {
                 $this->call(...$call);
                 self::fail('refus attendu : ' . $call[0]);
@@ -151,15 +214,14 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     public function testClientCannotChooseTheAuthorAndBadIdsAreRefused(): void
     {
         [$alice, $bob, $a, $b] = $this->world();
-        $this->loginAs($alice);
+        $id = $this->startAsAlice($alice, $a, $b, ['authorId' => $bob->id(), 'userId' => $bob->id()]);
 
-        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => 'S', 'message' => 'M', 'authorId' => $bob->id(), 'userId' => $bob->id()]);
-        [, $thread] = $this->call('show', [], [], (string) $json['id']);
+        [, $thread] = $this->call('show', [], [], $id);
         self::assertSame('Alice', $thread['messages'][0]['authorName']);
 
         foreach ([['groupId' => '1 OR 1=1', 'targetGroupId' => $b->id()], ['groupId' => [$a->id()], 'targetGroupId' => $b->id()], ['groupId' => $a->id(), 'targetGroupId' => null]] as $ids) {
             try {
-                $this->call('start', [], $ids + ['subject' => 'S', 'message' => 'M']);
+                $this->call('start', [], $ids + ['message' => 'M']);
                 self::fail('ids invalides');
             } catch (AccessDeniedException) {
                 $this->addToAssertionCount(1);
@@ -173,43 +235,51 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         [$alice, , $a, $b] = $this->world();
         $this->loginAs($alice);
 
-        [$status, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => '', 'message' => '']);
+        [$status, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => '', 'title' => str_repeat('x', 151)]);
 
         self::assertSame(422, $status);
-        self::assertArrayHasKey('subject', $json['fields']);
         self::assertArrayHasKey('message', $json['fields']);
+        self::assertArrayHasKey('title', $json['fields']);
+    }
+
+    #[Test]
+    public function testMalformedParametersAnswer422(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        self::assertSame(422, $this->call('index', ['box' => 'secret'])[0]);
+        self::assertSame(422, $this->call('show', ['after' => 'abc'], [], $id)[0]);
+        self::assertSame(422, $this->call('show', ['after' => '-1'], [], $id)[0]);
+        self::assertSame(422, $this->call('rename', [], ['title' => ['x']], $id)[0]);
+        self::assertSame(422, $this->call('rename', [], [], $id)[0], 'champ title absent');
     }
 
     #[Test]
     public function testRateLimitAnswers429(): void
     {
         [$alice, , $a, $b] = $this->world();
-        $this->loginAs($alice);
-        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => 'S', 'message' => 'M']);
+        $id = $this->startAsAlice($alice, $a, $b);
 
         for ($i = 1; $i < ConversationService::MAX_MESSAGES_PER_HOUR; $i++) {
-            $this->call('reply', [], ['message' => "m{$i}"], (string) $json['id']);
+            $this->call('reply', [], ['message' => "m{$i}"], $id);
         }
-        [$status] = $this->call('reply', [], ['message' => 'de trop'], (string) $json['id']);
+        [$status] = $this->call('reply', [], ['message' => 'de trop'], $id);
 
         self::assertSame(429, $status);
     }
 
     #[Test]
-    public function testArchiveAndInvalidBox(): void
+    public function testArchivedBoxListsSilentConversations(): void
     {
         [$alice, , $a, $b] = $this->world();
-        $this->loginAs($alice);
-        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'subject' => 'S', 'message' => 'M']);
+        $this->startAsAlice($alice, $a, $b);
+        $this->clock->modify('+31 days');
 
-        [$status] = $this->call('archive', [], ['archived' => true], (string) $json['id']);
-        self::assertSame(200, $status);
+        [, $active] = $this->call('index', ['box' => 'active']);
         [, $archived] = $this->call('index', ['box' => 'archived']);
-        self::assertCount(1, $archived['conversations']);
 
-        [$status] = $this->call('archive', [], ['archived' => 'oui'], (string) $json['id']);
-        self::assertSame(422, $status);
-        [$status] = $this->call('index', ['box' => 'secret']);
-        self::assertSame(422, $status);
+        self::assertCount(0, $active['conversations']);
+        self::assertCount(1, $archived['conversations']);
     }
 }
