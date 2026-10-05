@@ -96,12 +96,16 @@ final class ConversationService
     /**
      * @param list<mixed> $mentionIds personnes taguées (identifiants non fiables, validés ici) ; une personne extérieure
      *                                aux deux groupes est invitée à CETTE conversation
+     * @param int|null    $replyToId  message cité (#214) : un message ORDINAIRE de cette conversation, sinon refus uniforme
      *
      * @throws AccessDeniedException @throws ConversationValidationException @throws Exception\ConversationRateLimitException
      */
-    public function reply(int $userId, int $conversationId, string $body, array $mentionIds = []): ConversationMessage
+    public function reply(int $userId, int $conversationId, string $body, array $mentionIds = [], ?int $replyToId = null): ConversationMessage
     {
         $conversation = $this->participantConversation($userId, $conversationId);
+        if ($replyToId !== null && !$this->isQuotable($conversationId, $replyToId)) {
+            throw new AccessDeniedException(ConversationAccess::DENIED);
+        }
 
         $body = $this->inputPolicy->normalize($body);
         $this->assertValid(null, $body);
@@ -109,9 +113,9 @@ final class ConversationService
         $now = $this->clock->now();
         $this->rateLimit->assertWithin($userId, $now);
 
-        $message = $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan): ConversationMessage {
+        $message = $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan, $replyToId): ConversationMessage {
             $this->mentions->addGuests($plan, $userId, $conversationId, $now);
-            $message = $this->messages->addMessage($conversationId, $userId, $body, $now);
+            $message = $this->messages->addMessage($conversationId, $userId, $body, $now, false, $replyToId);
             $this->mentions->record($plan, $message->id());
             // Répondre suppose d'avoir lu le fil : il n'est pas « non lu » pour son propre auteur.
             $this->presence->markRead($conversationId, $userId, $now);
@@ -149,6 +153,14 @@ final class ConversationService
             $this->messages->addMessage($conversationId, $userId, $line, $now, true);
             $this->presence->markRead($conversationId, $userId, $now);
         });
+    }
+
+    /** Seul un message ordinaire de CETTE conversation se cite : un identifiant inconnu, d'une autre conversation ou d'une ligne système est refusé pareil. */
+    private function isQuotable(int $conversationId, int $messageId): bool
+    {
+        $message = $this->messages->messageById($conversationId, $messageId);
+
+        return $message !== null && !$message->isSystem();
     }
 
     private function participantConversation(int $userId, int $conversationId): Conversation

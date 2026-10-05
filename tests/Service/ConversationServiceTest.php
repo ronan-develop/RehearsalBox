@@ -273,6 +273,85 @@ final class ConversationServiceTest extends RepositoryTestCase
         $this->service->reply($alice->id(), $conversation->id(), "  \n ");
     }
 
+    // --- Citer un message (#214) ---------------------------------------------------------------------
+
+    #[Test]
+    public function testAReplyCanQuoteAMessageOfTheSameConversation(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Jeudi à 20h ?');
+        $first = $this->reader->open($bob->id(), $conversation->id())->messages()[0];
+
+        $reply = $this->service->reply($bob->id(), $conversation->id(), 'Oui !', [], $first->id());
+
+        self::assertSame($first->id(), $reply->quote()?->messageId());
+        self::assertSame('Alice', $reply->quote()->authorName());
+        self::assertSame('Jeudi à 20h ?', $reply->quote()->excerpt());
+        self::assertSame($first->id(), $this->lastOf($this->reader->open($alice->id(), $conversation->id())->messages())->quote()?->messageId());
+    }
+
+    #[Test]
+    public function testOneMayQuoteOneOwnMessage(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
+        $first = $this->reader->open($alice->id(), $conversation->id())->messages()[0];
+
+        $reply = $this->service->reply($alice->id(), $conversation->id(), 'Je précise', [], $first->id());
+
+        self::assertSame($first->id(), $reply->quote()?->messageId());
+    }
+
+    #[Test]
+    public function testAMessageOfAnotherConversationCannotBeQuoted(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $carole = $this->user('Carole');
+        $c = $this->group('Gamma', '#00aa00', $carole);
+        $mine = $this->service->start($alice->id(), $a->id(), $b->id(), 'Notre fil');
+        $other = $this->service->start($carole->id(), $c->id(), $b->id(), 'Fil secret de Carole');
+        $secret = $this->reader->open($carole->id(), $other->id())->messages()[0];
+
+        try {
+            $this->service->reply($alice->id(), $mine->id(), 'Je cite un message que je ne devrais pas voir', [], $secret->id());
+            self::fail('citer un message d’une autre conversation doit être refusé');
+        } catch (AccessDeniedException $e) {
+            self::assertSame('Accès refusé.', $e->getMessage());
+        }
+        self::assertCount(1, $this->reader->open($alice->id(), $mine->id())->messages(), 'rien n’est enregistré');
+    }
+
+    #[Test]
+    public function testAnUnknownMessageAndASystemLineCannotBeQuotedAndRefuseTheSameWay(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
+        $this->service->rename($alice->id(), $conversation->id(), 'Nouveau titre');
+        $messages = $this->reader->open($alice->id(), $conversation->id())->messages();
+        $system = $this->lastOf($messages);
+        self::assertTrue($system->isSystem());
+
+        foreach ([9999, $system->id()] as $id) {
+            try {
+                $this->service->reply($alice->id(), $conversation->id(), 'Citation invalide', [], $id);
+                self::fail('une citation invalide doit être refusée');
+            } catch (AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage());
+            }
+        }
+    }
+
+    #[Test]
+    public function testQuotingMentionsNobodyAndStillValidatesTheReply(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $conversation = $this->service->start($alice->id(), $a->id(), $b->id(), 'Premier');
+        $first = $this->reader->open($bob->id(), $conversation->id())->messages()[0];
+
+        $this->expectException(ConversationValidationException::class);
+        $this->service->reply($bob->id(), $conversation->id(), "  \n ", [], $first->id());
+    }
+
     // --- Titre ----------------------------------------------------------------------------------------
 
     #[Test]
