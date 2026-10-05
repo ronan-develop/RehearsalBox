@@ -10,7 +10,11 @@ use App\Entity\Enum\UserRole;
 use App\Entity\Group;
 use App\Entity\User;
 use App\Http\Request;
+use App\Presenter\ConversationFormatter;
+use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
+use App\Presenter\ConversationTimeline;
+use App\Presenter\MessagesPageView;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -23,6 +27,7 @@ use App\Service\ConversationService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
+use App\View\PhpTemplateRenderer;
 use Symfony\Component\Clock\MockClock;
 
 final class ConversationApiControllerTest extends RepositoryTestCase
@@ -42,10 +47,14 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
+        $service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new ConversationApiController(
-            new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock),
+            $service,
             new ConversationPresenter(),
             new AuthGuard($this->auth),
+            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock),
+            new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
         );
     }
 
@@ -83,6 +92,14 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         return [$response->statusCode(), json_decode($response->body(), true) ?? []];
     }
 
+    /** Fil complet (messages depuis le début) tel que le sert le polling. @return array<string, mixed> */
+    private function thread(string $id): array
+    {
+        [, $json] = $this->call('updates', ['after' => '0'], [], $id);
+
+        return $json;
+    }
+
     /** @return array{User, User, Group, Group} */
     private function world(): array
     {
@@ -104,7 +121,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     #[Test]
     public function testEveryRouteRequiresALogin(): void
     {
-        foreach ([['index'], ['start'], ['show', [], [], '1'], ['reply', [], [], '1'], ['rename', [], [], '1'], ['typing', [], [], '1']] as $call) {
+        foreach ([['index'], ['start'], ['updates', [], [], '1'], ['listFragment'], ['reply', [], [], '1'], ['rename', [], [], '1'], ['typing', [], [], '1']] as $call) {
             try {
                 $this->call(...$call);
                 self::fail('connexion exigée : ' . $call[0]);
@@ -132,12 +149,37 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         self::assertSame(1, $received['unread']['total']);
 
         $this->clock->sleep(30);
-        [$status] = $this->call('reply', [], ['message' => 'Réponse'], $id);
+        [$status, $reply] = $this->call('reply', [], ['message' => 'Réponse', 'after' => '0'], $id);
         self::assertSame(201, $status);
-        [, $thread] = $this->call('show', [], [], $id);
-        self::assertSame(['Salut', 'Réponse'], array_column($thread['messages'], 'body'));
-        self::assertSame([false, true], array_column($thread['messages'], 'mine'));
-        self::assertSame(['Alpha', 'Beta'], array_column($thread['messages'], 'groupName'));
+        self::assertStringContainsString('Réponse', $reply['html']);
+        self::assertStringContainsString('rb-chat-message--mine', $reply['html']);
+        self::assertTrue($reply['hasNew']);
+
+        $thread = $this->thread($id);
+        self::assertStringContainsString('Salut', $thread['html']);
+        self::assertStringContainsString('Réponse', $thread['html']);
+        self::assertStringContainsString('title="Alpha"', $thread['html'], 'pastille : groupe de l\'auteur');
+        self::assertSame(2, substr_count($thread['html'], 'data-message-id='));
+        self::assertSame($thread['lastId'], $reply['lastId']);
+    }
+
+    #[Test]
+    public function testReplyReturnsOnlyMessagesAfterTheClientsLastKnownOne(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+        $known = $this->thread($id)['lastId'];
+        $this->loginAs($bob);
+        $this->clock->sleep(5);
+        $this->call('reply', [], ['message' => 'Un autre message'], $id);
+        $this->loginAs($alice);
+        $this->clock->sleep(5);
+
+        [, $reply] = $this->call('reply', [], ['message' => 'Ma réponse', 'after' => (string) $known], $id);
+
+        self::assertStringContainsString('Un autre message', $reply['html'], 'les messages reçus entre-temps arrivent avec le mien');
+        self::assertStringContainsString('Ma réponse', $reply['html']);
+        self::assertStringNotContainsString('Salut', $reply['html'], 'déjà affiché côté client');
     }
 
     #[Test]
@@ -147,18 +189,17 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $id = $this->startAsAlice($alice, $a, $b, ['title' => 'Concert']);
         $this->loginAs($bob);
 
-        [, $thread] = $this->call('show', [], [], $id);
-        self::assertSame('Concert', $thread['displayTitle']);
+        self::assertSame('Concert', $this->thread($id)['displayTitle']);
 
         [$status] = $this->call('rename', [], ['title' => 'Concert du 12'], $id);
         self::assertSame(200, $status);
-        [, $thread] = $this->call('show', [], [], $id);
+        $thread = $this->thread($id);
         self::assertSame('Concert du 12', $thread['title']);
-        self::assertTrue(end($thread['messages'])['system']);
+        self::assertStringContainsString('Vous avez renommé la conversation « Concert du 12 »', $thread['html']);
+        self::assertStringContainsString('rb-chat-system', $thread['html']);
 
         $this->call('rename', [], ['title' => null], $id);
-        [, $thread] = $this->call('show', [], [], $id);
-        self::assertSame('Alpha ↔ Beta', $thread['displayTitle']);
+        self::assertSame('Alpha ↔ Beta', $this->thread($id)['displayTitle']);
     }
 
     #[Test]
@@ -166,23 +207,72 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->world();
         $id = $this->startAsAlice($alice, $a, $b);
-        [, $first] = $this->call('show', [], [], $id);
-        $firstId = $first['messages'][0]['id'];
+        $firstId = $this->thread($id)['lastId'];
 
         $this->loginAs($bob);
         $this->clock->sleep(10);
-        $this->call('show', [], [], $id);
+        $this->thread($id);
         [$status] = $this->call('typing', [], [], $id);
         self::assertSame(200, $status);
 
         $this->loginAs($alice);
         $this->clock->sleep(2);
-        [, $update] = $this->call('show', ['after' => (string) $firstId], [], $id);
+        [, $update] = $this->call('updates', ['after' => (string) $firstId], [], $id);
 
-        self::assertSame([], $update['messages']);
-        self::assertSame(['Bob'], $update['typing']);
-        self::assertSame(['Bob'], $update['seen']['names']);
-        self::assertSame(1, $update['seen']['total']);
+        self::assertSame('', trim($update['html']), 'aucun nouveau message');
+        self::assertFalse($update['hasNew']);
+        self::assertSame('Bob écrit…', $update['status']);
+        self::assertTrue($update['typing']);
+        self::assertSame($firstId, $update['lastId'] === 0 ? $firstId : $update['lastId']);
+    }
+
+    #[Test]
+    public function testSeenByIsInTheStatusWhenNobodyIsWriting(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+        $this->loginAs($bob);
+        $this->clock->sleep(10);
+        $this->thread($id);
+        $this->loginAs($alice);
+        $this->clock->sleep(2);
+
+        $update = $this->thread($id);
+
+        self::assertSame('Vu par Bob', $update['status']);
+        self::assertFalse($update['typing']);
+    }
+
+    #[Test]
+    public function testTheListFragmentRendersTheUsersConversationsAndTheEmptyFlag(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $this->startAsAlice($alice, $a, $b, ['title' => 'Concert <b>du 12</b>']);
+        $this->loginAs($bob);
+
+        [$status, $json] = $this->call('listFragment', ['box' => 'active']);
+        [, $archived] = $this->call('listFragment', ['box' => 'archived']);
+
+        self::assertSame(200, $status);
+        self::assertFalse($json['empty']);
+        self::assertStringContainsString('&lt;b&gt;du 12&lt;/b&gt;', $json['html']);
+        self::assertStringNotContainsString('<b>du 12</b>', $json['html']);
+        self::assertStringContainsString('rb-chat-item--unread', $json['html']);
+        self::assertTrue($archived['empty']);
+        self::assertSame(422, $this->call('listFragment', ['box' => 'secret'])[0]);
+    }
+
+    #[Test]
+    public function testTheFragmentsEscapeWhatUsersWrite(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $this->loginAs($alice);
+        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => '<script>alert(1)</script>']);
+
+        $html = $this->thread((string) $json['id'])['html'];
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
     }
 
     #[Test]
@@ -196,7 +286,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->loginAs($outsider);
         $messages = [];
         foreach ([
-            ['show', [], [], $id], ['show', [], [], '9999'], ['show', [], [], 'abc'], ['show', ['after' => '0'], [], $id],
+            ['updates', [], [], $id], ['updates', [], [], '9999'], ['updates', [], [], 'abc'], ['updates', ['after' => '0'], [], $id],
             ['reply', [], ['message' => 'x'], $id], ['rename', [], ['title' => 'Piraté'], $id], ['typing', [], [], $id],
             ['start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Usurpation']],
         ] as $call) {
@@ -216,8 +306,10 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         [$alice, $bob, $a, $b] = $this->world();
         $id = $this->startAsAlice($alice, $a, $b, ['authorId' => $bob->id(), 'userId' => $bob->id()]);
 
-        [, $thread] = $this->call('show', [], [], $id);
-        self::assertSame('Alice', $thread['messages'][0]['authorName']);
+        $thread = $this->thread($id);
+        self::assertStringContainsString('Salut', $thread['html']);
+        self::assertSame(1, substr_count($thread['html'], 'rb-chat-message--mine'), 'le message est le mien : l\'auteur vient de la session');
+        self::assertStringNotContainsString('rb-chat-author', $thread['html']);
 
         foreach ([['groupId' => '1 OR 1=1', 'targetGroupId' => $b->id()], ['groupId' => [$a->id()], 'targetGroupId' => $b->id()], ['groupId' => $a->id(), 'targetGroupId' => null]] as $ids) {
             try {
@@ -249,8 +341,8 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $id = $this->startAsAlice($alice, $a, $b);
 
         self::assertSame(422, $this->call('index', ['box' => 'secret'])[0]);
-        self::assertSame(422, $this->call('show', ['after' => 'abc'], [], $id)[0]);
-        self::assertSame(422, $this->call('show', ['after' => '-1'], [], $id)[0]);
+        self::assertSame(422, $this->call('updates', ['after' => 'abc'], [], $id)[0]);
+        self::assertSame(422, $this->call('updates', ['after' => '-1'], [], $id)[0]);
         self::assertSame(422, $this->call('rename', [], ['title' => ['x']], $id)[0]);
         self::assertSame(422, $this->call('rename', [], [], $id)[0], 'champ title absent');
     }

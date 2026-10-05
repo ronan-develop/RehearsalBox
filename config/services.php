@@ -47,7 +47,11 @@ use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
+use App\Presenter\ConversationFormatter;
+use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
+use App\Presenter\ConversationTimeline;
+use App\Presenter\MessagesPageView;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\MysqlConversationRepository;
@@ -255,18 +259,33 @@ return static function (array $config): Container {
 
     $container->set(ConversationPresenter::class, static fn () => new ConversationPresenter());
 
+    // Affichage de la messagerie rendu par le serveur (#183) : heures et jours dans le fuseau de l'application.
+    $container->set(ConversationFormatter::class, static fn () => new ConversationFormatter(new \DateTimeZone($config['app']['timezone'])));
+    $container->set(ConversationTimeline::class, fn ($c) => new ConversationTimeline($c->get(ConversationFormatter::class)));
+    $container->set(ConversationListView::class, fn ($c) => new ConversationListView($c->get(ConversationFormatter::class)));
+    $container->set(MessagesPageView::class, fn ($c) => new MessagesPageView(
+        $c->get(ConversationService::class),
+        $c->get(ConversationListView::class),
+        $c->get(ConversationTimeline::class),
+        $c->get(ConversationFormatter::class),
+        $c->get(ClockInterface::class),
+    ));
+
     $container->set(MessagesPageController::class, fn ($c) => new MessagesPageController(
         $c->get(TemplateRendererInterface::class),
         $c->get(CsrfTokenManager::class),
         $c->get(AuthGuard::class),
         $c->get(ConversationService::class),
         $c->get(GroupRepositoryInterface::class),
+        $c->get(MessagesPageView::class),
     ));
 
     $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(
         $c->get(ConversationService::class),
         $c->get(ConversationPresenter::class),
         $c->get(AuthGuard::class),
+        $c->get(MessagesPageView::class),
+        $c->get(TemplateRendererInterface::class),
     ));
 
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(

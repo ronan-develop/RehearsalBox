@@ -18,6 +18,8 @@ $defaults = [
     'app' => [
         // URL publique, utilisée pour les liens envoyés par e-mail (jamais dérivée de la requête).
         'base_url' => 'http://localhost:8001',
+        // Fuseau d'affichage des heures et des jours (les dates sont stockées en UTC).
+        'timezone' => 'Europe/Paris',
     ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',

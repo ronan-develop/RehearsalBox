@@ -20,6 +20,9 @@ interface ConversationRepositoryInterface
 
     public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false): ConversationMessage;
 
+    /** Un message précis de la conversation (ancre d'une lecture incrémentale), null s'il n'en fait pas partie. */
+    public function messageById(int $conversationId, int $messageId): ?ConversationMessage;
+
     /** Dernier message ordinaire (hors lignes système) écrit par la personne dans la conversation. */
     public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage;
 

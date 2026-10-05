@@ -121,12 +121,6 @@ final class ConversationService
         return $this->thread($conversation, $userId, 0, $lastRead);
     }
 
-    /** Conversation de la personne, avec le contrôle d'accès (même refus qu'un fil inexistant). @throws AccessDeniedException */
-    public function find(int $userId, int $conversationId): Conversation
-    {
-        return $this->participantConversation($userId, $conversationId);
-    }
-
     /**
      * Lecture incrémentale (polling) : seulement les messages après $afterId, avec qui écrit et « vu par ».
      * Recevoir en direct un message des autres vaut lecture.
@@ -185,6 +179,7 @@ final class ConversationService
             $this->seenReceipt($conversation, $userId),
             $this->authorGroups($conversation, $messages),
             $firstUnreadId,
+            $afterId > 0 ? $this->conversations->messageById($conversation->id(), $afterId) : null,
         );
     }
 

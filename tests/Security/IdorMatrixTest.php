@@ -166,7 +166,8 @@ final class IdorMatrixTest extends TestCase
             ['PATCH', '/api/groups/{groupA}/space', ['lineup' => [], 'upcomingShows' => []], ['anon', 'stranger', 'outsiderB', 'memberA']],
             // Messagerie (#153) : réservée aux membres des deux groupes de la conversation
             ['GET', '/api/conversations', [], ['anon']],
-            ['GET', '/api/conversations/{convAB}', [], ['anon', 'stranger']],
+            ['GET', '/api/conversations/{convAB}/updates', [], ['anon', 'stranger']],
+            ['GET', '/api/conversation-list', [], ['anon']],
             ['POST', '/api/conversations/{convAB}/messages', ['message' => 'Intrus'], ['anon', 'stranger']],
             ['PATCH', '/api/conversations/{convAB}', ['title' => 'Piraté'], ['anon', 'stranger']],
             ['POST', '/api/conversations/{convAB}/typing', [], ['anon', 'stranger']],
@@ -217,7 +218,7 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/groups/{id}/documents', ['__upload' => true], 'groupA'],
             ['GET', '/api/documents/{id}', [], 'docA'],
             ['DELETE', '/api/documents/{id}', [], 'docA'],
-            ['GET', '/api/conversations/{id}', [], 'convAB'],
+            ['GET', '/api/conversations/{id}/updates', [], 'convAB'],
             ['POST', '/api/conversations/{id}/messages', ['message' => 'Intrus'], 'convAB'],
             ['PATCH', '/api/conversations/{id}', ['title' => 'Piraté'], 'convAB'],
             ['POST', '/api/conversations/{id}/typing', [], 'convAB'],
@@ -306,7 +307,8 @@ final class IdorMatrixTest extends TestCase
         self::assertSame(200, $this->call('outsiderB', 'GET', '/api/availability/requested/' . $this->groupBId())[0]);
         self::assertSame(200, $this->call('memberA', 'GET', '/api/conversations')[0]);
         self::assertSame(200, $this->call('outsiderB', 'GET', '/api/conversations')[0]);
-        self::assertSame(200, $this->call('outsiderB', 'GET', '/api/conversations/' . self::$ids['convAB'])[0], 'membre du groupe visé');
+        self::assertSame(200, $this->call('outsiderB', 'GET', '/api/conversations/' . self::$ids['convAB'] . '/updates')[0], 'membre du groupe visé');
+        self::assertSame(200, $this->call('outsiderB', 'GET', '/api/conversation-list')[0]);
         self::assertSame([], json_decode($this->call('stranger', 'GET', '/api/conversations')[1], true)['conversations'], 'un inconnu ne voit aucun fil');
     }
 

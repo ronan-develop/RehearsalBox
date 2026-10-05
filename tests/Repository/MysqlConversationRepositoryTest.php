@@ -361,6 +361,19 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+90 seconds')), 'lire ne supprime pas le signal');
     }
 
+    #[Test]
+    public function testMessageByIdFindsAMessageOfThatConversationOnly(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $one = $this->repository->create($a->id(), $b->id(), null, $this->now);
+        $other = $this->repository->create($a->id(), $b->id(), null, $this->now);
+        $message = $this->repository->addMessage($one->id(), $alice->id(), 'ancre', $this->now);
+
+        self::assertSame('ancre', $this->repository->messageById($one->id(), $message->id())?->body());
+        self::assertNull($this->repository->messageById($other->id(), $message->id()), 'un message d\'une autre conversation n\'est jamais renvoyé');
+        self::assertNull($this->repository->messageById($one->id(), 99999));
+    }
+
     // --- Message système, dernier message de l'auteur, débit du signal « écrit… » ----------------
 
     #[Test]

@@ -19,8 +19,5 @@ test('the event contract between components is namespaced and stable', () => {
     SUBMIT: 'composer:submit',
     TYPING: 'composer:typing',
     RENAME: 'header:rename',
-    SELECT: 'sidebar:select',
-    ARCHIVES: 'sidebar:archives',
-    BACK: 'header:back',
   });
 });

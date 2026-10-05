@@ -6,13 +6,12 @@ namespace App\Presenter;
 
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationSummary;
-use App\Entity\ConversationThread;
 use App\Entity\Group;
 use App\Support\Initials;
 
 /**
- * Objets de lecture de la messagerie : transforme les entités en tableaux prêts pour le client. Aucune règle métier,
- * aucun identifiant interne inutile (ni auteur, ni groupe) : réutilisable par les pages, l'API, un futur sérialiseur.
+ * Objets de lecture JSON de la messagerie (liste pour la pastille « non lu » du dashboard). Le fil et la liste affichés
+ * sont rendus par le serveur (#183, MessagesPageView) : plus de JSON destiné à être dessiné par le navigateur.
  */
 final class ConversationPresenter
 {
@@ -26,26 +25,6 @@ final class ConversationPresenter
             'label' => $summary->label(),
             'unread' => $summary->isUnread(),
             'lastMessage' => $this->message($summary->lastMessage(), null, $viewerId),
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    public function thread(ConversationThread $thread, int $viewerId): array
-    {
-        $seen = $thread->seen();
-
-        return [
-            'id' => $thread->conversation()->id(),
-            'title' => $thread->conversation()->title(),
-            'displayTitle' => $thread->displayTitle(),
-            'label' => $thread->label(),
-            'messages' => array_map(
-                fn (ConversationMessage $message): array => $this->message($message, $thread->authorGroup($message->authorId()), $viewerId),
-                $thread->messages(),
-            ),
-            'firstUnreadId' => $thread->firstUnreadId(),
-            'typing' => $thread->typing(),
-            'seen' => $seen === null ? null : ['messageId' => $seen->messageId(), 'names' => $seen->names(), 'total' => $seen->total()],
         ];
     }
 

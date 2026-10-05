@@ -6,6 +6,8 @@ namespace App\Controller;
 
 use App\Http\Request;
 use App\Http\Response;
+use App\Presenter\MessagesPageView;
+use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
@@ -15,9 +17,9 @@ use App\Support\StrictId;
 use App\View\TemplateRendererInterface;
 
 /**
- * Pages de la messagerie (#169) : `/messages` (liste) et `/messages/{id}` (une conversation, une route). Le gabarit est
- * le même ; le contenu (liste, messages) est servi par l'API et rempli par chat.js. La page ne marque rien comme lu :
- * c'est l'ouverture du fil par le JS qui le fait.
+ * Pages de la messagerie (#169, #183) : `/messages` (liste), `/messages/archives`, `/messages/{id}` (une conversation, une
+ * route) et `/messages/new/{groupId}` (brouillon). Navigation classique : chaque URL est une page rendue par le serveur,
+ * le JS n'ajoute que le direct (nouveaux messages, envoi, titre).
  */
 final class MessagesPageController
 {
@@ -27,23 +29,40 @@ final class MessagesPageController
         private readonly AuthGuard $authGuard,
         private readonly ConversationService $conversationService,
         private readonly GroupRepositoryInterface $groupRepository,
+        private readonly MessagesPageView $view,
     ) {
     }
 
-    public function list(): Response
+    public function list(Request $request): Response
     {
-        return $this->render(null);
+        $user = $this->authGuard->requireLogin();
+
+        return $this->render($this->view->sidebar($user->id(), null));
     }
 
+    /** Conversations archivées (sans message depuis 30 jours) : une vraie page, pas un état du JS. */
+    public function archives(Request $request): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        return $this->render($this->view->sidebar($user->id(), null, ConversationRepositoryInterface::BOX_ARCHIVED));
+    }
+
+    /**
+     * Une conversation : la page est rendue par le serveur (liste, titre, messages, « vu par »). L'ouvrir la marque lue
+     * pour cette personne. Identifiant mal formé, inexistant ou interdit : même refus, rien ne révèle l'existence d'un fil.
+     */
     public function show(Request $request, string $id): Response
     {
         $user = $this->authGuard->requireLogin();
 
-        // Identifiant mal formé, inexistant ou interdit : même refus (rien ne révèle l'existence d'une conversation).
         $conversationId = StrictId::from($id) ?? throw new AccessDeniedException('Accès refusé.');
-        $conversation = $this->conversationService->find($user->id(), $conversationId);
+        $thread = $this->conversationService->open($user->id(), $conversationId);
 
-        return $this->render($conversation->id());
+        return $this->render(
+            $this->view->sidebar($user->id(), $conversationId),
+            $this->view->thread($thread, $user->id()),
+        );
     }
 
     /**
@@ -66,7 +85,7 @@ final class MessagesPageController
             }
         }
 
-        return $this->render(null, [
+        return $this->render($this->view->sidebar($user->id(), null), null, [
             'targetId' => $target->id(),
             'targetName' => $target->name(),
             'senders' => $senders,
@@ -74,8 +93,12 @@ final class MessagesPageController
         ]);
     }
 
-    /** @param array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null $draft */
-    private function render(?int $activeId, ?array $draft = null): Response
+    /**
+     * @param array{items: list<array<string, mixed>>, box: string, archivedUnread: int}                                                                                $sidebar
+     * @param array<string, mixed>|null                                                                                                                                  $thread
+     * @param array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null                                                  $draft
+     */
+    private function render(array $sidebar, ?array $thread = null, ?array $draft = null): Response
     {
         $user = $this->authGuard->requireLogin();
 
@@ -83,7 +106,8 @@ final class MessagesPageController
             $this->renderer->render('messages/index', [
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'currentUserRole' => $user->role(),
-                'activeId' => $activeId,
+                'sidebar' => $sidebar,
+                'thread' => $thread,
                 'draft' => $draft,
             ]),
             headers: ['Cache-Control' => 'private, no-store'],
