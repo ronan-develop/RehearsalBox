@@ -12,7 +12,9 @@ use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\ConversationGuestService;
 use App\Service\ConversationService;
+use App\Service\ConversationTrashService;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;
@@ -33,6 +35,8 @@ final class ConversationApiController
         private readonly AuthGuard $authGuard,
         private readonly MessagesPageView $view,
         private readonly TemplateRendererInterface $renderer,
+        private readonly ConversationTrashService $trashService,
+        private readonly ConversationGuestService $guestService,
     ) {
     }
 
@@ -51,8 +55,8 @@ final class ConversationApiController
                 $this->conversationService->listFor($user->id(), $box),
             ),
             'unread' => [
-                'total' => $this->conversationService->unreadCount($user->id()) + $this->conversationService->alertCount($user->id()),
-                'alerts' => $this->conversationService->alertCount($user->id()),
+                'total' => $this->conversationService->unreadCount($user->id()) + $this->trashService->alertCount($user->id()),
+                'alerts' => $this->trashService->alertCount($user->id()),
                 'archived' => $this->conversationService->unreadCount($user->id(), ConversationRepositoryInterface::BOX_ARCHIVED),
             ],
         ]);
@@ -158,7 +162,7 @@ final class ConversationApiController
     public function destroy(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->conversationService->delete($user->id(), $this->idOrDenied($id));
+        $this->trashService->delete($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -166,7 +170,7 @@ final class ConversationApiController
     public function restore(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->conversationService->restore($user->id(), $this->idOrDenied($id));
+        $this->trashService->restore($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -175,7 +179,7 @@ final class ConversationApiController
     public function destroyPermanently(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->conversationService->deletePermanently($user->id(), $this->idOrDenied($id));
+        $this->trashService->deletePermanently($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -184,7 +188,7 @@ final class ConversationApiController
     public function dismissAlert(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $this->conversationService->dismissAlert($user->id(), $this->idOrDenied($id));
+        $this->trashService->dismissAlert($user->id(), $this->idOrDenied($id));
 
         return new JsonResponse(['status' => 'ok']);
     }

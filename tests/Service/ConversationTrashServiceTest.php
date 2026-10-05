@@ -15,7 +15,9 @@ use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\ConversationAccess;
 use App\Service\ConversationService;
+use App\Service\ConversationTrashService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
@@ -25,6 +27,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
 {
     private MockClock $clock;
     private ConversationService $service;
+    private ConversationTrashService $trash;
     private MysqlConversationRepository $conversations;
     /** @var array<string, User> */
     private array $people = [];
@@ -45,12 +48,13 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $groups->addMember($alpha->id(), $this->people['carole']->id());
         $groups->addMember($beta->id(), $this->people['bob']->id());
         $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->service = new ConversationService(
+        $this->service = new ConversationService($this->conversations, $groups, new TransactionRunner($this->pdo), $this->clock);
+        $this->trash = new ConversationTrashService(
+            new ConversationAccess($this->conversations, $groups),
             $this->conversations,
-            $groups,
             new TransactionRunner($this->pdo),
             $this->clock,
-            alerts: new MysqlConversationAlertRepository($this->pdo),
+            new MysqlConversationAlertRepository($this->pdo),
         );
         $this->conversationId = $this->service->start($this->id('alice'), $alpha->id(), $beta->id(), 'Bonjour', 'Secret')->id();
     }
@@ -73,7 +77,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
     #[Test]
     public function testTheInitiatorTrashesTheConversationAndBothGroupsLoseIt(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
 
         foreach (['alice', 'carole', 'bob'] as $name) {
             self::assertSame([], $this->service->listFor($this->id($name), Box::BOX_ACTIVE), $name);
@@ -86,24 +90,24 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
     public function testOnlyTheInitiatorCanDeleteEveryoneElseGetsTheUniformRefusal(): void
     {
         foreach (['carole' => 'même groupe', 'bob' => 'destinataire', 'erin' => 'étranger'] as $name => $why) {
-            $this->denied(fn () => $this->service->delete($this->id($name), $this->conversationId));
+            $this->denied(fn () => $this->trash->delete($this->id($name), $this->conversationId));
         }
-        $this->denied(fn () => $this->service->delete($this->id('alice'), 999999));
+        $this->denied(fn () => $this->trash->delete($this->id('alice'), 999999));
         self::assertCount(1, $this->service->listFor($this->id('bob'), Box::BOX_ACTIVE), 'rien n\'a été supprimé');
     }
 
     #[Test]
     public function testDeletingTwiceIsRefused(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
 
-        $this->denied(fn () => $this->service->delete($this->id('alice'), $this->conversationId));
+        $this->denied(fn () => $this->trash->delete($this->id('alice'), $this->conversationId));
     }
 
     #[Test]
     public function testATrashedConversationCannotBeUsedAnymore(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
 
         $this->denied(fn () => $this->service->reply($this->id('bob'), $this->conversationId, 'encore là ?'));
         $this->denied(fn () => $this->service->poll($this->id('bob'), $this->conversationId, 0));
@@ -114,92 +118,92 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
     #[Test]
     public function testEveryoneButTheActorIsWarnedInTheApplication(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
 
         foreach (['carole', 'bob'] as $name) {
-            $alerts = $this->service->alertsFor($this->id($name));
+            $alerts = $this->trash->alertsFor($this->id($name));
             self::assertCount(1, $alerts, $name);
             self::assertSame(ConversationAlert::DELETED, $alerts[0]->kind());
             self::assertSame('Alpha ↔ Beta', $alerts[0]->label());
-            self::assertSame(1, $this->service->alertCount($this->id($name)));
+            self::assertSame(1, $this->trash->alertCount($this->id($name)));
         }
-        self::assertSame([], $this->service->alertsFor($this->id('alice')));
-        self::assertSame([], $this->service->alertsFor($this->id('erin')));
+        self::assertSame([], $this->trash->alertsFor($this->id('alice')));
+        self::assertSame([], $this->trash->alertsFor($this->id('erin')));
     }
 
     #[Test]
     public function testTheTrashListsTheInitiatorsConversationOnly(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
 
-        self::assertCount(1, $this->service->trash($this->id('alice')));
-        self::assertSame([], $this->service->trash($this->id('carole')));
-        self::assertSame([], $this->service->trash($this->id('bob')));
+        self::assertCount(1, $this->trash->trash($this->id('alice')));
+        self::assertSame([], $this->trash->trash($this->id('carole')));
+        self::assertSame([], $this->trash->trash($this->id('bob')));
     }
 
     #[Test]
     public function testRestoringBringsItBackForEveryoneAndWarnsTheOthers(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
-        $this->service->restore($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
+        $this->trash->restore($this->id('alice'), $this->conversationId);
 
         self::assertCount(1, $this->service->listFor($this->id('bob'), Box::BOX_ACTIVE));
-        self::assertSame([], $this->service->trash($this->id('alice')));
-        $kinds = array_map(static fn ($a) => $a->kind(), $this->service->alertsFor($this->id('bob')));
+        self::assertSame([], $this->trash->trash($this->id('alice')));
+        $kinds = array_map(static fn ($a) => $a->kind(), $this->trash->alertsFor($this->id('bob')));
         self::assertSame([ConversationAlert::RESTORED, ConversationAlert::DELETED], $kinds);
     }
 
     #[Test]
     public function testOnlyTheInitiatorCanRestoreOrDeleteForGood(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
 
         foreach (['carole', 'bob', 'erin'] as $name) {
-            $this->denied(fn () => $this->service->restore($this->id($name), $this->conversationId));
-            $this->denied(fn () => $this->service->deletePermanently($this->id($name), $this->conversationId));
+            $this->denied(fn () => $this->trash->restore($this->id($name), $this->conversationId));
+            $this->denied(fn () => $this->trash->deletePermanently($this->id($name), $this->conversationId));
         }
-        self::assertCount(1, $this->service->trash($this->id('alice')));
+        self::assertCount(1, $this->trash->trash($this->id('alice')));
     }
 
     #[Test]
     public function testRestoringOrPurgingAnActiveConversationIsRefused(): void
     {
-        $this->denied(fn () => $this->service->restore($this->id('alice'), $this->conversationId));
-        $this->denied(fn () => $this->service->deletePermanently($this->id('alice'), $this->conversationId));
+        $this->denied(fn () => $this->trash->restore($this->id('alice'), $this->conversationId));
+        $this->denied(fn () => $this->trash->deletePermanently($this->id('alice'), $this->conversationId));
     }
 
     #[Test]
     public function testDeletingForGoodRemovesItCompletely(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
-        $this->service->deletePermanently($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
+        $this->trash->deletePermanently($this->id('alice'), $this->conversationId);
 
         self::assertNull($this->conversations->findById($this->conversationId));
-        self::assertSame([], $this->service->trash($this->id('alice')));
-        self::assertCount(1, $this->service->alertsFor($this->id('bob')), "l'avis reste pour prévenir");
+        self::assertSame([], $this->trash->trash($this->id('alice')));
+        self::assertCount(1, $this->trash->alertsFor($this->id('bob')), "l'avis reste pour prévenir");
     }
 
     #[Test]
     public function testAfterThirtyDaysTheTrashIsEmptiedAndRestoringIsTooLate(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
+        $this->trash->delete($this->id('alice'), $this->conversationId);
         $this->clock->modify('+31 days');
 
-        $this->denied(fn () => $this->service->restore($this->id('alice'), $this->conversationId));
-        self::assertSame([], $this->service->trash($this->id('alice')));
+        $this->denied(fn () => $this->trash->restore($this->id('alice'), $this->conversationId));
+        self::assertSame([], $this->trash->trash($this->id('alice')));
         self::assertNull($this->conversations->findById($this->conversationId), 'purgée pour de bon');
     }
 
     #[Test]
     public function testAnAlertCanBeDismissedOnlyByItsOwner(): void
     {
-        $this->service->delete($this->id('alice'), $this->conversationId);
-        $alert = $this->service->alertsFor($this->id('bob'))[0];
+        $this->trash->delete($this->id('alice'), $this->conversationId);
+        $alert = $this->trash->alertsFor($this->id('bob'))[0];
 
-        $this->service->dismissAlert($this->id('carole'), $alert->id());
-        self::assertSame(1, $this->service->alertCount($this->id('bob')), "l'avis d'un autre ne se ferme pas");
+        $this->trash->dismissAlert($this->id('carole'), $alert->id());
+        self::assertSame(1, $this->trash->alertCount($this->id('bob')), "l'avis d'un autre ne se ferme pas");
 
-        $this->service->dismissAlert($this->id('bob'), $alert->id());
-        self::assertSame(0, $this->service->alertCount($this->id('bob')));
+        $this->trash->dismissAlert($this->id('bob'), $alert->id());
+        self::assertSame(0, $this->trash->alertCount($this->id('bob')));
     }
 }

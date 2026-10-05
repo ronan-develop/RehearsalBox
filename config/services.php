@@ -56,7 +56,17 @@ use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationNoticeRepository;
+use App\Repository\Contract\ConversationGuestRepositoryInterface;
+use App\Repository\Contract\ConversationMentionRepositoryInterface;
+use App\Repository\Contract\MemberDirectoryInterface;
+use App\Repository\MysqlConversationGuestRepository;
+use App\Repository\MysqlConversationMentionRepository;
+use App\Repository\MysqlMemberDirectory;
+use App\Service\ConversationAccess;
+use App\Service\ConversationGuestService;
+use App\Service\ConversationMentionService;
 use App\Service\ConversationNotifier;
+use App\Service\ConversationTrashService;
 use App\Service\ConversationReminderService;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
@@ -278,13 +288,50 @@ return static function (array $config): Container {
         $c->get(MailRenderer::class),
     ));
 
+    $container->set(ConversationGuestRepositoryInterface::class, fn ($c) => new MysqlConversationGuestRepository($c->get(PDO::class)));
+    $container->set(ConversationMentionRepositoryInterface::class, fn ($c) => new MysqlConversationMentionRepository($c->get(PDO::class)));
+    $container->set(MemberDirectoryInterface::class, fn ($c) => new MysqlMemberDirectory($c->get(PDO::class)));
+
+    // Règle d'accès unique de la messagerie (membre d'un des deux groupes ou invité) puis un service par responsabilité.
+    $container->set(ConversationAccess::class, fn ($c) => new ConversationAccess(
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(ConversationGuestRepositoryInterface::class),
+    ));
+
+    $container->set(ConversationMentionService::class, fn ($c) => new ConversationMentionService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(ConversationGuestRepositoryInterface::class),
+        $c->get(ConversationMentionRepositoryInterface::class),
+        $c->get(ConversationRepositoryInterface::class),
+    ));
+
     $container->set(ConversationService::class, fn ($c) => new ConversationService(
         $c->get(ConversationRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(TransactionRunner::class),
         $c->get(ClockInterface::class),
         notifier: $c->get(ConversationNotifier::class),
-        alerts: $c->get(ConversationAlertRepositoryInterface::class),
+        mentions: $c->get(ConversationMentionService::class),
+        access: $c->get(ConversationAccess::class),
+    ));
+
+    $container->set(ConversationTrashService::class, fn ($c) => new ConversationTrashService(
+        $c->get(ConversationAccess::class),
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(ClockInterface::class),
+        $c->get(ConversationAlertRepositoryInterface::class),
+    ));
+
+    $container->set(ConversationGuestService::class, fn ($c) => new ConversationGuestService(
+        $c->get(ConversationAccess::class),
+        $c->get(ConversationGuestRepositoryInterface::class),
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(ClockInterface::class),
     ));
 
     $container->set(ConversationPresenter::class, static fn () => new ConversationPresenter());
@@ -299,6 +346,7 @@ return static function (array $config): Container {
         $c->get(ConversationTimeline::class),
         $c->get(ConversationFormatter::class),
         $c->get(ClockInterface::class),
+        $c->get(ConversationTrashService::class),
     ));
 
     $container->set(MessagesPageController::class, fn ($c) => new MessagesPageController(
@@ -316,6 +364,8 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
         $c->get(MessagesPageView::class),
         $c->get(TemplateRendererInterface::class),
+        $c->get(ConversationTrashService::class),
+        $c->get(ConversationGuestService::class),
     ));
 
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(

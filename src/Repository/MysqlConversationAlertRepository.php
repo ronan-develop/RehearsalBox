@@ -32,6 +32,24 @@ final class MysqlConversationAlertRepository implements ConversationAlertReposit
             'conversation_id' => $conversationId,
             'except_user' => $exceptUserId,
         ]);
+
+        // Les invités (#178) sont prévenus aussi, sauf s'ils sont déjà membres d'un des deux groupes (déjà avertis ci-dessus).
+        $guests = $this->pdo->prepare(
+            "INSERT INTO conversation_alerts (user_id, conversation_id, kind, label, created_at)
+             SELECT cg.user_id, c.id, :kind, CONCAT(gi.name, ' ↔ ', gt.name), :now
+             FROM conversation_guests cg
+             JOIN conversations c ON c.id = cg.conversation_id
+             JOIN `groups` gi ON gi.id = c.initiator_group_id
+             JOIN `groups` gt ON gt.id = c.target_group_id
+             WHERE cg.conversation_id = :conversation_id AND cg.user_id <> :except_user
+               AND NOT EXISTS (SELECT 1 FROM group_user gu WHERE gu.user_id = cg.user_id AND gu.group_id IN (c.initiator_group_id, c.target_group_id))"
+        );
+        $guests->execute([
+            'kind' => $kind,
+            'now' => $now->format(self::DATE_FORMAT),
+            'conversation_id' => $conversationId,
+            'except_user' => $exceptUserId,
+        ]);
     }
 
     public function findActiveFor(int $userId, \DateTimeImmutable $since): array

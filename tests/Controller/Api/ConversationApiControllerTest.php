@@ -47,14 +47,19 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), $this->groups);
-        $service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock, alerts: new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $access = new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, new \App\Repository\MysqlConversationGuestRepository($this->pdo));
+        $trash = new \App\Service\ConversationTrashService($access, new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
+        $guestService = new \App\Service\ConversationGuestService($access, new \App\Repository\MysqlConversationGuestRepository($this->pdo), new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new ConversationApiController(
             $service,
             new ConversationPresenter(),
             new AuthGuard($this->auth),
-            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock),
+            new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash),
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
+            $trash,
+            $guestService,
         );
     }
 

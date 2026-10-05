@@ -9,6 +9,7 @@ use App\Entity\ConversationMessage;
 use App\Entity\ConversationThread;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Service\ConversationService;
+use App\Service\ConversationTrashService;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -23,6 +24,7 @@ final class MessagesPageView
         private readonly ConversationTimeline $timeline,
         private readonly ConversationFormatter $formatter,
         private readonly ClockInterface $clock,
+        private readonly ConversationTrashService $trash,
     ) {
     }
 
@@ -49,8 +51,8 @@ final class MessagesPageView
             'items' => $this->listView->items($summaries, $userId, $now, $activeId),
             'box' => $chosen,
             'archivedUnread' => $this->conversations->unreadCount($userId, ConversationRepositoryInterface::BOX_ARCHIVED),
-            'alerts' => array_map($this->alert(...), $this->conversations->alertsFor($userId)),
-            'trashCount' => $this->conversations->trashCount($userId),
+            'alerts' => array_map($this->alert(...), $this->trash->alertsFor($userId)),
+            'trashCount' => $this->trash->trashCount($userId),
         ];
     }
 
@@ -61,7 +63,7 @@ final class MessagesPageView
      */
     public function trash(int $userId): array
     {
-        return $this->listView->trash($this->conversations->trash($userId), $this->clock->now(), ConversationService::TRASH_RETENTION);
+        return $this->listView->trash($this->trash->trash($userId), $this->clock->now(), ConversationTrashService::TRASH_RETENTION);
     }
 
     /**
