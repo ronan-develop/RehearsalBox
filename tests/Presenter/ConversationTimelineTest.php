@@ -59,6 +59,31 @@ final class ConversationTimelineTest extends TestCase
     }
 
     #[Test]
+    public function testAnEditedMessageShowsItsEditTimeAndOnlyMyRecentMessagesAreEditable(): void
+    {
+        $old = new ConversationMessage(1, 7, 10, 'Alice', 'Ancien', new \DateTimeImmutable('2026-10-04 08:00:00', new \DateTimeZone('UTC')));
+        $recent = new ConversationMessage(2, 7, 10, 'Alice', 'Récent', new \DateTimeImmutable('2026-10-04 15:50:00', new \DateTimeZone('UTC')), false, new \DateTimeImmutable('2026-10-04 15:55:00', new \DateTimeZone('UTC')));
+        $theirs = new ConversationMessage(3, 7, 11, 'Bob', 'De Bob', new \DateTimeImmutable('2026-10-04 15:55:00', new \DateTimeZone('UTC')));
+        $system = new ConversationMessage(4, 7, 10, 'Alice', 'a renommé', new \DateTimeImmutable('2026-10-04 15:56:00', new \DateTimeZone('UTC')), true);
+
+        $rows = array_values(array_filter(
+            $this->timeline->rows([$old, $recent, $theirs, $system], 10, $this->now, editableSince: $this->now->modify('-15 minutes')),
+            static fn (array $r): bool => $r['type'] === 'message',
+        ));
+
+        self::assertSame([null, '17:55', null], array_column($rows, 'edited'), 'heure locale de la modification');
+        self::assertSame([false, true, false], array_column($rows, 'editable'), 'le mien et récent seulement (jamais un message des autres)');
+    }
+
+    #[Test]
+    public function testWithoutAnEditWindowNothingIsEditable(): void
+    {
+        $rows = $this->timeline->rows([$this->msg(1, 10, 'Alice', '2026-10-04 15:59:00')], 10, $this->now);
+
+        self::assertFalse($rows[1]['editable']);
+    }
+
+    #[Test]
     public function testNothingToShowGivesNoRows(): void
     {
         self::assertSame([], $this->timeline->rows([], 10, $this->now));

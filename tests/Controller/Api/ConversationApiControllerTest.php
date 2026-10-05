@@ -36,6 +36,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
 
     private ConversationApiController $controller;
     private \App\Controller\Api\ConversationTrashApiController $trashController;
+    private \App\Controller\Api\MessageApiController $messageController;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
     private AuthService $auth;
@@ -50,18 +51,23 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
         $guests = new \App\Repository\MysqlConversationGuestRepository($this->pdo);
         $access = new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, $guests);
+        $mentionService = new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), new MysqlConversationRepository($this->pdo));
         $service = new ConversationService(
             new MysqlConversationRepository($this->pdo),
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,
-            mentions: new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), new MysqlConversationRepository($this->pdo)),
+            mentions: $mentionService,
             access: $access,
         );
         $trash = new \App\Service\ConversationTrashService($access, new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $guestService = new \App\Service\ConversationGuestService($access, $guests, new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
         $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
+        $editService = new \App\Service\MessageEditService($access, new MysqlConversationRepository($this->pdo), $mentionService, new TransactionRunner($this->pdo), $this->clock);
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
+        $pageView = new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash);
+        $fragments = new \App\Presenter\EditedMessageFragments(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), $pageView);
+        $this->messageController = new \App\Controller\Api\MessageApiController($editService, new AuthGuard($this->auth), $fragments, $service);
         $this->controller = new ConversationApiController(
             $service,
             new ConversationPresenter(),
@@ -70,6 +76,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
             $trash,
             $guestService,
+            $fragments,
         );
     }
 
@@ -102,7 +109,11 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private function call(string $action, array $query = [], array $body = [], string ...$args): array
     {
         $request = new Request('POST', '/api/conversations', $query, $body, []);
-        $controller = in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) ? $this->trashController : $this->controller;
+        $controller = match (true) {
+            in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) => $this->trashController,
+            $action === 'edit' => $this->messageController,
+            default => $this->controller,
+        };
         $response = $controller->{$action}($request, ...$args);
 
         return [$response->statusCode(), json_decode($response->body(), true) ?? []];
@@ -534,5 +545,91 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         } catch (AccessDeniedException) {
             $this->addToAssertionCount(1);
         }
+    }
+
+    // --- Éditer son message (#200) ---------------------------------------------------------------------
+
+    /** @return array{string, string} identifiant de la conversation et du message d'Alice */
+    private function aliceMessage(User $alice, Group $a, Group $b): array
+    {
+        $id = $this->startAsAlice($alice, $a, $b);
+        $thread = $this->thread($id);
+        preg_match('/data-message-id="(\d+)"/', $thread['html'], $m);
+
+        return [$id, $m[1]];
+    }
+
+    #[Test]
+    public function testTheAuthorEditsTheirMessageAndGetsTheCorrectedFragment(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        [$id, $messageId] = $this->aliceMessage($alice, $a, $b);
+
+        [$status, $json] = $this->call('edit', [], ['message' => 'Texte corrigé'], $id, $messageId);
+
+        self::assertSame(200, $status);
+        self::assertCount(1, $json['edited']);
+        self::assertSame((int) $messageId, $json['edited'][0]['id']);
+        self::assertStringContainsString('Texte corrigé', $json['edited'][0]['html']);
+        self::assertStringContainsString('rb-chat-edited', $json['edited'][0]['html']);
+        self::assertStringContainsString('Texte corrigé', $this->thread($id)['html'], 'la page porte le texte corrigé');
+    }
+
+    #[Test]
+    public function testTheOthersReceiveTheCorrectionByPollingWithoutReloadingTheThread(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        [$id, $messageId] = $this->aliceMessage($alice, $a, $b);
+        $lastId = $this->thread($id)['lastId'];
+        $this->clock->modify('+1 minute');
+        $this->call('edit', [], ['message' => 'Texte corrigé'], $id, $messageId);
+
+        $this->loginAs($bob);
+        [, $first] = $this->call('updates', ['after' => (string) $lastId, 'editedAfter' => '0'], [], $id);
+        self::assertSame([(int) $messageId], array_column($first['edited'], 'id'));
+        self::assertGreaterThan(0, $first['editedAt']);
+        self::assertSame([], $this->call('updates', ['after' => (string) $lastId, 'editedAfter' => (string) $first['editedAt']], [], $id)[1]['edited'], 'déjà reçue : plus renvoyée');
+        self::assertSame([], $this->call('updates', ['after' => (string) $lastId], [], $id)[1]['edited'], 'sans curseur : rien (le client le fournit toujours)');
+    }
+
+    #[Test]
+    public function testNobodyElseCanEditThroughTheApi(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        [$id, $messageId] = $this->aliceMessage($alice, $a, $b);
+        $erin = $this->user('Erin');
+
+        foreach ([$bob, $erin] as $intruder) {
+            $this->loginAs($intruder);
+            foreach ([[$id, $messageId], [$id, '999999'], ['999999', $messageId], [$id, 'abc']] as [$conversation, $message]) {
+                try {
+                    $this->call('edit', [], ['message' => 'Piraté'], $conversation, $message);
+                    self::fail('refus attendu');
+                } catch (AccessDeniedException) {
+                    $this->addToAssertionCount(1);
+                }
+            }
+        }
+        $this->loginAs($alice);
+        self::assertStringContainsString('Salut', $this->thread($id)['html']);
+    }
+
+    #[Test]
+    public function testALateOrInvalidEditAnswers422WithTheMessageField(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        [$id, $messageId] = $this->aliceMessage($alice, $a, $b);
+
+        [$status, $json] = $this->call('edit', [], ['message' => '   '], $id, $messageId);
+        self::assertSame(422, $status);
+        self::assertArrayHasKey('message', $json['fields']);
+
+        [$status] = $this->call('edit', [], ['message' => ['pas', 'du', 'texte']], $id, $messageId);
+        self::assertSame(422, $status);
+
+        $this->clock->modify('+16 minutes');
+        [$status, $json] = $this->call('edit', [], ['message' => 'Trop tard'], $id, $messageId);
+        self::assertSame(422, $status);
+        self::assertStringContainsString('15 minutes', $json['fields']['message']);
     }
 }

@@ -63,6 +63,9 @@ use App\Repository\Contract\MemberDirectoryInterface;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
 use App\Repository\MysqlMentionNoticeRepository;
 use App\Service\MentionNotifier;
+use App\Service\MessageEditService;
+use App\Presenter\EditedMessageFragments;
+use App\Controller\Api\MessageApiController;
 use App\Service\MentionReminderService;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\MysqlNotificationPreferenceRepository;
@@ -400,6 +403,27 @@ return static function (array $config): Container {
         $c->get(TemplateRendererInterface::class),
         $c->get(ConversationTrashService::class),
         $c->get(ConversationGuestService::class),
+        $c->get(EditedMessageFragments::class),
+    ));
+
+    $container->set(MessageEditService::class, fn ($c) => new MessageEditService(
+        $c->get(ConversationAccess::class),
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMentionService::class),
+        $c->get(TransactionRunner::class),
+        $c->get(ClockInterface::class),
+    ));
+
+    $container->set(EditedMessageFragments::class, fn ($c) => new EditedMessageFragments(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(MessagesPageView::class),
+    ));
+
+    $container->set(MessageApiController::class, fn ($c) => new MessageApiController(
+        $c->get(MessageEditService::class),
+        $c->get(AuthGuard::class),
+        $c->get(EditedMessageFragments::class),
+        $c->get(ConversationService::class),
     ));
 
     $container->set(ConversationTrashApiController::class, fn ($c) => new ConversationTrashApiController(

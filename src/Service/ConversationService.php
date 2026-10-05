@@ -160,6 +160,22 @@ final class ConversationService
         });
     }
 
+    /**
+     * Messages déjà reçus par le client (identifiant ≤ $upToMessageId) corrigés APRÈS $since, avec leurs mentions : le
+     * polling les renvoie pour que les autres participants voient le texte corrigé (#200).
+     *
+     * @return array{messages: list<ConversationMessage>, mentions: array<int, array<int, string>>}
+     *
+     * @throws AccessDeniedException
+     */
+    public function edited(int $userId, int $conversationId, \DateTimeImmutable $since, int $upToMessageId): array
+    {
+        $this->participantConversation($userId, $conversationId);
+        $messages = $this->conversations->editedSince($conversationId, $since, $upToMessageId);
+
+        return ['messages' => $messages, 'mentions' => $this->mentions?->forMessages($messages) ?? []];
+    }
+
     /** Ouvre le fil complet et le marque lu pour cette personne seulement. @throws AccessDeniedException */
     public function open(int $userId, int $conversationId): ConversationThread
     {

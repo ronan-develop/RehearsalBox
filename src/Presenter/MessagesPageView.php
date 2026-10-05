@@ -10,6 +10,7 @@ use App\Entity\ConversationThread;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Service\ConversationService;
 use App\Service\ConversationTrashService;
+use App\Service\MessageEditService;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -67,7 +68,7 @@ final class MessagesPageView
     }
 
     /**
-     * @return array{id: int, title: ?string, displayTitle: string, label: string, rows: list<array<string, mixed>>, status: string, typing: bool, lastId: int, canDelete: bool}
+     * @return array{id: int, title: ?string, displayTitle: string, label: string, rows: list<array<string, mixed>>, status: string, typing: bool, lastId: int, canDelete: bool, editedAt: int}
      */
     public function thread(ConversationThread $thread, int $userId): array
     {
@@ -82,11 +83,12 @@ final class MessagesPageView
             'title' => $thread->conversation()->title(),
             'displayTitle' => $thread->displayTitle(),
             'label' => $thread->label(),
-            'rows' => $this->timeline->rows($thread->messages(), $userId, $this->clock->now(), $authorGroups, $thread->firstUnreadId(), $thread->previous(), $thread->mentions()),
+            'rows' => $this->timeline->rows($thread->messages(), $userId, $this->clock->now(), $authorGroups, $thread->firstUnreadId(), $thread->previous(), $thread->mentions(), $this->clock->now()->modify(MessageEditService::EDIT_WINDOW)),
             'status' => $typing !== '' ? $typing : $this->formatter->seenText($thread->seen()),
             'typing' => $typing !== '',
             'lastId' => $this->lastId($thread->messages()),
             'canDelete' => $thread->conversation()->createdBy() === $userId,
+            'editedAt' => $this->latestEditTimestamp($thread->messages()),
         ];
     }
 
@@ -100,6 +102,32 @@ final class MessagesPageView
             'text' => $alert->label() . ' : ' . ($restored ? 'la conversation a été restaurée.' : "la conversation a été supprimée par la personne qui l'avait ouverte."),
             'url' => $restored && $alert->conversationId() !== null ? '/messages/' . $alert->conversationId() : null,
         ];
+    }
+
+    /**
+     * Lignes des messages CORRIGÉS (#200), pour remplacer leur corps dans la page des autres participants.
+     *
+     * @param list<ConversationMessage>             $messages
+     * @param array<int, array<int, string>>        $mentions
+     *
+     * @return list<array<string, mixed>> lignes de type « message »
+     */
+    public function editedRows(array $messages, array $mentions, int $userId): array
+    {
+        $rows = $this->timeline->rows($messages, $userId, $this->clock->now(), [], null, null, $mentions, $this->clock->now()->modify(MessageEditService::EDIT_WINDOW));
+
+        return array_values(array_filter($rows, static fn (array $row): bool => $row['type'] === 'message'));
+    }
+
+    /** Curseur des corrections vues par la page (secondes Unix de la plus récente, 0 s'il n'y en a pas). @param list<ConversationMessage> $messages */
+    private function latestEditTimestamp(array $messages): int
+    {
+        $latest = 0;
+        foreach ($messages as $message) {
+            $latest = max($latest, $message->editedAt()?->getTimestamp() ?? 0);
+        }
+
+        return $latest;
     }
 
     /** @param list<ConversationMessage> $messages */

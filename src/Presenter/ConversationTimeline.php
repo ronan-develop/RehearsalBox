@@ -18,7 +18,7 @@ use App\Support\SafeColor;
  *  - ['type' => 'day', 'label']
  *  - ['type' => 'unread']
  *  - ['type' => 'system', 'text']
- *  - ['type' => 'message', 'id', 'mine', 'startsRun', 'author', 'initials', 'groupName', 'color', 'body', 'segments', 'mentionsMe', 'time']
+ *  - ['type' => 'message', 'id', 'mine', 'startsRun', 'author', 'initials', 'groupName', 'color', 'body', 'segments', 'mentionsMe', 'time', 'edited', 'editable']
  */
 final class ConversationTimeline
 {
@@ -31,6 +31,7 @@ final class ConversationTimeline
      * @param array<int, Group|null>    $authorGroups groupe de chaque auteur (null : ambigu)
      * @param ConversationMessage|null  $previous     message qui précède $messages (lecture incrémentale) : continuité du jour et de la série
      * @param array<int, array<int, string>> $mentions identifiant du message => (identifiant de la personne => « @Nom »)
+     * @param \DateTimeImmutable|null  $editableSince mes messages envoyés à partir de cette date peuvent encore être modifiés (#200)
      *
      * @return list<array<string, mixed>>
      */
@@ -42,6 +43,7 @@ final class ConversationTimeline
         ?int $firstUnreadId = null,
         ?ConversationMessage $previous = null,
         array $mentions = [],
+        ?\DateTimeImmutable $editableSince = null,
     ): array {
         $rows = [];
         $previousAuthor = ($previous === null || $previous->isSystem()) ? null : $previous->authorName();
@@ -80,6 +82,8 @@ final class ConversationTimeline
                 'segments' => $segments,
                 'mentionsMe' => in_array(true, array_column($segments, 'me'), true),
                 'time' => $this->formatter->time($message->createdAt()),
+                'edited' => $message->editedAt() === null ? null : $this->formatter->time($message->editedAt()),
+                'editable' => $mine && $editableSince !== null && $message->createdAt() >= $editableSince,
             ];
             $previousAuthor = $message->authorName();
         }
