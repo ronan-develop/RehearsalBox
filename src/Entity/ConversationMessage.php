@@ -14,6 +14,7 @@ final class ConversationMessage
         private readonly string $body,
         private readonly \DateTimeImmutable $createdAt,
         private readonly bool $system = false,
+        private readonly ?\DateTimeImmutable $editedAt = null,
     ) {
     }
 
@@ -51,5 +52,11 @@ final class ConversationMessage
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /** Date de la dernière modification par son auteur ; null si le message n'a jamais été modifié. */
+    public function editedAt(): ?\DateTimeImmutable
+    {
+        return $this->editedAt;
     }
 }

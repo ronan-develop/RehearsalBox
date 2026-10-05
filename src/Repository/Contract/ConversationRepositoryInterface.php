@@ -86,4 +86,18 @@ interface ConversationRepositoryInterface
 
     /** Supprime pour de bon les conversations à la corbeille avant $cutoff ; renvoie leur nombre. */
     public function purgeTrashedBefore(\DateTimeImmutable $cutoff): int;
+
+    /** Remplace le texte d'un message : l'ancienne version est conservée (audit, jamais affichée) et la date de modification posée. */
+    public function updateBody(int $messageId, string $body, \DateTimeImmutable $now): void;
+
+    /**
+     * Messages déjà reçus par le client (identifiant ≤ $upToMessageId) modifiés APRÈS $since, du plus ancien au plus récent
+     * (polling : les autres participants voient le texte corrigé).
+     *
+     * @return list<ConversationMessage>
+     */
+    public function editedSince(int $conversationId, \DateTimeImmutable $since, int $upToMessageId): array;
+
+    /** Anciennes versions d'un message, la plus ancienne d'abord (audit). @return list<array{body: string, savedAt: \DateTimeImmutable}> */
+    public function versionsOf(int $messageId): array;
 }
