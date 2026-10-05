@@ -561,4 +561,87 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
 
         self::assertNull($this->repository->findById($thread->id())->createdBy());
     }
+
+    // --- Édition d'un message (#200) -------------------------------------------------------------------
+
+    /** @return array{User, User, int, int} Alice, Bob, la conversation et un message d'Alice */
+    private function threadWithAMessage(): array
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now, $alice->id());
+        $message = $this->repository->addMessage($thread->id(), $alice->id(), 'Texte initial', $this->at('-10 minutes'));
+
+        return [$alice, $bob, $thread->id(), $message->id()];
+    }
+
+    #[Test]
+    public function testEditingReplacesTheBodyMarksTheDateAndKeepsEveryOldVersion(): void
+    {
+        [, , $conversationId, $messageId] = $this->threadWithAMessage();
+
+        $this->repository->updateBody($messageId, 'Première correction', $this->at('-5 minutes'));
+        $this->repository->updateBody($messageId, 'Seconde correction', $this->now);
+
+        $message = $this->repository->messageById($conversationId, $messageId);
+        self::assertSame('Seconde correction', $message->body());
+        self::assertEquals($this->now, $message->editedAt());
+        self::assertEquals($this->at('-10 minutes'), $message->createdAt(), 'la date d\'envoi ne bouge pas');
+        self::assertSame(['Texte initial', 'Première correction'], array_column($this->repository->versionsOf($messageId), 'body'), 'chaque ancienne version est gardée, la plus ancienne d\'abord');
+    }
+
+    #[Test]
+    public function testAMessageThatWasNeverEditedHasNoEditDate(): void
+    {
+        [, , $conversationId, $messageId] = $this->threadWithAMessage();
+
+        self::assertNull($this->repository->messageById($conversationId, $messageId)->editedAt());
+        self::assertNull($this->repository->messagesOf($conversationId)[0]->editedAt());
+        self::assertSame([], $this->repository->versionsOf($messageId));
+    }
+
+    #[Test]
+    public function testMessagesEditedAfterAMomentAreListedForThePollingOfTheOthers(): void
+    {
+        [$alice, , $conversationId, $first] = $this->threadWithAMessage();
+        $second = $this->repository->addMessage($conversationId, $alice->id(), 'Deuxième', $this->at('-9 minutes'))->id();
+        $third = $this->repository->addMessage($conversationId, $alice->id(), 'Troisième', $this->at('-8 minutes'))->id();
+        $this->repository->updateBody($first, 'Premier corrigé', $this->at('-6 minutes'));
+        $this->repository->updateBody($second, 'Deuxième corrigé', $this->at('-2 minutes'));
+        $this->repository->updateBody($third, 'Troisième corrigé', $this->at('-1 minute'));
+
+        $since = fn (string $moment, int $upTo): array => array_map(
+            static fn ($m) => $m->body(),
+            $this->repository->editedSince($conversationId, $this->at($moment), $upTo),
+        );
+
+        self::assertSame(['Deuxième corrigé', 'Troisième corrigé'], $since('-3 minutes', $third), 'seulement après ce moment, du plus ancien au plus récent');
+        self::assertSame(['Deuxième corrigé'], $since('-3 minutes', $second), 'jamais un message que le client n\'a pas encore reçu');
+        self::assertSame([], $since('-30 seconds', $third));
+    }
+
+    #[Test]
+    public function testEditsAreCountedPerAuthorAndPerPeriodForTheRateLimit(): void
+    {
+        [$alice, $bob, $conversationId, $messageId] = $this->threadWithAMessage();
+        $bobMessage = $this->repository->addMessage($conversationId, $bob->id(), 'Texte de Bob', $this->at('-10 minutes'))->id();
+        $this->repository->updateBody($messageId, 'v2', $this->at('-3 hours'));
+        $this->repository->updateBody($messageId, 'v3', $this->at('-10 minutes'));
+        $this->repository->updateBody($messageId, 'v4', $this->at('-5 minutes'));
+        $this->repository->updateBody($bobMessage, 'Bob corrigé', $this->at('-5 minutes'));
+
+        self::assertSame(2, $this->repository->countEditsBySince($alice->id(), $this->at('-1 hour')));
+        self::assertSame(3, $this->repository->countEditsBySince($alice->id(), $this->at('-1 day')));
+        self::assertSame(1, $this->repository->countEditsBySince($bob->id(), $this->at('-1 hour')));
+    }
+
+    #[Test]
+    public function testVersionsDisappearWithTheirConversation(): void
+    {
+        [, , $conversationId, $messageId] = $this->threadWithAMessage();
+        $this->repository->updateBody($messageId, 'Corrigé', $this->now);
+
+        $this->repository->delete($conversationId);
+
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_message_versions')->fetchColumn());
+    }
 }

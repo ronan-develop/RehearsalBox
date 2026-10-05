@@ -48,6 +48,32 @@ final class MessageRowsTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testAnEditedMessageShowsTheEditMarkAndAnEditableOneIsFlagged(): void
+    {
+        $html = $this->rows([$this->message(['mine' => true, 'edited' => '14:05', 'editable' => true])]);
+
+        self::assertStringContainsString('data-editable', $html);
+        self::assertMatchesRegularExpression('/<span class="rb-chat-edited">modifié à 14:05<\/span>/', $html);
+        self::assertStringNotContainsString('09:05', $html, 'l\'heure de la correction remplace l\'heure d\'envoi');
+        self::assertStringContainsString('data-message-body', $html, 'zone remplaçable par le polling quand le texte est corrigé');
+
+        $plain = $this->rows([$this->message()]);
+        self::assertStringNotContainsString('data-editable', $plain);
+        self::assertStringNotContainsString('rb-chat-edited', $plain);
+    }
+
+    #[Test]
+    public function testTheMessageBodyPartialIsWhatTheFragmentsReplace(): void
+    {
+        $html = $this->renderer->render('messages/_message-body', ['row' => $this->message(['edited' => '14:05', 'body' => '<i>x</i>', 'segments' => [['text' => '<i>x</i>', 'mention' => false, 'me' => false]]])]);
+
+        self::assertStringContainsString('&lt;i&gt;x&lt;/i&gt;', $html);
+        self::assertStringNotContainsString('<i>', $html);
+        self::assertStringContainsString('rb-chat-edited', $html);
+        self::assertStringContainsString('rb-chat-time', $html);
+    }
+
+    #[Test]
     public function testARowWithoutSegmentsStillShowsItsBody(): void
     {
         self::assertStringContainsString('<p class="rb-chat-text">Salut</p>', $this->rows([$this->message()]));

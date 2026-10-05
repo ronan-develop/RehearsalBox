@@ -84,7 +84,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function messageById(int $conversationId, int $messageId): ?ConversationMessage
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at
+            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at
              FROM conversation_messages m JOIN users u ON u.id = m.author_id
              WHERE m.conversation_id = :conversation_id AND m.id = :id'
         );
@@ -122,7 +122,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function messagesOf(int $conversationId, int $afterId = 0): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at
+            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at
              FROM conversation_messages m JOIN users u ON u.id = m.author_id
              WHERE m.conversation_id = :conversation_id AND m.id > :after_id
              ORDER BY m.created_at ASC, m.id ASC'
@@ -338,6 +338,50 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return $box === self::BOX_ARCHIVED ? 'lm.created_at < :cutoff' : 'lm.created_at >= :cutoff';
     }
 
+    public function updateBody(int $messageId, string $body, \DateTimeImmutable $now): void
+    {
+        $save = $this->pdo->prepare('INSERT INTO conversation_message_versions (message_id, body, saved_at) SELECT id, body, :now FROM conversation_messages WHERE id = :id');
+        $save->execute(['now' => $now->format(self::DATE_FORMAT), 'id' => $messageId]);
+
+        $update = $this->pdo->prepare('UPDATE conversation_messages SET body = :body, edited_at = :now WHERE id = :id');
+        $update->execute(['body' => $body, 'now' => $now->format(self::DATE_FORMAT), 'id' => $messageId]);
+    }
+
+    public function editedSince(int $conversationId, \DateTimeImmutable $since, int $upToMessageId): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT m.id, m.author_id, u.display_name AS author_name, m.body, m.is_system, m.created_at, m.edited_at
+             FROM conversation_messages m JOIN users u ON u.id = m.author_id
+             WHERE m.conversation_id = :conversation_id AND m.id <= :up_to AND m.edited_at > :since
+             ORDER BY m.edited_at ASC, m.id ASC'
+        );
+        $statement->execute(['conversation_id' => $conversationId, 'up_to' => $upToMessageId, 'since' => $since->format(self::DATE_FORMAT)]);
+
+        return array_map(fn (array $row): ConversationMessage => $this->hydrateMessage($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function countEditsBySince(int $authorId, \DateTimeImmutable $since): int
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM conversation_message_versions v JOIN conversation_messages m ON m.id = v.message_id
+             WHERE m.author_id = :author_id AND v.saved_at >= :since'
+        );
+        $statement->execute(['author_id' => $authorId, 'since' => $since->format(self::DATE_FORMAT)]);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    public function versionsOf(int $messageId): array
+    {
+        $statement = $this->pdo->prepare('SELECT body, saved_at FROM conversation_message_versions WHERE message_id = :id ORDER BY id ASC');
+        $statement->execute(['id' => $messageId]);
+
+        return array_map(
+            static fn (array $row): array => ['body' => (string) $row['body'], 'savedAt' => new \DateTimeImmutable($row['saved_at'])],
+            $statement->fetchAll(\PDO::FETCH_ASSOC),
+        );
+    }
+
     /** @param array<string, mixed> $row ligne de liste ; `unread` absent (corbeille) = lu */
     private function hydrateSummary(array $row): ConversationSummary
     {
@@ -379,6 +423,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             (string) $row[$prefix . 'body'],
             new \DateTimeImmutable($row[$prefix . 'created_at']),
             (bool) $row[$prefix . 'is_system'],
+            isset($row[$prefix . 'edited_at']) ? new \DateTimeImmutable($row[$prefix . 'edited_at']) : null,
         );
     }
 }

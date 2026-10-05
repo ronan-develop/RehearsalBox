@@ -9,6 +9,7 @@ use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\MemberApiController;
+use App\Controller\Api\MessageApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
@@ -82,6 +83,7 @@ return [
         ['POST',   '/api/conversation-alerts/{id}/dismiss', [ConversationTrashApiController::class, 'dismissAlert']],
         ['POST',   '/api/conversations/{id}/typing', [ConversationApiController::class, 'typing']],
         ['POST',   '/api/conversations/{id}/messages', [ConversationApiController::class, 'reply']],
+        ['PATCH',  '/api/conversations/{id}/messages/{messageId}', [MessageApiController::class, 'edit']],
         ['GET',    '/api/groups/{id}/space', [GroupSpaceApiController::class, 'show']],
         ['PATCH',  '/api/groups/{id}/space', [GroupSpaceApiController::class, 'updateProfile']],
         ['POST',   '/api/groups/{id}/documents', [GroupDocumentApiController::class, 'store']],

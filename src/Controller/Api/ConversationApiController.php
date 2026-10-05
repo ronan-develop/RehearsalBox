@@ -8,6 +8,7 @@ use App\Entity\ConversationSummary;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Presenter\ConversationPresenter;
+use App\Presenter\EditedMessageFragments;
 use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Security\AuthGuard;
@@ -37,6 +38,7 @@ final class ConversationApiController
         private readonly TemplateRendererInterface $renderer,
         private readonly ConversationTrashService $trashService,
         private readonly ConversationGuestService $guestService,
+        private readonly EditedMessageFragments $editedFragments,
     ) {
     }
 
@@ -101,7 +103,13 @@ final class ConversationApiController
             return new JsonResponse(['error' => 'Paramètre « after » invalide.'], 422);
         }
 
-        return $this->updatesResponse($user->id(), $conversationId, (int) $after);
+        // Curseur des corrections déjà reçues (secondes Unix) : sans lui, aucune correction n'est renvoyée.
+        $editedAfter = $request->query('editedAfter');
+        if ($editedAfter !== null && (!is_string($editedAfter) || preg_match('/^[0-9]{1,12}$/', $editedAfter) !== 1)) {
+            return new JsonResponse(['error' => 'Paramètre « editedAfter » invalide.'], 422);
+        }
+
+        return $this->updatesResponse($user->id(), $conversationId, (int) $after, 200, $editedAfter === null ? null : (int) $editedAfter);
     }
 
     /** Liste des conversations en fragment HTML (rafraîchissement de la colonne de gauche). */
@@ -179,11 +187,16 @@ final class ConversationApiController
         return new JsonResponse(['status' => 'ok']);
     }
 
-    private function updatesResponse(int $userId, int $conversationId, int $after, int $status = 200): JsonResponse
+    private function updatesResponse(int $userId, int $conversationId, int $after, int $status = 200, ?int $editedAfter = null): JsonResponse
     {
         $view = $this->view->thread($this->conversationService->poll($userId, $conversationId, $after), $userId);
+        $edited = $editedAfter === null
+            ? ['messages' => [], 'mentions' => []]
+            : $this->conversationService->edited($userId, $conversationId, (new \DateTimeImmutable())->setTimestamp($editedAfter), $after);
 
         return new JsonResponse([
+            'edited' => $this->editedFragments->fragments($edited['messages'], $edited['mentions'], $userId),
+            'editedAt' => EditedMessageFragments::cursor($edited['messages'], $editedAfter ?? 0),
             'html' => $this->renderer->render('messages/_rows', ['rows' => $view['rows']]),
             'lastId' => $view['lastId'],
             'hasNew' => $view['rows'] !== [],

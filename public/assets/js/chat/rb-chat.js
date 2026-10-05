@@ -11,7 +11,7 @@ import './rb-thread-header.js';
 import './rb-message-list.js';
 import './rb-composer.js';
 import {
-  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, searchMembers,
+  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, searchMembers, editMessage,
 } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
 import { EVT } from './events.js';
@@ -24,6 +24,7 @@ export class RbChat extends HTMLElement {
   #activeId = null;
   #draftTargetId = null;
   #lastId = 0;
+  #editedAt = 0; // curseur des corrections déjà reçues (secondes Unix)
   #idle = 0;
   #chain = Promise.resolve();
 
@@ -37,7 +38,10 @@ export class RbChat extends HTMLElement {
     this.#activeId = this.dataset.activeId || null;
     this.#draftTargetId = this.dataset.draftTargetId || null;
     this.#lastId = Number(this.dataset.lastId || 0);
+    this.#editedAt = Number(this.dataset.editedAt || 0);
 
+    this.addEventListener(EVT.EDIT_REQUEST, (event) => this.composer.startEdit(event.detail));
+    this.addEventListener(EVT.EDIT, (event) => this.#serial(() => this.#edit(event.detail)));
     this.addEventListener(EVT.RENAME, (event) => this.#serial(() => this.#rename(event.detail.title)));
     this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail.text, event.detail.mentions ?? [])));
     this.composer.suggest = (query) => this.#suggestMembers(query);
@@ -92,11 +96,31 @@ export class RbChat extends HTMLElement {
 
   /** Une lecture incrémentale : nouveaux messages, qui écrit, « vu par », titre éventuellement renommé. */
   async #pollOnce(signal) {
-    this.#apply(await fetchUpdates(this.#activeId, this.#lastId, { signal }));
+    this.#apply(await fetchUpdates(this.#activeId, this.#lastId, { signal, editedAfter: this.#editedAt }));
+  }
+
+  /** Corrections reçues (les miennes ou celles des autres) : le corps des bulles est remplacé, le curseur avance. */
+  #applyEdits({ edited = [], editedAt = 0 }) {
+    edited.forEach(({ id, html }) => this.messageList.replaceBody(id, html));
+    this.#editedAt = Math.max(this.#editedAt, editedAt);
+  }
+
+  /** Corrige un de mes messages : la saisie garde son texte tant que le serveur n'a pas répondu. */
+  async #edit({ id, text, mentions }) {
+    if (this.#activeId === null) {
+      return;
+    }
+    try {
+      this.#applyEdits(await editMessage(this.#activeId, id, text, mentions));
+      this.composer.finishEdit();
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
   }
 
   /** Applique une réponse du serveur : ajoute les nouveaux messages dessinés par PHP et met à jour l'état. */
   #apply(update) {
+    this.#applyEdits(update);
     const stick = this.messageList.nearBottom();
     this.messageList.append(update.html);
     this.#lastId = Math.max(this.#lastId, update.lastId);
