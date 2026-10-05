@@ -70,14 +70,16 @@ final class ConversationApiController
         $targetGroupId = $this->idOrDenied($request->body('targetGroupId'));
         $message = $request->body('message');
         $title = $request->body('title');
+        $mentions = $request->body('mentions');
 
-        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $message, $title): JsonResponse {
+        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $message, $title, $mentions): JsonResponse {
             $conversation = $this->conversationService->start(
                 $user->id(),
                 $initiatorGroupId,
                 $targetGroupId,
                 is_string($message) ? $message : '',
                 is_string($title) ? $title : null,
+                $this->mentionIds($mentions),
             );
 
             return new JsonResponse(['id' => $conversation->id()], 201);
@@ -130,9 +132,10 @@ final class ConversationApiController
         $conversationId = $this->idOrDenied($id);
         $message = $request->body('message');
         $after = $request->body('after');
+        $mentions = $request->body('mentions');
 
-        return $this->guarded(function () use ($user, $conversationId, $message, $after): JsonResponse {
-            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '');
+        return $this->guarded(function () use ($user, $conversationId, $message, $after, $mentions): JsonResponse {
+            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '', $this->mentionIds($mentions));
             $anchor = StrictId::from($after) ?? max(0, $created->id() - 1);
 
             return $this->updatesResponse($user->id(), $conversationId, min($anchor, $created->id() - 1), 201);
@@ -184,6 +187,15 @@ final class ConversationApiController
         return new JsonResponse(['status' => 'ok']);
     }
 
+    /** Retire un invité (celui qui l'a ajouté, l'initiateur de la conversation, ou l'invité qui quitte). */
+    public function removeGuest(Request $request, string $id, string $userId): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $this->guestService->remove($user->id(), $this->idOrDenied($id), $this->idOrDenied($userId));
+
+        return new JsonResponse(['status' => 'ok']);
+    }
+
     /** Ferme un avis de la personne connectée (celui d'un autre est ignoré). */
     public function dismissAlert(Request $request, string $id): JsonResponse
     {
@@ -228,6 +240,23 @@ final class ConversationApiController
         } catch (ConversationRateLimitException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 429);
         }
+    }
+
+    /**
+     * Identifiants des personnes taguées : absent ou null = aucune ; un autre type que la liste est refusé (422).
+     *
+     * @return list<mixed> identifiants non fiables, validés par le service
+     */
+    private function mentionIds(mixed $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new ConversationValidationException(['mentions' => 'La liste des personnes mentionnées est invalide.']);
+        }
+
+        return $value;
     }
 
     private function idOrDenied(mixed $value): int

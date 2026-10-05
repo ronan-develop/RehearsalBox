@@ -7,6 +7,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
+use App\Controller\Api\MemberApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
@@ -68,12 +69,14 @@ return [
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
         ['GET',    '/api/conversations', [ConversationApiController::class, 'index']],
         ['POST',   '/api/conversations', [ConversationApiController::class, 'start']],
+        ['GET',    '/api/members', [MemberApiController::class, 'search']],
         ['GET',    '/api/conversation-list', [ConversationApiController::class, 'listFragment']],
         ['GET',    '/api/conversations/{id}/updates', [ConversationApiController::class, 'updates']],
         ['PATCH',  '/api/conversations/{id}', [ConversationApiController::class, 'rename']],
         ['DELETE', '/api/conversations/{id}', [ConversationApiController::class, 'destroy']],
         ['POST',   '/api/conversations/{id}/restore', [ConversationApiController::class, 'restore']],
         ['DELETE', '/api/conversations/{id}/permanent', [ConversationApiController::class, 'destroyPermanently']],
+        ['DELETE', '/api/conversations/{id}/guests/{userId}', [ConversationApiController::class, 'removeGuest']],
         ['POST',   '/api/conversation-alerts/{id}/dismiss', [ConversationApiController::class, 'dismissAlert']],
         ['POST',   '/api/conversations/{id}/typing', [ConversationApiController::class, 'typing']],
         ['POST',   '/api/conversations/{id}/messages', [ConversationApiController::class, 'reply']],

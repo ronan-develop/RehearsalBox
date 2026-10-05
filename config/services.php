@@ -67,6 +67,8 @@ use App\Service\ConversationGuestService;
 use App\Service\ConversationMentionService;
 use App\Service\ConversationNotifier;
 use App\Service\ConversationTrashService;
+use App\Service\MemberSearchService;
+use App\Controller\Api\MemberApiController;
 use App\Service\ConversationReminderService;
 use App\Service\ConversationService;
 use App\Repository\Contract\ConversationRepositoryInterface;
@@ -366,6 +368,18 @@ return static function (array $config): Container {
         $c->get(TemplateRendererInterface::class),
         $c->get(ConversationTrashService::class),
         $c->get(ConversationGuestService::class),
+    ));
+
+    $container->set(MemberSearchService::class, fn ($c) => new MemberSearchService(
+        $c->get(MemberDirectoryInterface::class),
+        $c->get(ConversationAccess::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(ConversationGuestRepositoryInterface::class),
+    ));
+
+    $container->set(MemberApiController::class, fn ($c) => new MemberApiController(
+        $c->get(MemberSearchService::class),
+        $c->get(AuthGuard::class),
     ));
 
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(
