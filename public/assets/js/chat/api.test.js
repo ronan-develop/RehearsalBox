@@ -154,3 +154,15 @@ test('editMessage patches the message with its new text and only sends mentions 
   assert.deepEqual(calls[1].body, { message: 'Avec @Denis', mentions: [9] });
   assert.equal(calls[0].csrf, 'csrf-token');
 });
+
+test('a quote is sent only when a message is quoted', async () => {
+  const calls = mockFetch({ id: 1 });
+
+  await sendMessage('12', 'Oui !', 30, [], 25);
+  await sendMessage('12', 'Sans citation', 30, [], null);
+  await sendMessage('12', 'Par défaut', 30);
+
+  assert.deepEqual(calls[0].body, { message: 'Oui !', after: 30, replyTo: 25 });
+  assert.deepEqual(calls[1].body, { message: 'Sans citation', after: 30 });
+  assert.deepEqual(calls[2].body, { message: 'Par défaut', after: 30 });
+});
