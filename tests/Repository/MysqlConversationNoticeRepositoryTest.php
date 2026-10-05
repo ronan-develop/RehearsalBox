@@ -9,6 +9,8 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -88,7 +90,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
 
     private function say(int $authorId, string $at, bool $system = false): int
     {
-        return (new MysqlConversationRepository($this->pdo))->addMessage($this->conversationId, $authorId, 'texte', new \DateTimeImmutable($at), $system)->id();
+        return (new MysqlConversationMessageRepository($this->pdo))->addMessage($this->conversationId, $authorId, 'texte', new \DateTimeImmutable($at), $system)->id();
     }
 
     /** @return list<array{int, string}> [groupId, nom du groupe d'en face] */
@@ -140,7 +142,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
         $this->say($alice->id(), '2026-10-05 10:00:00');
         self::assertCount(1, $this->due());
 
-        (new MysqlConversationRepository($this->pdo))->markRead($this->conversationId, $carol->id(), new \DateTimeImmutable('2026-10-05 15:00:00'));
+        (new MysqlConversationPresenceRepository($this->pdo))->markRead($this->conversationId, $carol->id(), new \DateTimeImmutable('2026-10-05 15:00:00'));
 
         self::assertSame([], $this->due(), 'Carole a lu : le groupe a lu');
     }
@@ -149,7 +151,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
     public function testReadingBeforeTheMessageDoesNotCount(): void
     {
         [$alice, $bob] = $this->people();
-        (new MysqlConversationRepository($this->pdo))->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 09:00:00'));
+        (new MysqlConversationPresenceRepository($this->pdo))->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 09:00:00'));
         $this->say($alice->id(), '2026-10-05 10:00:00');
 
         self::assertCount(1, $this->due());
@@ -161,7 +163,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
         [$alice, $bob] = $this->people();
         $this->say($alice->id(), '2026-10-05 08:00:00');
         $this->say($bob->id(), '2026-10-05 09:00:00');
-        (new MysqlConversationRepository($this->pdo))->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 09:00:00'));
+        (new MysqlConversationPresenceRepository($this->pdo))->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 09:00:00'));
 
         self::assertSame([[$this->groupA, 'Beta']], $this->due(), 'seul Alpha attend désormais la lecture de la réponse de Bob');
     }

@@ -9,6 +9,7 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
@@ -29,8 +30,9 @@ final class ConversationNoticeBackfillMigrationTest extends RepositoryTestCase
         $alice = $users->save(new User(0, 'alice@rehearsalbox.test', 'hash', 'Alice', UserRole::Musicien, true, 0, null));
         $groups->addMember($alpha, $alice->id());
         $conversations = new MysqlConversationRepository($this->pdo);
+        $messages = new MysqlConversationMessageRepository($this->pdo);
         $conversationId = $conversations->create($alpha, $beta, null, new \DateTimeImmutable('2026-10-01 10:00:00'))->id();
-        $conversations->addMessage($conversationId, $alice->id(), 'ancien message non lu', new \DateTimeImmutable('2026-10-01 10:00:00'));
+        $messages->addMessage($conversationId, $alice->id(), 'ancien message non lu', new \DateTimeImmutable('2026-10-01 10:00:00'));
 
         $now = new \DateTimeImmutable('2026-10-02 12:00:00');
         $notices = new MysqlConversationNoticeRepository($this->pdo);
@@ -43,7 +45,7 @@ final class ConversationNoticeBackfillMigrationTest extends RepositoryTestCase
         self::assertNotNull($notices->initialNotifiedAt($conversationId, $beta));
 
         $later = new \DateTimeImmutable('+3 days');
-        $conversations->addMessage($conversationId, $alice->id(), 'nouveau message', $later->modify('-2 days'));
+        $messages->addMessage($conversationId, $alice->id(), 'nouveau message', $later->modify('-2 days'));
         self::assertCount(1, $notices->findDueReminders($later->modify('-24 hours'), $later->modify('-7 days')), 'un message postérieur reste relançable');
     }
 }

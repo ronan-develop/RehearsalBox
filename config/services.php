@@ -81,8 +81,12 @@ use App\Service\MemberSearchService;
 use App\Controller\Api\MemberApiController;
 use App\Service\ConversationReminderService;
 use App\Service\ConversationService;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
+use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\ConversationTrashRepositoryInterface;
+use App\Repository\MysqlConversationMessageRepository;
+use App\Repository\MysqlConversationPresenceRepository;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Service\GroupDocumentService;
@@ -281,6 +285,8 @@ return static function (array $config): Container {
     ));
 
     $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
+    $container->set(ConversationMessageRepositoryInterface::class, fn ($c) => new MysqlConversationMessageRepository($c->get(PDO::class)));
+    $container->set(ConversationPresenceRepositoryInterface::class, fn ($c) => new MysqlConversationPresenceRepository($c->get(PDO::class)));
     $container->set(ConversationTrashRepositoryInterface::class, fn ($c) => new MysqlConversationTrashRepository($c->get(PDO::class)));
 
     $container->set(ConversationNoticeRepositoryInterface::class, fn ($c) => new MysqlConversationNoticeRepository($c->get(PDO::class)));
@@ -333,7 +339,7 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(ConversationGuestRepositoryInterface::class),
         $c->get(ConversationMentionRepositoryInterface::class),
-        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
         $c->get(MentionNotifier::class),
     ));
 
@@ -349,6 +355,8 @@ return static function (array $config): Container {
 
     $container->set(ConversationService::class, fn ($c) => new ConversationService(
         $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
+        $c->get(ConversationPresenceRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(TransactionRunner::class),
         $c->get(ClockInterface::class),
@@ -368,7 +376,7 @@ return static function (array $config): Container {
     $container->set(ConversationGuestService::class, fn ($c) => new ConversationGuestService(
         $c->get(ConversationAccess::class),
         $c->get(ConversationGuestRepositoryInterface::class),
-        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),
         $c->get(TransactionRunner::class),
         $c->get(ClockInterface::class),
@@ -411,7 +419,7 @@ return static function (array $config): Container {
 
     $container->set(MessageEditService::class, fn ($c) => new MessageEditService(
         $c->get(ConversationAccess::class),
-        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
         $c->get(ConversationMentionService::class),
         $c->get(TransactionRunner::class),
         $c->get(ClockInterface::class),

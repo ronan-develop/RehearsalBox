@@ -12,6 +12,8 @@ use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -49,7 +51,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $groups->addMember($alpha->id(), $this->people['carole']->id());
         $groups->addMember($beta->id(), $this->people['bob']->id());
         $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->service = new ConversationService($this->conversations, $groups, new TransactionRunner($this->pdo), $this->clock);
+        $this->service = new ConversationService($this->conversations, new MysqlConversationMessageRepository($this->pdo), new MysqlConversationPresenceRepository($this->pdo), $groups, new TransactionRunner($this->pdo), $this->clock);
         $this->trash = new ConversationTrashService(
             new ConversationAccess($this->conversations, $groups),
             new MysqlConversationTrashRepository($this->pdo),

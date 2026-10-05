@@ -7,6 +7,8 @@ namespace App\Tests\Repository;
 use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\MessagingScenario;
@@ -17,12 +19,16 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     use MessagingScenario;
 
     private MysqlConversationRepository $repository;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->setUpScenario();
         $this->repository = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
     }
 
     /** @return list<string> */
@@ -39,30 +45,16 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         [$alice, $bob, $a, $b] = $this->pair();
 
         $conversation = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($conversation->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
-        $this->repository->addMessage($conversation->id(), $bob->id(), 'Hello', $this->at('+2 minutes'));
+        $this->messages->addMessage($conversation->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
+        $this->messages->addMessage($conversation->id(), $bob->id(), 'Hello', $this->at('+2 minutes'));
 
         $found = $this->repository->findById($conversation->id());
         self::assertNotNull($found);
         self::assertNull($found->title());
 
-        $messages = $this->repository->messagesOf($conversation->id());
+        $messages = $this->messages->messagesOf($conversation->id());
         self::assertSame(['Salut', 'Hello'], array_map(static fn ($m) => $m->body(), $messages));
         self::assertSame(['Alice', 'Bob'], array_map(static fn ($m) => $m->authorName(), $messages));
-    }
-
-    #[Test]
-    public function testAddMessageReturnsTheRealIncreasingIdOfTheStoredMessage(): void
-    {
-        [$alice, , $a, $b] = $this->pair();
-        $conversation = $this->repository->create($a->id(), $b->id(), null, $this->now);
-
-        $first = $this->repository->addMessage($conversation->id(), $alice->id(), 'un', $this->now);
-        $second = $this->repository->addMessage($conversation->id(), $alice->id(), 'deux', $this->now);
-
-        self::assertGreaterThan(0, $first->id());
-        self::assertGreaterThan($first->id(), $second->id());
-        self::assertSame([$first->id(), $second->id()], array_map(static fn ($m) => $m->id(), $this->repository->messagesOf($conversation->id())));
     }
 
     #[Test]
@@ -76,7 +68,7 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, , $a, $b] = $this->pair();
         $conversation = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($conversation->id(), $alice->id(), 'Salut', $this->now);
+        $this->messages->addMessage($conversation->id(), $alice->id(), 'Salut', $this->now);
 
         self::assertSame(['Alpha ↔ Beta'], $this->titles($alice->id(), Box::BOX_ACTIVE), 'sans titre : label des deux groupes');
 
@@ -88,20 +80,6 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         self::assertNull($this->repository->findById($conversation->id())?->title());
     }
 
-    #[Test]
-    public function testMessagesOfIsIncrementalWithAfterId(): void
-    {
-        [$alice, , $a, $b] = $this->pair();
-        $conversation = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $first = $this->repository->addMessage($conversation->id(), $alice->id(), 'un', $this->at('+1 minute'));
-        $second = $this->repository->addMessage($conversation->id(), $alice->id(), 'deux', $this->at('+2 minutes'));
-        $this->repository->addMessage($conversation->id(), $alice->id(), 'trois', $this->at('+3 minutes'));
-
-        self::assertSame(['trois'], array_map(static fn ($m) => $m->body(), $this->repository->messagesOf($conversation->id(), $second->id())));
-        self::assertSame(['deux', 'trois'], array_map(static fn ($m) => $m->body(), $this->repository->messagesOf($conversation->id(), $first->id())));
-        self::assertSame([], $this->repository->messagesOf($conversation->id(), 99999));
-    }
-
     // --- Visibilité ---------------------------------------------------------------------------
 
     #[Test]
@@ -111,9 +89,9 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         $carol = $this->user('Carol');
         $c = $this->group('Gamma', $carol);
         $ab = $this->repository->create($a->id(), $b->id(), 'AB', $this->now);
-        $this->repository->addMessage($ab->id(), $alice->id(), 'm', $this->now);
+        $this->messages->addMessage($ab->id(), $alice->id(), 'm', $this->now);
         $bc = $this->repository->create($b->id(), $c->id(), 'BC', $this->now);
-        $this->repository->addMessage($bc->id(), $bob->id(), 'm', $this->now);
+        $this->messages->addMessage($bc->id(), $bob->id(), 'm', $this->now);
 
         self::assertSame(['AB'], $this->titles($alice->id(), Box::BOX_ACTIVE));
         self::assertEqualsCanonicalizing(['AB', 'BC'], $this->titles($bob->id(), Box::BOX_ACTIVE));
@@ -127,7 +105,7 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         $a = $this->group('Alpha', $alice);
         $b = $this->group('Beta', $alice);
         $thread = $this->repository->create($a->id(), $b->id(), 'Moi', $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'm', $this->now);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'm', $this->now);
 
         self::assertCount(1, $this->repository->listFor($alice->id(), Box::BOX_ACTIVE, $this->cutoff));
     }
@@ -137,8 +115,8 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Premier', $this->at('+1 minute'));
-        $this->repository->addMessage($thread->id(), $bob->id(), 'Dernier de Bob', $this->at('+2 minutes'));
+        $this->messages->addMessage($thread->id(), $alice->id(), 'Premier', $this->at('+1 minute'));
+        $this->messages->addMessage($thread->id(), $bob->id(), 'Dernier de Bob', $this->at('+2 minutes'));
 
         $summary = $this->repository->listFor($alice->id(), Box::BOX_ACTIVE, $this->cutoff)[0];
 
@@ -151,10 +129,10 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $old = $this->repository->create($a->id(), $b->id(), 'Ancien', $this->now);
-        $this->repository->addMessage($old->id(), $alice->id(), 'm', $this->at('+1 minute'));
+        $this->messages->addMessage($old->id(), $alice->id(), 'm', $this->at('+1 minute'));
         $recent = $this->repository->create($a->id(), $b->id(), 'Récent', $this->now);
-        $this->repository->addMessage($recent->id(), $alice->id(), 'm', $this->at('+2 minutes'));
-        $this->repository->addMessage($old->id(), $bob->id(), 'm', $this->at('+3 minutes'));
+        $this->messages->addMessage($recent->id(), $alice->id(), 'm', $this->at('+2 minutes'));
+        $this->messages->addMessage($old->id(), $bob->id(), 'm', $this->at('+3 minutes'));
 
         self::assertSame(['Ancien', 'Récent'], $this->titles($alice->id(), Box::BOX_ACTIVE));
     }
@@ -166,9 +144,9 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $quiet = $this->repository->create($a->id(), $b->id(), 'Silencieux', $this->at('-60 days'));
-        $this->repository->addMessage($quiet->id(), $alice->id(), 'vieux', $this->at('-31 days'));
+        $this->messages->addMessage($quiet->id(), $alice->id(), 'vieux', $this->at('-31 days'));
         $lively = $this->repository->create($a->id(), $b->id(), 'Vivant', $this->at('-60 days'));
-        $this->repository->addMessage($lively->id(), $alice->id(), 'récent', $this->at('-1 day'));
+        $this->messages->addMessage($lively->id(), $alice->id(), 'récent', $this->at('-1 day'));
 
         foreach ([$alice, $bob] as $user) {
             self::assertSame(['Vivant'], $this->titles($user->id(), Box::BOX_ACTIVE));
@@ -181,7 +159,7 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, , $a, $b] = $this->pair();
         $thread = $this->repository->create($a->id(), $b->id(), 'Limite', $this->at('-40 days'));
-        $this->repository->addMessage($thread->id(), $alice->id(), 'pile', $this->cutoff);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'pile', $this->cutoff);
 
         self::assertSame(['Limite'], $this->titles($alice->id(), Box::BOX_ACTIVE));
         self::assertSame([], $this->titles($alice->id(), Box::BOX_ARCHIVED));
@@ -192,10 +170,10 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $thread = $this->repository->create($a->id(), $b->id(), 'Réveillé', $this->at('-60 days'));
-        $this->repository->addMessage($thread->id(), $alice->id(), 'vieux', $this->at('-45 days'));
+        $this->messages->addMessage($thread->id(), $alice->id(), 'vieux', $this->at('-45 days'));
         self::assertSame(['Réveillé'], $this->titles($bob->id(), Box::BOX_ARCHIVED));
 
-        $this->repository->addMessage($thread->id(), $bob->id(), 'coucou', $this->now);
+        $this->messages->addMessage($thread->id(), $bob->id(), 'coucou', $this->now);
 
         self::assertSame(['Réveillé'], $this->titles($alice->id(), Box::BOX_ACTIVE));
         self::assertSame([], $this->titles($alice->id(), Box::BOX_ARCHIVED));
@@ -208,17 +186,17 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $thread = $this->repository->create($a->id(), $b->id(), 'Fil', $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
+        $this->messages->addMessage($thread->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
 
         self::assertTrue($this->repository->listFor($bob->id(), Box::BOX_ACTIVE, $this->cutoff)[0]->isUnread());
         self::assertFalse($this->repository->listFor($alice->id(), Box::BOX_ACTIVE, $this->cutoff)[0]->isUnread(), 'mon propre message n\'est pas non lu');
         self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
 
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+2 minutes'));
+        $this->presence->markRead($thread->id(), $bob->id(), $this->at('+2 minutes'));
         self::assertFalse($this->repository->listFor($bob->id(), Box::BOX_ACTIVE, $this->cutoff)[0]->isUnread());
         self::assertSame(0, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
 
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Encore', $this->at('+3 minutes'));
+        $this->messages->addMessage($thread->id(), $alice->id(), 'Encore', $this->at('+3 minutes'));
         self::assertTrue($this->repository->listFor($bob->id(), Box::BOX_ACTIVE, $this->cutoff)[0]->isUnread());
     }
 
@@ -227,176 +205,20 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $old = $this->repository->create($a->id(), $b->id(), 'Archivé', $this->at('-60 days'));
-        $this->repository->addMessage($old->id(), $alice->id(), 'vieux', $this->at('-45 days'));
+        $this->messages->addMessage($old->id(), $alice->id(), 'vieux', $this->at('-45 days'));
         $current = $this->repository->create($a->id(), $b->id(), 'Actif', $this->now);
-        $this->repository->addMessage($current->id(), $alice->id(), 'récent', $this->at('-1 day'));
+        $this->messages->addMessage($current->id(), $alice->id(), 'récent', $this->at('-1 day'));
 
         self::assertSame(2, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
         self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff, Box::BOX_ACTIVE));
         self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff, Box::BOX_ARCHIVED));
     }
 
-    #[Test]
-    public function testMarkReadTwiceIsHarmless(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), 'Fil', $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
-
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+1 minute'));
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+2 minutes'));
-
-        self::assertSame(0, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
-    }
-
-    #[Test]
-    public function testLastReadAtIsNullUntilReadThenTheReadDate(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
-
-        self::assertNull($this->repository->lastReadAt($thread->id(), $bob->id()));
-
-        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+10 seconds'));
-        self::assertNull($this->repository->lastReadAt($thread->id(), $bob->id()), "écrire n'est pas lire");
-
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+1 minute'));
-        self::assertEquals($this->at('+1 minute'), $this->repository->lastReadAt($thread->id(), $bob->id()));
-    }
-
     // --- Vu par / écrit… ------------------------------------------------------------------------
-
-    #[Test]
-    public function testReadersAreTheOtherMembersWhoReadAtOrAfterTheMessage(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $zoe = $this->user('Zoe');
-        $this->groups->addMember($b->id(), $zoe->id());
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $message = $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
-
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+2 minutes'));
-        $this->repository->markRead($thread->id(), $zoe->id(), $this->at('+30 seconds'));
-        $this->repository->markRead($thread->id(), $alice->id(), $this->at('+5 minutes'));
-
-        self::assertSame(['Bob'], $this->repository->readersOf($thread->id(), $message->createdAt(), $alice->id()), 'Zoé a lu avant le message ; Alice est l\'auteure');
-        self::assertSame(3, $this->repository->participantCount($thread->id()));
-    }
-
-    #[Test]
-    public function testAMemberWhoLeftIsNoLongerAReaderNorAParticipant(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $message = $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+1 minute'));
-
-        $this->groups->removeMember($b->id(), $bob->id());
-
-        self::assertSame([], $this->repository->readersOf($thread->id(), $message->createdAt(), $alice->id()));
-        self::assertSame(1, $this->repository->participantCount($thread->id()));
-    }
-
-    #[Test]
-    public function testTypingIsVisibleToOthersForAShortWindowAndNeverToTheTyperThemself(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
-
-        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+10 seconds'));
-
-        self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+7 seconds')));
-        self::assertSame([], $this->repository->typingNames($thread->id(), $bob->id(), $this->at('+7 seconds')), 'jamais pour soi-même');
-        self::assertSame([], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+11 seconds')), 'signal expiré');
-    }
-
-    #[Test]
-    public function testTypingDoesNotDisturbTheReadStateAndRevealsNothingToOutsiders(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
-        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+2 minutes'));
-
-        self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff), 'écrire n\'est pas lire');
-        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+3 minutes'));
-        self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+90 seconds')), 'lire ne supprime pas le signal');
-    }
-
-    #[Test]
-    public function testMessageByIdFindsAMessageOfThatConversationOnly(): void
-    {
-        [$alice, , $a, $b] = $this->pair();
-        $one = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $other = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $message = $this->repository->addMessage($one->id(), $alice->id(), 'ancre', $this->now);
-
-        self::assertSame('ancre', $this->repository->messageById($one->id(), $message->id())?->body());
-        self::assertNull($this->repository->messageById($other->id(), $message->id()), 'un message d\'une autre conversation n\'est jamais renvoyé');
-        self::assertNull($this->repository->messageById($one->id(), 99999));
-    }
 
     // --- Message système, dernier message de l'auteur, débit du signal « écrit… » ----------------
 
-    #[Test]
-    public function testSystemMessagesAreFlaggedAndOrdinaryOnesAreNot(): void
-    {
-        [$alice, , $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->at('+1 minute'));
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Alice a renommé la conversation', $this->at('+2 minutes'), true);
-
-        $messages = $this->repository->messagesOf($thread->id());
-
-        self::assertSame([false, true], array_map(static fn ($m) => $m->isSystem(), $messages));
-    }
-
-    #[Test]
-    public function testLastMessageByIsTheAuthorsLastOrdinaryMessage(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'premier', $this->at('+1 minute'));
-        $this->repository->addMessage($thread->id(), $alice->id(), 'dernier ordinaire', $this->at('+2 minutes'));
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Alice a renommé la conversation', $this->at('+3 minutes'), true);
-        $this->repository->addMessage($thread->id(), $bob->id(), 'de Bob', $this->at('+4 minutes'));
-
-        self::assertSame('dernier ordinaire', $this->repository->lastMessageBy($thread->id(), $alice->id())?->body());
-        self::assertSame('de Bob', $this->repository->lastMessageBy($thread->id(), $bob->id())?->body());
-        self::assertNull($this->repository->lastMessageBy($thread->id(), $this->user('Carol')->id()));
-    }
-
-    #[Test]
-    public function testTypingSignalsAreThrottledToOneEveryTwoSeconds(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
-
-        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+10 seconds'));
-        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+11 seconds'));
-        self::assertSame([], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+11 seconds')), 'le second signal (1 s plus tard) est ignoré');
-        self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+10 seconds')));
-
-        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+13 seconds'));
-        self::assertSame(['Bob'], $this->repository->typingNames($thread->id(), $alice->id(), $this->at('+13 seconds')), 'au-delà de 2 s le signal est pris en compte');
-    }
-
     // --- Autres --------------------------------------------------------------------------------
-
-    #[Test]
-    public function testCountMessagesBySinceCountsOnlyRecentMessagesOfTheAuthor(): void
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'vieux', $this->at('-2 hours'));
-        $this->repository->addMessage($thread->id(), $alice->id(), 'récent', $this->at('-10 minutes'));
-        $this->repository->addMessage($thread->id(), $bob->id(), 'autre', $this->now);
-
-        self::assertSame(1, $this->repository->countMessagesBySince($alice->id(), $this->at('-1 hour')));
-    }
 
     #[Test]
     public function testThreadsDisappearWithTheirGroup(): void
@@ -405,7 +227,7 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         $a = $this->group('Alpha', $alice);
         $b = $this->group('Beta');
         $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
-        $this->repository->addMessage($thread->id(), $alice->id(), 'm', $this->now);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'm', $this->now);
 
         $this->groups->delete($b->id());
 
@@ -435,88 +257,5 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         $this->pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$alice->id()]);
 
         self::assertNull($this->repository->findById($thread->id())->createdBy());
-    }
-
-    // --- Édition d'un message (#200) -------------------------------------------------------------------
-
-    /** @return array{User, User, int, int} Alice, Bob, la conversation et un message d'Alice */
-    private function threadWithAMessage(): array
-    {
-        [$alice, $bob, $a, $b] = $this->pair();
-        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now, $alice->id());
-        $message = $this->repository->addMessage($thread->id(), $alice->id(), 'Texte initial', $this->at('-10 minutes'));
-
-        return [$alice, $bob, $thread->id(), $message->id()];
-    }
-
-    #[Test]
-    public function testEditingReplacesTheBodyMarksTheDateAndKeepsEveryOldVersion(): void
-    {
-        [, , $conversationId, $messageId] = $this->threadWithAMessage();
-
-        $this->repository->updateBody($messageId, 'Première correction', $this->at('-5 minutes'));
-        $this->repository->updateBody($messageId, 'Seconde correction', $this->now);
-
-        $message = $this->repository->messageById($conversationId, $messageId);
-        self::assertSame('Seconde correction', $message->body());
-        self::assertEquals($this->now, $message->editedAt());
-        self::assertEquals($this->at('-10 minutes'), $message->createdAt(), 'la date d\'envoi ne bouge pas');
-        self::assertSame(['Texte initial', 'Première correction'], array_column($this->repository->versionsOf($messageId), 'body'), 'chaque ancienne version est gardée, la plus ancienne d\'abord');
-    }
-
-    #[Test]
-    public function testAMessageThatWasNeverEditedHasNoEditDate(): void
-    {
-        [, , $conversationId, $messageId] = $this->threadWithAMessage();
-
-        self::assertNull($this->repository->messageById($conversationId, $messageId)->editedAt());
-        self::assertNull($this->repository->messagesOf($conversationId)[0]->editedAt());
-        self::assertSame([], $this->repository->versionsOf($messageId));
-    }
-
-    #[Test]
-    public function testMessagesEditedAfterAMomentAreListedForThePollingOfTheOthers(): void
-    {
-        [$alice, , $conversationId, $first] = $this->threadWithAMessage();
-        $second = $this->repository->addMessage($conversationId, $alice->id(), 'Deuxième', $this->at('-9 minutes'))->id();
-        $third = $this->repository->addMessage($conversationId, $alice->id(), 'Troisième', $this->at('-8 minutes'))->id();
-        $this->repository->updateBody($first, 'Premier corrigé', $this->at('-6 minutes'));
-        $this->repository->updateBody($second, 'Deuxième corrigé', $this->at('-2 minutes'));
-        $this->repository->updateBody($third, 'Troisième corrigé', $this->at('-1 minute'));
-
-        $since = fn (string $moment, int $upTo): array => array_map(
-            static fn ($m) => $m->body(),
-            $this->repository->editedSince($conversationId, $this->at($moment), $upTo),
-        );
-
-        self::assertSame(['Deuxième corrigé', 'Troisième corrigé'], $since('-3 minutes', $third), 'seulement après ce moment, du plus ancien au plus récent');
-        self::assertSame(['Deuxième corrigé'], $since('-3 minutes', $second), 'jamais un message que le client n\'a pas encore reçu');
-        self::assertSame([], $since('-30 seconds', $third));
-    }
-
-    #[Test]
-    public function testEditsAreCountedPerAuthorAndPerPeriodForTheRateLimit(): void
-    {
-        [$alice, $bob, $conversationId, $messageId] = $this->threadWithAMessage();
-        $bobMessage = $this->repository->addMessage($conversationId, $bob->id(), 'Texte de Bob', $this->at('-10 minutes'))->id();
-        $this->repository->updateBody($messageId, 'v2', $this->at('-3 hours'));
-        $this->repository->updateBody($messageId, 'v3', $this->at('-10 minutes'));
-        $this->repository->updateBody($messageId, 'v4', $this->at('-5 minutes'));
-        $this->repository->updateBody($bobMessage, 'Bob corrigé', $this->at('-5 minutes'));
-
-        self::assertSame(2, $this->repository->countEditsBySince($alice->id(), $this->at('-1 hour')));
-        self::assertSame(3, $this->repository->countEditsBySince($alice->id(), $this->at('-1 day')));
-        self::assertSame(1, $this->repository->countEditsBySince($bob->id(), $this->at('-1 hour')));
-    }
-
-    #[Test]
-    public function testVersionsDisappearWithTheirConversation(): void
-    {
-        [, , $conversationId, $messageId] = $this->threadWithAMessage();
-        $this->repository->updateBody($messageId, 'Corrigé', $this->now);
-
-        (new MysqlConversationTrashRepository($this->pdo))->delete($conversationId);
-
-        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_message_versions')->fetchColumn());
     }
 }

@@ -15,6 +15,7 @@ use App\Http\Request;
 use App\Kernel;
 use App\Migration\Migrator;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
@@ -107,8 +108,9 @@ final class IdorMatrixTest extends TestCase
 
         // Conversation entre A (initiateur) et B (visé) : seuls les membres de A ou B y ont accès.
         $conversations = new MysqlConversationRepository($pdo);
+        $messages = new MysqlConversationMessageRepository($pdo);
         $conversationAB = $conversations->create($groupA->id(), $groupB->id(), 'Secret entre A et B', new \DateTimeImmutable());
-        $conversations->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
+        $messages->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
 
         self::$storagePath = sys_get_temp_dir() . '/rb-idor-' . bin2hex(random_bytes(4));
         mkdir(self::$storagePath);

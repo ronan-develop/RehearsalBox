@@ -6,6 +6,8 @@ namespace App\Tests\Repository;
 
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\MessagingScenario;
@@ -17,6 +19,8 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
     use MessagingScenario;
 
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationTrashRepository $repository;
 
     protected function setUp(): void
@@ -24,6 +28,8 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
         parent::setUp();
         $this->setUpScenario();
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->repository = new MysqlConversationTrashRepository($this->pdo);
     }
 
@@ -38,7 +44,7 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $thread = $this->conversations->create($a->id(), $b->id(), 'Concert', $this->now, $alice->id());
-        $this->conversations->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
         self::assertSame(['Concert'], $this->titles($bob->id(), Box::BOX_ACTIVE));
         self::assertSame(1, $this->conversations->countUnreadFor($bob->id(), $this->cutoff));
 
@@ -56,7 +62,7 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
     {
         [$alice, $bob, $a, $b] = $this->pair();
         $thread = $this->conversations->create($a->id(), $b->id(), 'Concert', $this->now, $alice->id());
-        $this->conversations->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'salut', $this->now);
         $this->repository->moveToTrash($thread->id(), $this->now);
 
         $this->repository->restore($thread->id());
@@ -76,7 +82,7 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
         $theirs = $this->conversations->create($b->id(), $a->id(), 'De Bob', $this->now, $bob->id());
         $untouched = $this->conversations->create($a->id(), $b->id(), 'Actif', $this->now, $alice->id());
         foreach ([$mine, $old, $theirs, $untouched] as $thread) {
-            $this->conversations->addMessage($thread->id(), $alice->id(), 'm', $this->now);
+            $this->messages->addMessage($thread->id(), $alice->id(), 'm', $this->now);
         }
         $this->repository->moveToTrash($mine->id(), $this->at('-2 days'));
         $this->repository->moveToTrash($old->id(), $this->at('-31 days'));
@@ -94,8 +100,8 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
     {
         [$alice, , $a, $b] = $this->pair();
         $thread = $this->conversations->create($a->id(), $b->id(), null, $this->now, $alice->id());
-        $this->conversations->addMessage($thread->id(), $alice->id(), 'm', $this->now);
-        $this->conversations->markRead($thread->id(), $alice->id(), $this->now);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'm', $this->now);
+        $this->presence->markRead($thread->id(), $alice->id(), $this->now);
 
         $this->repository->delete($thread->id());
 

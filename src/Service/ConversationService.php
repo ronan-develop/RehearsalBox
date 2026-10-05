@@ -11,6 +11,8 @@ use App\Entity\ConversationSummary;
 use App\Entity\ConversationThread;
 use App\Entity\Group;
 use App\Entity\SeenReceipt;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
+use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\ConversationInputPolicy;
@@ -36,6 +38,8 @@ final class ConversationService
 
     public function __construct(
         private readonly ConversationRepositoryInterface $conversations,
+        private readonly ConversationMessageRepositoryInterface $messages,
+        private readonly ConversationPresenceRepositoryInterface $presence,
         private readonly GroupRepositoryInterface $groups,
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
@@ -46,7 +50,7 @@ final class ConversationService
         ?ConversationRateLimit $rateLimit = null,
     ) {
         $this->access = $access ?? new ConversationAccess($conversations, $groups);
-        $this->rateLimit = $rateLimit ?? new ConversationRateLimit($conversations);
+        $this->rateLimit = $rateLimit ?? new ConversationRateLimit($messages);
     }
 
     /**
@@ -76,9 +80,9 @@ final class ConversationService
             if ($plan !== null) {
                 $this->mentions->addGuests($plan, $userId, $conversation->id(), $now);
             }
-            $first = $this->conversations->addMessage($conversation->id(), $userId, $body, $now);
+            $first = $this->messages->addMessage($conversation->id(), $userId, $body, $now);
             $plan !== null && $this->mentions->record($plan, $first->id());
-            $this->conversations->markRead($conversation->id(), $userId, $now);
+            $this->presence->markRead($conversation->id(), $userId, $now);
 
             return [$conversation, $first];
         });
@@ -118,10 +122,10 @@ final class ConversationService
             if ($plan !== null) {
                 $this->mentions->addGuests($plan, $userId, $conversationId, $now);
             }
-            $message = $this->conversations->addMessage($conversationId, $userId, $body, $now);
+            $message = $this->messages->addMessage($conversationId, $userId, $body, $now);
             $plan !== null && $this->mentions->record($plan, $message->id());
             // Répondre suppose d'avoir lu le fil : il n'est pas « non lu » pour son propre auteur.
-            $this->conversations->markRead($conversationId, $userId, $now);
+            $this->presence->markRead($conversationId, $userId, $now);
 
             return $message;
         });
@@ -155,8 +159,8 @@ final class ConversationService
         $line = $title === null ? 'a retiré le titre de la conversation' : "a renommé la conversation « {$title} »";
         $this->transactions->run(function () use ($conversationId, $userId, $title, $line, $now): void {
             $this->conversations->rename($conversationId, $title);
-            $this->conversations->addMessage($conversationId, $userId, $line, $now, true);
-            $this->conversations->markRead($conversationId, $userId, $now);
+            $this->messages->addMessage($conversationId, $userId, $line, $now, true);
+            $this->presence->markRead($conversationId, $userId, $now);
         });
     }
 
@@ -171,7 +175,7 @@ final class ConversationService
     public function edited(int $userId, int $conversationId, \DateTimeImmutable $since, int $upToMessageId): array
     {
         $this->participantConversation($userId, $conversationId);
-        $messages = $this->conversations->editedSince($conversationId, $since, $upToMessageId);
+        $messages = $this->messages->editedSince($conversationId, $since, $upToMessageId);
 
         return ['messages' => $messages, 'mentions' => $this->mentions?->forMessages($messages) ?? []];
     }
@@ -180,8 +184,8 @@ final class ConversationService
     public function open(int $userId, int $conversationId): ConversationThread
     {
         $conversation = $this->participantConversation($userId, $conversationId);
-        $lastRead = $this->conversations->lastReadAt($conversationId, $userId);
-        $this->conversations->markRead($conversationId, $userId, $this->clock->now());
+        $lastRead = $this->presence->lastReadAt($conversationId, $userId);
+        $this->presence->markRead($conversationId, $userId, $this->clock->now());
 
         return $this->thread($conversation, $userId, 0, $lastRead);
     }
@@ -199,7 +203,7 @@ final class ConversationService
 
         foreach ($thread->messages() as $message) {
             if ($message->authorId() !== $userId) {
-                $this->conversations->markRead($conversationId, $userId, $this->clock->now());
+                $this->presence->markRead($conversationId, $userId, $this->clock->now());
                 break;
             }
         }
@@ -211,7 +215,7 @@ final class ConversationService
     public function typing(int $userId, int $conversationId): void
     {
         $this->participantConversation($userId, $conversationId);
-        $this->conversations->setTyping($conversationId, $userId, $this->clock->now());
+        $this->presence->setTyping($conversationId, $userId, $this->clock->now());
     }
 
     /** @return list<ConversationSummary> */
@@ -233,18 +237,18 @@ final class ConversationService
 
     private function thread(Conversation $conversation, int $userId, int $afterId, ?\DateTimeImmutable $lastRead = null): ConversationThread
     {
-        $messages = $this->conversations->messagesOf($conversation->id(), $afterId);
+        $messages = $this->messages->messagesOf($conversation->id(), $afterId);
         $firstUnreadId = $afterId === 0 ? $this->firstUnreadId($messages, $userId, $lastRead) : null;
 
         return new ConversationThread(
             $conversation,
             $this->labelOf($conversation),
             $messages,
-            $this->conversations->typingNames($conversation->id(), $userId, $this->clock->now()->modify(self::TYPING_WINDOW)),
+            $this->presence->typingNames($conversation->id(), $userId, $this->clock->now()->modify(self::TYPING_WINDOW)),
             $this->seenReceipt($conversation, $userId),
             $this->authorGroups($conversation, $messages),
             $firstUnreadId,
-            $afterId > 0 ? $this->conversations->messageById($conversation->id(), $afterId) : null,
+            $afterId > 0 ? $this->messages->messageById($conversation->id(), $afterId) : null,
             $this->mentions?->forMessages($messages) ?? [],
         );
     }
@@ -263,14 +267,14 @@ final class ConversationService
 
     private function seenReceipt(Conversation $conversation, int $userId): ?SeenReceipt
     {
-        $mine = $this->conversations->lastMessageBy($conversation->id(), $userId);
+        $mine = $this->messages->lastMessageBy($conversation->id(), $userId);
         if ($mine === null) {
             return null;
         }
 
         return new SeenReceipt(
             $mine->id(),
-            $this->conversations->readersOf($conversation->id(), $mine->createdAt(), $userId),
+            $this->presence->readersOf($conversation->id(), $mine->createdAt(), $userId),
             max(0, $this->conversations->participantCount($conversation->id()) - 1),
         );
     }

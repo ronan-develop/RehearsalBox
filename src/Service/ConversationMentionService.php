@@ -9,7 +9,7 @@ use App\Entity\ConversationMessage;
 use App\Entity\MentionPlan;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
-use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Exception\ConversationValidationException;
@@ -29,7 +29,7 @@ final class ConversationMentionService
         private readonly GroupRepositoryInterface $groups,
         private readonly ConversationGuestRepositoryInterface $guests,
         private readonly ConversationMentionRepositoryInterface $mentions,
-        private readonly ConversationRepositoryInterface $conversations,
+        private readonly ConversationMessageRepositoryInterface $messages,
         private readonly ?MentionNotifier $notifier = null,
     ) {
     }
@@ -118,7 +118,7 @@ final class ConversationMentionService
     {
         foreach ($plan->outsiders() as $userId => $name) {
             if ($this->guests->add($conversationId, $userId, $actorId, $now)) {
-                $this->conversations->addMessage($conversationId, $actorId, "a ajouté {$name} à la conversation", $now, true);
+                $this->messages->addMessage($conversationId, $actorId, "a ajouté {$name} à la conversation", $now, true);
             }
         }
     }

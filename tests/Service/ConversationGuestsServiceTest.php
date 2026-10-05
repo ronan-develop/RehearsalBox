@@ -13,6 +13,8 @@ use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
@@ -37,6 +39,8 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
     private ConversationGuestService $guestService;
     private RecordingMailer $mailer;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationGuestRepository $guests;
     private MysqlConversationMentionRepository $mentions;
     /** @var array<string, User> */
@@ -61,6 +65,8 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $groups->addMember($this->beta, $this->people['bob']->id());
         $groups->addMember($carnage, $this->people['denis']->id());
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
         $this->mailer = new RecordingMailer();
@@ -68,6 +74,8 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $access = new ConversationAccess($this->conversations, $groups, $this->guests);
         $this->service = new ConversationService(
             $this->conversations,
+            $this->messages,
+            $this->presence,
             $groups,
             $transactions,
             $this->clock,
@@ -76,13 +84,13 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
                 $groups,
                 $this->guests,
                 $this->mentions,
-                $this->conversations,
+                $this->messages,
                 new MentionNotifier($this->mailer, new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
             ),
             access: $access,
         );
         $this->trash = new ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
-        $this->guestService = new ConversationGuestService($access, $this->guests, $this->conversations, $users, $transactions, $this->clock);
+        $this->guestService = new ConversationGuestService($access, $this->guests, $this->messages, $users, $transactions, $this->clock);
         $this->conversationId = $this->service->start($this->id('alice'), $this->alpha, $this->beta, 'Bonjour', 'Concert')->id();
     }
 
@@ -125,7 +133,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
     {
         $this->tagDenis();
 
-        $messages = $this->conversations->messagesOf($this->conversationId);
+        $messages = $this->messages->messagesOf($this->conversationId);
         $lines = array_map(static fn ($m) => ($m->isSystem() ? '[système] ' : '') . $m->body(), $messages);
         self::assertSame(['Bonjour', '[système] a ajouté Denis à la conversation', 'Viens voir @Denis'], $lines);
         $last = $messages[array_key_last($messages)];
@@ -205,7 +213,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $this->service->reply($this->id('alice'), $this->conversationId, 'Salut @Bob', [$this->id('bob')]);
 
         self::assertFalse($this->guests->isGuest($this->conversationId, $this->id('bob')));
-        self::assertCount(2, $this->conversations->messagesOf($this->conversationId), 'aucune ligne « a ajouté »');
+        self::assertCount(2, $this->messages->messagesOf($this->conversationId), 'aucune ligne « a ajouté »');
     }
 
     #[Test]
@@ -242,7 +250,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             self::assertFalse($this->guests->isGuest($this->conversationId, $this->id('denis')), $remover);
             $this->denied(fn () => $this->service->open($this->id('denis'), $this->conversationId));
         }
-        $lines = array_map(static fn ($m) => $m->body(), array_filter($this->conversations->messagesOf($this->conversationId), static fn ($m) => $m->isSystem()));
+        $lines = array_map(static fn ($m) => $m->body(), array_filter($this->messages->messagesOf($this->conversationId), static fn ($m) => $m->isSystem()));
         self::assertContains('a retiré Denis de la conversation', $lines);
         self::assertContains('a quitté la conversation', $lines);
     }

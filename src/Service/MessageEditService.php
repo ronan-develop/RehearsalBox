@@ -6,7 +6,7 @@ namespace App\Service;
 
 use App\Database\TransactionRunner;
 use App\Entity\ConversationMessage;
-use App\Repository\Contract\ConversationRepositoryInterface;
+use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Security\ConversationInputPolicy;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Exception\ConversationRateLimitException;
@@ -27,14 +27,14 @@ final class MessageEditService
 
     public function __construct(
         private readonly ConversationAccess $access,
-        private readonly ConversationRepositoryInterface $conversations,
+        private readonly ConversationMessageRepositoryInterface $messages,
         private readonly ConversationMentionService $mentions,
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
         private readonly ConversationInputPolicy $inputPolicy = new ConversationInputPolicy(),
         ?ConversationRateLimit $rateLimit = null,
     ) {
-        $this->rateLimit = $rateLimit ?? new ConversationRateLimit($conversations);
+        $this->rateLimit = $rateLimit ?? new ConversationRateLimit($messages);
     }
 
     /**
@@ -47,7 +47,7 @@ final class MessageEditService
     public function edit(int $userId, int $conversationId, int $messageId, string $body, array $mentionIds = []): ConversationMessage
     {
         $conversation = $this->access->participant($userId, $conversationId);
-        $message = $this->conversations->messageById($conversationId, $messageId);
+        $message = $this->messages->messageById($conversationId, $messageId);
         if ($message === null || $message->isSystem() || $message->authorId() !== $userId) {
             throw new AccessDeniedException(ConversationAccess::DENIED);
         }
@@ -68,10 +68,10 @@ final class MessageEditService
 
         $this->transactions->run(function () use ($plan, $userId, $conversationId, $messageId, $body, $now): void {
             $this->mentions->addGuests($plan, $userId, $conversationId, $now);
-            $this->conversations->updateBody($messageId, $body, $now);
+            $this->messages->updateBody($messageId, $body, $now);
             $this->mentions->replace($plan, $messageId);
         });
 
-        return $this->conversations->messageById($conversationId, $messageId) ?? $message;
+        return $this->messages->messageById($conversationId, $messageId) ?? $message;
     }
 }

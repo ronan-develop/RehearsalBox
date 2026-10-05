@@ -10,6 +10,8 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
@@ -40,6 +42,8 @@ final class ConversationServiceTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->service = new ConversationService(
             new MysqlConversationRepository($this->pdo),
+            new MysqlConversationMessageRepository($this->pdo),
+            new MysqlConversationPresenceRepository($this->pdo),
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,
@@ -161,6 +165,8 @@ final class ConversationServiceTest extends RepositoryTestCase
     {
         return new ConversationService(
             new MysqlConversationRepository($this->pdo),
+            new MysqlConversationMessageRepository($this->pdo),
+            new MysqlConversationPresenceRepository($this->pdo),
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,

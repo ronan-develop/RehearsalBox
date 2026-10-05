@@ -11,6 +11,8 @@ use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
@@ -36,6 +38,8 @@ final class MessageEditServiceTest extends RepositoryTestCase
     private ConversationService $service;
     private MessageEditService $editor;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationGuestRepository $guests;
     private MysqlConversationMentionRepository $mentions;
     private RecordingMailer $mailer;
@@ -62,6 +66,8 @@ final class MessageEditServiceTest extends RepositoryTestCase
         $groups->addMember($beta, $this->id('bob'));
         $groups->addMember($carnage, $this->id('denis'));
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
         $transactions = new TransactionRunner($this->pdo);
@@ -71,13 +77,13 @@ final class MessageEditServiceTest extends RepositoryTestCase
             $groups,
             $this->guests,
             $this->mentions,
-            $this->conversations,
+            $this->messages,
             new MentionNotifier($this->mailer, new MysqlMentionNoticeRepository($this->pdo), $users, new MysqlNotificationPreferenceRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
         );
-        $this->service = new ConversationService($this->conversations, $groups, $transactions, $this->clock, mentions: $mentionService, access: $access);
-        $this->editor = new MessageEditService($access, $this->conversations, $mentionService, $transactions, $this->clock);
+        $this->service = new ConversationService($this->conversations, $this->messages, $this->presence, $groups, $transactions, $this->clock, mentions: $mentionService, access: $access);
+        $this->editor = new MessageEditService($access, $this->messages, $mentionService, $transactions, $this->clock);
         $this->conversationId = $this->service->start($this->id('alice'), $alpha, $beta, 'Bonjour', 'Concert')->id();
-        $this->messageId = $this->conversations->messagesOf($this->conversationId)[0]->id();
+        $this->messageId = $this->messages->messagesOf($this->conversationId)[0]->id();
     }
 
     private function id(string $name): int
@@ -87,7 +93,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
 
     private function body(): string
     {
-        return $this->conversations->messageById($this->conversationId, $this->messageId)->body();
+        return $this->messages->messageById($this->conversationId, $this->messageId)->body();
     }
 
     private function denied(callable $action): void
@@ -109,7 +115,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
 
         self::assertSame('Bonjour à tous', $edited->body(), 'même normalisation qu\'à l\'envoi');
         self::assertEquals($this->clock->now(), $edited->editedAt());
-        self::assertSame(['Bonjour'], array_column($this->conversations->versionsOf($this->messageId), 'body'));
+        self::assertSame(['Bonjour'], array_column($this->messages->versionsOf($this->messageId), 'body'));
         self::assertSame('Bonjour à tous', $this->body());
     }
 
@@ -122,16 +128,16 @@ final class MessageEditServiceTest extends RepositoryTestCase
             $this->denied(fn () => $this->editor->edit($this->id($who), $this->conversationId, $messageId, 'Piraté'));
         }
         self::assertSame('Bonjour', $this->body());
-        self::assertSame('Salut de Bob', $this->conversations->messageById($this->conversationId, $bobMessage)->body());
+        self::assertSame('Salut de Bob', $this->messages->messageById($this->conversationId, $bobMessage)->body());
     }
 
     #[Test]
     public function testUnknownMessagesOtherConversationsSystemLinesAndTrashedConversationsAreRefusedUniformly(): void
     {
         $other = $this->service->start($this->id('alice'), 1, 2, 'Autre fil')->id();
-        $otherMessage = $this->conversations->messagesOf($other)[0]->id();
+        $otherMessage = $this->messages->messagesOf($other)[0]->id();
         $this->service->rename($this->id('alice'), $this->conversationId, 'Nouveau titre');
-        $system = array_values(array_filter($this->conversations->messagesOf($this->conversationId), static fn ($m) => $m->isSystem()))[0]->id();
+        $system = array_values(array_filter($this->messages->messagesOf($this->conversationId), static fn ($m) => $m->isSystem()))[0]->id();
 
         $this->denied(fn () => $this->editor->edit($this->id('alice'), $this->conversationId, 999999, 'x'));
         $this->denied(fn () => $this->editor->edit($this->id('alice'), $this->conversationId, $otherMessage, 'x'));
@@ -171,7 +177,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
             }
         }
         self::assertSame('Bonjour', $this->body());
-        self::assertSame([], $this->conversations->versionsOf($this->messageId));
+        self::assertSame([], $this->messages->versionsOf($this->messageId));
     }
 
     #[Test]
@@ -179,8 +185,8 @@ final class MessageEditServiceTest extends RepositoryTestCase
     {
         $this->editor->edit($this->id('alice'), $this->conversationId, $this->messageId, ' Bonjour ');
 
-        self::assertNull($this->conversations->messageById($this->conversationId, $this->messageId)->editedAt());
-        self::assertSame([], $this->conversations->versionsOf($this->messageId));
+        self::assertNull($this->messages->messageById($this->conversationId, $this->messageId)->editedAt());
+        self::assertSame([], $this->messages->versionsOf($this->messageId));
     }
 
     #[Test]

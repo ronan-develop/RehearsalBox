@@ -16,6 +16,8 @@ use App\Presenter\ConversationPresenter;
 use App\Presenter\ConversationTimeline;
 use App\Presenter\MessagesPageView;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
@@ -51,9 +53,13 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
         $guests = new \App\Repository\MysqlConversationGuestRepository($this->pdo);
         $access = new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, $guests);
-        $mentionService = new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), new MysqlConversationRepository($this->pdo));
+        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $presence = new MysqlConversationPresenceRepository($this->pdo);
+        $mentionService = new \App\Service\ConversationMentionService($this->users, $this->groups, $guests, new \App\Repository\MysqlConversationMentionRepository($this->pdo), $messages);
         $service = new ConversationService(
             new MysqlConversationRepository($this->pdo),
+            $messages,
+            $presence,
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,
@@ -61,9 +67,9 @@ final class ConversationApiControllerTest extends RepositoryTestCase
             access: $access,
         );
         $trash = new \App\Service\ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
-        $guestService = new \App\Service\ConversationGuestService($access, $guests, new MysqlConversationRepository($this->pdo), $this->users, new TransactionRunner($this->pdo), $this->clock);
+        $guestService = new \App\Service\ConversationGuestService($access, $guests, $messages, $this->users, new TransactionRunner($this->pdo), $this->clock);
         $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
-        $editService = new \App\Service\MessageEditService($access, new MysqlConversationRepository($this->pdo), $mentionService, new TransactionRunner($this->pdo), $this->clock);
+        $editService = new \App\Service\MessageEditService($access, $messages, $mentionService, new TransactionRunner($this->pdo), $this->clock);
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $pageView = new MessagesPageView($service, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $trash);
         $fragments = new \App\Presenter\EditedMessageFragments(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), $pageView);

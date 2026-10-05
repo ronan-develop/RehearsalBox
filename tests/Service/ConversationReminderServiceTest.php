@@ -9,6 +9,8 @@ use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Service\ConversationReminderService;
@@ -22,6 +24,8 @@ use Symfony\Component\Mailer\MailerInterface;
 final class ConversationReminderServiceTest extends RepositoryTestCase
 {
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationNoticeRepository $notices;
     private Group $alpha;
     private Group $beta;
@@ -32,6 +36,8 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->notices = new MysqlConversationNoticeRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
@@ -42,7 +48,7 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
         $groups->addMember($this->alpha->id(), $this->alice->id());
         $groups->addMember($this->beta->id(), $bob->id());
         $this->conversationId = $this->conversations->create($this->alpha->id(), $this->beta->id(), 'Titre secret', new \DateTimeImmutable('2026-10-05 08:00:00'))->id();
-        $this->conversations->addMessage($this->conversationId, $this->alice->id(), 'Texte secret', new \DateTimeImmutable('2026-10-05 08:00:00'));
+        $this->messages->addMessage($this->conversationId, $this->alice->id(), 'Texte secret', new \DateTimeImmutable('2026-10-05 08:00:00'));
     }
 
     private function service(MailerInterface $mailer, string $now): ConversationReminderService
@@ -118,7 +124,7 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
     public function testAMemberOfTheGroupHavingReadCancelsTheReminder(): void
     {
         $bob = (new MysqlUserRepository($this->pdo))->findByEmail('bob@rehearsalbox.test');
-        $this->conversations->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 20:00:00'));
+        $this->presence->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 20:00:00'));
         $mailer = new RecordingMailer();
 
         $report = $this->service($mailer, '2026-10-06 10:30:00')->sendDue();
@@ -157,8 +163,8 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
     public function testTheReplyDirectionIsRemindedToo(): void
     {
         $bob = (new MysqlUserRepository($this->pdo))->findByEmail('bob@rehearsalbox.test');
-        $this->conversations->addMessage($this->conversationId, $bob->id(), 'Réponse', new \DateTimeImmutable('2026-10-05 09:00:00'));
-        $this->conversations->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 09:00:00'));
+        $this->messages->addMessage($this->conversationId, $bob->id(), 'Réponse', new \DateTimeImmutable('2026-10-05 09:00:00'));
+        $this->presence->markRead($this->conversationId, $bob->id(), new \DateTimeImmutable('2026-10-05 09:00:00'));
         $mailer = new RecordingMailer();
 
         $this->service($mailer, '2026-10-06 10:30:00')->sendDue();

@@ -14,6 +14,8 @@ use App\Entity\Enum\UserRole;
 use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
@@ -49,7 +51,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
-        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), new MysqlConversationMessageRepository($this->pdo), new MysqlConversationPresenceRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
         $this->trash = new \App\Service\ConversationTrashService(new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(

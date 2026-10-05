@@ -10,6 +10,8 @@ use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlConversationPresenceRepository;
+use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
@@ -23,6 +25,8 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
     private \DateTimeImmutable $now;
     private MysqlMentionNoticeRepository $notices;
     private MysqlConversationRepository $conversations;
+    private MysqlConversationMessageRepository $messages;
+    private MysqlConversationPresenceRepository $presence;
     private MysqlConversationMentionRepository $mentions;
     /** @var array<string, User> */
     private array $people = [];
@@ -34,6 +38,8 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->notices = new MysqlMentionNoticeRepository($this->pdo);
         $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
@@ -61,7 +67,7 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
     /** Message d'Alice qui mentionne Denis, écrit à la date indiquée. */
     private function tagDenis(string $at): int
     {
-        $message = $this->conversations->addMessage($this->conversationId, $this->id('alice'), '@Denis', new \DateTimeImmutable($at));
+        $message = $this->messages->addMessage($this->conversationId, $this->id('alice'), '@Denis', new \DateTimeImmutable($at));
         $this->mentions->record($message->id(), [$this->id('denis') => '@Denis']);
 
         return $message->id();
@@ -153,7 +159,7 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
         $this->tagDenis('2026-10-05 10:00:00');
         $this->notices->claimNotice($this->conversationId, $this->id('denis'), $this->id('alice'), new \DateTimeImmutable('2026-10-05 10:00:00'), new \DateTimeImmutable('2026-10-04 10:00:00'));
 
-        $this->conversations->markRead($this->conversationId, $this->id('denis'), new \DateTimeImmutable('2026-10-05 20:00:00'));
+        $this->presence->markRead($this->conversationId, $this->id('denis'), new \DateTimeImmutable('2026-10-05 20:00:00'));
 
         self::assertSame([], $this->due());
     }
