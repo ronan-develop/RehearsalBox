@@ -38,6 +38,15 @@ jobs:
       - name: Audit dependencies
         run: composer audit
 
+      - name: Static analysis (PHPStan)
+        run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+      - name: Code style (PSR-12)
+        run: ./vendor/bin/php-cs-fixer fix --dry-run --diff --using-cache=no
+
+      - name: Class size budget
+        run: php bin/check-size.php
+
       - name: Run PHPUnit
         env:
           DB_TEST_HOST: 127.0.0.1
@@ -60,6 +69,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit
 
       - name: Run JS tests
         run: npm test

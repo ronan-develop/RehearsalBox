@@ -106,7 +106,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
     #[Test]
     public function testAnyInternalFailureIsSwallowedBecauseTheMessageIsAlreadySent(): void
     {
-        $brokenNotices = new class implements ConversationNoticeRepositoryInterface {
+        $brokenNotices = new class () implements ConversationNoticeRepositoryInterface {
             public function claimInitial(int $conversationId, int $groupId, \DateTimeImmutable $now): bool
             {
                 throw new \PDOException('base indisponible');

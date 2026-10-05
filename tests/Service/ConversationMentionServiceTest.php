@@ -61,7 +61,7 @@ final class ConversationMentionServiceTest extends RepositoryTestCase
     }
 
     /** @param list<mixed> $ids */
-    private function plan(string $actor, string $body, array $ids, ?int $conversationId = null) 
+    private function plan(string $actor, string $body, array $ids, ?int $conversationId = null)
     {
         return $this->service->plan($this->id($actor), $this->alpha, $this->beta, $conversationId ?? $this->conversationId, $body, $ids);
     }

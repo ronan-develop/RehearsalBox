@@ -66,7 +66,11 @@ final class ConversationTrashService
         $this->conversations->delete($this->trashedConversation($userId, $conversationId)->id());
     }
 
-    /** Corbeille de la personne ; les conversations expirées sont purgées au passage (aucune tâche planifiée nécessaire). @return list<ConversationSummary> */
+    /**
+     * Corbeille de la personne ; les conversations expirées sont purgées au passage (aucune tâche planifiée nécessaire).
+     *
+     * @return list<ConversationSummary>
+     */
     public function trash(int $userId): array
     {
         $cutoff = $this->cutoff();

@@ -30,7 +30,7 @@ final class MysqlConversationMentionRepository implements ConversationMentionRep
         }
         $placeholders = implode(', ', array_fill(0, count($messageIds), '?'));
         $statement = $this->pdo->prepare("SELECT message_id, user_id, label FROM message_mentions WHERE message_id IN ({$placeholders}) ORDER BY message_id, user_id");
-        $statement->execute(array_values($messageIds));
+        $statement->execute($messageIds);
 
         $result = [];
         foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {

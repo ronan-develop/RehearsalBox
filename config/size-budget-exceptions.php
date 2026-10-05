@@ -1,0 +1,12 @@
+<?php
+
+// Classes déjà trop grosses au moment de l'introduction du budget (voir bin/check-size.php) : figées à leur taille actuelle.
+// Chaque ticket qui touche une de ces classes la découpe, puis retire son entrée ici.
+return [
+    'Entity/User.php'                                              => ['lines' => 218, 'public' => 19],
+    'Repository/Contract/ConversationRepositoryInterface.php'      => ['lines' => 111, 'public' => 25],
+    'Repository/Contract/GroupRepositoryInterface.php'             => ['lines' => 40, 'public' => 13],
+    'Repository/MysqlConversationRepository.php'                   => ['lines' => 431, 'public' => 25],
+    'Repository/MysqlGroupRepository.php'                          => ['lines' => 187, 'public' => 13],
+    'Service/ConversationService.php'                              => ['lines' => 341, 'public' => 9],
+];

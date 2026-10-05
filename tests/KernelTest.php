@@ -31,7 +31,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/ping', ['ping_controller', 'index']);
 
         $container = new Container();
-        $container->set('ping_controller', fn () => new class {
+        $container->set('ping_controller', fn () => new class () {
             public function index(): JsonResponse
             {
                 return new JsonResponse(['status' => 'ok']);
@@ -90,7 +90,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/api/admin/slots', ['admin_controller', 'index']);
 
         $container = new Container();
-        $container->set('admin_controller', fn () => new class {
+        $container->set('admin_controller', fn () => new class () {
             public function index(): never
             {
                 throw new AccessDeniedException('Rôle admin requis.');
@@ -112,7 +112,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/admin/slots', ['admin_controller', 'index']);
 
         $container = new Container();
-        $container->set('admin_controller', fn () => new class {
+        $container->set('admin_controller', fn () => new class () {
             public function index(): never
             {
                 throw new AccessDeniedException('Rôle admin requis.');
@@ -134,7 +134,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/', ['dashboard_controller', 'index']);
 
         $container = new Container();
-        $container->set('dashboard_controller', fn () => new class {
+        $container->set('dashboard_controller', fn () => new class () {
             public function index(): never
             {
                 throw new UnauthenticatedException('Connexion requise.');
@@ -156,7 +156,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/account/password', ['messages_controller', 'account']);
 
         $container = new Container();
-        $container->set('messages_controller', fn () => new class {
+        $container->set('messages_controller', fn () => new class () {
             public function show(): never
             {
                 throw new UnauthenticatedException('Connexion requise.');
@@ -184,7 +184,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/api/availability', ['availability_controller', 'index']);
 
         $container = new Container();
-        $container->set('availability_controller', fn () => new class {
+        $container->set('availability_controller', fn () => new class () {
             public function index(): never
             {
                 throw new UnauthenticatedException('Connexion requise.');
@@ -237,7 +237,7 @@ final class KernelTest extends TestCase
         $router->add('POST', '/api/availability/1/claim', ['availability_controller', 'claim']);
 
         $container = new Container();
-        $container->set('availability_controller', fn () => new class {
+        $container->set('availability_controller', fn () => new class () {
             public function claim(): JsonResponse
             {
                 return new JsonResponse(['status' => 'ok']);
@@ -262,7 +262,7 @@ final class KernelTest extends TestCase
         $router->add('GET', '/api/availability', ['availability_controller', 'index']);
 
         $container = new Container();
-        $container->set('availability_controller', fn () => new class {
+        $container->set('availability_controller', fn () => new class () {
             public function index(): JsonResponse
             {
                 return new JsonResponse(['status' => 'ok']);

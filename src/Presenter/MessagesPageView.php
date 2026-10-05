@@ -119,7 +119,11 @@ final class MessagesPageView
         return array_values(array_filter($rows, static fn (array $row): bool => $row['type'] === 'message'));
     }
 
-    /** Curseur des corrections vues par la page (secondes Unix de la plus récente, 0 s'il n'y en a pas). @param list<ConversationMessage> $messages */
+    /**
+     * Curseur des corrections vues par la page (secondes Unix de la plus récente, 0 s'il n'y en a pas).
+     *
+     * @param list<ConversationMessage> $messages
+     */
     private function latestEditTimestamp(array $messages): int
     {
         $latest = 0;
