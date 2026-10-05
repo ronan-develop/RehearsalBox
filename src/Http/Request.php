@@ -19,6 +19,7 @@ final class Request
         private readonly array $body,
         private readonly array $headers,
         private readonly array $files = [],
+        private readonly string $clientIp = '',
     ) {
     }
 
@@ -49,7 +50,14 @@ final class Request
             body: $body,
             headers: $headers,
             files: $_FILES,
+            clientIp: (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
         );
+    }
+
+    /** Adresse de la connexion TCP (jamais un en-tête fourni par le client, falsifiable) ; vide si absente ou invalide. */
+    public function clientIp(): string
+    {
+        return filter_var($this->clientIp, FILTER_VALIDATE_IP) !== false ? $this->clientIp : '';
     }
 
     public function method(): string
