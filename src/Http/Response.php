@@ -10,7 +10,7 @@ class Response
     public function __construct(
         protected readonly string $body = '',
         protected readonly int $statusCode = 200,
-        protected readonly array $headers = [],
+        protected array $headers = [],
     ) {
     }
 
@@ -28,6 +28,24 @@ class Response
     public function headers(): array
     {
         return $this->headers;
+    }
+
+    /**
+     * Copie de la réponse avec des en-têtes par défaut : ceux que la réponse porte déjà (quelle que soit la casse du nom) sont conservés.
+     *
+     * @param array<string, string> $defaults
+     */
+    public function withDefaultHeaders(array $defaults): static
+    {
+        $present = array_map('strtolower', array_keys($this->headers));
+        $copy = clone $this;
+        foreach ($defaults as $name => $value) {
+            if (!in_array(strtolower($name), $present, true)) {
+                $copy->headers[$name] = $value;
+            }
+        }
+
+        return $copy;
     }
 
     public function send(): void
