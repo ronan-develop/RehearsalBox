@@ -15,7 +15,6 @@ use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\ConversationInputPolicy;
 use App\Security\Exception\AccessDeniedException;
-use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -28,11 +27,12 @@ use Symfony\Component\Clock\ClockInterface;
  */
 final class ConversationService
 {
-    public const MAX_MESSAGES_PER_HOUR = 30;
+    public const MAX_MESSAGES_PER_HOUR = ConversationRateLimit::MAX_PER_HOUR;
     public const ARCHIVE_AFTER = '-30 days';
     private const TYPING_WINDOW = '-5 seconds';
 
     private readonly ConversationAccess $access;
+    private readonly ConversationRateLimit $rateLimit;
 
     public function __construct(
         private readonly ConversationRepositoryInterface $conversations,
@@ -43,8 +43,10 @@ final class ConversationService
         private readonly ?ConversationNotifier $notifier = null,
         private readonly ?ConversationMentionService $mentions = null,
         ?ConversationAccess $access = null,
+        ?ConversationRateLimit $rateLimit = null,
     ) {
         $this->access = $access ?? new ConversationAccess($conversations, $groups);
+        $this->rateLimit = $rateLimit ?? new ConversationRateLimit($conversations);
     }
 
     /**
@@ -52,7 +54,7 @@ final class ConversationService
      * @throws ConversationValidationException   titre ou message invalide
      * @param list<mixed> $mentionIds personnes taguées dans le premier message (identifiants non fiables, validés ici)
      *
-     * @throws ConversationRateLimitException    trop de messages envoyés dans l'heure
+     * @throws Exception\ConversationRateLimitException    trop de messages envoyés dans l'heure
      */
     public function start(int $userId, int $initiatorGroupId, int $targetGroupId, string $body, ?string $title = null, array $mentionIds = []): Conversation
     {
@@ -67,7 +69,7 @@ final class ConversationService
         $this->assertValid($title, $body);
         $plan = $this->mentions?->plan($userId, $initiatorGroupId, $targetGroupId, null, $body, $mentionIds);
         $now = $this->clock->now();
-        $this->assertWithinRateLimit($userId, $now);
+        $this->rateLimit->assertWithin($userId, $now);
 
         [$conversation, $first] = $this->transactions->run(function () use ($userId, $initiatorGroupId, $targetGroupId, $title, $body, $now, $plan): array {
             $conversation = $this->conversations->create($initiatorGroupId, $targetGroupId, $title, $now, $userId);
@@ -100,7 +102,7 @@ final class ConversationService
      * @param list<mixed> $mentionIds personnes taguées (identifiants non fiables, validés ici) ; une personne extérieure
      *                                aux deux groupes est invitée à CETTE conversation
      *
-     * @throws AccessDeniedException @throws ConversationValidationException @throws ConversationRateLimitException
+     * @throws AccessDeniedException @throws ConversationValidationException @throws Exception\ConversationRateLimitException
      */
     public function reply(int $userId, int $conversationId, string $body, array $mentionIds = []): ConversationMessage
     {
@@ -110,7 +112,7 @@ final class ConversationService
         $this->assertValid(null, $body);
         $plan = $this->mentions?->plan($userId, $conversation->initiatorGroupId(), $conversation->targetGroupId(), $conversationId, $body, $mentionIds);
         $now = $this->clock->now();
-        $this->assertWithinRateLimit($userId, $now);
+        $this->rateLimit->assertWithin($userId, $now);
 
         $message = $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan): ConversationMessage {
             if ($plan !== null) {
@@ -136,7 +138,7 @@ final class ConversationService
      * Change le titre (vide ou null : le retire). Tout membre peut renommer ; une ligne système l'indique dans le fil.
      * Rien ne se passe si le titre ne change pas.
      *
-     * @throws AccessDeniedException @throws ConversationValidationException @throws ConversationRateLimitException
+     * @throws AccessDeniedException @throws ConversationValidationException @throws Exception\ConversationRateLimitException
      */
     public function rename(int $userId, int $conversationId, ?string $title): void
     {
@@ -148,7 +150,7 @@ final class ConversationService
             return;
         }
         $now = $this->clock->now();
-        $this->assertWithinRateLimit($userId, $now);
+        $this->rateLimit->assertWithin($userId, $now);
 
         $line = $title === null ? 'a retiré le titre de la conversation' : "a renommé la conversation « {$title} »";
         $this->transactions->run(function () use ($conversationId, $userId, $title, $line, $now): void {
@@ -317,13 +319,6 @@ final class ConversationService
 
         if ($errors !== []) {
             throw new ConversationValidationException($errors);
-        }
-    }
-
-    private function assertWithinRateLimit(int $userId, \DateTimeImmutable $now): void
-    {
-        if ($this->conversations->countMessagesBySince($userId, $now->modify('-1 hour')) >= self::MAX_MESSAGES_PER_HOUR) {
-            throw new ConversationRateLimitException('Trop de messages envoyés : réessayez dans un moment.');
         }
     }
 }

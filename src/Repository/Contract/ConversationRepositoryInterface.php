@@ -100,4 +100,7 @@ interface ConversationRepositoryInterface
 
     /** Anciennes versions d'un message, la plus ancienne d'abord (audit). @return list<array{body: string, savedAt: \DateTimeImmutable}> */
     public function versionsOf(int $messageId): array;
+
+    /** Modifications de messages faites par cet auteur depuis $since (limite de débit : une modification compte comme un envoi). */
+    public function countEditsBySince(int $authorId, \DateTimeImmutable $since): int;
 }

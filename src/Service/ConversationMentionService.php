@@ -83,6 +83,36 @@ final class ConversationMentionService
         return new MentionPlan($labels, $outsiders);
     }
 
+    /**
+     * Mentions d'un message MODIFIÉ (#200) : les personnes déjà mentionnées le restent tant que leur « @Nom » figure dans le
+     * nouveau texte (le client n'a pas à renvoyer leur identifiant), celles dont le libellé a disparu sont retirées, et les
+     * nouvelles ($newIds, validées comme à l'envoi) s'ajoutent. Seules les nouvelles peuvent faire entrer un extérieur.
+     *
+     * @param list<mixed> $newIds
+     *
+     * @throws ConversationValidationException
+     */
+    public function planEdit(int $actorId, Conversation $conversation, int $messageId, string $body, array $newIds): MentionPlan
+    {
+        $fresh = $this->plan($actorId, $conversation->initiatorGroupId(), $conversation->targetGroupId(), $conversation->id(), $body, $newIds);
+
+        $labels = $fresh->labels();
+        foreach ($this->mentions->forMessages([$messageId])[$messageId] ?? [] as $userId => $label) {
+            if (!isset($labels[$userId]) && str_contains($body, $label)) {
+                $labels[$userId] = $label;
+            }
+        }
+        ksort($labels);
+
+        return new MentionPlan($labels, $fresh->outsiders());
+    }
+
+    /** Remplace les mentions d'un message modifié (aucune mention restante = elles sont toutes retirées). */
+    public function replace(MentionPlan $plan, int $messageId): void
+    {
+        $this->mentions->record($messageId, $plan->labels());
+    }
+
     /** Invite les extérieurs ; une ligne du fil l'annonce aux deux groupes. À appeler dans la transaction, avant le message. */
     public function addGuests(MentionPlan $plan, int $actorId, int $conversationId, \DateTimeImmutable $now): void
     {

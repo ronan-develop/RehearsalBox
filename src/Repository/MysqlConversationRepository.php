@@ -360,6 +360,17 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         return array_map(fn (array $row): ConversationMessage => $this->hydrateMessage($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    public function countEditsBySince(int $authorId, \DateTimeImmutable $since): int
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM conversation_message_versions v JOIN conversation_messages m ON m.id = v.message_id
+             WHERE m.author_id = :author_id AND v.saved_at >= :since'
+        );
+        $statement->execute(['author_id' => $authorId, 'since' => $since->format(self::DATE_FORMAT)]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function versionsOf(int $messageId): array
     {
         $statement = $this->pdo->prepare('SELECT body, saved_at FROM conversation_message_versions WHERE message_id = :id ORDER BY id ASC');

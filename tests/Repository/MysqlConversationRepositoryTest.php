@@ -620,6 +620,21 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testEditsAreCountedPerAuthorAndPerPeriodForTheRateLimit(): void
+    {
+        [$alice, $bob, $conversationId, $messageId] = $this->threadWithAMessage();
+        $bobMessage = $this->repository->addMessage($conversationId, $bob->id(), 'Texte de Bob', $this->at('-10 minutes'))->id();
+        $this->repository->updateBody($messageId, 'v2', $this->at('-3 hours'));
+        $this->repository->updateBody($messageId, 'v3', $this->at('-10 minutes'));
+        $this->repository->updateBody($messageId, 'v4', $this->at('-5 minutes'));
+        $this->repository->updateBody($bobMessage, 'Bob corrigé', $this->at('-5 minutes'));
+
+        self::assertSame(2, $this->repository->countEditsBySince($alice->id(), $this->at('-1 hour')));
+        self::assertSame(3, $this->repository->countEditsBySince($alice->id(), $this->at('-1 day')));
+        self::assertSame(1, $this->repository->countEditsBySince($bob->id(), $this->at('-1 hour')));
+    }
+
+    #[Test]
     public function testVersionsDisappearWithTheirConversation(): void
     {
         [, , $conversationId, $messageId] = $this->threadWithAMessage();
