@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Database\TransactionRunner;
+use App\Http\AfterResponseInterface;
+use App\Http\ImmediateAfterResponse;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlPasswordResetRepository;
@@ -17,6 +19,8 @@ use App\Service\PasswordResetService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use App\Tests\Support\FailingMailer;
+use App\Tests\Support\RecordingAfterResponse;
+use App\Tests\Support\ThrowingMailer;
 use App\Tests\Support\RecordingMailer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
@@ -57,7 +61,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         return new FailingMailer();
     }
 
-    private function service(MailerInterface $mailer): PasswordResetService
+    private function service(MailerInterface $mailer, ?AfterResponseInterface $afterResponse = null): PasswordResetService
     {
         return new PasswordResetService(
             $this->users,
@@ -68,6 +72,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
             new TransactionRunner($this->pdo),
             'no-reply@rehearsalbox.example',
             'https://rehearsalbox.example',
+            afterResponse: $afterResponse ?? new ImmediateAfterResponse(),
         );
     }
 
@@ -106,6 +111,51 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         $stored = $this->pdo->query('SELECT token_hash FROM password_resets')->fetchColumn();
         self::assertNotSame($token, $stored);
         self::assertSame(hash('sha256', $token), $stored);
+    }
+
+    #[Test]
+    public function testNothingHappensDuringTheRequestItselfWhetherTheAccountExistsOrNot(): void
+    {
+        $this->insertUser();
+        $this->insertUser('inactive@rehearsalbox.test', false);
+        $mailer = $this->recordingMailer();
+        $after = new RecordingAfterResponse();
+        $service = $this->service($mailer, $after);
+
+        foreach (['alice@rehearsalbox.test', 'inconnu@rehearsalbox.test', 'inactive@rehearsalbox.test'] as $email) {
+            $service->requestReset($email, $this->now);
+        }
+
+        // Même travail dans la requête pour les trois : une tâche mise de côté, ni lecture de compte, ni écriture, ni envoi.
+        self::assertCount(3, $after->tasks);
+        self::assertCount(0, $mailer->sent);
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM password_resets')->fetchColumn());
+    }
+
+    #[Test]
+    public function testTheWorkIsDoneOnceTheResponseIsGone(): void
+    {
+        $this->insertUser();
+        $mailer = $this->recordingMailer();
+        $after = new RecordingAfterResponse();
+        $service = $this->service($mailer, $after);
+        $service->requestReset('alice@rehearsalbox.test', $this->now);
+        $service->requestReset('inconnu@rehearsalbox.test', $this->now);
+
+        $after->runAll();
+
+        self::assertCount(1, $mailer->sent, 'seul le compte existant reçoit un e-mail');
+        self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM password_resets')->fetchColumn());
+    }
+
+    #[Test]
+    public function testAnyFailureWhileSendingIsAbsorbedAndTheTokenIsCancelled(): void
+    {
+        $this->insertUser();
+
+        $this->service(new ThrowingMailer())->requestReset('alice@rehearsalbox.test', $this->now);
+
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM password_resets WHERE used_at IS NULL')->fetchColumn(), 'aucun jeton valable ne reste sans e-mail');
     }
 
     #[Test]

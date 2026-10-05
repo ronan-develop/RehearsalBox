@@ -45,6 +45,8 @@ use App\Service\AvailabilityService;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
+use App\Http\AfterResponseInterface;
+use App\Http\DeferredAfterResponse;
 use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
@@ -57,10 +59,10 @@ use App\Presenter\ConversationUpdates;
 use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
-use App\Repository\Contract\LoginFailureRepositoryInterface;
+use App\Repository\Contract\ThrottleEventRepositoryInterface;
 use App\Repository\MysqlConversationAlertRepository;
 use App\Repository\MysqlConversationNoticeRepository;
-use App\Repository\MysqlLoginFailureRepository;
+use App\Repository\MysqlThrottleEventRepository;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
@@ -97,7 +99,7 @@ use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlConversationTrashRepository;
 use App\Service\GroupDocumentService;
 use App\Service\GroupService;
-use App\Service\LoginThrottle;
+use App\Service\IpThrottle;
 use App\Service\PasswordChangeService;
 use App\Repository\Contract\EmailChangeRepositoryInterface;
 use App\Repository\MysqlEmailChangeRepository;
@@ -204,6 +206,7 @@ return static function (array $config): Container {
         $config['mailer']['from'],
         $config['app']['base_url'],
         $c->get(MailRenderer::class),
+        $c->get(AfterResponseInterface::class),
     ));
 
     $container->set(AccountSecurityService::class, fn ($c) => new AccountSecurityService(
@@ -251,14 +254,20 @@ return static function (array $config): Container {
 
     $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(
         $c->get(PasswordResetService::class),
+        $c->get('throttle.password-reset'),
     ));
 
-    $container->set(LoginFailureRepositoryInterface::class, fn ($c) => new MysqlLoginFailureRepository($c->get(PDO::class)));
-    $container->set(LoginThrottle::class, fn ($c) => new LoginThrottle($c->get(LoginFailureRepositoryInterface::class)));
+    // Limites par adresse : une instance par route sensible, chacune avec son étiquette (#218, #219).
+    $container->set(ThrottleEventRepositoryInterface::class, fn ($c) => new MysqlThrottleEventRepository($c->get(PDO::class)));
+    $container->set('throttle.login', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
+    $container->set('throttle.password-reset', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
+
+    // Travail fait APRÈS l'envoi de la réponse (le front controller appelle run()) : sa durée ne dépend plus du compte (#219).
+    $container->set(AfterResponseInterface::class, static fn () => new DeferredAfterResponse(DeferredAfterResponse::finishRequest(...)));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
         $c->get(AuthServiceInterface::class),
-        $c->get(LoginThrottle::class),
+        $c->get('throttle.login'),
     ));
 
     $container->set(AvailabilityApiController::class, fn ($c) => new AvailabilityApiController(

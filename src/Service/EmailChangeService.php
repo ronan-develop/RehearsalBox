@@ -7,13 +7,13 @@ namespace App\Service;
 use App\Database\TransactionRunner;
 use App\Entity\User;
 use App\Mail\MailRenderer;
+use App\Mail\SafeMail;
 use App\Repository\Contract\EmailChangeRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\PasswordHasherInterface;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\UserValidationException;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -81,19 +81,17 @@ final class EmailChangeService
 
         $link = rtrim($this->baseUrl, '/') . '/account/email/confirm?token=' . $token;
 
-        try {
-            $this->mailer->send($this->renderer()->compose(
-                (new Email())
-                    ->from($this->fromAddress)
-                    ->to($newEmail)
-                    ->subject('RehearsalBox — confirmez votre nouvelle adresse e-mail'),
-                'email-change',
-                ['link' => $link, 'preheader' => 'Confirmez votre nouvelle adresse (lien valable 1 heure).'],
-            ));
-        } catch (TransportExceptionInterface) {
-            // Le jeton n'a pas pu être remis : on l'annule, sans rien révéler. Aucun jeton ni adresse dans le journal.
+        $sent = SafeMail::send($this->mailer, fn () => $this->renderer()->compose(
+            (new Email())
+                ->from($this->fromAddress)
+                ->to($newEmail)
+                ->subject('RehearsalBox — confirmez votre nouvelle adresse e-mail'),
+            'email-change',
+            ['link' => $link, 'preheader' => 'Confirmez votre nouvelle adresse (lien valable 1 heure).'],
+        ), sprintf("Changement d'adresse e-mail : envoi du mail impossible (utilisateur #%d)", $user->id()));
+        if (!$sent) {
+            // Le jeton n'a pas pu être remis : on l'annule, sans rien révéler.
             $this->changeRepository->invalidateAllForUser($user->id(), $now);
-            error_log(sprintf("Changement d'adresse e-mail : envoi du mail impossible (utilisateur #%d).", $user->id()));
         }
     }
 
@@ -137,21 +135,17 @@ final class EmailChangeService
     /** L'alerte part à l'ANCIENNE adresse ; la nouvelle y est masquée. Un échec d'envoi n'annule pas le changement. */
     private function sendChangedAlert(string $oldEmail, string $newEmail): void
     {
-        try {
-            $this->mailer->send($this->renderer()->compose(
-                (new Email())
-                    ->from($this->fromAddress)
-                    ->to($oldEmail)
-                    ->subject('RehearsalBox — votre adresse e-mail a été modifiée'),
-                'email-changed',
-                [
-                    'newEmailMasked' => self::mask($newEmail),
-                    'preheader' => "L'adresse e-mail de votre compte a été modifiée.",
-                ],
-            ));
-        } catch (TransportExceptionInterface) {
-            error_log("Changement d'adresse e-mail : alerte à l'ancienne adresse impossible.");
-        }
+        SafeMail::send($this->mailer, fn () => $this->renderer()->compose(
+            (new Email())
+                ->from($this->fromAddress)
+                ->to($oldEmail)
+                ->subject('RehearsalBox — votre adresse e-mail a été modifiée'),
+            'email-changed',
+            [
+                'newEmailMasked' => self::mask($newEmail),
+                'preheader' => "L'adresse e-mail de votre compte a été modifiée.",
+            ],
+        ), "Changement d'adresse e-mail : alerte à l'ancienne adresse impossible");
     }
 
     /** n***@domaine : le premier caractère et le domaine, rien d'autre. */

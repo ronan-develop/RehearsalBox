@@ -10,8 +10,8 @@ use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use App\Mail\MailRenderer;
+use App\Mail\SafeMail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
@@ -54,11 +54,8 @@ final class AccountSecurityService
             PasswordResetRepositoryInterface::PURPOSE_ALERT,
         );
 
-        try {
-            $this->mailer->send($this->buildAlertMail($user->email(), $token));
-        } catch (TransportExceptionInterface) {
+        if (!SafeMail::send($this->mailer, fn () => $this->buildAlertMail($user->email(), $token), sprintf('Alerte de changement de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
             $this->resetRepository->invalidateAllForUser($user->id(), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
-            error_log(sprintf('Alerte de changement de mot de passe : envoi du mail impossible (utilisateur #%d).', $user->id()));
         }
     }
 

@@ -10,13 +10,13 @@ use App\Http\Request;
 use App\Security\Exception\AccessDeniedException;
 use App\Support\StrictId;
 use App\Service\Contract\AuthServiceInterface;
-use App\Service\LoginThrottle;
+use App\Service\IpThrottle;
 
 final class AuthApiController
 {
     public function __construct(
         private readonly AuthServiceInterface $authService,
-        private readonly LoginThrottle $loginThrottle,
+        private readonly IpThrottle $loginThrottle,
     ) {
     }
 
@@ -33,14 +33,14 @@ final class AuthApiController
             return new JsonResponse(
                 ['error' => 'Trop de tentatives. Réessayez dans quelques minutes.'],
                 429,
-                ['Retry-After' => (string) LoginThrottle::RETRY_AFTER_SECONDS],
+                ['Retry-After' => (string) $this->loginThrottle->retryAfterSeconds()],
             );
         }
 
         $user = $this->authService->attempt($email, $password);
 
         if ($user === null) {
-            $this->loginThrottle->recordFailure($ip, $now);
+            $this->loginThrottle->record($ip, $now);
 
             return new JsonResponse(['error' => 'Identifiants invalides.'], 401);
         }

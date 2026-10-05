@@ -152,3 +152,7 @@ Vérifier après une modification DNS ou un changement d'hébergeur :
 ## Critère de bon fonctionnement
 
 Un musicien peut se connecter depuis son téléphone, voir le dashboard des disponibilités, et revendiquer un créneau libéré sans erreur.
+
+## Vérifier que le mot de passe oublié est à temps constant (#219)
+
+Après un déploiement, et à chaque changement d'hébergeur ou de version de PHP : la réponse de `POST /api/auth/forgot-password` doit avoir **le même temps** pour une adresse connue et pour une adresse inconnue (le travail suit la réponse grâce à `litespeed_finish_request` / `fastcgi_finish_request`). Mesurer ~10 requêtes de chaque sorte (avec un compte de test, jamais une vraie adresse affichée) : les médianes doivent être du même ordre (quelques ms). Si l'écart dépasse ~50 ms, la fonction de libération du client n'est pas disponible : le signaler avant de se fier à la protection.
