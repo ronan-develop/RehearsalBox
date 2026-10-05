@@ -132,6 +132,21 @@ final class MessageRowsTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testOnlyDeletableConversationsGetADeleteButtonOutsideTheLinkWithAnEscapedAccessibleName(): void
+    {
+        $html = $this->renderer->render('messages/_conversation-items', ['items' => [
+            ['id' => 7, 'url' => '/messages/7', 'title' => '<b>Concert</b>', 'date' => '09:05', 'preview' => 'x', 'unread' => false, 'active' => false, 'canDelete' => true],
+            ['id' => 8, 'url' => '/messages/8', 'title' => 'Fil', 'date' => 'Hier', 'preview' => 'y', 'unread' => false, 'active' => false, 'canDelete' => false],
+        ]]);
+
+        self::assertSame(1, substr_count($html, 'data-trash-action="delete"'));
+        self::assertSame(1, substr_count($html, 'data-can-delete'));
+        self::assertMatchesRegularExpression('/<button[^>]*class="rb-chat-item-delete"[^>]*data-id="7"/', $html);
+        self::assertStringContainsString('aria-label="Supprimer la conversation &lt;b&gt;Concert&lt;/b&gt;"', $html);
+        self::assertDoesNotMatchRegularExpression('#<a [^>]*>[^<]*(<span[^>]*>.*?</span>\s*)*<button#s', $html, 'le bouton n\'est pas dans le lien');
+    }
+
+    #[Test]
     public function testConversationItemsAreRealLinksWithUnreadAndActiveStatesAndEscapedText(): void
     {
         $html = $this->renderer->render('messages/_conversation-items', ['items' => [

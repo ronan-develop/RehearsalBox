@@ -14,9 +14,9 @@ use PHPUnit\Framework\TestCase;
 
 final class ConversationListViewTest extends TestCase
 {
-    private function summary(int $id, ?string $title, bool $unread, string $body, bool $mine = false, string $at = '2026-10-04 07:05:00'): ConversationSummary
+    private function summary(int $id, ?string $title, bool $unread, string $body, bool $mine = false, string $at = '2026-10-04 07:05:00', ?int $createdBy = null): ConversationSummary
     {
-        $conversation = new Conversation($id, 3, 4, $title, new \DateTimeImmutable('2026-10-01 10:00:00'));
+        $conversation = new Conversation($id, 3, 4, $title, new \DateTimeImmutable('2026-10-01 10:00:00'), $createdBy);
         $message = new ConversationMessage(50 + $id, $id, $mine ? 10 : 11, $mine ? 'Alice' : 'Bob', $body, new \DateTimeImmutable($at, new \DateTimeZone('UTC')));
 
         return new ConversationSummary($conversation, 'Alpha', 'Beta', $message, $unread);
@@ -43,6 +43,21 @@ final class ConversationListViewTest extends TestCase
         self::assertSame('Hier', $items[1]['date']);
         self::assertSame('Vous : Réponse', $items[1]['preview']);
         self::assertTrue($items[1]['active']);
+    }
+
+    #[Test]
+    public function testOnlyTheConversationsTheViewerOpenedCanBeDeleted(): void
+    {
+        $view = new ConversationListView(new ConversationFormatter(new \DateTimeZone('Europe/Paris')));
+        $now = new \DateTimeImmutable('2026-10-04 16:00:00', new \DateTimeZone('UTC'));
+
+        $items = $view->items([
+            $this->summary(7, 'Ouverte par moi', false, 'a', true, createdBy: 10),
+            $this->summary(8, 'Ouverte par Bob', false, 'b', false, createdBy: 11),
+            $this->summary(9, 'Sans initiateur connu', false, 'c', false, createdBy: null),
+        ], 10, $now, null);
+
+        self::assertSame([true, false, false], array_column($items, 'canDelete'));
     }
 
     #[Test]
