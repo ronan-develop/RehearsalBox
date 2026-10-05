@@ -13,7 +13,7 @@ use App\Http\Request;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
@@ -28,7 +28,7 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         $userRepository = new MysqlUserRepository($this->pdo);
 
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
+        $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
         $groupService = new GroupService($groupRepository, $userRepository);
 

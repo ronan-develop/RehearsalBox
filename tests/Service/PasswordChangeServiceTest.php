@@ -9,7 +9,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\AccountSecurityService;
 use App\Service\Exception\UserValidationException;
@@ -41,7 +41,7 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
     private function service(MailerInterface $mailer): PasswordChangeService
     {
         $resets = new MysqlPasswordResetRepository($this->pdo);
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         $policy = new PasswordPolicy();
         $transactions = new TransactionRunner($this->pdo);
         $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, $mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
@@ -69,7 +69,7 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
         $updated = $this->service(new RecordingMailer())->changePassword($user->id(), 'ancien-mdp', 'nouveau-mdp', 'nouveau-mdp', $this->now);
 
         $stored = $this->users->findById($user->id());
-        self::assertTrue((new NativePasswordHasher())->verify('nouveau-mdp', $stored->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('nouveau-mdp', $stored->passwordHash()));
         self::assertSame(1, $stored->sessionVersion());
         self::assertSame(1, $updated->sessionVersion());
     }
@@ -84,7 +84,7 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
         self::assertSame(['currentPassword'], array_keys($fields));
         $stored = $this->users->findById($user->id());
         self::assertSame(1, $stored->failedLoginAttempts());
-        self::assertTrue((new NativePasswordHasher())->verify('ancien-mdp', $stored->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('ancien-mdp', $stored->passwordHash()));
     }
 
     #[Test]
@@ -101,7 +101,7 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
         // Même avec le bon mot de passe actuel, un compte verrouillé est refusé.
         $fields = $this->failureFields(fn () => $service->changePassword($user->id(), 'ancien-mdp', 'nouveau-mdp', 'nouveau-mdp', $this->now));
         self::assertSame(['currentPassword'], array_keys($fields));
-        self::assertTrue((new NativePasswordHasher())->verify('ancien-mdp', $this->users->findById($user->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('ancien-mdp', $this->users->findById($user->id())->passwordHash()));
     }
 
     #[Test]
@@ -170,7 +170,7 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
 
         $this->service(new FailingMailer())->changePassword($user->id(), 'ancien-mdp', 'nouveau-mdp', 'nouveau-mdp', $this->now);
 
-        self::assertTrue((new NativePasswordHasher())->verify('nouveau-mdp', $this->users->findById($user->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('nouveau-mdp', $this->users->findById($user->id())->passwordHash()));
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM password_resets WHERE used_at IS NULL')->fetchColumn());
     }
 

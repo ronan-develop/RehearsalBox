@@ -9,7 +9,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\AccountSecurityService;
 use App\Service\Exception\InvalidResetTokenException;
@@ -35,7 +35,7 @@ final class AccountSecurityServiceTest extends RepositoryTestCase
         $this->mailer = new RecordingMailer();
         $this->now = new \DateTimeImmutable('2026-10-04 12:00:00');
         $transactions = new TransactionRunner($this->pdo);
-        $this->resetService = new PasswordResetService($this->users, $this->resets, new NativePasswordHasher(), new PasswordPolicy(), $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        $this->resetService = new PasswordResetService($this->users, $this->resets, new FastPasswordHasher(), new PasswordPolicy(), $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
         $this->service = new AccountSecurityService($this->users, $this->resets, $this->mailer, $transactions, $this->resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
     }
 
@@ -76,7 +76,7 @@ final class AccountSecurityServiceTest extends RepositoryTestCase
 
         $this->service->secureAccount($token, $this->now);
 
-        self::assertTrue((new NativePasswordHasher())->verify('mdp-actuel', $this->users->findById($user->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('mdp-actuel', $this->users->findById($user->id())->passwordHash()));
     }
 
     #[Test]

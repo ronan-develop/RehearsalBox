@@ -14,7 +14,7 @@ use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\GroupDocumentService;
 use App\Tests\RepositoryTestCase;
@@ -47,7 +47,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $documentService = new GroupDocumentService($documentRepository, $groupRepository, $this->storagePath, 20);
 
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
+        $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
 
         $controller = new GroupDocumentApiController($documentService, $authGuard);

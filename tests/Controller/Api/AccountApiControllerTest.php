@@ -14,7 +14,7 @@ use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\UnauthenticatedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\AccountSecurityService;
 use App\Service\EmailChangeService;
@@ -41,10 +41,10 @@ final class AccountApiControllerTest extends RepositoryTestCase
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
         $this->mailer = new RecordingMailer();
-        $this->auth = new AuthService($this->users, new NativePasswordHasher(), new InMemorySession(), new MysqlGroupRepository($this->pdo));
+        $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), new MysqlGroupRepository($this->pdo));
         $resets = new MysqlPasswordResetRepository($this->pdo);
         $transactions = new TransactionRunner($this->pdo);
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         $policy = new PasswordPolicy();
         $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
         $this->security = new AccountSecurityService($this->users, $resets, $this->mailer, $transactions, $resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
@@ -60,7 +60,7 @@ final class AccountApiControllerTest extends RepositoryTestCase
 
     private function insertUser(string $email = 'alice@rehearsalbox.test'): User
     {
-        return $this->users->save(new User(0, $email, (new NativePasswordHasher())->hash('ancien-mdp'), 'Utilisateur', UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, $email, (new FastPasswordHasher())->hash('ancien-mdp'), 'Utilisateur', UserRole::Musicien, true, 0, null));
     }
 
     private function post(string $path, array $body): Request
@@ -94,7 +94,7 @@ final class AccountApiControllerTest extends RepositoryTestCase
         $response = $this->controller->changePassword($this->change());
 
         self::assertSame(200, $response->statusCode());
-        self::assertTrue((new NativePasswordHasher())->verify('nouveau-mdp', $this->users->findById($user->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('nouveau-mdp', $this->users->findById($user->id())->passwordHash()));
         self::assertNotNull($this->auth->currentUser());
     }
 
@@ -107,8 +107,8 @@ final class AccountApiControllerTest extends RepositoryTestCase
 
         $this->controller->changePassword($this->change(['userId' => $bob->id(), 'id' => $bob->id(), 'email' => 'bob@rehearsalbox.test']));
 
-        self::assertTrue((new NativePasswordHasher())->verify('ancien-mdp', $this->users->findById($bob->id())->passwordHash()));
-        self::assertTrue((new NativePasswordHasher())->verify('nouveau-mdp', $this->users->findById($alice->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('ancien-mdp', $this->users->findById($bob->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('nouveau-mdp', $this->users->findById($alice->id())->passwordHash()));
     }
 
     #[Test]

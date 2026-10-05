@@ -16,7 +16,7 @@ use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\UnauthenticatedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\AvailabilityService;
 use App\Service\GroupService;
@@ -38,7 +38,7 @@ final class AccountPagesTest extends RepositoryTestCase
         $exceptionRepository = new MysqlSlotExceptionRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $session = new InMemorySession();
-        $this->auth = new AuthService($this->users, new NativePasswordHasher(), $session, $groupRepository);
+        $this->auth = new AuthService($this->users, new FastPasswordHasher(), $session, $groupRepository);
 
         return new PageController(
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
@@ -55,7 +55,7 @@ final class AccountPagesTest extends RepositoryTestCase
 
     private function logIn(UserRole $role): void
     {
-        $this->users->save(new User(0, 'alice@rehearsalbox.test', (new NativePasswordHasher())->hash('password'), 'Alice', $role, true, 0, null));
+        $this->users->save(new User(0, 'alice@rehearsalbox.test', (new FastPasswordHasher())->hash('password'), 'Alice', $role, true, 0, null));
         $this->auth->attempt('alice@rehearsalbox.test', 'password');
     }
 

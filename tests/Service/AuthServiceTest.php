@@ -11,7 +11,7 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
@@ -24,7 +24,7 @@ final class AuthServiceTest extends RepositoryTestCase
         $userRepository = new MysqlUserRepository($this->pdo);
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $session = new InMemorySession();
-        $service = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
+        $service = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
 
         return [$service, $userRepository, $session, $groupRepository];
     }
@@ -34,7 +34,7 @@ final class AuthServiceTest extends RepositoryTestCase
         return $repository->save(new User(
             id: 0,
             email: $email,
-            passwordHash: (new NativePasswordHasher())->hash($password),
+            passwordHash: (new FastPasswordHasher())->hash($password),
             displayName: 'Test',
             role: UserRole::Musicien,
             isActive: true,
@@ -237,11 +237,11 @@ final class AuthServiceTest extends RepositoryTestCase
         [$service, $userRepository] = $this->makeService();
         $user = $this->createUser($userRepository, 'gina@rehearsalbox.test', 'password123');
         $otherDeviceSession = new InMemorySession();
-        $otherDevice = new AuthService($userRepository, new NativePasswordHasher(), $otherDeviceSession, new MysqlGroupRepository($this->pdo));
+        $otherDevice = new AuthService($userRepository, new FastPasswordHasher(), $otherDeviceSession, new MysqlGroupRepository($this->pdo));
         $service->attempt('gina@rehearsalbox.test', 'password123');
         $otherDevice->attempt('gina@rehearsalbox.test', 'password123');
 
-        $updated = $userRepository->save($userRepository->findById($user->id())->withPasswordHash((new NativePasswordHasher())->hash('nouveau-mdp-1')));
+        $updated = $userRepository->save($userRepository->findById($user->id())->withPasswordHash((new FastPasswordHasher())->hash('nouveau-mdp-1')));
         $service->refreshSession($updated);
 
         self::assertNotNull($service->currentUser());

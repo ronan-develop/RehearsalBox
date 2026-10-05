@@ -9,7 +9,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\UserValidationException;
@@ -62,7 +62,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         return new PasswordResetService(
             $this->users,
             new MysqlPasswordResetRepository($this->pdo),
-            new NativePasswordHasher(),
+            new FastPasswordHasher(),
             new PasswordPolicy(),
             $mailer,
             new TransactionRunner($this->pdo),
@@ -200,8 +200,8 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         $service->resetPassword($this->tokenFrom($mailer->sent[0]), 'nouveau-mdp', $this->now->modify('+5 minutes'));
 
         $updated = $this->users->findById($user->id());
-        self::assertTrue((new NativePasswordHasher())->verify('nouveau-mdp', $updated->passwordHash()));
-        self::assertFalse((new NativePasswordHasher())->verify('ancien-mdp', $updated->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('nouveau-mdp', $updated->passwordHash()));
+        self::assertFalse((new FastPasswordHasher())->verify('ancien-mdp', $updated->passwordHash()));
         self::assertSame(0, $updated->failedLoginAttempts());
         self::assertNull($updated->lockedUntil());
     }
@@ -260,7 +260,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
 
         // Le jeton reste utilisable avec un mot de passe valide.
         $service->resetPassword($token, 'nouveau-mdp', $this->now->modify('+2 minutes'));
-        self::assertTrue((new NativePasswordHasher())->verify(
+        self::assertTrue((new FastPasswordHasher())->verify(
             'nouveau-mdp',
             $this->users->findByEmail('alice@rehearsalbox.test')->passwordHash(),
         ));
@@ -282,7 +282,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         }
 
         self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM password_resets WHERE used_at IS NULL')->fetchColumn());
-        self::assertTrue((new NativePasswordHasher())->verify('ancien-mdp', $this->users->findById($user->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('ancien-mdp', $this->users->findById($user->id())->passwordHash()));
     }
 
     #[Test]
@@ -290,7 +290,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
     {
         // Parcours voulu pour une première connexion (#138) : l'admin crée le compte sans
         // mot de passe, l'utilisateur passe par « Mot de passe oublié » et choisit le sien.
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         $user = (new \App\Service\UserProvisioningService($this->users, $hasher, new PasswordPolicy()))
             ->createWithoutPassword('younasse@rehearsalbox.test', 'Younasse', UserRole::Musicien);
         $mailer = $this->recordingMailer();

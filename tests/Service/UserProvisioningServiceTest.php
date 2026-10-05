@@ -6,7 +6,7 @@ namespace App\Tests\Service;
 
 use App\Entity\Enum\UserRole;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\Exception\UserValidationException;
 use App\Service\UserProvisioningService;
@@ -17,7 +17,7 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
 {
     private function service(): UserProvisioningService
     {
-        return new UserProvisioningService(new MysqlUserRepository($this->pdo), new NativePasswordHasher(), new PasswordPolicy());
+        return new UserProvisioningService(new MysqlUserRepository($this->pdo), new FastPasswordHasher(), new PasswordPolicy());
     }
 
     #[Test]
@@ -32,7 +32,7 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
         self::assertSame(UserRole::Admin, $found->role());
         self::assertTrue($found->isActive());
         self::assertNotSame('secret-pass', $found->passwordHash());
-        self::assertTrue((new NativePasswordHasher())->verify('secret-pass', $found->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('secret-pass', $found->passwordHash()));
     }
 
     #[Test]
@@ -48,7 +48,7 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
 
         $found = (new MysqlUserRepository($this->pdo))->findByEmail('denis@example.test');
         self::assertSame('denis', $found->displayName());
-        self::assertTrue((new NativePasswordHasher())->verify('first-pass', $found->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('first-pass', $found->passwordHash()));
     }
 
     #[Test]
@@ -124,7 +124,7 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
         self::assertSame(UserRole::Musicien, $found->role());
         self::assertNotSame('', $found->passwordHash());
         // Le secret est aléatoire et inconnu : aucun mot de passe plausible ne le vérifie.
-        $hasher = new NativePasswordHasher();
+        $hasher = new FastPasswordHasher();
         foreach (['', 'younasse@example.test', 'Younasse', bin2hex(random_bytes(8))] as $guess) {
             self::assertFalse($hasher->verify($guess, $found->passwordHash()));
         }

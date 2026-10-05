@@ -11,7 +11,7 @@ use App\Entity\User;
 use App\Http\Request;
 use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Security\PasswordPolicy;
 use App\Service\PasswordResetService;
 use App\Tests\Support\RecordingMailer;
@@ -35,7 +35,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
         return new PasswordResetApiController(new PasswordResetService(
             $this->users,
             new MysqlPasswordResetRepository($this->pdo),
-            new NativePasswordHasher(),
+            new FastPasswordHasher(),
             new PasswordPolicy(),
             $this->mailer,
             new TransactionRunner($this->pdo),
@@ -104,7 +104,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
         $response = $controller->resetPassword($this->post('/api/auth/reset-password', ['token' => $this->tokenSent(), 'password' => 'nouveau-mdp']));
 
         self::assertSame(200, $response->statusCode());
-        self::assertTrue((new NativePasswordHasher())->verify('nouveau-mdp', $this->users->findById($user->id())->passwordHash()));
+        self::assertTrue((new FastPasswordHasher())->verify('nouveau-mdp', $this->users->findById($user->id())->passwordHash()));
     }
 
     #[Test]

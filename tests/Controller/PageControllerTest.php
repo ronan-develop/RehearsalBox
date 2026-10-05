@@ -18,7 +18,7 @@ use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\AvailabilityService;
 use App\Service\GroupService;
@@ -38,7 +38,7 @@ final class PageControllerTest extends RepositoryTestCase
         $userRepository = new MysqlUserRepository($this->pdo);
 
         $session = new InMemorySession();
-        $authService = new AuthService($userRepository, new NativePasswordHasher(), $session, $groupRepository);
+        $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
         $availabilityService = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
         $slotService = new SlotService($slotRepository, $groupRepository, $exceptionRepository);

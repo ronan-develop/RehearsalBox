@@ -20,7 +20,7 @@ use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Security\NativePasswordHasher;
+use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\ConversationService;
 use App\Tests\RepositoryTestCase;
@@ -47,7 +47,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $session = new InMemorySession();
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
-        $this->auth = new AuthService($this->users, new NativePasswordHasher(), $session, $this->groups);
+        $this->auth = new AuthService($this->users, new FastPasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
         $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
         $this->trash = new \App\Service\ConversationTrashService(new \App\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new MysqlConversationRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
@@ -64,7 +64,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
 
     private function user(string $name): User
     {
-        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', (new NativePasswordHasher())->hash(self::PASSWORD), $name, UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, strtolower($name) . '@rehearsalbox.test', (new FastPasswordHasher())->hash(self::PASSWORD), $name, UserRole::Musicien, true, 0, null));
     }
 
     private function group(string $name, User ...$members): Group
