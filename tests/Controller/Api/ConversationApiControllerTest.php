@@ -152,7 +152,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private function startAsAlice(User $alice, Group $a, Group $b, array $extra = []): string
     {
         $this->loginAs($alice);
-        [, $json] = $this->call('start', [], ['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Salut'] + $extra);
+        [, $json] = $this->call('start', [], array_replace(['groupId' => $a->id(), 'targetGroupId' => $b->id(), 'message' => 'Salut'], $extra));
 
         return (string) $json['id'];
     }
@@ -219,6 +219,61 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Un autre message', $reply['html'], 'les messages reçus entre-temps arrivent avec le mien');
         self::assertStringContainsString('Ma réponse', $reply['html']);
         self::assertStringNotContainsString('Salut', $reply['html'], 'déjà affiché côté client');
+    }
+
+    // --- Citer un message (#214) ---------------------------------------------------------------------
+
+    #[Test]
+    public function testReplyingWithAQuoteShowsTheQuoteWithItsAuthorAndAJumpLink(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b, ['message' => 'Jeudi à 20h ? <b>important</b>']);
+        $quotedId = $this->thread($id)['lastId'];
+        $this->loginAs($bob);
+
+        [$status, $reply] = $this->call('reply', [], ['message' => 'Oui !', 'replyTo' => $quotedId, 'after' => (string) $quotedId], $id);
+
+        self::assertSame(201, $status);
+        self::assertStringContainsString('class="rb-chat-quote"', $reply['html']);
+        self::assertStringContainsString('href="#message-' . $quotedId . '"', $reply['html']);
+        self::assertStringContainsString('Alice', $reply['html']);
+        self::assertStringContainsString('Jeudi à 20h ? &lt;b&gt;important&lt;/b&gt;', $reply['html'], 'le texte cité est échappé');
+        self::assertStringNotContainsString('<b>important</b>', $reply['html']);
+    }
+
+    #[Test]
+    public function testAMessageOfAnotherConversationAndAMalformedIdentifierAreRefusedAsForbidden(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $carole = $this->user('Carole');
+        $c = $this->group('Gamma', $carole);
+        $mine = $this->startAsAlice($alice, $a, $b);
+        $this->loginAs($carole);
+        [, $secret] = $this->call('start', [], ['groupId' => $c->id(), 'targetGroupId' => $b->id(), 'message' => 'Secret de Carole']);
+        $secretId = $this->thread((string) $secret['id'])['lastId'];
+        $this->loginAs($alice);
+
+        foreach ([$secretId, 99999, '5abc', '0', '-1', [1]] as $replyTo) {
+            try {
+                $this->call('reply', [], ['message' => 'Citation interdite', 'replyTo' => $replyTo], $mine);
+                self::fail('citation refusée attendue : ' . json_encode($replyTo));
+            } catch (AccessDeniedException) {
+                self::addToAssertionCount(1);
+            }
+        }
+        self::assertStringNotContainsString('Citation interdite', $this->thread($mine)['html'], 'rien n’est enregistré');
+    }
+
+    #[Test]
+    public function testAbsentOrNullQuoteMeansNoQuote(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        [, $without] = $this->call('reply', [], ['message' => 'Sans citation'], $id);
+        [, $withNull] = $this->call('reply', [], ['message' => 'Citation nulle', 'replyTo' => null], $id);
+
+        self::assertStringNotContainsString('rb-chat-quote', $without['html'] . $withNull['html']);
     }
 
     #[Test]

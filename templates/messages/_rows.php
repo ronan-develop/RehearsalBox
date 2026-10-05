@@ -13,7 +13,7 @@ foreach ($rows as $row):
 <?php elseif ($row['type'] === 'system'): ?>
 <li class="rb-chat-system"><?= e($row['text']) ?></li>
 <?php else: ?>
-<li class="rb-chat-message<?= $row['mine'] ? ' rb-chat-message--mine' : '' ?><?= !empty($row['mentionsMe']) ? ' rb-chat-message--mentioned' : '' ?>" data-message-id="<?= e((string) $row['id']) ?>"<?= !empty($row['editable']) ? ' data-editable' : '' ?>>
+<li id="message-<?= e((string) $row['id']) ?>" class="rb-chat-message<?= $row['mine'] ? ' rb-chat-message--mine' : '' ?><?= !empty($row['mentionsMe']) ? ' rb-chat-message--mentioned' : '' ?>" data-message-id="<?= e((string) $row['id']) ?>"<?= !empty($row['editable']) ? ' data-editable' : '' ?>>
     <?php if (!$row['mine']): ?>
         <?php if ($row['startsRun']): ?>
             <span class="rb-chat-avatar" aria-hidden="true"<?= $row['color'] !== null ? ' style="--group-color: ' . e($row['color']) . '"' : '' ?><?= $row['groupName'] !== null ? ' title="' . e($row['groupName']) . '"' : '' ?>><?= e($row['initials']) ?></span>

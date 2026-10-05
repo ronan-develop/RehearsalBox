@@ -62,9 +62,12 @@ final class ConversationApiController
         $message = $request->body('message');
         $after = $request->body('after');
         $mentions = $request->body('mentions');
+        // Message cité (#214) : absent ou null = aucune citation ; un identifiant mal formé est refusé comme un accès interdit.
+        $replyTo = $request->body('replyTo');
+        $replyToId = $replyTo === null ? null : StrictId::orDenied($replyTo);
 
-        return $this->guarded(function () use ($user, $conversationId, $message, $after, $mentions): JsonResponse {
-            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '', $this->mentionIds($mentions));
+        return $this->guarded(function () use ($user, $conversationId, $message, $after, $mentions, $replyToId): JsonResponse {
+            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '', $this->mentionIds($mentions), $replyToId);
             $anchor = StrictId::from($after) ?? max(0, $created->id() - 1);
 
             return new JsonResponse($this->updates->payload($user->id(), $conversationId, min($anchor, $created->id() - 1)), 201);
