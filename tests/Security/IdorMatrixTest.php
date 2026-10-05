@@ -271,6 +271,28 @@ final class IdorMatrixTest extends TestCase
         self::assertSame(200, $this->call('stranger', 'GET', '/messages')[0], 'la liste est ouverte à tout connecté (vide pour un inconnu)');
     }
 
+    #[Test]
+    public function testNewConversationPageIsLoginOnlyNeverCreatesAnythingAndLeaksNoContactAddress(): void
+    {
+        $groupA = (string) self::$ids['groupA'];
+
+        self::assertSame(302, $this->call('anon', 'GET', "/messages/new/{$groupA}")[0], 'anonyme : redirigé vers la connexion');
+
+        $unknown = $this->call('stranger', 'GET', '/messages/new/' . self::MISSING_ID);
+        $malformed = $this->call('stranger', 'GET', '/messages/new/abc');
+        self::assertSame(403, $unknown[0]);
+        self::assertSame($unknown, $malformed, 'groupe inexistant et identifiant mal formé indiscernables');
+
+        [$status, $body] = $this->call('outsiderB', 'GET', "/messages/new/{$groupA}");
+        self::assertSame(200, $status);
+        self::assertStringContainsString('data-draft-target-id="' . $groupA . '"', $body);
+        self::assertStringNotContainsString('a@example.test', $body, 'l\'adresse de contact du groupe ne sort jamais');
+
+        [, $strangerBody] = $this->call('stranger', 'GET', "/messages/new/{$groupA}");
+        self::assertStringContainsString('data-draft-blocked', $strangerBody, 'sans groupe, on ne peut pas écrire (le serveur refusera aussi à l\'envoi)');
+        self::assertSame(1, $this->conversationCount(), 'aucune page de démarrage ne crée de conversation');
+    }
+
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------
 
     #[Test]
@@ -300,6 +322,11 @@ final class IdorMatrixTest extends TestCase
     }
 
     // --- Harnais ------------------------------------------------------------------
+
+    private function conversationCount(): int
+    {
+        return (int) TestDatabase::connection()->query('SELECT COUNT(*) FROM conversations')->fetchColumn();
+    }
 
     private function groupBId(): int
     {

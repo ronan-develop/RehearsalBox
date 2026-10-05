@@ -35,3 +35,14 @@ Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/as
 - Toasts non bloquants pour tout retour d'action async (succès/erreur) — jamais `alert()`/`confirm()` natifs (mauvaise UX mobile)
 - Confirmation d'action destructive : modale HTML/CSS maison pilotée en JS, jamais `confirm()` natif
 - Zones tactiles suffisamment grandes (mobile-first) sur les boutons d'action (claim, libérer, supprimer)
+
+## Composants Web (#181) — convention pour tout nouveau morceau d'interface
+
+La messagerie est construite en **éléments personnalisés natifs** (standard des navigateurs : aucune dépendance, rien à maintenir) dans `public/assets/js/chat/`. Même convention pour tout nouveau composant.
+
+- **Un composant = un morceau de gabarit PHP + un élément JS.** Le gabarit (`templates/<page>/_nom.php`, documenté par `@var`) rend l'élément et ses enfants côté serveur ; l'élément ajoute le comportement. DOM direct (pas de Shadow DOM) : le CSS du site, les gabarits et les attributs `data-*` continuent de s'appliquer ; les éléments d'enrobage sont `display: contents`.
+- **Composant de présentation** (`rb-sidebar`, `rb-thread-header`, `rb-message-list`, `rb-composer`) : reçoit des données par méthodes (`setConversations()`, `render()`…), **émet des événements** (contrat dans `chat/events.js` : `composer:submit`, `header:rename`, `sidebar:select`…) et **ne parle jamais à l'API**. **Contrôleur** (`rb-chat`) : possède l'état, écoute les événements, appelle l'API. Un nouveau composant se branche sans toucher aux autres.
+- **Asynchrone moderne** : `async/await` partout ; un `AbortController` par « session » (conversation ouverte) annule chargement et polling d'un coup ; boucles `while` + `sleep(ms, signal)` + `whenVisible()` (`chat/async.js`) au lieu de `setTimeout` récursifs ; pause quand l'onglet est caché.
+- **Logique pure à part** (`chat/model.js`, testée sans DOM) ; rendu DOM dans `chat/view.js` ; appels réseau dans `chat/api.js` (toujours via `apiFetch`, CSRF).
+- **Sécurité** : le texte venant d'un utilisateur n'est inséré que par `textContent`, jamais en HTML ; une couleur n'est appliquée que si elle valide `#rrggbb`.
+- **Tests** : `node --test` pour la logique pure et le contrat d'événements ; les éléments eux-mêmes se vérifient dans un vrai navigateur (Chromium, mobile ET bureau). Le motif de `npm test` est entre guillemets : sans cela le shell n'exécute que les tests des sous-dossiers.
