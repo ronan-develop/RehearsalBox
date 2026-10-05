@@ -12,6 +12,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use Symfony\Component\Clock\ClockInterface;
+use App\Service\Contract\ConversationMentionsInterface;
 
 /**
  * Éditer son propre message (#200). Seul l'AUTEUR modifie son message (même pas l'initiateur de la conversation ni un
@@ -28,7 +29,7 @@ final class MessageEditService
     public function __construct(
         private readonly ConversationAccess $access,
         private readonly ConversationMessageRepositoryInterface $messages,
-        private readonly ConversationMentionService $mentions,
+        private readonly ConversationMentionsInterface $mentions,
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
         private readonly ConversationInputPolicy $inputPolicy = new ConversationInputPolicy(),

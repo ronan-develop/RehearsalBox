@@ -11,6 +11,7 @@ use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\Contract\ConversationMentionsInterface;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -30,7 +31,7 @@ final class ConversationReader
         private readonly ConversationMessageRepositoryInterface $messages,
         private readonly ConversationPresenceRepositoryInterface $presence,
         private readonly ClockInterface $clock,
-        private readonly ?ConversationMentionService $mentions = null,
+        private readonly ConversationMentionsInterface $mentions = new NoConversationMentions(),
     ) {
     }
 
@@ -78,7 +79,7 @@ final class ConversationReader
         $this->access->participant($userId, $conversationId);
         $messages = $this->messages->editedSince($conversationId, $since, $upToMessageId);
 
-        return ['messages' => $messages, 'mentions' => $this->mentions?->forMessages($messages) ?? []];
+        return ['messages' => $messages, 'mentions' => $this->mentions->forMessages($messages)];
     }
 
     /** « En train d'écrire » : au plus un signal pris en compte toutes les 2 secondes (le dépôt l'applique). @throws AccessDeniedException */

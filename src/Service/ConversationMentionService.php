@@ -14,13 +14,14 @@ use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;
+use App\Service\Contract\ConversationMentionsInterface;
 
 /**
  * Mentions d'un message (#178) : valide les personnes désignées par IDENTIFIANT (jamais par le texte), sépare les
  * participants des extérieurs et invite ces derniers. Une personne n'est prise en compte que si « @Nom » figure dans le
  * texte. Seuls les membres de l'un des deux groupes peuvent faire entrer quelqu'un ; un invité mentionne les participants.
  */
-final class ConversationMentionService
+final class ConversationMentionService implements ConversationMentionsInterface
 {
     public const MAX_MENTIONS = 10;
 

@@ -13,6 +13,7 @@ use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Service\Contract\ConversationMentionsInterface;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -29,7 +30,7 @@ final class ConversationThreadBuilder
         private readonly ConversationPresenceRepositoryInterface $presence,
         private readonly GroupRepositoryInterface $groups,
         private readonly ClockInterface $clock,
-        private readonly ?ConversationMentionService $mentions = null,
+        private readonly ConversationMentionsInterface $mentions = new NoConversationMentions(),
     ) {
     }
 
@@ -48,7 +49,7 @@ final class ConversationThreadBuilder
             $this->authorGroups($conversation, $messages),
             $firstUnreadId,
             $afterId > 0 ? $this->messages->messageById($conversation->id(), $afterId) : null,
-            $this->mentions?->forMessages($messages) ?? [],
+            $this->mentions->forMessages($messages),
         );
     }
 
