@@ -70,6 +70,75 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
         $this->insertUser($repository, 'chris@rehearsalbox.test', 'Chris Bis');
     }
 
+    #[Test]
+    public function testEveryFailedLoginCountsEvenWhenManyRequestsReadTheSameStaleUser(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $user = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+        $now = new \DateTimeImmutable('2026-01-01 10:00:00');
+
+        // Cinq requêtes simultanées ont toutes lu « 0 échec » : aucune ne doit écraser les autres.
+        $stale = [$repository->findById($user->id()), $repository->findById($user->id()), $repository->findById($user->id())];
+        foreach ($stale as $read) {
+            self::assertSame(0, $read->failedLoginAttempts());
+            $repository->recordFailedLogin($user->id(), 5, $now, '+15 minutes');
+        }
+
+        self::assertSame(3, $repository->findById($user->id())->failedLoginAttempts());
+        self::assertFalse($repository->findById($user->id())->isLocked($now));
+    }
+
+    #[Test]
+    public function testTheAccountIsLockedExactlyWhenTheThresholdIsReached(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $user = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+        $now = new \DateTimeImmutable('2026-01-01 10:00:00');
+
+        for ($i = 1; $i <= 4; ++$i) {
+            $repository->recordFailedLogin($user->id(), 5, $now, '+15 minutes');
+            self::assertFalse($repository->findById($user->id())->isLocked($now), "après {$i} échecs");
+        }
+        $repository->recordFailedLogin($user->id(), 5, $now, '+15 minutes');
+
+        $locked = $repository->findById($user->id());
+        self::assertTrue($locked->isLocked($now));
+        self::assertEquals(new \DateTimeImmutable('2026-01-01 10:15:00'), $locked->lockedUntil());
+    }
+
+    #[Test]
+    public function testTheCounterIsCappedSoItNeverOverflowsItsColumn(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $user = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+        $now = new \DateTimeImmutable('2026-01-01 10:00:00');
+
+        for ($i = 0; $i < 120; ++$i) {
+            $repository->recordFailedLogin($user->id(), 5, $now, '+15 minutes');
+        }
+
+        self::assertSame(100, $repository->findById($user->id())->failedLoginAttempts());
+    }
+
+    #[Test]
+    public function testResettingFailedLoginsClearsTheCounterAndTheLockOnly(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $user = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+        $now = new \DateTimeImmutable('2026-01-01 10:00:00');
+        for ($i = 0; $i < 5; ++$i) {
+            $repository->recordFailedLogin($user->id(), 5, $now, '+15 minutes');
+        }
+
+        $repository->resetFailedLogins($user->id());
+
+        $after = $repository->findById($user->id());
+        self::assertSame(0, $after->failedLoginAttempts());
+        self::assertNull($after->lockedUntil());
+        self::assertSame('Alice', $after->displayName());
+        self::assertSame($user->sessionVersion(), $after->sessionVersion());
+    }
+
     private function insertUser(MysqlUserRepository $repository, string $email, string $displayName): User
     {
         $user = new User(
