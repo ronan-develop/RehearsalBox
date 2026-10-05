@@ -21,8 +21,8 @@ export function fetchListFragment(box, activeId = null, { signal } = {}) {
 }
 
 /** Envoie un message ; la réponse contient les messages plus récents que `after` (dont le mien), déjà dessinés. */
-export function sendMessage(id, message, after) {
-  return apiFetch(`${base(id)}/messages`, { method: 'POST', body: JSON.stringify({ message, after }) });
+export function sendMessage(id, message, after, mentions = []) {
+  return apiFetch(`${base(id)}/messages`, { method: 'POST', body: JSON.stringify({ message, after, ...(mentions.length > 0 ? { mentions } : {}) }) });
 }
 
 export function renameConversation(id, title) {
@@ -34,8 +34,32 @@ export function sendTyping(id) {
 }
 
 /** Crée la conversation à l'envoi du premier message (page de démarrage). Le serveur revérifie tout. */
-export function startConversation({ groupId, targetGroupId, message }) {
-  return apiFetch('/api/conversations', { method: 'POST', body: JSON.stringify({ groupId, targetGroupId, message }) });
+export function startConversation({ groupId, targetGroupId, message, mentions = [] }) {
+  return apiFetch('/api/conversations', {
+    method: 'POST',
+    body: JSON.stringify({ groupId, targetGroupId, message, ...(mentions.length > 0 ? { mentions } : {}) }),
+  });
+}
+
+/**
+ * Liste proposée après « @ » : { members: [{ id, name, groups, participant }] }. Le contexte est une conversation
+ * (`conversation`) ou, sur la page de démarrage, le groupe émetteur et le groupe visé.
+ */
+export function searchMembers({ query, conversation = null, groupId = null, targetGroupId = null }, { signal } = {}) {
+  const params = new URLSearchParams({ q: query });
+  if (conversation !== null) {
+    params.set('conversation', conversation);
+  } else {
+    params.set('groupId', groupId);
+    params.set('targetGroupId', targetGroupId);
+  }
+
+  return apiFetch(`/api/members?${params}`, { signal });
+}
+
+/** Retire un invité (celui qui l'a ajouté, l'initiateur, ou l'invité qui quitte). */
+export function removeGuest(conversationId, userId) {
+  return apiFetch(`${base(conversationId)}/guests/${encodeURIComponent(userId)}`, { method: 'DELETE' });
 }
 
 /** Corbeille (#190) : mise à la corbeille (initiateur), restauration, suppression définitive, fermeture d'un avis. */
