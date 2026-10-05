@@ -2,6 +2,7 @@
 import { initAsyncForms } from './forms.js';
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
+import { clearAllDrafts } from './chat/drafts.js';
 
 /** Remplace un formulaire par son message de confirmation ([data-confirmation] dans le même bloc). */
 export function revealConfirmation(form) {
@@ -103,6 +104,7 @@ export function initAuth() {
     button.addEventListener('click', async () => {
       try {
         await apiFetch('/api/auth/logout', { method: 'POST', body: JSON.stringify({}) });
+        clearAllDrafts(); // un message non envoyé ne reste pas lisible sur un poste partagé
         window.location.href = '/login';
       } catch (error) {
         showToast(error.message, 'error');

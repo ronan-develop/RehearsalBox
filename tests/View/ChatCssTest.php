@@ -94,6 +94,28 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testTheFeedIsAnchoredAtTheBottomByCssAlone(): void
+    {
+        self::assertMatchesRegularExpression('/\.rb-chat-messages\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column-reverse/s', $this->css(), 'ouverture sur le dernier message sans flash ni JS');
+    }
+
+    #[Test]
+    public function testTheNewMessagesIndicatorFloatsAboveTheStatusLineAndStaysHiddenWhenAsked(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-new-anchor\s*\{[^}]*position:\s*relative[^}]*height:\s*0/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-new-messages\s*\{[^}]*position:\s*absolute[^}]*min-height:\s*44px/s', $css, 'flotte, zone tactile suffisante');
+        self::assertMatchesRegularExpression('/\.rb-chat-new-messages\[hidden\]\s*\{[^}]*display:\s*none/', $css);
+    }
+
+    #[Test]
+    public function testPageTransitionsAreNativeAndRespectReducedMotion(): void
+    {
+        self::assertMatchesRegularExpression('/@media \(prefers-reduced-motion: no-preference\)\s*\{\s*@view-transition\s*\{\s*navigation:\s*auto;/s', $this->css(), 'fondu natif entre pages, aucun script, désactivé pour qui réduit les animations');
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

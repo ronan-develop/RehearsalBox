@@ -5,6 +5,7 @@
  */
 import { fetchListFragment } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
+import { createScrollMemory, sessionStorageOrNull } from './scroll-memory.js';
 
 const REFRESH_MS = 30000;
 
@@ -15,6 +16,7 @@ export class RbSidebar extends HTMLElement {
     this.listEl = this.querySelector('[data-chat-list]');
     this.emptyEl = this.querySelector('[data-chat-empty]');
     this.badge = this.querySelector('[data-chat-archives-unread]');
+    this.#keepScrollPosition();
     this.#loop(this.#lifetime.signal);
   }
 
@@ -37,6 +39,26 @@ export class RbSidebar extends HTMLElement {
       this.badge.textContent = String(archivedUnread);
       this.badge.hidden = archivedUnread === 0;
     }
+  }
+
+  /**
+   * Position de la liste conservée à travers la navigation (#187) : restaurée à l'affichage, enregistrée quand on défile
+   * et quand on quitte la page. Sur mobile la liste est masquée pendant qu'un fil est ouvert : on n'enregistre alors rien.
+   */
+  #keepScrollPosition() {
+    const memory = createScrollMemory(sessionStorageOrNull());
+    const name = this.dataset.box ?? 'active';
+    const saved = memory.load(name);
+    if (saved !== null) {
+      this.listEl.scrollTop = saved;
+    }
+    const save = () => this.listEl.clientHeight > 0 && memory.save(name, this.listEl.scrollTop);
+    let timer = 0;
+    this.listEl.addEventListener('scroll', () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(save, 150);
+    }, { passive: true });
+    window.addEventListener('pagehide', save);
   }
 
   async #loop(signal) {

@@ -300,8 +300,11 @@ rb-composer {
   overflow-wrap: anywhere;
 }
 
+/* #187 : conteneur en column-reverse (un seul enfant, la liste, qui garde son ordre) : le navigateur ancre le défilement
+   en BAS dès le premier affichage, sans script ni flash, et sans JS. Les messages d'une courte conversation se posent en bas. */
 .rb-chat-messages {
-  display: block;
+  display: flex;
+  flex-direction: column-reverse;
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--rb-space-3);
@@ -742,5 +745,42 @@ rb-composer {
   .rb-chat-item-delete:focus-visible {
     color: #fff;
     background: var(--rb-err);
+  }
+}
+
+/* Indicateur « ↓ Nouveaux messages » (#187) : flotte au-dessus de la ligne d'état quand on relit l'historique. */
+.rb-chat-new-anchor {
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+}
+
+.rb-chat-new-messages {
+  position: absolute;
+  right: 50%;
+  bottom: var(--rb-space-2);
+  z-index: 3;
+  min-height: 44px;
+  padding: 0 var(--rb-space-3);
+  color: var(--rb-bg);
+  background: var(--rb-accent);
+  border: none;
+  border-radius: 22px;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(50%);
+  cursor: pointer;
+}
+
+.rb-chat-new-messages[hidden] {
+  display: none;
+}
+
+/* Transitions de page natives (#187) : les navigations classiques entre pages de la messagerie deviennent des fondus, sans
+   une ligne de JS ni routage client ; ignoré par les navigateurs qui ne le gèrent pas, et désactivé si l'on réduit les animations. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
   }
 }

@@ -4,6 +4,7 @@
  * sur mobile, la liste OU le fil en plein écran (data-view). Rempli par chat.js ; aucun contenu de message ici.
  *
  * @var string   $csrfToken
+ * @var int      $currentUserId clé des brouillons conservés dans le navigateur (#187) : un par utilisateur
  * @var array{items: list<array<string, mixed>>, box: string, archivedUnread: int} $sidebar liste (rendue par le serveur)
  * @var array<string, mixed>|null $thread conversation ouverte (route /messages/{id}), null ailleurs
  * @var array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null $draft
@@ -24,7 +25,7 @@ $hasPane = $thread !== null || $draft !== null;
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body class="rb-chat-body">
-    <rb-chat class="rb-chat" data-chat data-active-id="<?= $thread !== null ? e((string) $thread['id']) : '' ?>" data-last-id="<?= $thread !== null ? e((string) $thread['lastId']) : '0' ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $hasPane ? 'thread' : 'list' ?>">
+    <rb-chat class="rb-chat" data-chat data-user-id="<?= e((string) ($currentUserId ?? 0)) ?>" data-active-id="<?= $thread !== null ? e((string) $thread['id']) : '' ?>" data-last-id="<?= $thread !== null ? e((string) $thread['lastId']) : '0' ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $hasPane ? 'thread' : 'list' ?>">
         <?php require __DIR__ . '/_sidebar.php'; ?>
 
         <section class="rb-chat-main" aria-label="Conversation">
@@ -37,6 +38,8 @@ $hasPane = $thread !== null || $draft !== null;
                 <?php if ($draft !== null && $draft['blocked']): ?>
                     <p class="rb-chat-notice" role="alert">Vous devez appartenir à un autre groupe pour écrire à celui-ci.</p>
                 <?php endif; ?>
+                <?php /* #187 : ancre de hauteur nulle posée entre le fil et la ligne d'état ; le bouton flotte juste au-dessus. */ ?>
+                <div class="rb-chat-new-anchor"><button type="button" class="rb-chat-new-messages" data-chat-new-messages hidden>↓ Nouveaux messages</button></div>
                 <p class="rb-chat-status<?= $thread !== null && $thread['typing'] ? ' rb-chat-status--typing' : '' ?>" data-chat-status aria-live="polite"><?= $thread !== null ? e($thread['status']) : '' ?></p>
                 <?php $composerHidden = $draft !== null && $draft['blocked']; require __DIR__ . '/_composer.php'; ?>
             </div>

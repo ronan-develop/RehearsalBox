@@ -120,6 +120,7 @@ final class MessagesPageController
             $this->renderer->render('messages/index', [
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'currentUserRole' => $user->role(),
+                'currentUserId' => $user->id(),
                 'sidebar' => $sidebar,
                 'thread' => $thread,
                 'draft' => $draft,

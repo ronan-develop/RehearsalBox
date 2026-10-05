@@ -344,6 +344,40 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheThreadPageHasAHiddenNewMessagesIndicatorBetweenTheFeedAndTheStatusLine(): void
+    {
+        [$alice, , $id] = $this->conversationFromAlice();
+        $this->loginAs($alice);
+
+        $body = $this->controller->show($this->request(), (string) $id)->body();
+
+        self::assertMatchesRegularExpression('#</rb-message-list>.*data-chat-new-messages hidden.*data-chat-status#s', $body);
+    }
+
+    #[Test]
+    public function testTheComposerAsksTheMobileKeyboardForASendKey(): void
+    {
+        [$alice, , $id] = $this->conversationFromAlice();
+        $this->loginAs($alice);
+
+        self::assertStringContainsString('enterkeyhint="send"', $this->controller->show($this->request(), (string) $id)->body());
+    }
+
+    #[Test]
+    public function testThePageCarriesTheViewersIdSoDraftsAreKeptPerUser(): void
+    {
+        [$alice, $bob] = $this->conversationFromAlice();
+
+        $this->loginAs($alice);
+        self::assertStringContainsString('data-user-id="' . $alice->id() . '"', $this->controller->list($this->request())->body());
+
+        $this->loginAs($bob);
+        $body = $this->controller->list($this->request())->body();
+        self::assertStringContainsString('data-user-id="' . $bob->id() . '"', $body);
+        self::assertStringNotContainsString('data-user-id="' . $alice->id() . '"', $body);
+    }
+
+    #[Test]
     public function testOnlyTheInitiatorSeesTheDeleteButton(): void
     {
         [$alice, $bob, $id] = $this->conversationFromAlice();

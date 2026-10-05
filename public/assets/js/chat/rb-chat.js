@@ -15,6 +15,7 @@ import {
 } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
 import { EVT } from './events.js';
+import { browserStorage, createDraftStore } from './drafts.js';
 import { nextPollDelay } from './model.js';
 import { showToast } from '../toast.js';
 
@@ -40,6 +41,11 @@ export class RbChat extends HTMLElement {
     this.addEventListener(EVT.RENAME, (event) => this.#serial(() => this.#rename(event.detail.title)));
     this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail.text, event.detail.mentions ?? [])));
     this.composer.suggest = (query) => this.#suggestMembers(query);
+    // Brouillon conservé par utilisateur et par conversation (ou par page de démarrage), jamais envoyé avant l'envoi.
+    this.composer.configureDrafts(
+      createDraftStore(browserStorage(), { userId: this.dataset.userId ?? '0' }),
+      this.#activeId !== null ? this.#activeId : `new-${this.#draftTargetId ?? 'inconnu'}`,
+    );
     this.addEventListener(EVT.TYPING, () => {
       if (this.#activeId !== null) {
         sendTyping(this.#activeId).catch(() => {});
@@ -101,6 +107,8 @@ export class RbChat extends HTMLElement {
       this.#idle = 0;
       if (stick) {
         this.messageList.scrollToBottom();
+      } else {
+        this.messageList.showNewMessagesHint();
       }
       this.sidebar.refresh().catch(() => {});
     } else {

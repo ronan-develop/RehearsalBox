@@ -50,3 +50,14 @@ La messagerie est construite en **éléments personnalisés natifs** (standard d
 - **Logique pure à part** (`chat/model.js` : cadence du polling, limite du signal d'écriture, testée sans DOM) ; appels réseau dans `chat/api.js` (toujours via `apiFetch`, CSRF). **Aucun rendu côté client** : les textes (heures, « Vu par », « écrit… ») sont calculés et dessinés par PHP.
 - **Sécurité** : le texte d'un utilisateur est échappé par `e()` dans les gabarits PHP ; le JS n'insère que le HTML reçu du serveur (fragments issus de ces gabarits), jamais du texte brut converti en HTML ; une couleur n'est émise que si elle valide `#rrggbb` (`SafeColor`).
 - **Tests** : `node --test` pour la logique pure et le contrat d'événements ; les éléments eux-mêmes se vérifient dans un vrai navigateur (Chromium, mobile ET bureau). Le motif de `npm test` est entre guillemets : sans cela le shell n'exécute que les tests des sous-dossiers.
+
+## Confort de la messagerie (#187) — sans SPA
+
+Améliorations d'usage qui respectent « serveur d'abord » (aucun routage ni rendu côté client, aucune dépendance) :
+
+- **Ouverture sur le dernier message par le CSS seul** : le conteneur du fil est en `flex-direction: column-reverse` (un seul enfant, la liste, qui garde son ordre). Le navigateur ancre le défilement en bas dès le premier affichage, sans flash et **sans JS**. L'origine du défilement est le bas : `scrollTop` vaut 0 tout en bas et s'éloigne de 0 en remontant (le signe dépend du navigateur : on ne compare que la distance, `isNearBottom`). Le JS ne garde que le saut vers « Messages non lus ».
+- **Brouillons** (`chat/drafts.js`) : `localStorage`, clé `rb-draft:<utilisateur>:<conversation>`, **7 jours**, **effacés à la déconnexion** (poste partagé), écrits à la saisie (300 ms) et à la fermeture de page, effacés à l'envoi (réécrits si l'envoi échoue). Tout est dans un `try/catch` : stockage absent, plein ou refusé = la page fonctionne sans. Un brouillon est remis dans le champ via `.value`, jamais comme HTML ; il n'est jamais envoyé au serveur avant l'envoi.
+- **Position de la liste** (`chat/scroll-memory.js`) : `sessionStorage`, un nombre de pixels par liste (actives / archivées), restaurée à l'affichage. Le rafraîchissement automatique de la liste ne remplace pas une ligne ouverte ou en cours de glissement.
+- **« ↓ Nouveaux messages »** : quand des messages arrivent pendant qu'on relit l'historique, le fil n'est pas forcé vers le bas ; un bouton le signale (zone tactile de 44 px) et ramène en bas.
+- **Transitions de page natives** : `@view-transition { navigation: auto }` dans `@media (prefers-reduced-motion: no-preference)` ; ignoré par les navigateurs qui ne le gèrent pas.
+- **Mobile** : `enterkeyhint="send"`, focus conservé dans le champ après l'envoi (le clavier reste ouvert), hauteurs en `dvh`.
