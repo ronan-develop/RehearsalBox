@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test public/assets/js/**/*.test.js"
+    "test": "node --test \"public/assets/js/**/*.test.js\""
   }
 }

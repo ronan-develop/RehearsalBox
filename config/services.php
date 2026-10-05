@@ -260,6 +260,7 @@ return static function (array $config): Container {
         $c->get(CsrfTokenManager::class),
         $c->get(AuthGuard::class),
         $c->get(ConversationService::class),
+        $c->get(GroupRepositoryInterface::class),
     ));
 
     $container->set(ConversationApiController::class, fn ($c) => new ConversationApiController(

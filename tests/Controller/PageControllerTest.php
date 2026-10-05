@@ -484,7 +484,7 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public');
 
-        self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
+        self::assertStringContainsString('href="/messages/new/' . $group->id() . '"', $response->body());
     }
 
     #[Test]
@@ -561,53 +561,19 @@ final class PageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testContactModalOffersTheUsersGroupsAsSenderAndEscapesTheirNames(): void
+    public function testNoContactModalAnywhereAndTheGroupSpaceLinksToTheNewConversationPage(): void
     {
         [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
-        $user = $this->createLoggedInUser($userRepository, $authService);
-        $mine = $groupRepository->save(new Group(0, 'Les "Rock" <b>Stars</b>', null, null, 'rock@example.test'));
-        $other = $groupRepository->save(new Group(0, 'Autre Groupe', null, null, 'autre@example.test'));
-        $notMine = $groupRepository->save(new Group(0, 'Groupe Étranger', null, null, 'etranger@example.test'));
-        $groupRepository->addMember($mine->id(), $user->id());
-        $groupRepository->addMember($other->id(), $user->id());
+        $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'public@example.test'));
 
-        $body = $controller->dashboard()->body();
+        $space = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public')->body();
+        $dashboard = $controller->dashboard()->body();
 
-        self::assertStringContainsString('data-contact-from-field', $body);
-        self::assertStringContainsString('data-contact-from-select', $body);
-        self::assertSame(1, preg_match('/data-groups="([^"]*)"/', $body, $matches));
-        $groups = json_decode(html_entity_decode($matches[1], ENT_QUOTES), true);
-        self::assertSame([$other->id(), $mine->id()], array_column($groups, 'id'), 'uniquement MES groupes');
-        self::assertStringNotContainsString('<b>Stars</b>', $body, 'nom de groupe échappé');
-        self::assertStringNotContainsString('Groupe Étranger</option>', $body);
-        self::assertStringNotContainsString((string) $notMine->id() . ',"name"', $matches[1]);
-        self::assertStringNotContainsString('name="subject"', $body, 'plus de sujet obligatoire');
-    }
-
-    #[Test]
-    public function testGroupSpaceContactModalCreatesAConversationAndListsTheViewersGroups(): void
-    {
-        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
-        $viewer = $this->createLoggedInUser($userRepository, $authService);
-        $mine = $groupRepository->save(new Group(0, 'Mon Groupe', null, null, 'moi@example.test'));
-        $groupRepository->addMember($mine->id(), $viewer->id());
-        $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'public@example.test'));
-
-        $body = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public')->body();
-
-        self::assertStringContainsString('data-contact-from-field', $body);
-        self::assertStringContainsString('Mon Groupe', $body);
-        self::assertStringContainsString('name="targetGroupId"', $body);
-    }
-
-    #[Test]
-    public function testGroupSpaceForAnonymousVisitorHasNoSenderChoice(): void
-    {
-        [$controller, $groupRepository] = $this->makeController();
-        $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'public@example.test'));
-
-        $body = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public')->body();
-
-        self::assertStringNotContainsString('data-groups="[{', $body);
+        self::assertStringContainsString('href="/messages/new/' . $group->id() . '"', $space);
+        foreach ([$space, $dashboard] as $body) {
+            self::assertStringNotContainsString('data-contact-modal-overlay', $body, 'on écrit dans une page de conversation, plus dans une modale');
+            self::assertStringNotContainsString('data-contact-form', $body);
+        }
     }
 }

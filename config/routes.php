@@ -30,6 +30,7 @@ return [
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],
+        ['GET', '/messages/new/{groupId}', [MessagesPageController::class, 'compose']],
         ['GET', '/messages/{id}', [MessagesPageController::class, 'show']],
     ],
     'api' => [

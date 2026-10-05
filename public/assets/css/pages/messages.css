@@ -38,6 +38,13 @@
   }
 }
 
+/* Composants (éléments personnalisés, DOM direct) : les éléments d'enrobage ne comptent pas dans la mise en page. */
+rb-sidebar,
+rb-thread-header,
+rb-composer {
+  display: contents;
+}
+
 /* --- Liste ------------------------------------------------------------------------------------- */
 .rb-chat-sidebar {
   display: flex;
@@ -256,6 +263,34 @@
   display: none;
 }
 
+.rb-chat-title--static {
+  margin: 0;
+  cursor: default;
+}
+
+.rb-chat-sender {
+  display: block;
+  margin-top: var(--rb-space-1);
+  color: var(--rb-text-2);
+  font-size: 0.8125rem;
+}
+
+.rb-chat-sender[hidden],
+.rb-chat-sender select[hidden] {
+  display: none;
+}
+
+.rb-chat-sender select {
+  margin-top: 2px;
+}
+
+.rb-chat-notice {
+  margin: 0;
+  padding: var(--rb-space-3);
+  color: var(--rb-warn);
+  text-align: center;
+}
+
 .rb-chat-label {
   margin: 0;
   color: var(--rb-text-3);
@@ -264,16 +299,21 @@
 }
 
 .rb-chat-messages {
+  display: block;
   flex: 1 1 auto;
   min-height: 0;
-  margin: 0;
   padding: var(--rb-space-3);
-  list-style: none;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.rb-chat-messages-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .rb-chat-day,
