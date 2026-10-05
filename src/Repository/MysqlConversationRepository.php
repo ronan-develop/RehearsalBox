@@ -28,20 +28,21 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     {
     }
 
-    public function create(int $initiatorGroupId, int $targetGroupId, ?string $title, \DateTimeImmutable $now): Conversation
+    public function create(int $initiatorGroupId, int $targetGroupId, ?string $title, \DateTimeImmutable $now, ?int $createdBy = null): Conversation
     {
         $statement = $this->pdo->prepare(
-            'INSERT INTO conversations (initiator_group_id, target_group_id, title, created_at)
-             VALUES (:initiator, :target, :title, :created_at)'
+            'INSERT INTO conversations (initiator_group_id, target_group_id, created_by, title, created_at)
+             VALUES (:initiator, :target, :created_by, :title, :created_at)'
         );
         $statement->execute([
             'initiator' => $initiatorGroupId,
             'target' => $targetGroupId,
+            'created_by' => $createdBy,
             'title' => $title,
             'created_at' => $now->format(self::DATE_FORMAT),
         ]);
 
-        return new Conversation((int) $this->pdo->lastInsertId(), $initiatorGroupId, $targetGroupId, $title, $now);
+        return new Conversation((int) $this->pdo->lastInsertId(), $initiatorGroupId, $targetGroupId, $title, $now, $createdBy);
     }
 
     public function rename(int $conversationId, ?string $title): void
@@ -103,7 +104,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function findById(int $id): ?Conversation
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, initiator_group_id, target_group_id, title, created_at FROM conversations WHERE id = :id'
+            'SELECT id, initiator_group_id, target_group_id, created_by, title, created_at, deleted_at FROM conversations WHERE id = :id'
         );
         $statement->execute(['id' => $id]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
@@ -126,7 +127,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
 
     public function listFor(int $userId, string $box, \DateTimeImmutable $inactiveBefore): array
     {
-        $sql = 'SELECT c.id, c.initiator_group_id, c.target_group_id, c.title, c.created_at,
+        $sql = 'SELECT c.id, c.initiator_group_id, c.target_group_id, c.created_by, c.title, c.created_at, c.deleted_at,
                        gi.name AS initiator_name, gt.name AS target_name,
                        lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
                        lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at,
@@ -137,7 +138,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
                 ' . self::LAST_MESSAGE_JOIN . '
                 JOIN users lu ON lu.id = lm.author_id
                 LEFT JOIN conversation_states s ON s.conversation_id = c.id AND s.user_id = :state_user
-                WHERE ' . $this->visibleTo(':visible_user') . ' AND ' . $this->boxCondition($box) . '
+                WHERE c.deleted_at IS NULL AND ' . $this->visibleTo(':visible_user') . ' AND ' . $this->boxCondition($box) . '
                 ORDER BY lm.created_at DESC, lm.id DESC';
 
         $statement = $this->pdo->prepare($sql);
@@ -158,6 +159,61 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             ),
             $statement->fetchAll(\PDO::FETCH_ASSOC),
         );
+    }
+
+    public function moveToTrash(int $conversationId, \DateTimeImmutable $now): void
+    {
+        $statement = $this->pdo->prepare('UPDATE conversations SET deleted_at = :now WHERE id = :id');
+        $statement->execute(['now' => $now->format(self::DATE_FORMAT), 'id' => $conversationId]);
+    }
+
+    public function restore(int $conversationId): void
+    {
+        $statement = $this->pdo->prepare('UPDATE conversations SET deleted_at = NULL WHERE id = :id');
+        $statement->execute(['id' => $conversationId]);
+    }
+
+    public function delete(int $conversationId): void
+    {
+        $statement = $this->pdo->prepare('DELETE FROM conversations WHERE id = :id');
+        $statement->execute(['id' => $conversationId]);
+    }
+
+    public function listTrashedBy(int $userId, \DateTimeImmutable $trashedSince): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT c.id, c.initiator_group_id, c.target_group_id, c.created_by, c.title, c.created_at, c.deleted_at,
+                    gi.name AS initiator_name, gt.name AS target_name,
+                    lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
+                    lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at
+             FROM conversations c
+             JOIN `groups` gi ON gi.id = c.initiator_group_id
+             JOIN `groups` gt ON gt.id = c.target_group_id
+             ' . self::LAST_MESSAGE_JOIN . '
+             JOIN users lu ON lu.id = lm.author_id
+             WHERE c.created_by = :user_id AND c.deleted_at IS NOT NULL AND c.deleted_at >= :since
+             ORDER BY c.deleted_at DESC, c.id DESC'
+        );
+        $statement->execute(['user_id' => $userId, 'since' => $trashedSince->format(self::DATE_FORMAT)]);
+
+        return array_map(
+            fn (array $row): ConversationSummary => new ConversationSummary(
+                $this->hydrateConversation($row),
+                (string) $row['initiator_name'],
+                (string) $row['target_name'],
+                $this->hydrateMessage($row, (int) $row['id'], 'last_'),
+                false,
+            ),
+            $statement->fetchAll(\PDO::FETCH_ASSOC),
+        );
+    }
+
+    public function purgeTrashedBefore(\DateTimeImmutable $cutoff): int
+    {
+        $statement = $this->pdo->prepare('DELETE FROM conversations WHERE deleted_at IS NOT NULL AND deleted_at < :cutoff');
+        $statement->execute(['cutoff' => $cutoff->format(self::DATE_FORMAT)]);
+
+        return $statement->rowCount();
     }
 
     public function lastReadAt(int $conversationId, int $userId): ?\DateTimeImmutable
@@ -184,7 +240,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             'SELECT COUNT(*) FROM conversations c
              ' . self::LAST_MESSAGE_JOIN . '
              LEFT JOIN conversation_states s ON s.conversation_id = c.id AND s.user_id = :state_user
-             WHERE ' . $this->visibleTo(':visible_user') . ' AND ' . ($box === null ? '1 = 1' : $this->boxCondition($box)) . ' AND ' . self::UNREAD_FOR_USER
+             WHERE c.deleted_at IS NULL AND ' . $this->visibleTo(':visible_user') . ' AND ' . ($box === null ? '1 = 1' : $this->boxCondition($box)) . ' AND ' . self::UNREAD_FOR_USER
         );
         $parameters = ['state_user' => $userId, 'visible_user' => $userId, 'unread_user' => $userId];
         if ($box !== null) {
@@ -292,6 +348,8 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             (int) $row['target_group_id'],
             $row['title'] === null ? null : (string) $row['title'],
             new \DateTimeImmutable($row['created_at']),
+            $row['created_by'] === null ? null : (int) $row['created_by'],
+            $row['deleted_at'] === null ? null : new \DateTimeImmutable($row['deleted_at']),
         );
     }
 
