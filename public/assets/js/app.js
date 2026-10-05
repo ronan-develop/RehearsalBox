@@ -10,7 +10,8 @@ import { initPlanningSearch } from './planning-search.js';
 import { initScrollHint } from './scroll-hint.js';
 import { initExceptionDeck, initExceptionTabs } from './exception-deck.js';
 import { initContact } from './contact.js';
-import { initChat, initMessagesBadge } from './chat.js';
+import './chat/rb-chat.js';
+import { initMessagesBadge } from './messages-badge.js';
 import { initGroupDocuments } from './group-documents.js';
 import { initGroupSpaceEditor } from './group-space.js';
 
@@ -31,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initExceptionDeck();
   initExceptionTabs();
   initContact();
-  initChat();
   initMessagesBadge();
   initGroupDocuments();
   initGroupSpaceEditor();

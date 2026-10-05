@@ -22,7 +22,7 @@ $draft = $draft ?? null;
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body class="rb-chat-body">
-    <div class="rb-chat" data-chat data-active-id="<?= e($activeId === null ? '' : (string) $activeId) ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $activeId === null && $draft === null ? 'list' : 'thread' ?>">
+    <rb-chat class="rb-chat" data-chat data-active-id="<?= e($activeId === null ? '' : (string) $activeId) ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $activeId === null && $draft === null ? 'list' : 'thread' ?>">
         <?php require __DIR__ . '/_sidebar.php'; ?>
 
         <section class="rb-chat-main" aria-label="Conversation">
@@ -31,7 +31,7 @@ $draft = $draft ?? null;
             </div>
             <div class="rb-chat-thread" data-chat-thread<?= $activeId === null && $draft === null ? ' hidden' : '' ?>>
                 <?php require __DIR__ . '/_thread-header.php'; ?>
-                <ol class="rb-chat-messages" data-chat-messages aria-live="polite"></ol>
+                <rb-message-list class="rb-chat-messages" data-chat-messages aria-live="polite"></rb-message-list>
                 <?php if ($draft !== null && $draft['blocked']): ?>
                     <p class="rb-chat-notice" role="alert">Vous devez appartenir à un autre groupe pour écrire à celui-ci.</p>
                 <?php endif; ?>
@@ -39,7 +39,7 @@ $draft = $draft ?? null;
                 <?php $composerHidden = $draft !== null && $draft['blocked']; require __DIR__ . '/_composer.php'; ?>
             </div>
         </section>
-    </div>
+    </rb-chat>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>
