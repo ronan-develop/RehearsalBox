@@ -107,6 +107,8 @@ export class RbChat extends HTMLElement {
       this.#idle = 0;
       if (stick) {
         this.messageList.scrollToBottom();
+      } else {
+        this.messageList.showNewMessagesHint();
       }
       this.sidebar.refresh().catch(() => {});
     } else {

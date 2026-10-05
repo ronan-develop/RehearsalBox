@@ -100,6 +100,16 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testTheNewMessagesIndicatorFloatsAboveTheStatusLineAndStaysHiddenWhenAsked(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-new-anchor\s*\{[^}]*position:\s*relative[^}]*height:\s*0/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-new-messages\s*\{[^}]*position:\s*absolute[^}]*min-height:\s*44px/s', $css, 'flotte, zone tactile suffisante');
+        self::assertMatchesRegularExpression('/\.rb-chat-new-messages\[hidden\]\s*\{[^}]*display:\s*none/', $css);
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

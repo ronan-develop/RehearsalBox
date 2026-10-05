@@ -344,6 +344,17 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheThreadPageHasAHiddenNewMessagesIndicatorBetweenTheFeedAndTheStatusLine(): void
+    {
+        [$alice, , $id] = $this->conversationFromAlice();
+        $this->loginAs($alice);
+
+        $body = $this->controller->show($this->request(), (string) $id)->body();
+
+        self::assertMatchesRegularExpression('#</rb-message-list>.*data-chat-new-messages hidden.*data-chat-status#s', $body);
+    }
+
+    #[Test]
     public function testThePageCarriesTheViewersIdSoDraftsAreKeptPerUser(): void
     {
         [$alice, $bob] = $this->conversationFromAlice();

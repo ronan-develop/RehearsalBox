@@ -38,6 +38,8 @@ $hasPane = $thread !== null || $draft !== null;
                 <?php if ($draft !== null && $draft['blocked']): ?>
                     <p class="rb-chat-notice" role="alert">Vous devez appartenir à un autre groupe pour écrire à celui-ci.</p>
                 <?php endif; ?>
+                <?php /* #187 : ancre de hauteur nulle posée entre le fil et la ligne d'état ; le bouton flotte juste au-dessus. */ ?>
+                <div class="rb-chat-new-anchor"><button type="button" class="rb-chat-new-messages" data-chat-new-messages hidden>↓ Nouveaux messages</button></div>
                 <p class="rb-chat-status<?= $thread !== null && $thread['typing'] ? ' rb-chat-status--typing' : '' ?>" data-chat-status aria-live="polite"><?= $thread !== null ? e($thread['status']) : '' ?></p>
                 <?php $composerHidden = $draft !== null && $draft['blocked']; require __DIR__ . '/_composer.php'; ?>
             </div>

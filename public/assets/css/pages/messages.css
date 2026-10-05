@@ -747,3 +747,32 @@ rb-composer {
     background: var(--rb-err);
   }
 }
+
+/* Indicateur « ↓ Nouveaux messages » (#187) : flotte au-dessus de la ligne d'état quand on relit l'historique. */
+.rb-chat-new-anchor {
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+}
+
+.rb-chat-new-messages {
+  position: absolute;
+  right: 50%;
+  bottom: var(--rb-space-2);
+  z-index: 3;
+  min-height: 44px;
+  padding: 0 var(--rb-space-3);
+  color: var(--rb-bg);
+  background: var(--rb-accent);
+  border: none;
+  border-radius: 22px;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(50%);
+  cursor: pointer;
+}
+
+.rb-chat-new-messages[hidden] {
+  display: none;
+}
