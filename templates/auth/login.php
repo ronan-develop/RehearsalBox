@@ -15,7 +15,7 @@
                 <span class="rb-auth-logo">#B<span>27</span></span>
                 <p class="rb-auth-tagline">Local</p>
             </div>
-            <form data-async data-endpoint="/api/auth/login" data-method="POST">
+            <form data-async data-endpoint="/api/auth/login" data-method="POST"<?= !empty($next) ? ' data-next="' . e($next) . '"' : '' ?>>
                 <div class="rb-field">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" class="rb-input" required autocomplete="email">

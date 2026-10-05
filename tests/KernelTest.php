@@ -149,6 +149,34 @@ final class KernelTest extends TestCase
     }
 
     #[Test]
+    public function testAnonymousVisitorOfAMessagingPageIsSentBackThereAfterLogin(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/messages/{id}', ['messages_controller', 'show']);
+        $router->add('GET', '/account/password', ['messages_controller', 'account']);
+
+        $container = new Container();
+        $container->set('messages_controller', fn () => new class {
+            public function show(): never
+            {
+                throw new UnauthenticatedException('Connexion requise.');
+            }
+
+            public function account(): never
+            {
+                throw new UnauthenticatedException('Connexion requise.');
+            }
+        });
+        $kernel = $this->kernel($router, $container);
+
+        $messaging = $kernel->handle(new Request('GET', '/messages/12', ['x' => '1'], [], []));
+        $other = $kernel->handle(new Request('GET', '/account/password', [], [], []));
+
+        self::assertSame('/login?next=%2Fmessages%2F12', $messaging->headers()['Location'], 'retour dans la conversation, sans les paramètres');
+        self::assertSame('/login', $other->headers()['Location'], 'les autres pages gardent le comportement habituel');
+    }
+
+    #[Test]
 
     public function testHandleReturnsJson401WhenControllerThrowsUnauthenticatedOnApiRoute(): void
     {

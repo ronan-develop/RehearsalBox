@@ -105,8 +105,21 @@ final class PasswordResetPagesTest extends RepositoryTestCase
     #[Test]
     public function testLoginPageLinksToThePasswordResetRequest(): void
     {
-        $response = $this->controller()->login();
+        $response = $this->controller()->login(new Request('GET', '/login', [], [], []));
 
         self::assertStringContainsString('href="/forgot-password"', $response->body());
+    }
+
+    #[Test]
+    public function testLoginPageKeepsTheReturnPageOnlyWhenItIsAMessagingPage(): void
+    {
+        $withNext = $this->controller()->login(new Request('GET', '/login', ['next' => '/messages/12'], [], []))->body();
+        self::assertStringContainsString('data-next="/messages/12"', $withNext);
+
+        foreach (['https://evil.example/', '//evil.example', '/admin/users', '/messages/1" onfocus="x', "/messages/1\n"] as $bad) {
+            $body = $this->controller()->login(new Request('GET', '/login', ['next' => $bad], [], []))->body();
+            self::assertStringNotContainsString('data-next', $body, "retour refusé : {$bad}");
+        }
+        self::assertStringNotContainsString('data-next', $this->controller()->login(new Request('GET', '/login', [], [], []))->body());
     }
 }

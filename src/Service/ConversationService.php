@@ -37,6 +37,7 @@ final class ConversationService
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
         private readonly ConversationInputPolicy $inputPolicy = new ConversationInputPolicy(),
+        private readonly ?ConversationNotifier $notifier = null,
     ) {
     }
 
@@ -59,13 +60,23 @@ final class ConversationService
         $now = $this->clock->now();
         $this->assertWithinRateLimit($userId, $now);
 
-        return $this->transactions->run(function () use ($userId, $initiatorGroupId, $targetGroupId, $title, $body, $now): Conversation {
+        [$conversation, $first] = $this->transactions->run(function () use ($userId, $initiatorGroupId, $targetGroupId, $title, $body, $now): array {
             $conversation = $this->conversations->create($initiatorGroupId, $targetGroupId, $title, $now);
-            $this->conversations->addMessage($conversation->id(), $userId, $body, $now);
+            $first = $this->conversations->addMessage($conversation->id(), $userId, $body, $now);
             $this->conversations->markRead($conversation->id(), $userId, $now);
 
-            return $conversation;
+            return [$conversation, $first];
         });
+
+        // Après la validation de la transaction : le groupe visé est prévenu par e-mail (une fois, sans le contenu).
+        // Un échec d'envoi ne remonte jamais : le message est déjà envoyé.
+        $initiator = $this->groups->findById($initiatorGroupId);
+        $target = $this->groups->findById($targetGroupId);
+        if ($this->notifier !== null && $initiator !== null && $target !== null) {
+            $this->notifier->newConversation($conversation, $first->authorName(), $initiator->name(), $target, $now);
+        }
+
+        return $conversation;
     }
 
     /** @throws AccessDeniedException @throws ConversationValidationException @throws ConversationRateLimitException */

@@ -16,6 +16,7 @@ use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\SafeRedirect;
 use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Service\Contract\SlotServiceInterface;
@@ -36,9 +37,13 @@ final class PageController
     ) {
     }
 
-    public function login(): Response
+    /** `next` : retour après connexion (lien d'un e-mail), accepté seulement s'il désigne une page de la messagerie. */
+    public function login(Request $request): Response
     {
-        return new Response($this->renderer->render('auth/login', ['csrfToken' => $this->csrfTokenManager->getToken()]));
+        return new Response($this->renderer->render('auth/login', [
+            'csrfToken' => $this->csrfTokenManager->getToken(),
+            'next' => SafeRedirect::afterLogin($request->query('next')),
+        ]));
     }
 
     public function forgotPassword(): Response
