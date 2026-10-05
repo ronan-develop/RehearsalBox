@@ -22,6 +22,7 @@ final class ConversationThread
         private readonly array $typing,
         private readonly ?SeenReceipt $seen,
         private readonly array $authorGroups,
+        private readonly ?int $firstUnreadId = null,
     ) {
     }
 
@@ -56,6 +57,12 @@ final class ConversationThread
     public function seen(): ?SeenReceipt
     {
         return $this->seen;
+    }
+
+    /** Premier message reçu depuis ma dernière lecture (séparateur « Messages non lus »), null s'il n'y en a pas. */
+    public function firstUnreadId(): ?int
+    {
+        return $this->firstUnreadId;
     }
 
     public function authorGroup(int $authorId): ?Group

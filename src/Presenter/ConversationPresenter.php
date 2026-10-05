@@ -43,6 +43,7 @@ final class ConversationPresenter
                 fn (ConversationMessage $message): array => $this->message($message, $thread->authorGroup($message->authorId()), $viewerId),
                 $thread->messages(),
             ),
+            'firstUnreadId' => $thread->firstUnreadId(),
             'typing' => $thread->typing(),
             'seen' => $seen === null ? null : ['messageId' => $seen->messageId(), 'names' => $seen->names(), 'total' => $seen->total()],
         ];

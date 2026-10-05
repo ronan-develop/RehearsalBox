@@ -147,6 +147,15 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         );
     }
 
+    public function lastReadAt(int $conversationId, int $userId): ?\DateTimeImmutable
+    {
+        $statement = $this->pdo->prepare('SELECT last_read_at FROM conversation_states WHERE conversation_id = :conversation_id AND user_id = :user_id');
+        $statement->execute(['conversation_id' => $conversationId, 'user_id' => $userId]);
+        $value = $statement->fetchColumn();
+
+        return $value === false || $value === null ? null : new \DateTimeImmutable((string) $value);
+    }
+
     public function markRead(int $conversationId, int $userId, \DateTimeImmutable $now): void
     {
         $statement = $this->pdo->prepare(

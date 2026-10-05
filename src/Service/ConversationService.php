@@ -115,9 +115,16 @@ final class ConversationService
     public function open(int $userId, int $conversationId): ConversationThread
     {
         $conversation = $this->participantConversation($userId, $conversationId);
+        $lastRead = $this->conversations->lastReadAt($conversationId, $userId);
         $this->conversations->markRead($conversationId, $userId, $this->clock->now());
 
-        return $this->thread($conversation, $userId, 0);
+        return $this->thread($conversation, $userId, 0, $lastRead);
+    }
+
+    /** Conversation de la personne, avec le contrôle d'accès (même refus qu'un fil inexistant). @throws AccessDeniedException */
+    public function find(int $userId, int $conversationId): Conversation
+    {
+        return $this->participantConversation($userId, $conversationId);
     }
 
     /**
@@ -165,9 +172,10 @@ final class ConversationService
         return $this->clock->now()->modify(self::ARCHIVE_AFTER);
     }
 
-    private function thread(Conversation $conversation, int $userId, int $afterId): ConversationThread
+    private function thread(Conversation $conversation, int $userId, int $afterId, ?\DateTimeImmutable $lastRead = null): ConversationThread
     {
         $messages = $this->conversations->messagesOf($conversation->id(), $afterId);
+        $firstUnreadId = $afterId === 0 ? $this->firstUnreadId($messages, $userId, $lastRead) : null;
 
         return new ConversationThread(
             $conversation,
@@ -176,7 +184,20 @@ final class ConversationService
             $this->conversations->typingNames($conversation->id(), $userId, $this->clock->now()->modify(self::TYPING_WINDOW)),
             $this->seenReceipt($conversation, $userId),
             $this->authorGroups($conversation, $messages),
+            $firstUnreadId,
         );
+    }
+
+    /** @param list<ConversationMessage> $messages */
+    private function firstUnreadId(array $messages, int $userId, ?\DateTimeImmutable $lastRead): ?int
+    {
+        foreach ($messages as $message) {
+            if ($message->authorId() !== $userId && ($lastRead === null || $message->createdAt() > $lastRead)) {
+                return $message->id();
+            }
+        }
+
+        return null;
     }
 
     private function seenReceipt(Conversation $conversation, int $userId): ?SeenReceipt

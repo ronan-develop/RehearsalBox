@@ -40,6 +40,9 @@ interface ConversationRepositoryInterface
      */
     public function listFor(int $userId, string $box, \DateTimeImmutable $inactiveBefore): array;
 
+    /** Date de dernière lecture de la personne, null si elle n'a jamais ouvert la conversation. */
+    public function lastReadAt(int $conversationId, int $userId): ?\DateTimeImmutable;
+
     public function markRead(int $conversationId, int $userId, \DateTimeImmutable $now): void;
 
     /** @param string|null $box null = toutes les conversations (actives et archivées) */

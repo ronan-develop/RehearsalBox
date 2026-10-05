@@ -288,6 +288,22 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
         self::assertSame(0, $this->repository->countUnreadFor($bob->id(), $this->cutoff));
     }
 
+    #[Test]
+    public function testLastReadAtIsNullUntilReadThenTheReadDate(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->repository->create($a->id(), $b->id(), null, $this->now);
+        $this->repository->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
+
+        self::assertNull($this->repository->lastReadAt($thread->id(), $bob->id()));
+
+        $this->repository->setTyping($thread->id(), $bob->id(), $this->at('+10 seconds'));
+        self::assertNull($this->repository->lastReadAt($thread->id(), $bob->id()), "écrire n'est pas lire");
+
+        $this->repository->markRead($thread->id(), $bob->id(), $this->at('+1 minute'));
+        self::assertEquals($this->at('+1 minute'), $this->repository->lastReadAt($thread->id(), $bob->id()));
+    }
+
     // --- Vu par / écrit… ------------------------------------------------------------------------
 
     #[Test]
