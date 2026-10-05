@@ -36,6 +36,8 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         }
         $alpha = $groups->save(new Group(0, 'Alpha', null, null, 'alpha@rehearsalbox.test'))->id();
         $beta = $groups->save(new Group(0, 'Beta', null, null, 'beta@rehearsalbox.test'))->id();
+        $groups->addMember($alpha, $this->people['alice']->id());
+        $groups->addMember($beta, $this->people['bob']->id());
         $this->conversationId = $this->conversations->create($alpha, $beta, null, $this->now, $this->people['alice']->id())->id();
     }
 
@@ -87,5 +89,21 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         $this->conversations->delete($this->conversationId);
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM message_mentions')->fetchColumn());
+    }
+
+    #[Test]
+    public function testAnUnreadMentionMarksTheConversationInTheListUntilItIsRead(): void
+    {
+        $cutoff = $this->now->modify('-30 days');
+        $id = $this->say('Salut @Bob');
+        $this->mentions->record($id, [$this->people['bob']->id() => '@Bob']);
+        $mentioned = fn (string $who): bool => $this->conversations->listFor($this->people[$who]->id(), 'active', $cutoff)[0]->isMentioned();
+
+        self::assertTrue($mentioned('bob'), 'Bob est tagué et n\'a pas lu');
+        self::assertFalse($mentioned('alice'), 'Alice a écrit le message, elle n\'est pas taguée');
+
+        $this->conversations->markRead($this->conversationId, $this->people['bob']->id(), $this->now->modify('+1 minute'));
+
+        self::assertFalse($mentioned('bob'), 'lu : le marqueur disparaît');
     }
 }

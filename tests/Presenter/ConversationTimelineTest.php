@@ -34,6 +34,31 @@ final class ConversationTimelineTest extends TestCase
     }
 
     #[Test]
+    public function testMentionsAreSplitOutOfTheTextAndFlaggedWhenTheViewerIsTagged(): void
+    {
+        $rows = $this->timeline->rows(
+            [$this->msg(1, 11, 'Bob', '2026-10-04 08:00:00', 'Salut @Alice et @Denis')],
+            10,
+            $this->now,
+            mentions: [1 => [10 => '@Alice', 12 => '@Denis']],
+        );
+        $message = $rows[1];
+
+        self::assertSame(['Salut ', '@Alice', ' et ', '@Denis'], array_column($message['segments'], 'text'));
+        self::assertTrue($message['mentionsMe'], 'Alice (10) est taguée');
+        self::assertSame('Salut @Alice et @Denis', $message['body'], 'le texte brut reste disponible');
+    }
+
+    #[Test]
+    public function testAMessageWithoutMentionHasOneSegmentAndNoHighlight(): void
+    {
+        $rows = $this->timeline->rows([$this->msg(1, 11, 'Bob', '2026-10-04 08:00:00', 'Salut')], 10, $this->now);
+
+        self::assertSame([['text' => 'Salut', 'mention' => false, 'me' => false]], $rows[1]['segments']);
+        self::assertFalse($rows[1]['mentionsMe']);
+    }
+
+    #[Test]
     public function testNothingToShowGivesNoRows(): void
     {
         self::assertSame([], $this->timeline->rows([], 10, $this->now));

@@ -82,7 +82,7 @@ final class MessagesPageView
             'title' => $thread->conversation()->title(),
             'displayTitle' => $thread->displayTitle(),
             'label' => $thread->label(),
-            'rows' => $this->timeline->rows($thread->messages(), $userId, $this->clock->now(), $authorGroups, $thread->firstUnreadId(), $thread->previous()),
+            'rows' => $this->timeline->rows($thread->messages(), $userId, $this->clock->now(), $authorGroups, $thread->firstUnreadId(), $thread->previous(), $thread->mentions()),
             'status' => $typing !== '' ? $typing : $this->formatter->seenText($thread->seen()),
             'typing' => $typing !== '',
             'lastId' => $this->lastId($thread->messages()),

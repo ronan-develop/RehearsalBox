@@ -18,6 +18,13 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         SELECT MAX(x.id) FROM conversation_messages x WHERE x.conversation_id = c.id
     )';
 
+    // Mention non lue : un message qui désigne la personne, plus récent que sa dernière lecture.
+    private const MENTIONED_USER = 'EXISTS (
+        SELECT 1 FROM message_mentions mm JOIN conversation_messages mmsg ON mmsg.id = mm.message_id
+        WHERE mmsg.conversation_id = c.id AND mm.user_id = :mention_user
+          AND (s.last_read_at IS NULL OR mmsg.created_at > s.last_read_at)
+    )';
+
     private const UNREAD_FOR_USER = 'EXISTS (
         SELECT 1 FROM conversation_messages um
         WHERE um.conversation_id = c.id AND um.author_id <> :unread_user
@@ -131,7 +138,8 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
                        gi.name AS initiator_name, gt.name AS target_name,
                        lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
                        lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at,
-                       ' . self::UNREAD_FOR_USER . ' AS unread
+                       ' . self::UNREAD_FOR_USER . ' AS unread,
+                       ' . self::MENTIONED_USER . ' AS mentioned
                 FROM conversations c
                 JOIN `groups` gi ON gi.id = c.initiator_group_id
                 JOIN `groups` gt ON gt.id = c.target_group_id
@@ -144,6 +152,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement = $this->pdo->prepare($sql);
         $statement->execute([
             'unread_user' => $userId,
+            'mention_user' => $userId,
             'state_user' => $userId,
             'visible_user' => $userId,
             'cutoff' => $inactiveBefore->format(self::DATE_FORMAT),
@@ -338,6 +347,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             (string) $row['target_name'],
             $this->hydrateMessage($row, (int) $row['id'], 'last_'),
             (bool) ($row['unread'] ?? false),
+            (bool) ($row['mentioned'] ?? false),
         );
     }
 

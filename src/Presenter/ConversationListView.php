@@ -19,7 +19,7 @@ final class ConversationListView
     /**
      * @param list<ConversationSummary> $summaries
      *
-     * @return list<array{id: int, url: string, title: string, date: string, preview: string, unread: bool, active: bool}>
+     * @return list<array{id: int, url: string, title: string, date: string, preview: string, unread: bool, mentioned: bool, active: bool}>
      */
     public function items(array $summaries, int $viewerId, \DateTimeImmutable $now, ?int $activeId): array
     {
@@ -33,6 +33,7 @@ final class ConversationListView
                 'date' => $this->formatter->listDate($last->createdAt(), $now),
                 'preview' => $this->formatter->preview($last, $last->authorId() === $viewerId),
                 'unread' => $summary->isUnread(),
+                'mentioned' => $summary->isMentioned(),
                 'active' => $summary->conversation()->id() === $activeId,
             ];
         }, $summaries);

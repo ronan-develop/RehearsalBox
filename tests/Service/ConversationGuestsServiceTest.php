@@ -122,6 +122,18 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheThreadCarriesTheMentionsOfItsMessages(): void
+    {
+        $this->tagDenis();
+
+        $thread = $this->service->open($this->id('denis'), $this->conversationId);
+
+        $tagged = array_values(array_filter($thread->messages(), static fn ($m) => !$m->isSystem() && $m->body() === 'Viens voir @Denis'))[0];
+        self::assertSame([$this->id('denis') => '@Denis'], $thread->mentions()[$tagged->id()]);
+        self::assertCount(1, $thread->mentions(), 'les messages sans mention sont absents');
+    }
+
+    #[Test]
     public function testAGuestReadsRepliesAndSeesTheOthers(): void
     {
         $this->tagDenis();

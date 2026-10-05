@@ -18,7 +18,7 @@ use App\Support\SafeColor;
  *  - ['type' => 'day', 'label']
  *  - ['type' => 'unread']
  *  - ['type' => 'system', 'text']
- *  - ['type' => 'message', 'id', 'mine', 'startsRun', 'author', 'initials', 'groupName', 'color', 'body', 'time']
+ *  - ['type' => 'message', 'id', 'mine', 'startsRun', 'author', 'initials', 'groupName', 'color', 'body', 'segments', 'mentionsMe', 'time']
  */
 final class ConversationTimeline
 {
@@ -30,6 +30,7 @@ final class ConversationTimeline
      * @param list<ConversationMessage> $messages
      * @param array<int, Group|null>    $authorGroups groupe de chaque auteur (null : ambigu)
      * @param ConversationMessage|null  $previous     message qui précède $messages (lecture incrémentale) : continuité du jour et de la série
+     * @param array<int, array<int, string>> $mentions identifiant du message => (identifiant de la personne => « @Nom »)
      *
      * @return list<array<string, mixed>>
      */
@@ -40,6 +41,7 @@ final class ConversationTimeline
         array $authorGroups = [],
         ?int $firstUnreadId = null,
         ?ConversationMessage $previous = null,
+        array $mentions = [],
     ): array {
         $rows = [];
         $previousAuthor = ($previous === null || $previous->isSystem()) ? null : $previous->authorName();
@@ -64,6 +66,7 @@ final class ConversationTimeline
             }
 
             $group = $authorGroups[$message->authorId()] ?? null;
+            $segments = MentionText::segments($message->body(), $mentions[$message->id()] ?? [], $viewerId);
             $rows[] = [
                 'type' => 'message',
                 'id' => $message->id(),
@@ -74,6 +77,8 @@ final class ConversationTimeline
                 'groupName' => $group?->name(),
                 'color' => SafeColor::from($group?->colorHex()),
                 'body' => $message->body(),
+                'segments' => $segments,
+                'mentionsMe' => in_array(true, array_column($segments, 'me'), true),
                 'time' => $this->formatter->time($message->createdAt()),
             ];
             $previousAuthor = $message->authorName();

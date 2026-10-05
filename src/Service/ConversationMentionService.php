@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\ConversationMessage;
 use App\Entity\MentionPlan;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
@@ -96,6 +97,18 @@ final class ConversationMentionService
         if (!$plan->isEmpty()) {
             $this->mentions->record($messageId, $plan->labels());
         }
+    }
+
+    /**
+     * Mentions enregistrées pour ces messages (affichage du fil).
+     *
+     * @param list<ConversationMessage> $messages
+     *
+     * @return array<int, array<int, string>> identifiant du message => (identifiant de la personne => « @Nom »)
+     */
+    public function forMessages(array $messages): array
+    {
+        return $this->mentions->forMessages(array_map(static fn (ConversationMessage $m): int => $m->id(), $messages));
     }
 
     private function participates(int $userId, int $initiatorGroupId, int $targetGroupId, ?int $conversationId): bool

@@ -13,6 +13,7 @@ final class ConversationSummary
         private readonly string $targetGroupName,
         private readonly ConversationMessage $lastMessage,
         private readonly bool $unread,
+        private readonly bool $mentioned = false,
     ) {
     }
 
@@ -41,5 +42,11 @@ final class ConversationSummary
     public function isUnread(): bool
     {
         return $this->unread;
+    }
+
+    /** La personne est mentionnée dans un message qu'elle n'a pas encore lu. */
+    public function isMentioned(): bool
+    {
+        return $this->mentioned;
     }
 }

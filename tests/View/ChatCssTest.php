@@ -52,6 +52,16 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testMentionsAreHighlightedInTheFeedAndMarkedInTheList(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-mention--me\s*\{[^}]*background/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-message--mentioned \.rb-chat-bubble\s*\{[^}]*outline/s', $css, 'le surlignage ne dépend pas de la seule couleur');
+        self::assertMatchesRegularExpression('/\.rb-chat-item-mention\s*\{[^}]*position:\s*absolute/s', $css);
+    }
+
+    #[Test]
     public function testMessageTextKeepsLineBreaksAndNeverOverflows(): void
     {
         self::assertMatchesRegularExpression('/\.rb-chat-text\s*\{[^}]*white-space:\s*pre-wrap[^}]*overflow-wrap:\s*anywhere/s', $this->css());

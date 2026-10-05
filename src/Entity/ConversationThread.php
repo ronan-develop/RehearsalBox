@@ -14,6 +14,7 @@ final class ConversationThread
      * @param list<ConversationMessage> $messages
      * @param list<string>              $typing       noms des autres personnes qui écrivent
      * @param array<int, Group|null>    $authorGroups groupe de chaque auteur (null : ambigu, membre des deux groupes ou d'aucun)
+     * @param array<int, array<int, string>> $mentions identifiant du message => (identifiant de la personne => « @Nom »), messages sans mention absents
      */
     public function __construct(
         private readonly Conversation $conversation,
@@ -24,6 +25,7 @@ final class ConversationThread
         private readonly array $authorGroups,
         private readonly ?int $firstUnreadId = null,
         private readonly ?ConversationMessage $previous = null,
+        private readonly array $mentions = [],
     ) {
     }
 
@@ -75,5 +77,11 @@ final class ConversationThread
     public function authorGroup(int $authorId): ?Group
     {
         return $this->authorGroups[$authorId] ?? null;
+    }
+
+    /** @return array<int, array<int, string>> */
+    public function mentions(): array
+    {
+        return $this->mentions;
     }
 }
