@@ -7,12 +7,13 @@ RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteCond %{HTTPS} !on
 RewriteRule ^(.*) https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# CSS et JS revalidés à chaque chargement (Last-Modified change à chaque release :
+# CSS et JS : pas de devinette de type MIME (nosniff) ; revalidés à chaque chargement (Last-Modified change à chaque release :
 # 200 avec le nouveau fichier, sinon 304). app.js importe d'autres modules par chemin
 # relatif : on ne peut pas les versionner un par un, donc pas de cache aveugle (#150).
 <IfModule mod_headers.c>
     <FilesMatch "\.(css|js|mjs)$">
         Header set Cache-Control "no-cache"
+        Header set X-Content-Type-Options "nosniff"
     </FilesMatch>
 </IfModule>
 
