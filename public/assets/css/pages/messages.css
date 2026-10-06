@@ -1,6 +1,6 @@
 /* Messagerie (#169), inspirée de Signal. Mobile : la liste OU le fil en plein écran (data-view) ;
    ≥ 900 px : liste à gauche, fil à droite. Mêmes jetons que le reste de l'application. */
-.rb-chat-body {
+.rb-chat-page {
   margin: 0;
   height: 100vh;
   height: 100dvh;
@@ -540,16 +540,26 @@ rb-composer {
   display: none;
 }
 
+/* Corbeille (#190, #246) : la même colonne que la liste des conversations (surface, filets, en-tête partagé), centrée sur grand
+   écran. Le <body> de la page ne défile pas (comme la messagerie) : la colonne défile d'elle-même. */
 .rb-trash {
   max-width: 640px;
+  height: 100vh;
+  height: 100dvh;
   margin: 0 auto;
-  padding: var(--rb-space-3);
+  overflow-y: auto;
+  background: var(--rb-bg-2);
 }
 
-.rb-trash-head {
-  display: flex;
-  align-items: center;
-  gap: var(--rb-space-2);
+@media (min-width: 641px) {
+  .rb-trash {
+    border-inline: 1px solid var(--rb-border);
+  }
+}
+
+.rb-trash-help {
+  margin: 0;
+  padding: var(--rb-space-3);
 }
 
 .rb-trash-list {
@@ -564,7 +574,7 @@ rb-composer {
   align-items: center;
   justify-content: space-between;
   gap: var(--rb-space-2);
-  padding: var(--rb-space-3) 0;
+  padding: var(--rb-space-3);
   border-bottom: 1px solid var(--rb-border);
 }
 
