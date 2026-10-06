@@ -9,6 +9,7 @@ import { showToast } from './toast.js';
 import { cancelRequest, errorText, planLines, planQuery, primaryAction, stepRequest, summarize } from './booking-plan.js';
 import { PLAN_REQUEST, SUBMIT } from './rb-booking-form.js';
 import { CANCEL_EVENT } from './rb-booking-item.js';
+import './rb-time-picker.js';
 
 const FLASH_KEY = 'rb-booking-flash';
 

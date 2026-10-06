@@ -48,10 +48,41 @@ rb-booking-item {
   margin: 0 0 var(--rb-space-3);
 }
 
+/* Horaire en deux listes : heures, deux-points, minutes sur une ligne (#296). */
+rb-time-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+}
+
+.rb-time-picker .rb-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0 1.75rem 0 0.75rem;
+  background-position: right 0.4rem center;
+  background-size: 1rem;
+}
+
+.rb-booking-form-times > .rb-field {
+  min-width: 0;
+}
+
+.rb-time-picker-colon {
+  color: var(--rb-text-2);
+  font-weight: 700;
+}
+
 .rb-booking-form-times {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--rb-space-3);
+}
+
+/* Sur un petit téléphone, De puis À l'un sous l'autre : quatre listes sur une ligne rognent les chiffres. */
+@media (max-width: 480px) {
+  .rb-booking-form-times {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Le plan : une ligne par partie libre ou recouvrement. La couleur n'est jamais seule : un trait et le texte disent la même chose. */
