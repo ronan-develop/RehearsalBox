@@ -6,7 +6,8 @@
 import { EVT, emit } from './events.js';
 import { isNearBottom } from './model.js';
 import { quoteFromRow } from './quote.js';
-import { wireTapActions } from './tap-actions.js';
+import './rb-message-actions.js';
+import { tappedRow } from './message-actions.js';
 
 const FLASH_CLASS = 'rb-chat-message--flash';
 const FLASH_MS = 1600;
@@ -23,15 +24,33 @@ export class RbMessageList extends HTMLElement {
     this.addEventListener('scroll', () => this.nearBottom() && this.#hideHint(), { passive: true });
     this.#wireEditing();
     this.#wireQuoting();
-    // Écran tactile (#253) : un tap sur une bulle révèle ses actions (citer, corriger). Ordinateur : survol, rien à câbler.
-    if (window.matchMedia?.('(hover: none)').matches) {
-      wireTapActions(this);
+    this.#wireTapActions();
+  }
+
+  /**
+   * Écran tactile (#253, #257) : un tap sur une bulle INSÈRE le composant <rb-message-actions> dans sa ligne (un nouveau tap sur la
+   * même bulle le retire, un tap sur une autre le déplace). Le composant gère seul sa fermeture. Ordinateur : survol, rien à câbler.
+   */
+  #wireTapActions() {
+    if (!window.matchMedia?.('(hover: none)').matches) {
+      return;
     }
+    this.addEventListener('pointerup', (event) => {
+      const row = tappedRow(event);
+      if (row === null) {
+        return;
+      }
+      const open = this.querySelector('rb-message-actions');
+      open?.remove();
+      if (open?.parentElement !== row) {
+        row.append(document.createElement('rb-message-actions'));
+      }
+    });
   }
 
   /**
    * Corriger son message (#200, #253) : un bouton, au survol ou au clavier sur ordinateur, et au tap sur la bulle sur écran
-   * tactile (tap-actions.js) pour ses propres bulles récentes (`data-editable`, posé par le serveur). Le composant ne fait que
+   * tactile (<rb-message-actions>) pour ses propres bulles récentes (`data-editable`, posé par le serveur). Le composant ne fait que
    * demander (message:edit-request) : la saisie et l'appel à l'API sont ailleurs.
    */
   #wireEditing() {
@@ -52,7 +71,7 @@ export class RbMessageList extends HTMLElement {
 
   /**
    * Citer un message (#214, #253) : un bouton « Répondre », au survol ou au clavier sur ordinateur, et au tap sur la bulle sur
-   * écran tactile (tap-actions.js). Le composant ne fait que demander (message:quote-request). Un clic sur la citation d'une
+   * écran tactile (<rb-message-actions>). Le composant ne fait que demander (message:quote-request). Un clic sur la citation d'une
    * bulle amène le message cité à l'écran ; sans JavaScript, le lien (ancre) fait le même trajet.
    */
   #wireQuoting() {
