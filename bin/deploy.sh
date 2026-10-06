@@ -46,14 +46,12 @@ commit=$(git rev-parse --short HEAD)
 
 if [ "${RB_SKIP_CHECKS:-0}" != "1" ]; then
     # CI verte sur ce commit (#300) : phpunit et npm test ont déjà tourné, on ne les rejoue pas ; au moindre doute, contrôles complets.
-    run_tests=1
-    checks_label="Contrôles locaux (phpunit, npm test, composer audit)"
+    ci_label=""
     if [ "${RB_FORCE_LOCAL_CHECKS:-0}" != "1" ] && ci_green_for_commit "$(git rev-parse HEAD)"; then
-        run_tests=0
-        checks_label="Contrôles : CI verte sur ${commit}, tests non rejoués (composer audit)"
+        ci_label="Contrôles : CI verte sur ${commit}, tests non rejoués (composer audit)"
     fi
-    progress_step "$checks_label"
-    if [ "$run_tests" = "1" ]; then
+    progress_step "${ci_label:-Contrôles locaux (phpunit, npm test, composer audit)}"
+    if [ -z "$ci_label" ]; then
         ./vendor/bin/phpunit
         npm test --silent
     fi
