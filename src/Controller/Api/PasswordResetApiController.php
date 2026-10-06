@@ -6,9 +6,7 @@ namespace App\Controller\Api;
 
 use App\Http\JsonResponse;
 use App\Http\Request;
-use App\Service\Exception\InvalidResetTokenException;
 use App\Service\IpThrottle;
-use App\Service\Exception\UserValidationException;
 use App\Service\PasswordResetService;
 
 final class PasswordResetApiController
@@ -49,13 +47,8 @@ final class PasswordResetApiController
         $token = (string) $request->body('token', '');
         $password = (string) $request->body('password', '');
 
-        try {
-            $this->passwordReset->resetPassword($token, $password);
-        } catch (UserValidationException $e) {
-            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
-        } catch (InvalidResetTokenException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 422);
-        }
+        // Jeton invalide, expiré ou déjà utilisé, mot de passe non conforme : traduits en 422 par le Kernel (ExceptionTranslator).
+        $this->passwordReset->resetPassword($token, $password);
 
         return new JsonResponse(['status' => 'ok']);
     }

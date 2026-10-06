@@ -9,7 +9,6 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
 use App\Service\Contract\AvailabilityServiceInterface;
-use App\Service\Exception\RequestAlreadyRespondedException;
 
 final class AvailabilityApiController
 {
@@ -42,11 +41,7 @@ final class AvailabilityApiController
         $user = $this->authGuard->requireLogin();
         $accepted = (bool) $request->body('accepted', false);
 
-        try {
-            $responded = $this->availabilityService->respond((int) $exceptionId, $accepted, $user->id());
-        } catch (RequestAlreadyRespondedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 409);
-        }
+        $responded = $this->availabilityService->respond((int) $exceptionId, $accepted, $user->id());
 
         return new JsonResponse(self::toArray($responded));
     }
@@ -60,11 +55,7 @@ final class AvailabilityApiController
         }
         $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
 
-        try {
-            $updated = $this->availabilityService->updateRequest((int) $exceptionId, $occurrenceDate, $reason, $user->id());
-        } catch (RequestAlreadyRespondedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 409);
-        }
+        $updated = $this->availabilityService->updateRequest((int) $exceptionId, $occurrenceDate, $reason, $user->id());
 
         return new JsonResponse(self::toArray($updated));
     }
@@ -73,11 +64,7 @@ final class AvailabilityApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        try {
-            $this->availabilityService->cancelRequest((int) $exceptionId, $user->id());
-        } catch (RequestAlreadyRespondedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 409);
-        }
+        $this->availabilityService->cancelRequest((int) $exceptionId, $user->id());
 
         return new JsonResponse([], 204);
     }

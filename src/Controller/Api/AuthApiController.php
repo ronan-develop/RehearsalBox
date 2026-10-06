@@ -7,7 +7,6 @@ namespace App\Controller\Api;
 use App\Entity\Group;
 use App\Http\JsonResponse;
 use App\Http\Request;
-use App\Security\Exception\AccessDeniedException;
 use App\Support\StrictId;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\IpThrottle;
@@ -64,11 +63,7 @@ final class AuthApiController
     {
         $groupId = StrictId::from($request->body('groupId')) ?? 0;
 
-        try {
-            $this->authService->selectActiveGroup($groupId);
-        } catch (AccessDeniedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 403);
-        }
+        $this->authService->selectActiveGroup($groupId);
 
         return new JsonResponse(['status' => 'ok']);
     }

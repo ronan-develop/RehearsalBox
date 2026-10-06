@@ -13,6 +13,7 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\Support\FastPasswordHasher;
 use App\Repository\MysqlThrottleEventRepository;
+use App\Security\Exception\AccessDeniedException;
 use App\Service\AuthService;
 use App\Service\IpThrottle;
 use App\Tests\RepositoryTestCase;
@@ -168,7 +169,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testSelectGroupWithoutMembershipReturns403(): void
+    public function testSelectGroupWithoutMembershipIsRefused(): void
     {
         [$controller, $userRepository, , $groupRepository] = $this->makeController();
         $user = $userRepository->save(new User(
@@ -184,9 +185,9 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $otherGroup = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
         $controller->login(new Request('POST', '/api/auth/login', [], ['email' => 'noe@rehearsalbox.test', 'password' => 'password123'], []));
 
-        $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $otherGroup->id()], []));
-
-        self::assertSame(403, $response->statusCode());
+        // L'accès refusé remonte : c'est le Kernel qui en fait la réponse 403 (voir KernelTest).
+        $this->expectException(AccessDeniedException::class);
+        $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $otherGroup->id()], []));
     }
 
     #[Test]
@@ -199,9 +200,8 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $controller->login(new Request('POST', '/api/auth/login', [], ['email' => 'mona@rehearsalbox.test', 'password' => 'password123'], []));
 
         // « 12abc » ne doit pas devenir 12 (ici l'identifiant réel du groupe suivi de bruit).
-        $response = $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $group->id() . 'abc'], []));
-
-        self::assertSame(403, $response->statusCode());
+        $this->expectException(AccessDeniedException::class);
+        $controller->selectGroup(new Request('POST', '/api/auth/select-group', [], ['groupId' => $group->id() . 'abc'], []));
     }
 
     private function loginFrom(AuthApiController $controller, string $ip, string $email, string $password): \App\Http\JsonResponse

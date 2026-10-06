@@ -18,6 +18,7 @@ use App\Service\AuthService;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use App\Security\Exception\AccessDeniedException;
 use PHPUnit\Framework\Attributes\Test;
 
 final class GroupSpaceApiControllerTest extends RepositoryTestCase
@@ -127,7 +128,7 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testUpdateProfileByNonGestionnaireReturns403(): void
+    public function testUpdateProfileByNonGestionnaireIsRefused(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -136,8 +137,7 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         $authService->attempt('dana@rehearsalbox.test', 'password');
 
         $request = new Request('PATCH', "/api/groups/{$group->id()}/space", [], ['lineup' => [], 'upcomingShows' => []], []);
-        $response = $controller->updateProfile($request, (string) $group->id());
-
-        self::assertSame(403, $response->statusCode());
+        $this->expectException(AccessDeniedException::class);
+        $controller->updateProfile($request, (string) $group->id());
     }
 }

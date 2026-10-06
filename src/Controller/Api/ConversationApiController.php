@@ -8,10 +8,8 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Presenter\ConversationUpdates;
 use App\Security\AuthGuard;
-use App\Security\Exception\AccessDeniedException;
 use App\Service\ConversationGuestService;
 use App\Service\ConversationService;
-use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;
 
@@ -40,18 +38,16 @@ final class ConversationApiController
         $title = $request->body('title');
         $mentions = $request->body('mentions');
 
-        return $this->guarded(function () use ($user, $initiatorGroupId, $targetGroupId, $message, $title, $mentions): JsonResponse {
-            $conversation = $this->conversationService->start(
-                $user->id(),
-                $initiatorGroupId,
-                $targetGroupId,
-                is_string($message) ? $message : '',
-                is_string($title) ? $title : null,
-                $this->mentionIds($mentions),
-            );
+        $conversation = $this->conversationService->start(
+            $user->id(),
+            $initiatorGroupId,
+            $targetGroupId,
+            is_string($message) ? $message : '',
+            is_string($title) ? $title : null,
+            $this->mentionIds($mentions),
+        );
 
-            return new JsonResponse(['id' => $conversation->id()], 201);
-        });
+        return new JsonResponse(['id' => $conversation->id()], 201);
     }
 
     /** Envoie un message ; la réponse contient les messages plus récents que `after` (dont le mien), déjà dessinés. */
@@ -66,12 +62,10 @@ final class ConversationApiController
         $replyTo = $request->body('replyTo');
         $replyToId = $replyTo === null ? null : StrictId::orDenied($replyTo);
 
-        return $this->guarded(function () use ($user, $conversationId, $message, $after, $mentions, $replyToId): JsonResponse {
-            $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '', $this->mentionIds($mentions), $replyToId);
-            $anchor = StrictId::from($after) ?? max(0, $created->id() - 1);
+        $created = $this->conversationService->reply($user->id(), $conversationId, is_string($message) ? $message : '', $this->mentionIds($mentions), $replyToId);
+        $anchor = StrictId::from($after) ?? max(0, $created->id() - 1);
 
-            return new JsonResponse($this->updates->payload($user->id(), $conversationId, min($anchor, $created->id() - 1)), 201);
-        });
+        return new JsonResponse($this->updates->payload($user->id(), $conversationId, min($anchor, $created->id() - 1)), 201);
     }
 
     /** Titre : texte, ou null / vide pour le retirer. */
@@ -86,11 +80,9 @@ final class ConversationApiController
         }
         $title = $body['title'];
 
-        return $this->guarded(function () use ($user, $conversationId, $title): JsonResponse {
-            $this->conversationService->rename($user->id(), $conversationId, $title);
+        $this->conversationService->rename($user->id(), $conversationId, $title);
 
-            return new JsonResponse(['status' => 'ok']);
-        });
+        return new JsonResponse(['status' => 'ok']);
     }
 
     /** Retire un invité (celui qui l'a ajouté, l'initiateur de la conversation, ou l'invité qui quitte). */
@@ -100,18 +92,6 @@ final class ConversationApiController
         $this->guestService->remove($user->id(), StrictId::orDenied($id), StrictId::orDenied($userId));
 
         return new JsonResponse(['status' => 'ok']);
-    }
-
-    /** @param callable(): JsonResponse $action */
-    private function guarded(callable $action): JsonResponse
-    {
-        try {
-            return $action();
-        } catch (ConversationValidationException $e) {
-            return new JsonResponse(['error' => $e->getMessage(), 'fields' => $e->fields()], 422);
-        } catch (ConversationRateLimitException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 429);
-        }
     }
 
     /**
