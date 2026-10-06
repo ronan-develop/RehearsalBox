@@ -1,10 +1,10 @@
+import { WEEKDAY_LABELS } from './weekdays.js';
+
 /**
  * Filtre client des cartes du planning (#67) : toutes les données étant
  * déjà présentes dans le DOM au chargement (rb-planning-card), un filtre
  * purement JS suffit — pas de nouvel appel réseau ni de repository dédié.
  */
-const WEEKDAY_LABELS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
-
 export function matchesPlanningSearch(card, rawQuery) {
   const query = rawQuery.trim().toLowerCase();
   if (query === '') {
@@ -12,7 +12,7 @@ export function matchesPlanningSearch(card, rawQuery) {
   }
 
   const groupName = (card.groupName ?? '').toLowerCase();
-  const weekdayLabel = WEEKDAY_LABELS[Number(card.weekday)] ?? '';
+  const weekdayLabel = (WEEKDAY_LABELS[Number(card.weekday)] ?? '').toLowerCase();
 
   return groupName.includes(query) || weekdayLabel.includes(query);
 }

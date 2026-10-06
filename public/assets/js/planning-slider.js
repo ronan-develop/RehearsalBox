@@ -19,6 +19,7 @@ import { apiFetch } from './api.js';
 import { initTornPaper } from './tornpaper-init.js';
 import { escapeHtml } from './html.js';
 import { isDesktopWidth } from './viewport.js';
+import { WEEKDAY_LABELS } from './weekdays.js';
 
 /** Vitesse historique : 1 px toutes les 40 ms. */
 const DEFAULT_SPEED_PX_PER_SECOND = 25;
@@ -163,7 +164,6 @@ export function initPlanningSlider(root = document, win = window) {
 }
 
 
-const WEEKDAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 function formatTime(time) {
   return time.slice(0, 5);
