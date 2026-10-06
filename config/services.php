@@ -10,6 +10,7 @@ use App\Controller\AdminGroupPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
+use App\Controller\Api\ConversationMuteApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
@@ -89,6 +90,7 @@ use App\Repository\MysqlConversationMuteRepository;
 use App\Repository\MysqlMemberDirectory;
 use App\Service\ConversationAccess;
 use App\Service\ConversationGuestService;
+use App\Service\ConversationMuteService;
 use App\Service\ConversationMentionService;
 use App\Service\ConversationNotifier;
 use App\Service\ConversationTrashService;
@@ -453,6 +455,11 @@ return static function (array $config): Container {
         $c->get(ConversationAlertRepositoryInterface::class),
     ));
 
+    $container->set(ConversationMuteService::class, fn ($c) => new ConversationMuteService(
+        $c->get(ConversationAccess::class),
+        $c->get(ConversationMuteRepositoryInterface::class),
+    ));
+
     $container->set(ConversationGuestService::class, fn ($c) => new ConversationGuestService(
         $c->get(ConversationAccess::class),
         $c->get(ConversationGuestRepositoryInterface::class),
@@ -532,6 +539,11 @@ return static function (array $config): Container {
 
     $container->set(ConversationTrashApiController::class, fn ($c) => new ConversationTrashApiController(
         $c->get(ConversationTrashService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(ConversationMuteApiController::class, fn ($c) => new ConversationMuteApiController(
+        $c->get(ConversationMuteService::class),
         $c->get(AuthGuard::class),
     ));
 
