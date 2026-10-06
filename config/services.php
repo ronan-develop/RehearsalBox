@@ -77,6 +77,7 @@ use App\Service\MessageEditService;
 use App\Presenter\EditedMessageFragments;
 use App\Controller\Api\MessageApiController;
 use App\Service\MentionReminderService;
+use App\Service\MessageVersionPurge;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\MysqlNotificationPreferenceRepository;
 use App\Repository\MysqlConversationGuestRepository;
@@ -94,6 +95,8 @@ use App\Service\ConversationService;
 use App\Service\ConversationReader;
 use App\Service\ConversationThreadBuilder;
 use App\Repository\Contract\ConversationMessageRepositoryInterface;
+use App\Repository\Contract\MessageVersionRepositoryInterface;
+use App\Repository\MysqlMessageVersionRepository;
 use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
 use App\Repository\Contract\ConversationTrashRepositoryInterface;
@@ -321,6 +324,7 @@ return static function (array $config): Container {
     ));
 
     $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
+    $container->set(MessageVersionRepositoryInterface::class, fn ($c) => new MysqlMessageVersionRepository($c->get(PDO::class)));
     $container->set(ConversationMessageRepositoryInterface::class, fn ($c) => new MysqlConversationMessageRepository($c->get(PDO::class)));
     $container->set(ConversationPresenceRepositoryInterface::class, fn ($c) => new MysqlConversationPresenceRepository($c->get(PDO::class)));
     $container->set(ConversationTrashRepositoryInterface::class, fn ($c) => new MysqlConversationTrashRepository($c->get(PDO::class)));
@@ -387,6 +391,11 @@ return static function (array $config): Container {
         $config['mailer']['from'],
         $config['app']['base_url'],
         $c->get(MailRenderer::class),
+    ));
+
+    $container->set(MessageVersionPurge::class, fn ($c) => new MessageVersionPurge(
+        $c->get(MessageVersionRepositoryInterface::class),
+        $c->get(ClockInterface::class),
     ));
 
     $container->set(ConversationService::class, fn ($c) => new ConversationService(

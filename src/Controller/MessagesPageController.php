@@ -63,14 +63,14 @@ final class MessagesPageController
 
     /**
      * Une conversation : la page est rendue par le serveur (liste, titre, messages, « vu par »). L'ouvrir la marque lue
-     * pour cette personne. Identifiant mal formé, inexistant ou interdit : même refus, rien ne révèle l'existence d'un fil.
+     * pour cette personne (pas un simple préchargement du navigateur). Identifiant mal formé, inexistant ou interdit : même refus, rien ne révèle l'existence d'un fil.
      */
     public function show(Request $request, string $id): Response
     {
         $user = $this->authGuard->requireLogin();
 
         $conversationId = StrictId::from($id) ?? throw new AccessDeniedException('Accès refusé.');
-        $thread = $this->conversationReader->open($user->id(), $conversationId);
+        $thread = $this->conversationReader->open($user->id(), $conversationId, !$request->isPrefetch());
 
         return $this->render(
             $this->view->sidebar($user->id(), $conversationId),

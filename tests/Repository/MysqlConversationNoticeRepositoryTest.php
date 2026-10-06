@@ -45,6 +45,16 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testCountingInitialNoticesOfAGroupSinceADate(): void
+    {
+        $this->notices->claimInitial($this->conversationId, $this->groupB, $this->now);
+
+        self::assertSame(1, $this->notices->countInitialSince($this->groupB, $this->now->modify('-1 hour')));
+        self::assertSame(0, $this->notices->countInitialSince($this->groupB, $this->now->modify('+1 minute')), 'trop ancien');
+        self::assertSame(0, $this->notices->countInitialSince($this->groupA, $this->now->modify('-1 hour')), 'un autre groupe');
+    }
+
+    #[Test]
     public function testEachGroupHasItsOwnClaim(): void
     {
         self::assertTrue($this->notices->claimInitial($this->conversationId, $this->groupA, $this->now));

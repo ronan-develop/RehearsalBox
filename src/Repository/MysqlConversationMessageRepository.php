@@ -109,18 +109,6 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         return array_map(fn (array $row): ConversationMessage => ConversationRows::message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
-    /** @return list<array{body: string, savedAt: \DateTimeImmutable}> */
-    public function versionsOf(int $messageId): array
-    {
-        $statement = $this->pdo->prepare('SELECT body, saved_at FROM conversation_message_versions WHERE message_id = :id ORDER BY id ASC');
-        $statement->execute(['id' => $messageId]);
-
-        return array_map(
-            static fn (array $row): array => ['body' => (string) $row['body'], 'savedAt' => new \DateTimeImmutable($row['saved_at'])],
-            $statement->fetchAll(\PDO::FETCH_ASSOC),
-        );
-    }
-
     public function countMessagesBySince(int $authorId, \DateTimeImmutable $since): int
     {
         $statement = $this->pdo->prepare('SELECT COUNT(*) FROM conversation_messages WHERE author_id = :author_id AND created_at >= :since');
@@ -138,5 +126,10 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         $statement->execute(['author_id' => $authorId, 'since' => $since->format(self::DATE_FORMAT)]);
 
         return (int) $statement->fetchColumn();
+    }
+
+    public function lockAuthor(int $authorId): void
+    {
+        $this->pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE')->execute(['id' => $authorId]);
     }
 }

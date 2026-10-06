@@ -136,7 +136,7 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
         self::assertSame('Seconde correction', $message->body());
         self::assertEquals($this->now, $message->editedAt());
         self::assertEquals($this->at('-10 minutes'), $message->createdAt(), 'la date d\'envoi ne bouge pas');
-        self::assertSame(['Texte initial', 'Première correction'], array_column($this->messages->versionsOf($messageId), 'body'), 'chaque ancienne version est gardée, la plus ancienne d\'abord');
+        self::assertSame(['Texte initial', 'Première correction'], array_column((new \App\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($messageId), 'body'), 'chaque ancienne version est gardée, la plus ancienne d\'abord');
     }
 
     #[Test]
@@ -146,7 +146,7 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
 
         self::assertNull($this->messages->messageById($conversationId, $messageId)->editedAt());
         self::assertNull($this->messages->messagesOf($conversationId)[0]->editedAt());
-        self::assertSame([], $this->messages->versionsOf($messageId));
+        self::assertSame([], (new \App\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($messageId));
     }
 
     #[Test]

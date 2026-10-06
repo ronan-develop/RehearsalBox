@@ -68,9 +68,9 @@ final class ConversationService
         $this->assertValid($title, $body);
         $plan = $this->mentions->plan($userId, $initiatorGroupId, $targetGroupId, null, $body, $mentionIds);
         $now = $this->clock->now();
-        $this->rateLimit->assertWithin($userId, $now);
 
         [$conversation, $first] = $this->transactions->run(function () use ($userId, $initiatorGroupId, $targetGroupId, $title, $body, $now, $plan): array {
+            $this->rateLimit->assertWithin($userId, $now);
             $conversation = $this->conversations->create($initiatorGroupId, $targetGroupId, $title, $now, $userId);
             $this->mentions->addGuests($plan, $userId, $conversation->id(), $now);
             $first = $this->messages->addMessage($conversation->id(), $userId, $body, $now);
@@ -111,9 +111,9 @@ final class ConversationService
         $this->assertValid(null, $body);
         $plan = $this->mentions->plan($userId, $conversation->initiatorGroupId(), $conversation->targetGroupId(), $conversationId, $body, $mentionIds);
         $now = $this->clock->now();
-        $this->rateLimit->assertWithin($userId, $now);
 
         $message = $this->transactions->run(function () use ($conversationId, $userId, $body, $now, $plan, $replyToId): ConversationMessage {
+            $this->rateLimit->assertWithin($userId, $now);
             $this->mentions->addGuests($plan, $userId, $conversationId, $now);
             $message = $this->messages->addMessage($conversationId, $userId, $body, $now, false, $replyToId);
             $this->mentions->record($plan, $message->id());
@@ -145,10 +145,10 @@ final class ConversationService
             return;
         }
         $now = $this->clock->now();
-        $this->rateLimit->assertWithin($userId, $now);
 
         $line = $title === null ? 'a retiré le titre de la conversation' : "a renommé la conversation « {$title} »";
         $this->transactions->run(function () use ($conversationId, $userId, $title, $line, $now): void {
+            $this->rateLimit->assertWithin($userId, $now);
             $this->conversations->rename($conversationId, $title);
             $this->messages->addMessage($conversationId, $userId, $line, $now, true);
             $this->presence->markRead($conversationId, $userId, $now);

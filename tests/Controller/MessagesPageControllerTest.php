@@ -188,6 +188,24 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testAPrefetchedPageDoesNotMarkTheConversationReadUntilItIsReallyOpened(): void
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $conversation = $this->service->start($alice->id(), $this->group('Alpha', $alice)->id(), $this->group('Beta', $bob)->id(), 'Bonjour', 'Titre');
+        $this->loginAs($bob);
+
+        foreach ([['SEC-PURPOSE' => 'prefetch'], ['PURPOSE' => 'prefetch'], ['X-MOZ' => 'prefetch'], ['SEC-PURPOSE' => 'prefetch;prerender']] as $headers) {
+            $prefetch = new \App\Http\Request('GET', '/messages/' . $conversation->id(), [], [], $headers);
+            $this->controller->show($prefetch, (string) $conversation->id());
+            self::assertSame(1, $this->reader->unreadCount($bob->id()), 'un préchargement du navigateur ne vaut pas lecture');
+        }
+
+        $this->controller->show($this->request(), (string) $conversation->id());
+        self::assertSame(0, $this->reader->unreadCount($bob->id()), 'l\'ouverture réelle la marque lue');
+    }
+
+    #[Test]
     public function testShowPageOfAnArchivedConversationShowsTheArchivesInTheSidebar(): void
     {
         $alice = $this->user('Alice');

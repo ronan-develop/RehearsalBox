@@ -91,6 +91,18 @@ final class Request
         return $this->headers[strtoupper($name)] ?? $this->headers[$name] ?? $default;
     }
 
+    /** Le navigateur charge la page à l'avance (survol, prérendu) sans que la personne l'ouvre : ne doit rien « consommer ». */
+    public function isPrefetch(): bool
+    {
+        foreach (['Sec-Purpose', 'Purpose', 'X-Moz'] as $name) {
+            if (str_contains(strtolower($this->header($name) ?? ''), 'prefetch')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return array{name: string, type: string, tmp_name: string, error: int, size: int}|null */
     public function file(string $key): ?array
     {
