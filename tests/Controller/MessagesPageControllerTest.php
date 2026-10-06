@@ -31,6 +31,7 @@ use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MessagesPageControllerTest extends RepositoryTestCase
 {
     private const PASSWORD = 'mot-de-passe-de-test';

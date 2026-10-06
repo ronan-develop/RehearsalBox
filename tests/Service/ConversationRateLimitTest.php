@@ -13,6 +13,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\TestDatabase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationRateLimitTest extends RepositoryTestCase
 {
     #[Test]

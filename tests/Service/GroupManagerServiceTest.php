@@ -16,6 +16,7 @@ use App\Service\GroupManagerService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class GroupManagerServiceTest extends RepositoryTestCase
 {
     private function makeService(): array

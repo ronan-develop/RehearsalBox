@@ -26,6 +26,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #190 : l'initiateur met la conversation à la corbeille (30 jours), les participants en sont prévenus dans l'application. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationTrashServiceTest extends RepositoryTestCase
 {
     private MockClock $clock;

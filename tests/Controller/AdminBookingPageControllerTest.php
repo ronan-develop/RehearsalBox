@@ -30,6 +30,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #263 partie 3a : la page « Réservations » des administrateurs. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AdminBookingPageControllerTest extends RepositoryTestCase
 {
     private AdminBookingPageController $controller;

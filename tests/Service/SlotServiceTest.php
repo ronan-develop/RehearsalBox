@@ -19,6 +19,7 @@ use App\Service\SlotService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class SlotServiceTest extends RepositoryTestCase
 {
     private function makeService(): array

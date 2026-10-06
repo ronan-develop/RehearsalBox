@@ -55,6 +55,7 @@ composer audit                   # avant tout déploiement
 
 ```bash
 ./vendor/bin/phpunit --colors=always
+composer test:quick   # boucle de travail (#301) : sans les tests qui touchent la base (≈ 3 s, sans conteneur) ; la suite complète reste obligatoire avant la PR
 ./vendor/bin/phpunit --filter NomDuTest
 npm test                         # tests JS (node --test sur assets/js/*)
 ```

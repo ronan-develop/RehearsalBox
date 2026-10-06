@@ -18,6 +18,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AccountSecurityServiceTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

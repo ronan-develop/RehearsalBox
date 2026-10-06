@@ -13,6 +13,7 @@ use App\Service\UserProvisioningService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class UserProvisioningServiceTest extends RepositoryTestCase
 {
     private function service(): UserProvisioningService

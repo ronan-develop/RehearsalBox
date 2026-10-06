@@ -23,6 +23,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #263 partie 2 : réserver un créneau libre, validé par un administrateur. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class FreeSlotBookingServiceTest extends RepositoryTestCase
 {
     use MessagingScenario;

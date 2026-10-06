@@ -20,6 +20,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class GroupApiControllerTest extends RepositoryTestCase
 {
     private function makeController(): array

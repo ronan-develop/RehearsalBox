@@ -14,6 +14,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Corbeille des conversations (#190) : mise à la corbeille, restauration, suppression définitive, purge. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
 {
     use MessagingScenario;

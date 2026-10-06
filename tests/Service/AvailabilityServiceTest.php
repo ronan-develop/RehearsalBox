@@ -22,6 +22,7 @@ use App\Service\Exception\RequestChangedException;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AvailabilityServiceTest extends RepositoryTestCase
 {
     private function makeService(): array

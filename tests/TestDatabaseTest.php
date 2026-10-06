@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
  * #207 : la base de test est préparée UNE fois par exécution (schéma), puis seules les tables touchées sont vidées entre
  * deux tests, compteurs d'identifiants remis à zéro. Ces tests protègent ce mécanisme, dont dépend toute la suite.
  */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class TestDatabaseTest extends TestCase
 {
     private const MIGRATIONS = __DIR__ . '/../database/migrations';

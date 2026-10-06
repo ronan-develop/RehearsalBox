@@ -21,6 +21,7 @@ use App\Tests\Support\RecordingMailer;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetApiControllerTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

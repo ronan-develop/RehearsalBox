@@ -13,6 +13,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Sourdine (#210) : un interrupteur personnel par conversation, stocké dans conversation_states. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlConversationMuteRepositoryTest extends RepositoryTestCase
 {
     use MessagingScenario;

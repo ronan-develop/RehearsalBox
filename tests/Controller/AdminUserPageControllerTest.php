@@ -25,6 +25,7 @@ use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AdminUserPageControllerTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

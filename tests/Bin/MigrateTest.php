@@ -9,6 +9,7 @@ use App\Tests\TestDatabase;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MigrateTest extends TestCase
 {
     private \PDO $pdo;

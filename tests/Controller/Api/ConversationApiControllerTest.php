@@ -33,6 +33,7 @@ use PHPUnit\Framework\Attributes\Test;
 use App\View\PhpTemplateRenderer;
 use Symfony\Component\Clock\MockClock;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationApiControllerTest extends RepositoryTestCase
 {
     private const PASSWORD = 'mot-de-passe-de-test';

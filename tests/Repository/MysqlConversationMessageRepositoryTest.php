@@ -14,6 +14,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Messages d'une conversation : écriture, lecture incrémentale, correction (#200) et comptages de la limite de débit. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
 {
     use MessagingScenario;

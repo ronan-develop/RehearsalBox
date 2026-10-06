@@ -32,6 +32,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #200 : seul l'auteur modifie son message, pendant 15 minutes ; l'ancienne version est gardée, les mentions suivent. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MessageEditServiceTest extends RepositoryTestCase
 {
     private MockClock $clock;

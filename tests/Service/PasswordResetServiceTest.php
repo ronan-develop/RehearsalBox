@@ -25,6 +25,7 @@ use App\Tests\Support\RecordingMailer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetServiceTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

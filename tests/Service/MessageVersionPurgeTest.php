@@ -17,6 +17,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MessageVersionPurgeTest extends RepositoryTestCase
 {
     #[Test]

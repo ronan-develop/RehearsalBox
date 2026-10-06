@@ -26,6 +26,7 @@ use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AccountPagesTest extends RepositoryTestCase
 {
     private AuthService $auth;

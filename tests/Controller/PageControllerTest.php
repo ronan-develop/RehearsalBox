@@ -31,6 +31,7 @@ use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class PageControllerTest extends RepositoryTestCase
 {
     private function makeController(): array

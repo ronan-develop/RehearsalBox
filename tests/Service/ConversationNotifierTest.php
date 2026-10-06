@@ -17,6 +17,7 @@ use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationNotifierTest extends RepositoryTestCase
 {
     private \DateTimeImmutable $now;

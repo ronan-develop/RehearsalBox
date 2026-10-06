@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class EmailChangeServiceTest extends RepositoryTestCase
 {
     private const PASSWORD = 'mon-mot-de-passe-test';

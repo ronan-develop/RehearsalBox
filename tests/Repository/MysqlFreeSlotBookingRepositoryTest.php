@@ -13,6 +13,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #263 partie 2 : réservations libres du local. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlFreeSlotBookingRepositoryTest extends RepositoryTestCase
 {
     use MessagingScenario;

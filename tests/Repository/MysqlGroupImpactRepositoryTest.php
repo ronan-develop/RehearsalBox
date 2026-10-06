@@ -22,6 +22,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Ce que la suppression d'un groupe emporterait avec lui (#224) : de quoi afficher une confirmation chiffrée. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlGroupImpactRepositoryTest extends RepositoryTestCase
 {
     #[Test]

@@ -14,6 +14,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlConversationRepositoryTest extends RepositoryTestCase
 {
     use MessagingScenario;
