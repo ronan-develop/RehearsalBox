@@ -56,7 +56,7 @@ final class AccountApiControllerTest extends RepositoryTestCase
             new PasswordChangeService($this->users, $hasher, $policy, $this->security),
             $this->security,
             new ProfileService($this->users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo)),
-            new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $hasher, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+            new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $resets, $hasher, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
         ));
     }
 
