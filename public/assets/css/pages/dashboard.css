@@ -131,7 +131,10 @@ body {
   }
 }
 
+/* Le logo (fixe, z-index 30) passe devant le panneau de l'en-tête pour ne pas être terni, mais le nom du groupe et l'avatar passent
+   devant LUI : l'en-tête n'isole donc pas son empilement (sinon rien de ce qu'il contient ne pourrait dépasser le logo). */
 .rb-dashboard-header {
+  isolation: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -141,6 +144,8 @@ body {
 }
 
 .rb-dashboard-header-user {
+  position: relative;
+  z-index: 40;
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -609,12 +614,14 @@ body {
     padding-bottom: var(--rb-space-3);
   }
 
-  /* Un nom très long est tronqué : il ne doit jamais recouvrir le logo. */
+  /* Le nom passe devant le logo (z-index) : on lui laisse beaucoup de place, un halo sombre le garde lisible quand il le croise ;
+     un nom vraiment très long est tronqué plutôt que de déborder de l'en-tête. */
   .rb-dashboard-header-user > span:first-child {
-    max-width: 30vw;
+    max-width: 55vw;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-shadow: 0 0 4px var(--rb-bg), 0 0 8px var(--rb-bg);
   }
 
   [data-planning-tabs-ready] .rb-planning-tabs {
