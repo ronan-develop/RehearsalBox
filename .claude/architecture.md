@@ -191,3 +191,10 @@ Navigation entre pages : rendu serveur classique (`PageController`, GET, templat
 |-|-|
 |Migration SQL|écrite à la main dans `database/migrations/`, appliquée par `bin/migrate.php`|
 |Entité/Service/Repository/Test|générés directement (voir `.claude/templates/*.stub` pour le squelette)|
+
+## Pages d'erreur (#259)
+
+- `App\Http\ErrorPage::response($status)` rend `templates/errors/error.php` (CSS `pages/error.css`) : un seul gabarit pour 400, 401, 403, 404, 405, 419, 429, 500, 503 et un repli par famille (4xx / 5xx). Autonome : ni conteneur, ni base, ni session, pour s'afficher même quand l'un d'eux est en panne.
+- `Kernel::errorResponse` l'utilise pour toute page (hors `/api/`, qui reste en JSON). Libellés fixes : jamais le message d'une exception ni de trace ; une conversation interdite et une conversation absente restent indiscernables.
+- 3xx : les redirections (`Location`) restent des redirections, rien à habiller.
+
