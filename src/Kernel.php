@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Container\ContainerInterface;
+use App\Http\ErrorPage;
 use App\Http\ExceptionTranslator;
 use App\Http\JsonResponse;
 use App\Http\Request;
@@ -95,6 +96,7 @@ final class Kernel
             return new JsonResponse(['error' => $message], $statusCode);
         }
 
-        return new Response(body: $message, statusCode: $statusCode);
+        // Une page (pas l'API) : la page d'erreur habillée, jamais le message brut (il peut contenir un détail interne).
+        return ErrorPage::response($statusCode);
     }
 }
