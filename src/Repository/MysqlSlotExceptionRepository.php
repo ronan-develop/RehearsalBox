@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Enum\SlotExceptionStatus;
+use App\Entity\Requester;
 use App\Entity\SlotException;
+use App\Entity\TimeRange;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Repository\Exception\DuplicateOccurrenceException;
 
@@ -88,18 +90,31 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         int $requestedByGroupId,
         int $requestedByUserId,
         ?string $reason,
+        ?string $startTime = null,
+        ?string $endTime = null,
     ): SlotException {
         $statement = $this->pdo->prepare(
-            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason)
-             VALUES (:recurring_slot_id, :occurrence_date, 'en_attente', :requested_by_group_id, :requested_by_user_id, :request_reason)"
+            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, start_time, end_time, status, requested_by_group_id, requested_by_user_id, request_reason)
+             VALUES (:recurring_slot_id, :occurrence_date, :start_time, :end_time, 'en_attente', :requested_by_group_id, :requested_by_user_id, :request_reason)"
         );
-        $statement->execute([
-            'recurring_slot_id' => $recurringSlotId,
-            'occurrence_date' => $occurrenceDate->format('Y-m-d'),
-            'requested_by_group_id' => $requestedByGroupId,
-            'requested_by_user_id' => $requestedByUserId,
-            'request_reason' => $reason,
-        ]);
+        try {
+            $statement->execute([
+                'recurring_slot_id' => $recurringSlotId,
+                'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'requested_by_group_id' => $requestedByGroupId,
+                'requested_by_user_id' => $requestedByUserId,
+                'request_reason' => $reason,
+            ]);
+        } catch (\PDOException $e) {
+            // 1062 = clé d'unicité (créneau, date) : une autre demande occupe déjà cette date (409, jamais une erreur SQL).
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                throw new DuplicateOccurrenceException();
+            }
+
+            throw $e;
+        }
 
         return $this->findById((int) $this->pdo->lastInsertId());
     }
@@ -171,11 +186,11 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
             recurringSlotId: (int) $row['recurring_slot_id'],
             occurrenceDate: new \DateTimeImmutable((string) $row['occurrence_date']),
             status: SlotExceptionStatus::from((string) $row['status']),
-            requestedByGroupId: (int) $row['requested_by_group_id'],
-            requestedByUserId: (int) $row['requested_by_user_id'],
+            requester: new Requester((int) $row['requested_by_group_id'], (int) $row['requested_by_user_id']),
             requestReason: $row['request_reason'] !== null ? (string) $row['request_reason'] : null,
             respondedByUserId: $row['responded_by_user_id'] !== null ? (int) $row['responded_by_user_id'] : null,
             createdAt: new \DateTimeImmutable((string) $row['created_at']),
+            range: TimeRange::fromColumns($row['start_time'] !== null ? (string) $row['start_time'] : null, $row['end_time'] !== null ? (string) $row['end_time'] : null),
         );
     }
 }

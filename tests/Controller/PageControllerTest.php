@@ -354,6 +354,50 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertSame(2, substr_count($response->body(), 'data-occurrence-date="' . $seen->format('Y-m-d') . '"'));
     }
 
+    #[Test]
+
+    public function testDashboardShowsTheRequestedRangeOfAPartialRequestNotTheWholeSlot(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository] = $this->makeController();
+
+        $admin = $userRepository->save(new User(
+            id: 0,
+            email: 'admin@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Admin Test',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Admin', null, null, 'contact@example.test'));
+        $groupRepository->addMember($holderGroup->id(), $admin->id());
+        $slot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '22:00:00');
+
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $requester = $userRepository->save(new User(
+            id: 0,
+            email: 'bob@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            displayName: 'Bob',
+            role: UserRole::Musicien,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+        $groupRepository->addMember($requestingGroup->id(), $requester->id());
+        $seen = new \DateTimeImmutable('+7 days');
+        $exceptionRepository->createRequest($slot->id(), $seen, $requestingGroup->id(), $requester->id(), 'Concert samedi', '18:30:00', '19:00:00');
+
+        $response = $controller->dashboard();
+
+        self::assertMatchesRegularExpression('#<div class="rb-exception-card-slot">.*?<strong>[^<]*18:30 – 19:00</strong>#s', $response->body(), 'la plage demandée sur la carte de la demande');
+        self::assertDoesNotMatchRegularExpression('#<div class="rb-exception-card-slot">.*?<strong>[^<]*18:00 – 22:00</strong>#s', $response->body(), 'pas tout le créneau du titulaire');
+    }
+
+
     /**
      * Deux demandes envoyées par le groupe de l'utilisateur vers le même créneau
      * d'un autre groupe, avec des created_at fixés : [ancienne, récente].

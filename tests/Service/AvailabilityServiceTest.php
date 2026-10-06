@@ -87,6 +87,114 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         return (new \DateTimeImmutable('today'))->modify('tuesday this week')->modify('+1 week')->modify('+' . $weeksAhead . ' weeks');
     }
 
+    // --- Création d'une demande, avec plage partielle (#263) -----------------------------------------------------------
+
+    /** @return array{AvailabilityService, int, int, int, int, int} [service, créneau du titulaire (mardi 18h–20h), groupe demandeur, utilisateur demandeur, groupe titulaire, utilisateur titulaire] */
+    private function requestWorld(): array
+    {
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService();
+        [$holderSlotId, $holderGroupId, $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        return [$service, $holderSlotId, $requestingGroupId, $requestingUserId, $holderGroupId, $holderUserId];
+    }
+
+    #[Test]
+    public function testARequestForTheWholeSlotIsCreatedPendingWithoutARange(): void
+    {
+        [$service, $slotId, $groupId, $userId] = $this->requestWorld();
+
+        $request = $service->createRequest($slotId, $groupId, $this->tuesday(0), 'Concert', $userId);
+
+        self::assertTrue($request->isEnAttente());
+        self::assertSame($groupId, $request->requester()->groupId());
+        self::assertNull($request->range());
+    }
+
+    #[Test]
+    public function testARequestMayTakeAPartOfTheSlotAtTheStartOrTheEndAndTimesAreNormalised(): void
+    {
+        [$service, $slotId, $groupId, $userId] = $this->requestWorld();
+
+        $start = $service->createRequest($slotId, $groupId, $this->tuesday(0), null, $userId, '18:00', '18:30');
+        $end = $service->createRequest($slotId, $groupId, $this->tuesday(1), null, $userId, '19:15:00', '20:00:00');
+
+        self::assertSame(['18:00:00', '18:30:00'], [$start->range()?->start(), $start->range()?->end()]);
+        self::assertSame(['19:15:00', '20:00:00'], [$end->range()?->start(), $end->range()?->end()]);
+    }
+
+    #[Test]
+    public function testARangeOutsideTheHoldersSlotOrOffTheQuarterHourOrIncompleteOrBackwardsIsRefusedPerField(): void
+    {
+        [$service, $slotId, $groupId, $userId] = $this->requestWorld();
+
+        foreach ([
+            'avant le créneau' => ['17:30', '18:30'],
+            'après le créneau' => ['19:30', '20:30'],
+            'pas sur le quart d\'heure' => ['18:10', '18:30'],
+            'une seule borne' => ['18:30', null],
+            'à l\'envers' => ['19:00', '18:30'],
+            'durée nulle' => ['19:00', '19:00'],
+            'format invalide' => ['abc', '19:00'],
+        ] as $label => [$start, $end]) {
+            try {
+                $service->createRequest($slotId, $groupId, $this->tuesday(0), null, $userId, $start, $end);
+                self::fail("plage refusée attendue : {$label}");
+            } catch (AvailabilityValidationException $e) {
+                self::assertNotSame([], array_intersect(['startTime', 'endTime'], array_keys($e->fields())), $label);
+            }
+        }
+    }
+
+    #[Test]
+    public function testTheDateMustBeTheSlotsWeekdayNotInThePastAndTheReasonMustFit(): void
+    {
+        [$service, $slotId, $groupId, $userId] = $this->requestWorld();
+
+        foreach ([
+            'occurrenceDate' => [$this->tuesday(0)->modify('+1 day'), null],
+            'occurrenceDate ' => [$this->tuesday(0)->modify('-8 weeks'), null],
+            'reason' => [$this->tuesday(0), str_repeat('x', 256)],
+        ] as $field => [$date, $reason]) {
+            try {
+                $service->createRequest($slotId, $groupId, $date, $reason, $userId);
+                self::fail("refus attendu : {$field}");
+            } catch (AvailabilityValidationException $e) {
+                self::assertArrayHasKey(trim($field), $e->fields());
+            }
+        }
+    }
+
+    #[Test]
+    public function testOnlyAMemberOfTheRequestingGroupMayRequestAndNeverOnTheirOwnGroupsSlotOrAnUnknownOne(): void
+    {
+        [$service, $slotId, $groupId, $userId, $holderGroupId, $holderUserId] = $this->requestWorld();
+
+        foreach ([
+            'pas membre du groupe demandeur' => [$slotId, $groupId, $holderUserId],
+            'son propre créneau' => [$slotId, $holderGroupId, $holderUserId],
+            'créneau inconnu' => [999999, $groupId, $userId],
+        ] as $label => [$target, $asGroup, $asUser]) {
+            try {
+                $service->createRequest($target, $asGroup, $this->tuesday(0), null, $asUser);
+                self::fail("accès refusé attendu : {$label}");
+            } catch (AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage(), $label);
+            }
+        }
+    }
+
+    #[Test]
+    public function testARequestForADateAlreadyRequestedOnThatSlotIsAConflictNotAnSqlError(): void
+    {
+        [$service, $slotId, $groupId, $userId] = $this->requestWorld();
+        $service->createRequest($slotId, $groupId, $this->tuesday(0), null, $userId);
+
+        $this->expectException(DuplicateOccurrenceException::class);
+
+        $service->createRequest($slotId, $groupId, $this->tuesday(0), null, $userId, '18:00', '18:30');
+    }
+
     #[Test]
 
 
@@ -454,7 +562,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
     {
         [$service, , $requestingUserId, $slotId, $exception] = $this->pendingRequest();
         $groupRepository = new MysqlGroupRepository($this->pdo);
-        $requestingGroupId = $exception->requestedByGroupId();
+        $requestingGroupId = $exception->requester()->groupId();
         (new MysqlSlotExceptionRepository($this->pdo))->createRequest($slotId, $this->tuesday(2), $requestingGroupId, $requestingUserId, null);
 
         $this->expectException(DuplicateOccurrenceException::class);

@@ -13,11 +13,11 @@ final class SlotException
         private readonly int $recurringSlotId,
         private readonly \DateTimeImmutable $occurrenceDate,
         private readonly SlotExceptionStatus $status,
-        private readonly int $requestedByGroupId,
-        private readonly int $requestedByUserId,
+        private readonly Requester $requester,
         private readonly ?string $requestReason,
         private readonly ?int $respondedByUserId,
         private readonly \DateTimeImmutable $createdAt,
+        private readonly ?TimeRange $range = null,
     ) {
     }
 
@@ -41,14 +41,9 @@ final class SlotException
         return $this->status;
     }
 
-    public function requestedByGroupId(): int
+    public function requester(): Requester
     {
-        return $this->requestedByGroupId;
-    }
-
-    public function requestedByUserId(): int
-    {
-        return $this->requestedByUserId;
+        return $this->requester;
     }
 
     public function requestReason(): ?string
@@ -69,5 +64,11 @@ final class SlotException
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /** Plage demandée (#263), null = tout le créneau du titulaire ; le reste du créneau reste au titulaire. */
+    public function range(): ?TimeRange
+    {
+        return $this->range;
     }
 }

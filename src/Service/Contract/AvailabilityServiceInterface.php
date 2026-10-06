@@ -41,6 +41,23 @@ interface AvailabilityServiceInterface
      * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe demandeur de l'exception
      * @throws \App\Service\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà traitée
      */
+    /**
+     * Demande l'occurrence d'un créneau fixe d'un AUTRE groupe, en entier ou sur une plage comprise dans ce créneau (#263).
+     *
+     * @throws \App\Security\Exception\AccessDeniedException créneau inconnu ou supprimé, son propre créneau, ou $userId hors du groupe demandeur
+     * @throws \App\Service\Exception\AvailabilityValidationException date, motif ou plage invalides (erreurs par champ)
+     * @throws \App\Repository\Exception\DuplicateOccurrenceException cette date est déjà demandée sur ce créneau
+     */
+    public function createRequest(
+        int $recurringSlotId,
+        int $requestedByGroupId,
+        \DateTimeImmutable $occurrenceDate,
+        ?string $reason,
+        int $userId,
+        ?string $startTime = null,
+        ?string $endTime = null,
+    ): SlotException;
+
     public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException;
 
     /**

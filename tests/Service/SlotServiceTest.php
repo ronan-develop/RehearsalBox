@@ -120,6 +120,55 @@ final class SlotServiceTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testTheLocalIsExclusiveASlotCannotOverlapAnotherGroupsSlot(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'The Office', null, null, 'beta@example.test'));
+        $service->create($beta->id(), Weekday::Wednesday, '18:30:00', '22:45:00');
+
+        try {
+            $service->create($alpha->id(), Weekday::Wednesday, '18:00:00', '19:00:00');
+            self::fail('un chevauchement avec le créneau d\'un autre groupe doit être refusé');
+        } catch (OverlappingSlotException $e) {
+            self::assertStringNotContainsString('The Office', $e->getMessage(), 'le message ne nomme pas l\'autre groupe');
+        }
+    }
+
+    #[Test]
+
+    public function testSlotsOfDifferentGroupsMayTouchOrSitOnAnotherDayOrReplaceADeletedSlot(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
+        $first = $service->create($beta->id(), Weekday::Wednesday, '18:30:00', '22:45:00');
+
+        self::assertSame('18:30:00', $service->create($alpha->id(), Weekday::Wednesday, '14:00:00', '18:30:00')->endTime(), 'contigu : autorisé');
+        self::assertSame('Thursday', $service->create($alpha->id(), Weekday::Thursday, '18:30:00', '22:45:00')->weekday()->name, 'un autre jour : autorisé');
+
+        $service->delete($first->id());
+        self::assertSame('20:00:00', $service->create($alpha->id(), Weekday::Wednesday, '20:00:00', '22:00:00')->startTime(), 'un créneau supprimé ne bloque plus');
+    }
+
+    #[Test]
+
+    public function testUpdateCannotMakeASlotOverlapAnotherGroupsSlotButMayStayWithinItsOwnRange(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
+        $mine = $service->create($alpha->id(), Weekday::Wednesday, '14:00:00', '17:00:00');
+        $service->create($beta->id(), Weekday::Wednesday, '18:00:00', '22:00:00');
+
+        self::assertSame('17:30:00', $service->update($mine->id(), '14:00:00', '17:30:00')->endTime(), 'agrandir sans toucher un autre créneau : autorisé (et il ne se bloque pas lui-même)');
+
+        $this->expectException(OverlappingSlotException::class);
+        $service->update($mine->id(), '14:00:00', '19:00:00');
+    }
+
+    #[Test]
+
     public function testUpdateChangesSlotTimes(): void
     {
         [$service, $groupRepository] = $this->makeService();
@@ -235,6 +284,8 @@ final class SlotServiceTest extends RepositoryTestCase
         int $holderSlotId,
         int $requestingGroupId,
         \DateTimeImmutable $occurrenceDate,
+        ?string $startTime = null,
+        ?string $endTime = null,
     ): void {
         $requestingUser = $userRepository->save(new User(
             id: 0,
@@ -247,7 +298,7 @@ final class SlotServiceTest extends RepositoryTestCase
             lockedUntil: null,
         ));
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, $occurrenceDate, $requestingGroupId, $requestingUser->id(), null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, $occurrenceDate, $requestingGroupId, $requestingUser->id(), null, $startTime, $endTime);
         $exceptionRepository->respond($exception->id(), true, $requestingUser->id());
     }
 
@@ -273,6 +324,24 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertSame(Weekday::Tuesday, $occasional[0]->slot()->weekday());
         self::assertFalse($occasional[0]->isRecurring());
         self::assertSame($monday->format('Y-m-d'), $occasional[0]->occurrenceDate()?->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function testAnAcceptedPartialRequestShowsOnlyTheRequestedHoursNotTheWholeHoldersSlot(): void
+    {
+        [$service, $groupRepository, , $exceptionRepository] = $this->makeService();
+        $userRepository = new MysqlUserRepository($this->pdo);
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $holderSlot = $service->create($holderGroup->id(), Weekday::Tuesday, '18:30:00', '22:45:00');
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $tuesday = (new \DateTimeImmutable('today'))->modify('monday this week')->modify('+1 day');
+        $this->acceptExceptionForCurrentWeek($exceptionRepository, $userRepository, $holderSlot->id(), $requestingGroup->id(), $tuesday, '18:30:00', '19:00:00');
+
+        [$card] = $service->findOccasionalPlanningSlots();
+
+        self::assertSame('Groupe Demandeur', $card->groupName());
+        self::assertSame(['18:30:00', '19:00:00'], [$card->slot()->startTime(), $card->slot()->endTime()], 'la plage demandée, pas 18h30–22h45');
+        self::assertSame($holderSlot->id(), $card->slot()->id());
     }
 
     #[Test]

@@ -80,7 +80,7 @@ final class SlotApiController
 
         try {
             $slot = $this->slotService->update((int) $id, $startTime, $endTime);
-        } catch (\InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException|OverlappingSlotException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 422);
         }
 
