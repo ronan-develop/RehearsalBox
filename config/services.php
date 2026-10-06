@@ -161,6 +161,7 @@ return static function (array $config): Container {
     $container->set(GroupServiceInterface::class, fn ($c) => new GroupService(
         $c->get(GroupRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),
+        $c->get(GroupDocumentService::class),
     ));
 
     $container->set(MailRenderer::class, fn ($c) => new MailRenderer($c->get(TemplateRendererInterface::class)));
@@ -519,6 +520,7 @@ return static function (array $config): Container {
     $container->set(GroupDocumentService::class, fn ($c) => new GroupDocumentService(
         $c->get(GroupDocumentRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
         $config['storage']['group_documents_path'],
         20,
     ));

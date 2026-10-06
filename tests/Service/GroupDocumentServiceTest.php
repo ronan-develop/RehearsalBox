@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
+use App\Database\TransactionRunner;
 use App\Entity\Enum\GroupUserRole;
 use App\Entity\Enum\UserRole;
 use App\Entity\Group;
 use App\Entity\User;
+use App\Entity\GroupDocument;
+use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
@@ -41,7 +44,7 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
         $documentRepository = new MysqlGroupDocumentRepository($this->pdo);
-        $service = new GroupDocumentService($documentRepository, $groupRepository, $this->storagePath, $maxDocuments);
+        $service = new GroupDocumentService($documentRepository, $groupRepository, new TransactionRunner($this->pdo), $this->storagePath, $maxDocuments);
 
         return [$service, $groupRepository, $userRepository, $documentRepository];
     }
@@ -222,7 +225,7 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testDownloadPathByNonMemberThrowsAccessDenied(): void
+    public function testDownloadByNonMemberThrowsAccessDenied(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -234,12 +237,12 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
 
-        $service->resolveDownloadPath($document->id(), $stranger->id());
+        $service->resolveDownload($document->id(), $stranger->id());
     }
 
     #[Test]
 
-    public function testDownloadPathByMemberReturnsAbsolutePath(): void
+    public function testDownloadByMemberResolvesTheStoredFilePath(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -248,9 +251,158 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         $tmpPath = $this->fakeUploadedFile('%PDF-1.4 test', 'fiche.pdf');
         $document = $service->upload($group->id(), $manager->id(), $tmpPath, 'fiche.pdf', 12);
 
-        [$path, $resolved] = [$service->resolveDownloadPath($document->id(), $manager->id()), $document];
+        $resolved = $service->resolveDownload($document->id(), $manager->id());
+        $path = $service->pathOf($resolved);
 
         self::assertFileExists($path);
         self::assertStringEndsWith($resolved->storedName(), $path);
+    }
+
+    // --- Quota atomique, nom borné, nettoyage, purge (#222) ----------------------------------------------
+
+    /** @return array{0: GroupDocumentService, 1: int, 2: int, 3: MysqlGroupDocumentRepository} service, groupe, gestionnaire, dépôt */
+    private function managerOfAGroup(int $maxDocuments = 20): array
+    {
+        [$service, $groupRepository, $userRepository, $documentRepository] = $this->makeService($maxDocuments);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'zoe@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+
+        return [$service, $group->id(), $manager->id(), $documentRepository];
+    }
+
+    private function storedFiles(): array
+    {
+        return array_values(array_filter(glob($this->storagePath . '/*') ?: [], 'is_file'));
+    }
+
+    #[Test]
+    public function testARefusedUploadLeavesNoFileOnDisk(): void
+    {
+        [$service, $groupId, $managerId] = $this->managerOfAGroup(1);
+        $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 un', 'a.pdf'), 'a.pdf', 11);
+        self::assertCount(1, $this->storedFiles());
+
+        try {
+            $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 deux', 'b.pdf'), 'b.pdf', 13);
+            self::fail('quota atteint');
+        } catch (StorageQuotaExceededException) {
+        }
+
+        self::assertCount(1, $this->storedFiles(), 'le fichier du second envoi n\'est pas resté orphelin');
+    }
+
+    #[Test]
+    public function testAFileIsRemovedWhenTheRecordCannotBeSaved(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'zoe@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $failing = new GroupDocumentService(new class (new MysqlGroupDocumentRepository($this->pdo)) implements GroupDocumentRepositoryInterface {
+            public function __construct(private readonly GroupDocumentRepositoryInterface $inner)
+            {
+            }
+
+            public function findById(int $id): ?GroupDocument
+            {
+                return $this->inner->findById($id);
+            }
+
+            public function findByGroup(int $groupId): array
+            {
+                return $this->inner->findByGroup($groupId);
+            }
+
+            public function countByGroup(int $groupId): int
+            {
+                return $this->inner->countByGroup($groupId);
+            }
+
+            public function lockGroupQuota(int $groupId): void
+            {
+                $this->inner->lockGroupQuota($groupId);
+            }
+
+            public function save(GroupDocument $document): GroupDocument
+            {
+                throw new \PDOException('SQLSTATE : base indisponible');
+            }
+
+            public function delete(int $id): void
+            {
+                $this->inner->delete($id);
+            }
+        }, $groupRepository, new TransactionRunner($this->pdo), $this->storagePath, 20);
+
+        try {
+            $failing->upload($group->id(), $manager->id(), $this->fakeUploadedFile('%PDF-1.4 x', 'a.pdf'), 'a.pdf', 10);
+            self::fail('la base est en panne');
+        } catch (\PDOException) {
+        }
+
+        self::assertSame([], $this->storedFiles(), 'aucun fichier orphelin quand l\'enregistrement échoue');
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function nameProvider(): iterable
+    {
+        yield 'chemin retiré' => ['../../etc/passwd.pdf', 'passwd.pdf'];
+        yield 'chemin Windows retiré' => ['C:\\Users\\x\\fiche.pdf', 'fiche.pdf'];
+        yield 'caractères de contrôle retirés' => ["fi\x00che\r\n\t.pdf", 'fiche.pdf'];
+        yield 'espaces rognés' => ['   plan.pdf   ', 'plan.pdf'];
+        yield 'vide' => ['', 'document'];
+        yield 'que des points et séparateurs' => ['../', 'document'];
+    }
+
+    #[Test]
+    #[\PHPUnit\Framework\Attributes\DataProvider('nameProvider')]
+    public function testTheOriginalNameIsSanitizedBeforeBeingStored(string $given, string $expected): void
+    {
+        [$service, $groupId, $managerId] = $this->managerOfAGroup();
+
+        $document = $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 x', 'a.pdf'), $given, 10);
+
+        self::assertSame($expected, $document->originalName());
+    }
+
+    #[Test]
+    public function testALongNameIsBoundedButKeepsItsExtension(): void
+    {
+        [$service, $groupId, $managerId] = $this->managerOfAGroup();
+
+        $document = $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 x', 'a.pdf'), str_repeat('é', 300) . '.pdf', 10);
+
+        self::assertLessThanOrEqual(150, mb_strlen($document->originalName()));
+        self::assertStringEndsWith('.pdf', $document->originalName());
+        self::assertTrue(mb_check_encoding($document->originalName(), 'UTF-8'), 'jamais coupé au milieu d\'un caractère');
+    }
+
+    #[Test]
+    public function testDeletingRemovesTheRecordEvenWhenTheFileIsAlreadyGone(): void
+    {
+        [$service, $groupId, $managerId, $documentRepository] = $this->managerOfAGroup();
+        $document = $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 x', 'a.pdf'), 'a.pdf', 10);
+        unlink($service->pathOf($document));
+
+        $service->delete($document->id(), $managerId);
+
+        self::assertNull($documentRepository->findById($document->id()));
+    }
+
+    #[Test]
+    public function testTheFilesOfAGroupCanBeListedThenRemovedWhenTheGroupIsDeleted(): void
+    {
+        [$service, $groupId, $managerId] = $this->managerOfAGroup();
+        $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 un', 'a.pdf'), 'a.pdf', 11);
+        $service->upload($groupId, $managerId, $this->fakeUploadedFile('%PDF-1.4 deux', 'b.pdf'), 'b.pdf', 13);
+
+        $paths = $service->filesOf($groupId);
+        self::assertCount(2, $paths);
+        $service->remove($paths);
+
+        self::assertSame([], $this->storedFiles());
+        $service->remove(['/inexistant/fichier.pdf']); // best effort : un fichier déjà absent n'est jamais une erreur
+        self::addToAssertionCount(1);
     }
 }

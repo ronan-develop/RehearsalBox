@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Api;
 
 use App\Controller\Api\GroupDocumentApiController;
+use App\Database\TransactionRunner;
 use App\Entity\Enum\GroupUserRole;
 use App\Entity\Enum\UserRole;
 use App\Entity\Group;
@@ -46,7 +47,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
         $documentRepository = new MysqlGroupDocumentRepository($this->pdo);
-        $documentService = new GroupDocumentService($documentRepository, $groupRepository, $this->storagePath, 20);
+        $documentService = new GroupDocumentService($documentRepository, $groupRepository, new TransactionRunner($this->pdo), $this->storagePath, 20);
 
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
@@ -54,7 +55,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         $controller = new KernelTranslation(new GroupDocumentApiController($documentService, $authGuard));
 
-        return [$controller, $groupRepository, $userRepository, $authService];
+        return [$controller, $groupRepository, $userRepository, $authService, $documentService];
     }
 
     private function createUser(MysqlUserRepository $userRepository, string $email): User
@@ -207,7 +208,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testDownloadDisablesContentSniffingAndSanitizesTheFilename(): void
+    public function testDownloadOfAPdfIsAnAttachmentWithNoSniffingAndASanitizedFilename(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -223,12 +224,12 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         self::assertSame('nosniff', $headers['X-Content-Type-Options'] ?? null);
         $disposition = $headers['Content-Disposition'] ?? '';
-        self::assertStringStartsWith('inline; filename="', $disposition);
+        self::assertStringStartsWith('attachment; filename="', $disposition);
         self::assertStringContainsString("filename*=UTF-8''", $disposition);
         // Pas d'injection d'en-tête ni de guillemet non échappé via le nom d'origine.
         self::assertStringNotContainsString("\r", $disposition);
         self::assertStringNotContainsString("\n", $disposition);
-        self::assertSame(1, preg_match('/^inline; filename="[^"\\\r\n]*"; filename\*=UTF-8\'\'[A-Za-z0-9%._~-]+$/', $disposition));
+        self::assertSame(1, preg_match('/^attachment; filename="[^"\\\r\n]*"; filename\*=UTF-8\'\'[A-Za-z0-9%._~-]+$/', $disposition));
     }
 
     #[Test]
@@ -291,5 +292,78 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
         $controller->destroy(new Request('DELETE', "/api/documents/{$documentId}", [], [], []), (string) $documentId);
+    }
+
+    // --- Téléchargement isolé (#222) -------------------------------------------------------------------
+
+    /** @return array{0: KernelTranslation, 1: int, 2: string} contrôleur, identifiant du document, chemin du fichier stocké */
+    private function storedDocument(string $content, string $name, string $mime): array
+    {
+        [$controller, $groupRepository, $userRepository, $authService, $documentService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $authService->attempt('gaby@rehearsalbox.test', 'password');
+        $files = ['document' => ['name' => $name, 'type' => $mime, 'tmp_name' => $this->uploadedTmpFile($content), 'error' => UPLOAD_ERR_OK, 'size' => strlen($content)]];
+        $stored = $controller->store(new Request('POST', "/api/groups/{$group->id()}/documents", [], [], [], $files), (string) $group->id());
+        $id = json_decode($stored->body(), true)['id'];
+        $path = $documentService->pathOf($documentService->resolveDownload($id, $manager->id()));
+
+        return [$controller, $id, $path];
+    }
+
+    private const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    #[Test]
+    public function testTheDownloadIsStreamedAndIsolatedByAStrictContentSecurityPolicy(): void
+    {
+        [$controller, $id, $path] = $this->storedDocument('%PDF-1.4 contenu test', 'fiche.pdf', 'application/pdf');
+
+        $response = $controller->download(new Request('GET', "/api/documents/{$id}", [], [], []), (string) $id);
+
+        self::assertInstanceOf(\App\Http\FileResponse::class, $response, 'envoyé en flux, jamais chargé en mémoire');
+        self::assertSame($path, $response->path());
+        self::assertSame("default-src 'none'; style-src 'unsafe-inline'; sandbox", $response->headers()['Content-Security-Policy']);
+        self::assertSame('nosniff', $response->headers()['X-Content-Type-Options']);
+        self::assertSame('application/pdf', $response->headers()['Content-Type']);
+        self::assertSame((string) strlen('%PDF-1.4 contenu test'), $response->headers()['Content-Length']);
+    }
+
+    #[Test]
+    public function testImagesStayInlineButPdfsAreAlwaysAttachments(): void
+    {
+        [$controller, $imageId] = $this->storedDocument((string) base64_decode(self::PNG), 'plan.png', 'image/png');
+
+        $image = $controller->download(new Request('GET', "/api/documents/{$imageId}", [], [], []), (string) $imageId);
+
+        self::assertSame('image/png', $image->headers()['Content-Type']);
+        self::assertStringStartsWith('inline; filename="', $image->headers()['Content-Disposition']);
+    }
+
+    #[Test]
+    public function testAMissingFileOnDiskIsAClean404NotAnEmpty200(): void
+    {
+        [$controller, $id, $path] = $this->storedDocument('%PDF-1.4 contenu test', 'fiche.pdf', 'application/pdf');
+        unlink($path);
+
+        $response = $controller->download(new Request('GET', "/api/documents/{$id}", [], [], []), (string) $id);
+
+        self::assertSame(404, $response->statusCode());
+        self::assertSame(['error' => 'Document introuvable.'], json_decode($response->body(), true));
+    }
+
+    #[Test]
+    public function testAMalformedIdentifierIsRefusedAsForbidden(): void
+    {
+        [$controller] = $this->storedDocument('%PDF-1.4 contenu test', 'fiche.pdf', 'application/pdf');
+
+        foreach (['5abc', '0', '-1', ''] as $id) {
+            try {
+                $controller->download(new Request('GET', '/x', [], [], []), $id);
+                self::fail('identifiant refusé attendu : ' . $id);
+            } catch (AccessDeniedException) {
+                self::addToAssertionCount(1);
+            }
+        }
     }
 }
