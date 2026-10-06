@@ -16,14 +16,17 @@ final class ConversationSql
         SELECT MAX(x.id) FROM conversation_messages x WHERE x.conversation_id = c.id
     )';
 
+    // Sourdine (#210) : une conversation en sourdine n'a ni « non lu » ni mention marquée, donc n'entre dans aucun compteur.
+    private const NOT_MUTED = 'COALESCE(s.muted, 0) = 0';
+
     // Mention non lue : un message qui désigne la personne, plus récent que sa dernière lecture.
-    public const MENTIONED_USER = 'EXISTS (
+    public const MENTIONED_USER = self::NOT_MUTED . ' AND EXISTS (
         SELECT 1 FROM message_mentions mm JOIN conversation_messages mmsg ON mmsg.id = mm.message_id
         WHERE mmsg.conversation_id = c.id AND mm.user_id = :mention_user
           AND (s.last_read_at IS NULL OR mmsg.created_at > s.last_read_at)
     )';
 
-    public const UNREAD_FOR_USER = 'EXISTS (
+    public const UNREAD_FOR_USER = self::NOT_MUTED . ' AND EXISTS (
         SELECT 1 FROM conversation_messages um
         WHERE um.conversation_id = c.id AND um.author_id <> :unread_user
           AND (s.last_read_at IS NULL OR um.created_at > s.last_read_at)
