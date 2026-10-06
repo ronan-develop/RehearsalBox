@@ -963,45 +963,58 @@ rb-composer {
 }
 
 @media (hover: none) {
-  /* Écran tactile (#212) : un glissement vers la gauche sur sa bulle récente la corrige. La bulle suit le doigt (--swipe-x,
-     posé par swipe-edit.js) et le crayon, accroché à son bord droit, entre à l'écran ; le texte reste sélectionnable (copier). */
+  /* Écran tactile (#253) : un TAP sur la bulle révèle ses actions (classe rb-chat-message--actions, posée par tap-actions.js).
+     La citation à DROITE de la bulle des autres ; le crayon à GAUCHE de mes bulles récentes ; ma propre citation, à gauche aussi,
+     seulement quand rien n'est modifiable. Plus de glissement (peu fiable sur iPhone : sélection de texte, gestes de bord de
+     Chrome et Safari) ; le texte reste sélectionnable pour copier. */
   .rb-chat-message[data-message-id] {
     position: relative;
-    touch-action: pan-y; /* le défilement vertical reste au navigateur */
-    transform: translateX(var(--swipe-x, 0px));
-    transition: transform 0.2s ease;
   }
 
-  .rb-chat-message--dragging {
-    transition: none;
+  .rb-chat-bubble {
+    cursor: pointer; /* iOS n'envoie « click » sur une zone non interactive que si le curseur est une main */
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* #214 : un glissement vers la droite sur n'importe quelle bulle la cite ; l'icône, accrochée à son bord gauche, entre à l'écran. */
   .rb-chat-quote-action {
     position: absolute;
     top: 50%;
-    right: calc(100% + 8px);
+    left: calc(100% + 4px);
     min-width: 44px;
     min-height: 44px;
     color: var(--rb-accent);
-    opacity: 0; /* visible seulement pendant le glissement (classe posée par swipe-row.js) : jamais en permanence à côté des bulles */
+    opacity: 0; /* visible seulement après un tap sur la bulle : jamais en permanence à côté des bulles */
+    pointer-events: none;
     transform: translateY(-50%);
     transition: opacity 0.15s ease;
   }
 
-  .rb-chat-message[data-message-id].rb-chat-message--swiping-right .rb-chat-quote-action {
-    opacity: 1;
+  .rb-chat-message--mine .rb-chat-quote-action {
+    right: calc(100% + 4px);
+    left: auto;
   }
 
-  .rb-chat-edit {
+  .rb-chat-message--mine[data-editable] .rb-chat-quote-action {
+    display: none; /* une seule action à gauche de ma bulle modifiable : le crayon */
+  }
+
+  .rb-chat-message--mine .rb-chat-edit {
     position: absolute;
     top: 50%;
-    left: calc(100% + 8px);
+    right: calc(100% + 4px);
     min-width: 44px;
     min-height: 44px;
     color: var(--rb-accent);
-    opacity: 1;
+    opacity: 0;
+    pointer-events: none;
     transform: translateY(-50%);
+    transition: opacity 0.15s ease;
+  }
+
+  .rb-chat-message--actions .rb-chat-quote-action,
+  .rb-chat-message--actions .rb-chat-edit {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 

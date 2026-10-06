@@ -6,8 +6,7 @@
 import { EVT, emit } from './events.js';
 import { isNearBottom } from './model.js';
 import { quoteFromRow } from './quote.js';
-import { wireSwipeEdit } from './swipe-edit.js';
-import { wireSwipeQuote } from './swipe-quote.js';
+import { wireTapActions } from './tap-actions.js';
 
 const FLASH_CLASS = 'rb-chat-message--flash';
 const FLASH_MS = 1600;
@@ -24,15 +23,18 @@ export class RbMessageList extends HTMLElement {
     this.addEventListener('scroll', () => this.nearBottom() && this.#hideHint(), { passive: true });
     this.#wireEditing();
     this.#wireQuoting();
+    // Écran tactile (#253) : un tap sur une bulle révèle ses actions (citer, corriger). Ordinateur : survol, rien à câbler.
+    if (window.matchMedia?.('(hover: none)').matches) {
+      wireTapActions(this);
+    }
   }
 
   /**
-   * Corriger son message (#200, #212) : un bouton (survol ou clavier sur ordinateur) et, sur écran tactile, un glissement vers
-   * la gauche sur ses propres bulles récentes (`data-editable`, posé par le serveur). Le composant ne fait que demander
-   * (message:edit-request) : la saisie et l'appel à l'API sont ailleurs.
+   * Corriger son message (#200, #253) : un bouton, au survol ou au clavier sur ordinateur, et au tap sur la bulle sur écran
+   * tactile (tap-actions.js) pour ses propres bulles récentes (`data-editable`, posé par le serveur). Le composant ne fait que
+   * demander (message:edit-request) : la saisie et l'appel à l'API sont ailleurs.
    */
   #wireEditing() {
-    wireSwipeEdit(this, { onEdit: (row) => this.#requestEdit(row) });
     this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-edit-message]');
       if (button !== null) {
@@ -49,12 +51,11 @@ export class RbMessageList extends HTMLElement {
   }
 
   /**
-   * Citer un message (#214) : un bouton « Répondre » (survol ou clavier sur ordinateur) et, sur écran tactile, un glissement
-   * vers la droite sur n'importe quelle bulle. Le composant ne fait que demander (message:quote-request). Un clic sur la
-   * citation d'une bulle amène le message cité à l'écran ; sans JavaScript, le lien (ancre) fait le même trajet.
+   * Citer un message (#214, #253) : un bouton « Répondre », au survol ou au clavier sur ordinateur, et au tap sur la bulle sur
+   * écran tactile (tap-actions.js). Le composant ne fait que demander (message:quote-request). Un clic sur la citation d'une
+   * bulle amène le message cité à l'écran ; sans JavaScript, le lien (ancre) fait le même trajet.
    */
   #wireQuoting() {
-    wireSwipeQuote(this, { onQuote: (row) => this.#requestQuote(row) });
     this.addEventListener('click', (event) => {
       const button = event.target.closest('[data-quote-message]');
       if (button !== null) {
