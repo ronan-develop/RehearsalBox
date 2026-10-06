@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\DashboardExceptionItem;
+use App\Entity\DashboardRequestItem;
 use App\Entity\Enum\ExceptionDirection;
 use App\Entity\Enum\UserRole;
 use App\Entity\RecurringSlot;
@@ -14,6 +15,7 @@ use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Presenter\DashboardBookings;
 use App\Presenter\PlanningView;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
@@ -38,6 +40,7 @@ final class PageController
         private readonly GroupDocumentRepositoryInterface $groupDocumentRepository,
         private readonly PlanningView $planning,
         private readonly ?NotificationPreferenceRepositoryInterface $preferences = null,
+        private readonly ?DashboardBookings $dashboardBookings = null,
     ) {
     }
 
@@ -151,10 +154,15 @@ final class PageController
             }
         }
 
+        // Réservations libres (#292) : « envoyées » ou « archivées », jamais « reçues » (seuls les admins les valident).
+        $bookingItems = $this->dashboardBookings?->forGroups($groups, $user->id()) ?? ['sent' => [], 'archived' => []];
+        $sentItems = [...$sentItems, ...$bookingItems['sent']];
+        $archivedItems = [...$archivedItems, ...$bookingItems['archived']];
+
         // Plus récent d'abord ; à created_at égal (même seconde), l'id le plus grand
         // (créé en dernier) passe en premier, pour un ordre déterministe.
-        $sortByCreatedAtDescending = static fn (DashboardExceptionItem $a, DashboardExceptionItem $b): int =>
-            [$b->exception()->createdAt(), $b->exception()->id()] <=> [$a->exception()->createdAt(), $a->exception()->id()];
+        $sortByCreatedAtDescending = static fn (DashboardRequestItem $a, DashboardRequestItem $b): int =>
+            [$b->createdAt(), $b->kind()->value, $b->requestId()] <=> [$a->createdAt(), $a->kind()->value, $a->requestId()];
         usort($receivedItems, $sortByCreatedAtDescending);
         usort($sentItems, $sortByCreatedAtDescending);
         usort($archivedItems, $sortByCreatedAtDescending);
@@ -186,6 +194,7 @@ final class PageController
         \assert($requestingGroup !== null);
 
         $holderSlot = $slotsById[$exception->recurringSlotId()] ?? null;
+        $holderGroup = $holderSlot === null ? null : $this->groupRepository->findById($holderSlot->groupId());
 
         return new DashboardExceptionItem(
             $exception,
@@ -194,6 +203,7 @@ final class PageController
             $requestingGroup->colorHex(),
             // Plage demandée (#263) : la carte montre ce que le titulaire accorde, pas tout son créneau.
             $holderSlot?->within($exception->range()),
+            $holderGroup?->name(),
         );
     }
 

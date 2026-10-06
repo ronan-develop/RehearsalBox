@@ -68,6 +68,7 @@ use App\Presenter\ConversationTimeline;
 use App\Presenter\ConversationUpdates;
 use App\Presenter\MessagesPageView;
 use App\Presenter\PlanningDays;
+use App\Presenter\DashboardBookings;
 use App\Presenter\PlanningView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
@@ -249,6 +250,7 @@ return static function (array $config): Container {
         $c->get(GroupDocumentRepositoryInterface::class),
         $c->get(PlanningView::class),
         $c->get(NotificationPreferenceRepositoryInterface::class),
+        new DashboardBookings($c->get(FreeSlotBookingService::class)),
     ));
 
     $container->set(PlanningView::class, fn ($c) => new PlanningView(

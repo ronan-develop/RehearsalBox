@@ -246,3 +246,7 @@ Navigation entre pages : rendu serveur classique (`PageController`, GET, templat
 - **Piège relevé en test de bout en bout** : le menu fixe du bas peut recouvrir un champ ou le bouton ; les éléments de la page ont `scroll-margin-bottom` pour que le focus clavier et le défilement ne les laissent jamais dessous.
 - Les identifiants (groupe, réservation) sont vérifiés strictement numériques avant de toucher une URL.
 
+
+### Suivi unifié des demandes (#292)
+
+Le bloc « Demandes de créneau » du tableau de bord (Reçues / Envoyées / Archivées) mélange deux sortes de lignes, toutes deux des `DashboardRequestItem` (`kind()` = `RequestKind`, `requestId()`, `createdAt()`) : `DashboardExceptionItem` (échange entre groupes, validé par le groupe titulaire) et `DashboardBookingItem` (réservation libre, validée par un administrateur). `Presenter\DashboardBookings::forGroups` range les réservations : « envoyées » tant qu'elles attendent, « archivées » dès qu'elles ont une réponse ou sont annulées, jamais « reçues ». Chaque carte porte une pastille de nature (libellé + couleur) et, en attente, le validateur attendu (« À valider par les admins » / « À valider par {groupe} »). Une réservation en attente s'annule depuis la carte (`<rb-booking-item>` + `bookings.js`, même chemin que la page de réservation). Les réservations passées ne sont pas listées (`findForGroup` : à partir d'aujourd'hui).
