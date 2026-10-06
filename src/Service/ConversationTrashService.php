@@ -27,7 +27,7 @@ final class ConversationTrashService
         private readonly ConversationTrashRepositoryInterface $trashed,
         private readonly TransactionRunner $transactions,
         private readonly ClockInterface $clock,
-        private readonly ?ConversationAlertRepositoryInterface $alerts = null,
+        private readonly ConversationAlertRepositoryInterface $alerts,
     ) {
     }
 
@@ -45,7 +45,7 @@ final class ConversationTrashService
         $now = $this->clock->now();
         $this->transactions->run(function () use ($conversationId, $userId, $now): void {
             $this->trashed->moveToTrash($conversationId, $now);
-            $this->alerts?->notifyParticipants($conversationId, $userId, ConversationAlert::DELETED, $now);
+            $this->alerts->notifyParticipants($conversationId, $userId, ConversationAlert::DELETED, $now);
         });
     }
 
@@ -56,7 +56,7 @@ final class ConversationTrashService
         $now = $this->clock->now();
         $this->transactions->run(function () use ($conversation, $userId, $now): void {
             $this->trashed->restore($conversation->id());
-            $this->alerts?->notifyParticipants($conversation->id(), $userId, ConversationAlert::RESTORED, $now);
+            $this->alerts->notifyParticipants($conversation->id(), $userId, ConversationAlert::RESTORED, $now);
         });
     }
 
@@ -88,17 +88,17 @@ final class ConversationTrashService
     /** @return list<ConversationAlert> avis non fermés des 30 derniers jours */
     public function alertsFor(int $userId): array
     {
-        return $this->alerts?->findActiveFor($userId, $this->cutoff()) ?? [];
+        return $this->alerts->findActiveFor($userId, $this->cutoff());
     }
 
     public function alertCount(int $userId): int
     {
-        return $this->alerts?->countActiveFor($userId, $this->cutoff()) ?? 0;
+        return $this->alerts->countActiveFor($userId, $this->cutoff());
     }
 
     public function dismissAlert(int $userId, int $alertId): void
     {
-        $this->alerts?->dismiss($alertId, $userId, $this->clock->now());
+        $this->alerts->dismiss($alertId, $userId, $this->clock->now());
     }
 
     private function cutoff(): \DateTimeImmutable
