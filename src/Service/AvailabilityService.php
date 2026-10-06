@@ -17,6 +17,7 @@ use App\Repository\Exception\DuplicateOccurrenceException;
 use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\RequestAlreadyRespondedException;
 use App\Service\Exception\RequestChangedException;
+use App\Support\QuarterHour;
 
 final class AvailabilityService implements AvailabilityServiceInterface
 {
@@ -99,6 +100,38 @@ final class AvailabilityService implements AvailabilityServiceInterface
         return $responded;
     }
 
+    public function createRequest(
+        int $recurringSlotId,
+        int $requestedByGroupId,
+        \DateTimeImmutable $occurrenceDate,
+        ?string $reason,
+        int $userId,
+        ?string $startTime = null,
+        ?string $endTime = null,
+    ): SlotException {
+        $slot = $this->recurringSlotRepository->findById($recurringSlotId);
+        // IDOR : le groupe demandeur est vérifié contre l'appartenance de la personne (jamais cru sur parole), on ne demande pas
+        // son propre créneau, et un créneau inconnu ou supprimé produit le même refus qu'un accès interdit.
+        if ($slot === null
+            || !$slot->isActive()
+            || $requestedByGroupId === $slot->groupId()
+            || !$this->groupRepository->isMember($requestedByGroupId, $userId)) {
+            throw $this->accessDenied();
+        }
+
+        $this->assertValidRequest($slot, $occurrenceDate, $reason, $startTime, $endTime);
+
+        return $this->slotExceptionRepository->createRequest(
+            $recurringSlotId,
+            $occurrenceDate,
+            $requestedByGroupId,
+            $userId,
+            $reason,
+            $startTime === null ? null : QuarterHour::normalise($startTime),
+            $endTime === null ? null : QuarterHour::normalise($endTime),
+        );
+    }
+
     public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException
     {
         $exception = $this->slotExceptionRepository->findById($exceptionId);
@@ -148,9 +181,9 @@ final class AvailabilityService implements AvailabilityServiceInterface
      *
      * @throws AvailabilityValidationException
      */
-    private function assertValidRequest(RecurringSlot $slot, \DateTimeImmutable $occurrenceDate, ?string $reason): void
+    private function assertValidRequest(RecurringSlot $slot, \DateTimeImmutable $occurrenceDate, ?string $reason, ?string $startTime = null, ?string $endTime = null): void
     {
-        $errors = [];
+        $errors = $this->rangeErrors($slot, $startTime, $endTime);
         if ((int) $occurrenceDate->format('N') - 1 !== $slot->weekday()->value) {
             $errors['occurrenceDate'] = 'La date ne correspond pas au jour de ce créneau.';
         } elseif ($occurrenceDate < $this->clock->now()->setTime(0, 0)) {
@@ -163,6 +196,42 @@ final class AvailabilityService implements AvailabilityServiceInterface
         if ($errors !== []) {
             throw new AvailabilityValidationException($errors);
         }
+    }
+
+    /**
+     * Plage partielle (#263) : les deux bornes ensemble, sur le quart d'heure, début avant fin, comprise dans le créneau du titulaire
+     * (le reste du créneau reste au titulaire). Sans borne, la demande vise tout le créneau.
+     *
+     * @return array<string, string> erreurs par champ
+     */
+    private function rangeErrors(RecurringSlot $slot, ?string $startTime, ?string $endTime): array
+    {
+        if ($startTime === null && $endTime === null) {
+            return [];
+        }
+        if ($startTime === null || $endTime === null) {
+            return ['startTime' => 'Indiquez l’heure de début et l’heure de fin, ou aucune des deux.'];
+        }
+
+        $errors = [];
+        foreach (['startTime' => $startTime, 'endTime' => $endTime] as $field => $time) {
+            if (!QuarterHour::isAligned($time)) {
+                $errors[$field] = 'L’heure doit tomber sur un quart d’heure (par exemple 18:30).';
+            }
+        }
+        if ($errors !== []) {
+            return $errors;
+        }
+
+        [$start, $end] = [QuarterHour::normalise($startTime), QuarterHour::normalise($endTime)];
+        if ($end <= $start) {
+            return ['endTime' => 'La fin doit être après le début.'];
+        }
+        if ($start < $slot->startTime() || $end > $slot->endTime()) {
+            return ['startTime' => 'La plage doit rester dans le créneau du groupe titulaire.'];
+        }
+
+        return [];
     }
 
     /**

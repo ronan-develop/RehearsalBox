@@ -93,7 +93,7 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 
         $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
 
-        $this->expectException(\PDOException::class);
+        $this->expectException(DuplicateOccurrenceException::class); // comme update : le dépôt traduit la clé d'unicité (1062)
 
         $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
     }
