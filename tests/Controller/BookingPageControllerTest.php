@@ -31,6 +31,8 @@ use Symfony\Component\Clock\MockClock;
 /** #263 partie 3b-2 : la page « Réserver le local ». */
 final class BookingPageControllerTest extends RepositoryTestCase
 {
+    private const PASSWORD = 'mot-de-passe-de-test'; // fixture factice : aucun compte réel
+
     private BookingPageController $controller;
     private FreeSlotBookingService $service;
     private MysqlFreeSlotBookingRepository $bookings;
@@ -46,8 +48,8 @@ final class BookingPageControllerTest extends RepositoryTestCase
         $users = new MysqlUserRepository($this->pdo);
         $session = new InMemorySession();
         $this->auth = new AuthService($users, new FastPasswordHasher(), $session, $this->groups);
-        $alice = $users->save(new User(0, 'alice@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Alice', UserRole::Musicien, true, 0, null));
-        $users->save(new User(0, 'seul@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Seul', UserRole::Musicien, true, 0, null));
+        $alice = $users->save(new User(0, 'alice@rehearsalbox.test', (new FastPasswordHasher())->hash(self::PASSWORD), 'Alice', UserRole::Musicien, true, 0, null));
+        $users->save(new User(0, 'seul@rehearsalbox.test', (new FastPasswordHasher())->hash(self::PASSWORD), 'Seul', UserRole::Musicien, true, 0, null));
         $this->aliceId = $alice->id();
         $this->alphaId = $this->groups->save(new Group(0, 'Alpha <b>', null, null, 'alpha@example.test'))->id();
         $this->groups->addMember($this->alphaId, $alice->id());
@@ -65,7 +67,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
 
     private function login(string $name): void
     {
-        $this->auth->attempt("{$name}@rehearsalbox.test", 'password');
+        $this->auth->attempt("{$name}@rehearsalbox.test", self::PASSWORD);
     }
 
     #[Test]
