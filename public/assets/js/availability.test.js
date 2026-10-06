@@ -40,8 +40,8 @@ function fakeDocument() {
   };
 }
 
-function fakeButton(exceptionId, accepted) {
-  return { dataset: { exceptionId, accepted: String(accepted) } };
+function fakeButton(exceptionId, accepted, occurrenceDate = '2026-10-20') {
+  return { dataset: { exceptionId, accepted: String(accepted), occurrenceDate } };
 }
 
 function fakeRootWithCard() {
@@ -223,4 +223,31 @@ test('handleUpdateSubmit prevents native submit and PATCHes the form as JSON', a
     occurrenceDate: '2026-08-11',
     reason: 'Raison modifiée',
   });
+});
+
+test('handleRespond sends the date the holder saw, so a date changed in the meantime cannot be accepted by mistake (#221)', async () => {
+  let body = null;
+  globalThis.fetch = async (url, options) => {
+    if (url === '/api/planning') {
+      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+    }
+    body = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ id: 7, status: 'acceptee' }) };
+  };
+  globalThis.document = fakeDocument();
+
+  const { root } = fakeRootWithCard();
+  await handleRespond(fakeButton('7', true, '2026-10-20'), root);
+
+  assert.deepEqual(body, { accepted: true, occurrenceDate: '2026-10-20' });
+});
+
+test('a request changed in the meantime answers 409: the card is removed so the holder reloads and sees the new date', async () => {
+  globalThis.fetch = async () => ({ ok: false, status: 409, json: async () => ({ error: 'La demande a été modifiée.' }) });
+  globalThis.document = fakeDocument();
+
+  const { root, removed } = fakeRootWithCard();
+  await handleRespond(fakeButton('7', true), root);
+
+  assert.deepEqual(removed, ['7']);
 });

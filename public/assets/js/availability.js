@@ -26,11 +26,14 @@ export function getCurrentGroupId(root = document) {
 export async function handleRespond(button, root = document) {
   const exceptionId = button.dataset.exceptionId;
   const accepted = button.dataset.accepted === 'true';
+  // La date que le titulaire a sous les yeux : si le demandeur l'a changée entre-temps, le serveur refuse (409) plutôt que
+  // d'accepter une autre date que celle affichée (#221).
+  const occurrenceDate = button.dataset.occurrenceDate;
 
   try {
     await apiFetch(`/api/availability/${exceptionId}/respond`, {
       method: 'POST',
-      body: JSON.stringify({ accepted }),
+      body: JSON.stringify({ accepted, occurrenceDate }),
     });
 
     removeExceptionCard(root, exceptionId);
