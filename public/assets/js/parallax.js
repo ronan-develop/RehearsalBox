@@ -1,3 +1,5 @@
+import { isDesktopWidth } from './viewport.js';
+
 /**
  * Parallax du calque "#B27" en fond de dashboard.
  *
@@ -26,10 +28,14 @@
  * dans les deux sens ; plus le logo descend, plus il est brillant (--wm-glow,
  * computeGlowLevel).
  *
- * Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
+ * Sur mobile (< 768 px, #201) il n'y a ni voyage ni montée de brillance : le logo reste dans l'en-tête, allumé en néon en
+ * permanence, et défile avec la page (le calque n'est plus fixe, cf. dashboard.css). Respecte prefers-reduced-motion. Les calculs géométriques sont extraits du
  * DOM réel (fonctions pures ci-dessous) pour rester testables en
  * environnement node --test.
  */
+
+/** Hauteur du centre du logo dans l'en-tête sur téléphone (fraction de sa hauteur depuis le haut). */
+const PHONE_LOGO_HEIGHT_RATIO = 0.36;
 
 /**
  * Décalage de départ (scroll 0), relatif à la position de repos centrée du
@@ -40,6 +46,17 @@ export function computeStartOffset(headerRect, bgTextRect) {
   return {
     x: headerRect.left + headerRect.width / 3 - bgTextRect.left,
     y: headerRect.top - bgTextRect.top + headerRect.height / 2 - bgTextRect.height / 2,
+  };
+}
+
+/**
+ * Décalage de départ sur téléphone (#201) : le logo est CENTRÉ dans l'en-tête, dans sa partie haute (le nom du groupe et
+ * l'avatar restent en bas, jamais recouverts). Position de repos du calque = centre de la page.
+ */
+export function computePhoneStartOffset(headerRect, bgTextRect) {
+  return {
+    x: headerRect.left + headerRect.width / 2 - (bgTextRect.left + bgTextRect.width / 2),
+    y: headerRect.top - bgTextRect.top + headerRect.height * PHONE_LOGO_HEIGHT_RATIO - bgTextRect.height / 2,
   };
 }
 
@@ -121,6 +138,7 @@ export function initParallax(root = document, windowRef = window) {
   if (!bg) return;
 
   const reducedMotion = windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isPhone = !isDesktopWidth(windowRef.innerWidth);
 
   const anchor = root.querySelector('[data-parallax-anchor]');
   const header = root.querySelector('.rb-dashboard-header');
@@ -132,7 +150,14 @@ export function initParallax(root = document, windowRef = window) {
   // une boucle de rétroaction (chaque frame se basant sur la position issue
   // du frame d'avant) qui faisait trembler le watermark de façon erratique.
   const initialScrollY = windowRef.scrollY;
-  const bgTextRectAtRest = bg.getBoundingClientRect();
+  const bgRect = bg.getBoundingClientRect();
+  // Mobile : le calque n'est pas fixe, il défile avec la page : son rect dépend du scroll courant, on le ramène en haut de page.
+  const bgTextRectAtRest = isPhone ? {
+    top: bgRect.top + initialScrollY,
+    left: bgRect.left,
+    width: bgRect.width,
+    height: bgRect.height,
+  } : bgRect;
 
   // header est dans le flow normal (son top varie avec le scroll),
   // contrairement à bg (fixed, top constant à l'écran) : on neutralise le
@@ -141,17 +166,29 @@ export function initParallax(root = document, windowRef = window) {
   // navigateur, ancre #...). DOMRect n'expose ses propriétés que via des
   // accesseurs du prototype : { ...rect } ne copie rien, d'où la
   // reconstruction explicite plutôt qu'un spread.
-  const start = header
-    ? computeStartOffset(
-        {
-          top: header.getBoundingClientRect().top + initialScrollY,
-          left: header.getBoundingClientRect().left,
-          width: header.getBoundingClientRect().width,
-          height: header.getBoundingClientRect().height,
-        },
-        bgTextRectAtRest,
-      )
-    : { x: 0, y: 0 };
+  const headerRectAtTop = header
+    ? {
+        top: header.getBoundingClientRect().top + initialScrollY,
+        left: header.getBoundingClientRect().left,
+        width: header.getBoundingClientRect().width,
+        height: header.getBoundingClientRect().height,
+      }
+    : null;
+  const start = headerRectAtTop ? computeStartOffset(headerRectAtTop, bgTextRectAtRest) : { x: 0, y: 0 };
+
+  // Mobile : le logo est posé une fois dans le cadre de l'en-tête, allumé en permanence (la montée de brillance est propre au
+  // bureau), puis défile avec la page : aucun écouteur.
+  if (isPhone) {
+    if (header) {
+      const phoneStart = computePhoneStartOffset(headerRectAtTop, bgTextRectAtRest);
+      bg.style.setProperty('--wm-x', `${phoneStart.x}px`);
+      bg.style.setProperty('--wm-y', `${phoneStart.y}px`);
+      bg.style.setProperty('--wm-scroll-y', '0px');
+    }
+    bg.classList.add('rb-page-bg-text--neon');
+    bg.style.setProperty('--wm-glow', '1');
+    return;
+  }
 
   // Mouvement réduit (réglage de l'appareil, ex. « Réduire les animations » sur
   // iPhone) : pas de parallax ni de néon au scroll, mais le logo doit toujours

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initParallax, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoBelowSearchBar, computeGlowLevel } from './parallax.js';
+import { initParallax, computePhoneStartOffset, computeStartOffset, computeMaxScrollY, computeScrollProgress, computeAnchorEndOffset, isLogoBelowSearchBar, computeGlowLevel } from './parallax.js';
 
 test('computeStartOffset puts the watermark in the first third of the header, relative to its centered resting position', () => {
   const headerRect = { top: 0, left: 0, height: 132, width: 300 };
@@ -576,4 +576,48 @@ test('initParallax never enables the smoothing transition with prefers-reduced-m
   initParallax(doc, win);
 
   assert.equal(bg.classes.has('rb-page-bg-text--smooth'), false);
+});
+
+test('initParallax on a phone keeps the logo in the header, lit up, without any scroll movement (#201)', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ top: 32, left: 0, width: 300, height: 132 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollHeight: 2000 });
+  const win = fakeWindow();
+  win.innerWidth = 390;
+  const listeners = [];
+  win.addEventListener = (event) => listeners.push(event);
+
+  initParallax(doc, win);
+
+  const start = computePhoneStartOffset(fakeRect({ top: 32, left: 0, width: 300, height: 132 }), bg.getBoundingClientRect());
+  assert.equal(bg.properties['--wm-x'], `${start.x}px`, 'centré dans l\'en-tête');
+  assert.equal(bg.properties['--wm-y'], `${start.y}px`, 'dans le cadre de l\'en-tête');
+  assert.equal(bg.properties['--wm-scroll-y'], '0px');
+  assert.equal(bg.classes.has('rb-page-bg-text--neon'), true, 'néon permanent, jamais atténué');
+  assert.equal(bg.properties['--wm-glow'], '1');
+  assert.ok(!listeners.includes('scroll'), 'aucun écouteur de scroll : le logo défile avec la page');
+});
+
+test('initParallax keeps the full travelling effect from the desktop breakpoint', () => {
+  const bg = fakeBgElement();
+  const header = { getBoundingClientRect: () => fakeRect({ width: 300, height: 132 }) };
+  const doc = fakeDocumentWithBg(bg, { header, scrollHeight: 2000 });
+  const win = fakeWindow({ innerHeight: 800 });
+  win.innerWidth = 768;
+  const listeners = [];
+  win.addEventListener = (event) => listeners.push(event);
+
+  initParallax(doc, win);
+
+  assert.ok(listeners.includes('scroll'));
+});
+
+test('computePhoneStartOffset centers the logo horizontally in the header and keeps it in its upper part (the group name sits below)', () => {
+  const header = fakeRect({ top: 32, left: 16, width: 358, height: 132 });
+  const text = fakeRect({ top: 0, left: 80, width: 230, height: 56 });
+
+  const offset = computePhoneStartOffset(header, text);
+
+  assert.equal(offset.x, 16 + 358 / 2 - (80 + 230 / 2));
+  assert.ok(offset.y > 32 - 56 / 2 && offset.y + 56 <= 32 + 132, 'le logo reste dans le cadre vertical de l\'en-tête');
 });
