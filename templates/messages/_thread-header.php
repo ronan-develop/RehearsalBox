@@ -14,7 +14,7 @@ $hasTitle = $thread !== null && $thread['title'] !== null;
 ?>
 <rb-thread-header>
     <header class="rb-chat-thread-head">
-        <a href="/messages" class="rb-chat-icon-link rb-chat-back" data-chat-back aria-label="Retour aux conversations">←</a>
+        <a href="/messages" class="rb-chat-icon-link rb-chat-icon-link--back rb-chat-back" data-chat-back aria-label="Retour aux conversations"><?php require __DIR__ . '/_icon-back.php'; ?></a>
         <div class="rb-chat-thread-titles">
             <h2 class="rb-chat-title rb-chat-title--static" data-chat-draft-part="title"<?= $isDraft ? '' : ' hidden' ?>>Nouvelle conversation<?= $isDraft ? ' avec ' . e($draft['targetName']) : '' ?></h2>
             <label class="rb-chat-sender" for="chat-sender" data-chat-draft-part="sender"<?= $severalSenders ? '' : ' hidden' ?>>Écrire en tant que
