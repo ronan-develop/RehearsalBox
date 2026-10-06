@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Entity\GroupDocument;
+use App\Http\FileResponse;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Http\Response;
 use App\Security\AuthGuard;
 use App\Service\GroupDocumentService;
+use App\Support\StrictId;
 
 final class GroupDocumentApiController
 {
@@ -29,7 +31,7 @@ final class GroupDocumentApiController
         }
 
         $document = $this->documentService->upload(
-            (int) $groupId,
+            StrictId::orDenied($groupId),
             $user->id(),
             $file['tmp_name'],
             $file['name'],
@@ -43,59 +45,60 @@ final class GroupDocumentApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        $documents = $this->documentService->listForGroup((int) $groupId, $user->id());
+        $documents = $this->documentService->listForGroup(StrictId::orDenied($groupId), $user->id());
 
         return new JsonResponse(['documents' => array_map(self::toArray(...), $documents)]);
     }
 
+    /**
+     * Téléchargement d'un document (#222). Le fichier vient d'un utilisateur : il est servi comme PIÈCE JOINTE pour les PDF
+     * (un PDF actif ne s'ouvre jamais dans l'origine du site) et en ligne pour les images seulement, avec dans tous les cas
+     * `nosniff` et une CSP qui interdit tout contenu actif (`sandbox`). Envoyé en flux (jamais chargé en mémoire) ; un fichier
+     * absent du disque est un 404, jamais une réponse vide.
+     */
     public function download(Request $request, string $id): Response
     {
         $user = $this->authGuard->requireLogin();
 
-        try {
-            $document = $this->documentService->resolveDownload((int) $id, $user->id());
-        } catch (\InvalidArgumentException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 404);
+        $document = $this->documentService->resolveDownload(StrictId::orDenied($id), $user->id());
+        $path = $this->documentService->pathOf($document);
+        if (!is_file($path)) {
+            error_log(sprintf('Document #%d : fichier absent du stockage.', $document->id()));
+
+            return new JsonResponse(['error' => 'Document introuvable.'], 404);
         }
 
-        $path = $this->documentService->pathOf($document);
         $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
 
-        return new Response(
-            body: (string) file_get_contents($path),
-            statusCode: 200,
-            headers: [
-                'Content-Type' => $mimeType,
-                'X-Content-Type-Options' => 'nosniff',
-                'Content-Disposition' => self::inlineDisposition($document->originalName()),
-            ],
-        );
+        return new FileResponse($path, $mimeType, [
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+            'Content-Disposition' => self::disposition($mimeType, $document->originalName()),
+        ]);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
 
-        try {
-            $this->documentService->delete((int) $id, $user->id());
-        } catch (\InvalidArgumentException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 404);
-        }
+        $this->documentService->delete(StrictId::orDenied($id), $user->id());
 
         return new JsonResponse([], 204);
     }
 
     /**
-     * Affichage en ligne (PDF, JPEG, PNG validés par finfo, avec nosniff : le navigateur ne réinterprète pas le type). Le nom d'origine vient de
-     * l'utilisateur : repli ASCII sans guillemet, antislash ni saut de ligne, et
-     * forme RFC 5987 (filename*) encodée pour les accents.
+     * Pièce jointe pour tout ce qui n'est pas une image (PDF) ; en ligne pour JPEG et PNG, qui n'ont pas de contenu actif. Le nom
+     * d'origine vient de l'utilisateur : repli ASCII sans guillemet, antislash ni saut de ligne, et forme RFC 5987 (filename*)
+     * encodée pour les accents.
      */
-    private static function inlineDisposition(string $originalName): string
+    private static function disposition(string $mimeType, string $originalName): string
     {
         $fallback = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $originalName) ?? '';
         $fallback = trim($fallback) !== '' ? $fallback : 'document';
 
-        return sprintf('inline; filename="%s"; filename*=UTF-8\'\'%s', $fallback, rawurlencode($originalName));
+        $type = in_array($mimeType, ['image/jpeg', 'image/png'], true) ? 'inline' : 'attachment';
+
+        return sprintf('%s; filename="%s"; filename*=UTF-8\'\'%s', $type, $fallback, rawurlencode($originalName));
     }
 
     /** @return array<string, mixed> */
