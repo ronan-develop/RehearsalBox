@@ -181,3 +181,66 @@
   flex-wrap: wrap;
   gap: var(--rb-space-2);
 }
+
+/* Page « Réservations » (#263) : une carte par réservation à valider, dans une colonne. */
+.rb-booking-list {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-top: var(--rb-space-4);
+}
+
+rb-booking-card {
+  display: block; /* un élément personnalisé est « inline » par défaut */
+}
+
+.rb-booking-card {
+  padding: var(--rb-space-4);
+}
+
+.rb-booking-card-group {
+  margin: 0 0 var(--rb-space-1);
+  font-size: 1.125rem;
+}
+
+.rb-booking-card-when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+  margin: 0 0 var(--rb-space-2);
+}
+
+.rb-booking-card-when span {
+  color: var(--rb-accent);
+  font-weight: 600;
+}
+
+.rb-booking-card-reason {
+  margin: 0 0 var(--rb-space-3);
+  color: var(--rb-text-2);
+  overflow-wrap: anywhere;
+}
+
+.rb-booking-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+}
+
+/* Les deux décisions ont la même largeur, côte à côte dès que la place le permet. */
+.rb-booking-card-actions .rb-btn {
+  flex: 1 1 140px;
+}
+
+.rb-booking-card-refusal {
+  display: grid;
+  gap: var(--rb-space-2);
+  margin-top: var(--rb-space-3);
+}
+
+.rb-booking-card-refusal[hidden] {
+  display: none;
+}
+
+rb-booking-card[aria-busy] {
+  opacity: 0.6;
+}

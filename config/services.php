@@ -6,6 +6,7 @@ use App\Container\Container;
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminBookingPageController;
 use App\Controller\AdminGroupPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
@@ -57,6 +58,7 @@ use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
+use App\Presenter\AdminBookingsView;
 use App\Presenter\ConversationFormatter;
 use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
@@ -96,6 +98,8 @@ use App\Repository\MysqlMemberDirectory;
 use App\Service\ConversationAccess;
 use App\Service\ConversationGuestService;
 use App\Service\ConversationMuteService;
+use App\Service\BookingNotifier;
+use App\Service\Contract\BookingNotifierInterface;
 use App\Service\FreeSlotBookingPolicy;
 use App\Service\FreeSlotBookingService;
 use App\Service\ConversationMentionService;
@@ -176,6 +180,16 @@ return static function (array $config): Container {
 
     $container->set(BookingDateLockInterface::class, fn ($c) => new MysqlBookingDateLock($c->get(PDO::class)));
 
+    $container->set(BookingNotifierInterface::class, fn ($c) => new BookingNotifier(
+        $c->get(MailerInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(AfterResponseInterface::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
+    ));
+
     $container->set(FreeSlotBookingService::class, fn ($c) => new FreeSlotBookingService(
         $c->get(FreeSlotBookingRepositoryInterface::class),
         $c->get(BookingDateLockInterface::class),
@@ -183,6 +197,7 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         new FreeSlotBookingPolicy(),
         $c->get(ClockInterface::class),
+        $c->get(BookingNotifierInterface::class),
     ));
 
     $container->set(FreeSlotBookingApiController::class, fn ($c) => new FreeSlotBookingApiController(
@@ -344,6 +359,14 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupImpactRepositoryInterface::class),
+    ));
+
+    $container->set(AdminBookingPageController::class, fn ($c) => new AdminBookingPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(FreeSlotBookingService::class),
+        new AdminBookingsView($c->get(GroupRepositoryInterface::class)),
     ));
 
     $container->set(AdminUserPageController::class, fn ($c) => new AdminUserPageController(

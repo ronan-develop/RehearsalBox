@@ -228,6 +228,62 @@ final class FreeSlotBookingServiceTest extends RepositoryTestCase
         }
     }
 
+    /** @return array{FreeSlotBookingService, object} le service et un notifieur espion (liste des appels) */
+    private function withSpy(): array
+    {
+        $spy = new class () implements \App\Service\Contract\BookingNotifierInterface {
+            /** @var list<string> */
+            public array $calls = [];
+
+            public function bookingRequested(\App\Entity\FreeSlotBooking $booking): void
+            {
+                $this->calls[] = 'requested:' . $booking->id() . ':' . $booking->status()->value;
+            }
+
+            public function bookingDecided(\App\Entity\FreeSlotBooking $booking): void
+            {
+                $this->calls[] = 'decided:' . $booking->id() . ':' . $booking->status()->value;
+            }
+        };
+
+        return [new FreeSlotBookingService($this->bookings, new MysqlBookingDateLock($this->pdo), $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock, $spy), $spy];
+    }
+
+    #[Test]
+    public function testAdminsAreAlertedOnceTheBookingExistsAndNeverWhenTheRequestFails(): void
+    {
+        [$service, $spy] = $this->withSpy();
+
+        try {
+            $service->request($this->alice, $this->alpha, $this->wednesday(), '18:00', '19:00', null); // chevauche un créneau fixe
+        } catch (FreeSlotBookingConflictException) {
+            $this->addToAssertionCount(1);
+        }
+        self::assertSame([], $spy->calls, 'une réservation refusée ne prévient personne');
+
+        $booking = $service->request($this->alice, $this->alpha, $this->wednesday(), '09:00', '12:00', null);
+        self::assertSame(['requested:' . $booking->id() . ':en_attente'], $spy->calls);
+    }
+
+    #[Test]
+    public function testTheRequesterIsToldOfTheOutcomeOnlyWhenTheDecisionWasActuallyTaken(): void
+    {
+        [$service, $spy] = $this->withSpy();
+        $one = $service->request($this->alice, $this->alpha, $this->wednesday(), '09:00', '10:00', null);
+        $two = $service->request($this->alice, $this->alpha, $this->wednesday(), '11:00', '12:00', null);
+        $spy->calls = [];
+
+        $service->approve($this->admin, $one->id());
+        $service->refuse($this->admin, $two->id(), 'Local fermé');
+        try {
+            $service->refuse($this->admin, $one->id(), null); // déjà traitée : 409
+        } catch (RequestAlreadyRespondedException) {
+            $this->addToAssertionCount(1);
+        }
+
+        self::assertSame(['decided:' . $one->id() . ':validee', 'decided:' . $two->id() . ':refusee'], $spy->calls);
+    }
+
     #[Test]
     public function testTheQueriesForAdminsAndGroups(): void
     {
