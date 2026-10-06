@@ -30,12 +30,18 @@ interface SlotExceptionRepositoryInterface
      */
     public function findAcceptedForCurrentWeek(): array;
 
+    /**
+     * @param string|null $startTime début de la plage demandée (#263), null = tout le créneau du titulaire
+     * @param string|null $endTime   fin de la plage (les deux bornes ensemble ; la base refuse une plage incomplète ou à l'envers)
+     */
     public function createRequest(
         int $recurringSlotId,
         \DateTimeImmutable $occurrenceDate,
         int $requestedByGroupId,
         int $requestedByUserId,
         ?string $reason,
+        ?string $startTime = null,
+        ?string $endTime = null,
     ): SlotException;
 
     /**

@@ -18,6 +18,8 @@ final class SlotException
         private readonly ?string $requestReason,
         private readonly ?int $respondedByUserId,
         private readonly \DateTimeImmutable $createdAt,
+        private readonly ?string $startTime = null,
+        private readonly ?string $endTime = null,
     ) {
     }
 
@@ -69,5 +71,29 @@ final class SlotException
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /** Début de la plage demandée (#263), null = tout le créneau du titulaire. */
+    public function startTime(): ?string
+    {
+        return $this->startTime;
+    }
+
+    public function endTime(): ?string
+    {
+        return $this->endTime;
+    }
+
+    /**
+     * Le créneau tel que le demandeur l'occupera : celui du titulaire (même jour) restreint à la plage demandée, ou le créneau
+     * entier sans plage. Le reste du créneau reste au titulaire.
+     */
+    public function appliedTo(RecurringSlot $holder): RecurringSlot
+    {
+        if ($this->startTime === null || $this->endTime === null) {
+            return $holder;
+        }
+
+        return new RecurringSlot($holder->id(), $holder->groupId(), $holder->weekday(), $this->startTime, $this->endTime, $holder->isActive());
     }
 }

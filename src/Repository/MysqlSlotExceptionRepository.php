@@ -88,14 +88,18 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         int $requestedByGroupId,
         int $requestedByUserId,
         ?string $reason,
+        ?string $startTime = null,
+        ?string $endTime = null,
     ): SlotException {
         $statement = $this->pdo->prepare(
-            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, status, requested_by_group_id, requested_by_user_id, request_reason)
-             VALUES (:recurring_slot_id, :occurrence_date, 'en_attente', :requested_by_group_id, :requested_by_user_id, :request_reason)"
+            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, start_time, end_time, status, requested_by_group_id, requested_by_user_id, request_reason)
+             VALUES (:recurring_slot_id, :occurrence_date, :start_time, :end_time, 'en_attente', :requested_by_group_id, :requested_by_user_id, :request_reason)"
         );
         $statement->execute([
             'recurring_slot_id' => $recurringSlotId,
             'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+            'start_time' => $startTime,
+            'end_time' => $endTime,
             'requested_by_group_id' => $requestedByGroupId,
             'requested_by_user_id' => $requestedByUserId,
             'request_reason' => $reason,
@@ -176,6 +180,8 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
             requestReason: $row['request_reason'] !== null ? (string) $row['request_reason'] : null,
             respondedByUserId: $row['responded_by_user_id'] !== null ? (int) $row['responded_by_user_id'] : null,
             createdAt: new \DateTimeImmutable((string) $row['created_at']),
+            startTime: $row['start_time'] !== null ? (string) $row['start_time'] : null,
+            endTime: $row['end_time'] !== null ? (string) $row['end_time'] : null,
         );
     }
 }

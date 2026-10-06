@@ -44,6 +44,37 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testARequestMayCarryAPartialRangeAndWithoutOneItCoversTheWholeSlot(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        $partial = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null, '18:30:00', '19:00:00');
+        $whole = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+14 days'), $requestingGroupId, $requestingUserId, null);
+
+        self::assertSame('18:30:00', $repository->findById($partial->id())?->startTime());
+        self::assertSame('19:00:00', $repository->findById($partial->id())?->endTime());
+        self::assertNull($repository->findById($whole->id())?->startTime(), 'sans plage : tout le créneau');
+        self::assertNull($repository->findById($whole->id())?->endTime());
+    }
+
+    #[Test]
+    public function testTheDatabaseRefusesAHalfOrBackwardsRange(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+
+        foreach ([['18:30:00', null], [null, '19:00:00'], ['19:00:00', '18:30:00'], ['19:00:00', '19:00:00']] as $i => [$start, $end]) {
+            try {
+                $repository->createRequest($holderSlotId, new \DateTimeImmutable('+' . (7 + 7 * $i) . ' days'), $requestingGroupId, $requestingUserId, null, $start, $end);
+                self::fail('une plage incomplète ou à l\'envers doit être refusée par la base');
+            } catch (\PDOException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    #[Test]
 
     public function testFindByIdReturnsNullWhenNotFound(): void
     {
