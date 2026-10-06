@@ -757,3 +757,38 @@ body {
     padding-right: 0;
   }
 }
+
+@media (min-width: 960px) { /* timeline fluide (#252)
+   Sur bureau les 7 jours tiennent toujours dans la largeur de l'écran : les cartes se partagent la place (une rangée), plafonnées à
+   leur largeur d'origine, et leur texte suit leur largeur. Seule la timeline des créneaux fixes est concernée : le carrousel des
+   exceptionnels garde ses cartes fixes et se parcourt à la main ; sous 960 px, l'existant (liste sur mobile, carrousel à la main). */
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 204px);
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding-inline: max(2rem, 3vw);
+  }
+
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card {
+    width: auto;
+    min-width: 0;
+    padding: clamp(0.75rem, 1.4vw, 1.375rem) clamp(0.625rem, 1.2vw, 1.25rem);
+  }
+
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card-group {
+    font-size: clamp(0.75rem, 0.9vw + 0.15rem, 1rem);
+  }
+
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card-weekday {
+    font-size: clamp(0.625rem, 0.7vw + 0.2rem, 0.75rem);
+  }
+
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card-time {
+    font-size: clamp(0.8125rem, 1.1vw + 0.1rem, 1.125rem);
+    white-space: nowrap;
+  }
+}
