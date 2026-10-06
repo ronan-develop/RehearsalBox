@@ -14,6 +14,7 @@ use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Presenter\PlanningView;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
@@ -35,6 +36,7 @@ final class PageController
         private readonly SlotServiceInterface $slotService,
         private readonly GroupServiceInterface $groupService,
         private readonly GroupDocumentRepositoryInterface $groupDocumentRepository,
+        private readonly PlanningView $planning,
         private readonly ?NotificationPreferenceRepositoryInterface $preferences = null,
     ) {
     }
@@ -166,7 +168,7 @@ final class PageController
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
-            'planningSlots' => $this->slotService->findFixedPlanningSlots(),
+            'planningDays' => $this->planning->fixedDays(),
             'exceptionalPlanningSlots' => $this->slotService->findOccasionalPlanningSlots(),
             'receivedExceptions' => $receivedItems,
             'sentExceptions' => $sentItems,

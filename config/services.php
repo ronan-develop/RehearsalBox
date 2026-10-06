@@ -61,6 +61,8 @@ use App\Presenter\ConversationPresenter;
 use App\Presenter\ConversationTimeline;
 use App\Presenter\ConversationUpdates;
 use App\Presenter\MessagesPageView;
+use App\Presenter\PlanningDays;
+use App\Presenter\PlanningView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Repository\Contract\ThrottleEventRepositoryInterface;
@@ -187,7 +189,15 @@ return static function (array $config): Container {
         $c->get(SlotServiceInterface::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupDocumentRepositoryInterface::class),
+        $c->get(PlanningView::class),
         $c->get(NotificationPreferenceRepositoryInterface::class),
+    ));
+
+    $container->set(PlanningView::class, fn ($c) => new PlanningView(
+        $c->get(SlotServiceInterface::class),
+        new PlanningDays(),
+        $c->get(ClockInterface::class),
+        new \DateTimeZone($config['app']['timezone']),
     ));
 
     $container->set(PasswordPolicy::class, fn () => new PasswordPolicy());

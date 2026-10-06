@@ -13,6 +13,7 @@
     <div class="rb-page-bg" aria-hidden="true">
         <span class="rb-page-bg-text" data-parallax="bg" data-text="#B27">#B27</span>
     </div>
+    <div class="rb-mini-logo" data-mini-logo aria-hidden="true"><span>#B27</span></div>
     <div class="rb-dashboard-page">
         <header class="rb-dashboard-header rb-stone-panel rb-stone-panel--ember">
             <?php if ($currentUserGroupRole === \App\Entity\Enum\GroupUserRole::Gestionnaire): ?>
@@ -42,44 +43,26 @@
             </div>
         </header>
 
-        <?php if ($planningSlots !== []): ?>
+        <?php if ($planningDays !== []): ?>
             <div class="rb-field">
                 <label for="planning-search" class="rb-visually-hidden">Rechercher un groupe ou un jour</label>
                 <input type="search" id="planning-search" class="rb-input" placeholder="Rechercher un groupe ou un jour…" data-planning-search>
             </div>
-
-            <?php
-            $renderPlanningCard = static function ($requestableSlot) use ($currentUserGroupRoles) {
-                $slot = $requestableSlot->slot();
-                $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
-                ?>
-                <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" data-weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
-                    <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
-                    <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
-                    <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
-                </article>
-                <?php
-            };
-            ?>
-            <section class="rb-planning-section">
-                <h2>Planning :</h2>
-                <div class="rb-planning-slider" data-planning-slider>
-                    <div class="rb-planning-track" data-planning-track>
-                        <?php foreach ($planningSlots as $requestableSlot): ?>
-                            <?php $renderPlanningCard($requestableSlot); ?>
-                        <?php endforeach; ?>
-                        <?php // Copie dupliquée pour boucler le défilement sans saut visuel (cf. planning-slider.js). ?>
-                        <div aria-hidden="true" style="display: contents;">
-                            <?php foreach ($planningSlots as $requestableSlot): ?>
-                                <?php $renderPlanningCard($requestableSlot); ?>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </section>
         <?php endif; ?>
 
         <?php
+        $renderPlanningCard = static function ($requestableSlot) use ($currentUserGroupRoles) {
+            $slot = $requestableSlot->slot();
+            $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
+            ?>
+            <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" data-weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
+                <h4 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h4>
+                <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
+                <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
+            </article>
+            <?php
+        };
+
         /**
          * Cartes non cliquables (#81) : contrairement au planning fixe,
          * un créneau occasionnel n'ouvre pas la modale de contact — pas
@@ -90,31 +73,55 @@
             ?>
             <article class="rb-planning-card rb-planning-card--exceptional">
                 <span class="rb-badge" aria-hidden="true">Occasionnel</span>
-                <h3 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h3>
-                <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
-                <p class="rb-planning-card-date"><?= e($requestableSlot->occurrenceDate()?->format('d/m/Y') ?? '') ?></p>
+                <h4 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h4>
+                <p class="rb-planning-card-when"><span class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></span> <span class="rb-planning-card-date"><?= e($requestableSlot->occurrenceDate()?->format('d/m/Y') ?? '') ?></span></p>
                 <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
             </article>
             <?php
         };
         ?>
-        <?php // Section toujours rendue (hidden si vide) : #79 doit pouvoir la révéler dynamiquement après une acceptation, sans reload complet. ?>
-        <section class="rb-planning-section"<?= $exceptionalPlanningSlots === [] ? ' hidden' : '' ?> data-exceptional-planning-section>
-            <h2>Créneaux exceptionnels :</h2>
-            <div class="rb-planning-slider rb-planning-slider--exceptional" data-planning-slider-exceptional>
-                <div class="rb-planning-track" data-planning-track-exceptional>
-                    <?php foreach ($exceptionalPlanningSlots as $requestableSlot): ?>
-                        <?php $renderExceptionalCard($requestableSlot); ?>
-                    <?php endforeach; ?>
-                    <?php // Copie dupliquée pour boucler le défilement sans saut visuel, seulement utile si le contrôleur d'auto-scroll s'active (cf. planning-slider.js). ?>
-                    <div aria-hidden="true" style="display: contents;">
+
+        <?php // Mobile (< 768 px) : deux onglets, une liste à la fois ; bureau : les deux sections côte à côte, en carrousels (#201). Un seul balisage, restylé par le CSS. ?>
+        <div class="rb-planning" data-planning-tabs>
+            <div class="rb-planning-tabs" role="tablist" aria-label="Type de créneau">
+                <button type="button" role="tab" class="rb-planning-tab" id="planning-tab-regular" aria-controls="planning-panel-regular" aria-selected="true" data-planning-tab="regular">Planning</button>
+                <button type="button" role="tab" class="rb-planning-tab" id="planning-tab-exceptional" aria-controls="planning-panel-exceptional" aria-selected="false" data-planning-tab="exceptional">Exceptionnels <span class="rb-planning-tab-count" data-planning-tab-count><?= e((string) count($exceptionalPlanningSlots)) ?></span></button>
+            </div>
+
+            <section class="rb-planning-section is-active" id="planning-panel-regular" role="tabpanel" aria-labelledby="planning-tab-regular" data-planning-panel="regular">
+                <h2>Planning :</h2>
+                <?php if ($planningDays === []): ?>
+                    <p class="rb-planning-empty">Aucun créneau fixe pour le moment.</p>
+                <?php else: ?>
+                    <div class="rb-planning-slider" data-planning-slider>
+                        <div class="rb-planning-track" data-planning-track>
+                            <?php foreach ($planningDays as $day): ?>
+                                <h3 class="rb-planning-day" data-planning-day="<?= e((string) $day->weekday()->value) ?>"<?= $day->isToday() ? ' data-today' : '' ?>>
+                                    <?= e(formatWeekday($day->weekday())) ?>
+                                    <?php if ($day->isToday()): ?><span class="rb-planning-day-today">Aujourd’hui</span><?php endif; ?>
+                                </h3>
+                                <?php foreach ($day->slots() as $requestableSlot): ?>
+                                    <?php $renderPlanningCard($requestableSlot); ?>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </section>
+
+            <?php // Section toujours rendue : #79 doit pouvoir la remplir dynamiquement après une acceptation, sans reload complet. Vide : masquée sur bureau, message sur mobile. ?>
+            <section class="rb-planning-section<?= $exceptionalPlanningSlots === [] ? ' rb-planning-section--empty' : '' ?>" id="planning-panel-exceptional" role="tabpanel" aria-labelledby="planning-tab-exceptional" data-planning-panel="exceptional" data-exceptional-planning-section>
+                <h2>Créneaux exceptionnels :</h2>
+                <p class="rb-planning-empty" data-planning-empty>Aucun créneau exceptionnel cette semaine.</p>
+                <div class="rb-planning-slider rb-planning-slider--exceptional" data-planning-slider-exceptional>
+                    <div class="rb-planning-track" data-planning-track-exceptional>
                         <?php foreach ($exceptionalPlanningSlots as $requestableSlot): ?>
                             <?php $renderExceptionalCard($requestableSlot); ?>
                         <?php endforeach; ?>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </div>
 
         <span class="rb-parallax-anchor" data-parallax-anchor aria-hidden="true"></span>
 
