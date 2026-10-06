@@ -143,7 +143,8 @@ final class SlotService implements SlotServiceInterface
                 $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
                 \assert($requestingGroup !== null);
 
-                return RequestableSlot::occasional($holderSlot, $requestingGroup->name(), $requestingGroup->id(), $exception->occurrenceDate());
+                // Plage demandée (#263) : le reste du créneau reste au titulaire ; sans plage, tout le créneau.
+                return RequestableSlot::occasional($exception->appliedTo($holderSlot), $requestingGroup->name(), $requestingGroup->id(), $exception->occurrenceDate());
             },
             $this->exceptionRepository->findAcceptedForCurrentWeek(),
         );

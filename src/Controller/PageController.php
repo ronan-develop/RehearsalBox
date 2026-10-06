@@ -185,12 +185,15 @@ final class PageController
         $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
         \assert($requestingGroup !== null);
 
+        $holderSlot = $slotsById[$exception->recurringSlotId()] ?? null;
+
         return new DashboardExceptionItem(
             $exception,
             $direction,
             $requestingGroup->name(),
             $requestingGroup->colorHex(),
-            $slotsById[$exception->recurringSlotId()] ?? null,
+            // Plage demandée (#263) : la carte montre ce que le titulaire accorde, pas tout son créneau.
+            $holderSlot === null ? null : $exception->appliedTo($holderSlot),
         );
     }
 

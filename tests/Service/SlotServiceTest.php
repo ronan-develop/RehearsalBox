@@ -284,6 +284,8 @@ final class SlotServiceTest extends RepositoryTestCase
         int $holderSlotId,
         int $requestingGroupId,
         \DateTimeImmutable $occurrenceDate,
+        ?string $startTime = null,
+        ?string $endTime = null,
     ): void {
         $requestingUser = $userRepository->save(new User(
             id: 0,
@@ -296,7 +298,7 @@ final class SlotServiceTest extends RepositoryTestCase
             lockedUntil: null,
         ));
 
-        $exception = $exceptionRepository->createRequest($holderSlotId, $occurrenceDate, $requestingGroupId, $requestingUser->id(), null);
+        $exception = $exceptionRepository->createRequest($holderSlotId, $occurrenceDate, $requestingGroupId, $requestingUser->id(), null, $startTime, $endTime);
         $exceptionRepository->respond($exception->id(), true, $requestingUser->id());
     }
 
@@ -322,6 +324,24 @@ final class SlotServiceTest extends RepositoryTestCase
         self::assertSame(Weekday::Tuesday, $occasional[0]->slot()->weekday());
         self::assertFalse($occasional[0]->isRecurring());
         self::assertSame($monday->format('Y-m-d'), $occasional[0]->occurrenceDate()?->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function testAnAcceptedPartialRequestShowsOnlyTheRequestedHoursNotTheWholeHoldersSlot(): void
+    {
+        [$service, $groupRepository, , $exceptionRepository] = $this->makeService();
+        $userRepository = new MysqlUserRepository($this->pdo);
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $holderSlot = $service->create($holderGroup->id(), Weekday::Tuesday, '18:30:00', '22:45:00');
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $tuesday = (new \DateTimeImmutable('today'))->modify('monday this week')->modify('+1 day');
+        $this->acceptExceptionForCurrentWeek($exceptionRepository, $userRepository, $holderSlot->id(), $requestingGroup->id(), $tuesday, '18:30:00', '19:00:00');
+
+        [$card] = $service->findOccasionalPlanningSlots();
+
+        self::assertSame('Groupe Demandeur', $card->groupName());
+        self::assertSame(['18:30:00', '19:00:00'], [$card->slot()->startTime(), $card->slot()->endTime()], 'la plage demandée, pas 18h30–22h45');
+        self::assertSame($holderSlot->id(), $card->slot()->id());
     }
 
     #[Test]
