@@ -35,4 +35,15 @@ final class NativeControlsCssTest extends TestCase
         self::assertMatchesRegularExpression('/\.rb-input\[type="date"\][^{]*\{[^}]*min-height:/s', $css);
         self::assertMatchesRegularExpression('/::-webkit-calendar-picker-indicator\s*\{[^}]*cursor:\s*pointer/s', $css);
     }
+
+    #[Test]
+    public function testTheSelectsAreDrawnLikeTheOtherFieldsWithAChevronOfTheirOwn(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-select\s*\{[^}]*appearance:\s*none/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-select\s*\{[^}]*background-image:\s*url\("data:image\/svg\+xml/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-select\s*\{[^}]*padding-right:/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-select option\s*\{[^}]*background:\s*var\(--rb-surface\)/s', $css, 'les lignes de la liste gardent le fond sombre');
+    }
 }

@@ -94,7 +94,9 @@ final class BookingPageControllerTest extends RepositoryTestCase
             self::assertStringContainsString($label, $html, 'un libellé visible par champ');
         }
         self::assertStringContainsString('type="date"', $html);
-        self::assertSame(2, substr_count($html, 'step="900"'), 'début et fin sur le quart d\'heure');
+        self::assertStringNotContainsString('type="time"', $html, 'le sélecteur natif propose toutes les minutes et reste blanc');
+        self::assertMatchesRegularExpression('/<select[^>]*id="booking-start"[^>]*name="start"/', $html);
+        self::assertMatchesRegularExpression('/<select[^>]*id="booking-end"[^>]*name="end"/', $html);
         self::assertStringContainsString('maxlength="255"', $html);
         self::assertStringContainsString('data-booking-plan', $html);
         self::assertStringContainsString('aria-live="polite"', $html);
@@ -147,5 +149,23 @@ final class BookingPageControllerTest extends RepositoryTestCase
 
         self::assertStringContainsString('appartenir à un groupe', $html);
         self::assertStringNotContainsString('<rb-booking-form', $html);
+    }
+
+    #[Test]
+    public function testTheTimeListsOnlyOfferQuarterHoursWithinTheBookableRange(): void
+    {
+        $this->login('alice');
+
+        $html = $this->controller->index()->body();
+
+        preg_match('/<select[^>]*id="booking-start".*?<\/select>/s', $html, $start);
+        preg_match('/<select[^>]*id="booking-end".*?<\/select>/s', $html, $end);
+        self::assertSame(96, preg_match_all('/<option value="\d/', $start[0]), 'de 00:00 à 23:45, plus une ligne vide à part');
+        self::assertStringContainsString('<option value="">', $start[0]);
+        self::assertStringContainsString('<option value="18:15">', $start[0]);
+        self::assertStringNotContainsString('value="18:10"', $start[0]);
+        self::assertStringNotContainsString('value="23:45"', $end[0], 'la fin ne dépasse pas 23:30');
+        self::assertStringContainsString('<option value="23:30">', $end[0]);
+        self::assertStringNotContainsString('<option value="00:00">', $end[0], 'une fin à minuit n\'a pas de sens');
     }
 }
