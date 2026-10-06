@@ -228,4 +228,3 @@ final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
         }
     }
 }
-

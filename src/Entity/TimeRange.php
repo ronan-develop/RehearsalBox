@@ -75,4 +75,3 @@ final class TimeRange
         return $free;
     }
 }
-

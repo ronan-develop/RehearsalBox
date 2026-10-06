@@ -88,4 +88,3 @@ final class TimeRangeTest extends TestCase
         self::assertSame(['09:00:00-10:00:00', '14:00:00-18:00:00', '20:00:00-22:00:00'], $parts($free));
     }
 }
-

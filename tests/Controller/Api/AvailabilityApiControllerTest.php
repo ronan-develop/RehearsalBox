@@ -538,4 +538,3 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         }
     }
 }
-
