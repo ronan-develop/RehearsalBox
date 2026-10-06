@@ -15,6 +15,7 @@ use App\Http\Request;
 use App\Kernel;
 use App\Migration\Migrator;
 use App\Repository\MysqlConversationRepository;
+use App\Repository\MysqlFreeSlotBookingRepository;
 use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
@@ -113,6 +114,9 @@ final class IdorMatrixTest extends TestCase
         $conversationAB = $conversations->create($groupA->id(), $groupB->id(), 'Secret entre A et B', new \DateTimeImmutable());
         $messages->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
 
+        // Réservation libre du groupe A (#263) : seuls les membres de A l'annulent, seuls les administrateurs la tranchent.
+        $bookingA = (new MysqlFreeSlotBookingRepository($pdo))->create(new \App\Entity\Requester($groupA->id(), $memberA->id()), new \DateTimeImmutable('+20 days'), new \App\Entity\TimeRange('09:00:00', '10:00:00'), null);
+
         self::$storagePath = sys_get_temp_dir() . '/rb-idor-' . bin2hex(random_bytes(4));
         mkdir(self::$storagePath);
 
@@ -125,6 +129,7 @@ final class IdorMatrixTest extends TestCase
             'userMemberA' => $memberA->id(),
             'convAB' => $conversationAB->id(),
             'groupB' => $groupB->id(),
+            'bkA' => $bookingA->id(),
         ];
     }
 
@@ -150,6 +155,12 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/availability/{excBA}/respond', ['accepted' => true, 'occurrenceDate' => '2026-01-06'], ['anon', 'stranger', 'outsiderB', 'admin', 'dual']],
             ['PATCH', '/api/availability/{excBA}', ['occurrenceDate' => $future], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             ['DELETE', '/api/availability/{excBA}', [], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
+            // Réservations libres (#263)
+            ['DELETE', '/api/bookings/{bkA}', [], ['anon', 'stranger', 'outsiderB', 'admin']],
+            ['POST', '/api/bookings', ['groupId' => '{groupA}', 'bookingDate' => $future, 'startTime' => '09:00', 'endTime' => '10:00'], ['anon', 'stranger', 'outsiderB', 'admin']],
+            ['GET', '/api/admin/bookings', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB']],
+            ['POST', '/api/admin/bookings/{bkA}/approve', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB']],
+            ['POST', '/api/admin/bookings/{bkA}/refuse', ['note' => 'Intrus'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB']],
             // Admin : créneaux et groupes
             ['PATCH', '/api/admin/slots/{slotA}', ['startTime' => '19:00:00', 'endTime' => '21:00:00'], ['anon', 'stranger', 'memberA', 'managerA']],
             ['DELETE', '/api/admin/slots/{slotA}', [], ['anon', 'stranger', 'memberA', 'managerA']],
@@ -225,6 +236,9 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/availability/{id}/respond', ['accepted' => true], 'excBA'],
             ['PATCH', '/api/availability/{id}', ['occurrenceDate' => $future], 'excBA'],
             ['DELETE', '/api/availability/{id}', [], 'excBA'],
+            ['DELETE', '/api/bookings/{id}', [], 'bkA'],
+            ['POST', '/api/admin/bookings/{id}/approve', [], 'bkA'],
+            ['POST', '/api/admin/bookings/{id}/refuse', [], 'bkA'],
             ['PATCH', '/api/admin/users/{id}', ['active' => false], 'userMemberA'],
             ['POST', '/api/admin/users/{id}/unlock', [], 'userMemberA'],
             ['GET', '/api/groups/{id}/space', [], 'groupA'],

@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Enum\Weekday;
 use App\Entity\RecurringSlot;
 use App\Entity\RequestableSlot;
+use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
@@ -21,6 +22,7 @@ final class SlotService implements SlotServiceInterface
         private readonly RecurringSlotRepositoryInterface $slotRepository,
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly SlotExceptionRepositoryInterface $exceptionRepository,
+        private readonly ?FreeSlotBookingRepositoryInterface $bookings = null,
     ) {
     }
 
@@ -149,11 +151,39 @@ final class SlotService implements SlotServiceInterface
             $this->exceptionRepository->findAcceptedForCurrentWeek(),
         );
 
+        $occasional = [...$occasional, ...$this->validatedBookingsOfTheWeek()];
+
         usort($occasional, static function (RequestableSlot $a, RequestableSlot $b): int {
             return [$a->slot()->weekday()->value, $a->slot()->startTime()]
                 <=> [$b->slot()->weekday()->value, $b->slot()->startTime()];
         });
 
         return $occasional;
+    }
+
+    /**
+     * Réservations libres VALIDÉES de la semaine en cours (#263), présentées comme les échanges acceptés : une carte « Occasionnel »
+     * aux heures de la réservation. Les réservations en attente ne s'affichent pas.
+     *
+     * @return list<RequestableSlot>
+     */
+    private function validatedBookingsOfTheWeek(): array
+    {
+        if ($this->bookings === null) {
+            return [];
+        }
+        $monday = (new \DateTimeImmutable('today'))->modify('monday this week');
+
+        $cards = [];
+        foreach ($this->bookings->findValidatedBetween($monday, $monday->modify('sunday this week')) as $booking) {
+            $group = $this->groupRepository->findById($booking->requester()->groupId());
+            \assert($group !== null);
+            $weekday = Weekday::from((int) $booking->date()->format('N') - 1);
+            // Un créneau ponctuel : pas de ligne en base, donc pas d'identifiant (0) ; seuls le jour et les heures servent à l'affichage.
+            $slot = new RecurringSlot(0, $group->id(), $weekday, $booking->range()->start(), $booking->range()->end(), true);
+            $cards[] = RequestableSlot::occasional($slot, $group->name(), $group->id(), $booking->date());
+        }
+
+        return $cards;
     }
 }
