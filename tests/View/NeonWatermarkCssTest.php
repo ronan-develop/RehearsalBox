@@ -143,16 +143,16 @@ final class NeonWatermarkCssTest extends TestCase
     }
 
     #[Test]
-    public function testMovementIsSmoothedOnlyOnceTheLogoIsInPlace(): void
+    public function testTheLogoFollowsTheScrollDirectlyWithNoSmoothingTransition(): void
     {
-        // Pas de transition sur la règle de base : le logo ne glisse pas depuis le haut au chargement.
-        self::assertStringNotContainsString('transition: transform', $this->block($this->baseRules(), '.rb-page-bg-text {'));
-
-        $smooth = $this->block($this->baseRules(), '.rb-page-bg-text--smooth {');
-        self::assertMatchesRegularExpression('/transition:\s*transform\s+0?\.[2-6]\d*s/', $smooth, 'Transform lissé en 0,2 à 0,6 s (compositeur).');
-
-        $smoothGlow = $this->block($this->baseRules(), '.rb-page-bg-text--smooth::after {');
-        self::assertMatchesRegularExpression('/transition:\s*opacity/', $smoothGlow, 'Montée en brillance en douceur.');
+        // La migration vers la barre du haut est pilotée par le scroll (#201) : une transition de transform la ferait traîner derrière le doigt.
+        $logo = $this->block($this->baseRules(), '.rb-page-bg-text {');
+        self::assertStringNotContainsString('transition: transform', $logo);
+        self::assertStringNotContainsString('--smooth', $this->css);
+        self::assertStringContainsString('position: fixed', $logo, 'fixe : il migre à l\'écran');
+        self::assertMatchesRegularExpression('/z-index:\s*(\d+)/', $logo, 'au-dessus du panneau de l\'en-tête, qui le ternirait sinon');
+        self::assertStringContainsString('visibility: hidden', $logo, 'invisible tant que le JavaScript ne l\'a pas placé');
+        self::assertStringContainsString('.rb-page-bg-text--placed', $this->css);
     }
 
     #[Test]

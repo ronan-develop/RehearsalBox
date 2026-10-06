@@ -53,3 +53,13 @@ test('initTornPaper passes torn-edge tuning parameters to the filter factory', (
   assert.equal(receivedOptions.grungeFrequency, 0.04);
   assert.equal(receivedOptions.grungeScale, 2);
 });
+
+test('initTornPaper leaves the cards flat on a phone: the mobile planning is a plain list (#201)', () => {
+  const cards = [fakeCard(), fakeCard()];
+  let callCount = 0;
+
+  initTornPaper(fakeDocumentWithCards(cards), () => { callCount += 1; return 'x'; }, () => false);
+
+  assert.equal(callCount, 0);
+  assert.equal(cards[0].style.filter, undefined);
+});

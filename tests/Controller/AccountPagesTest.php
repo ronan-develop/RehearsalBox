@@ -49,6 +49,7 @@ final class AccountPagesTest extends RepositoryTestCase
             new SlotService($slotRepository, $groupRepository, $exceptionRepository),
             new GroupService($groupRepository, $this->users),
             new MysqlGroupDocumentRepository($this->pdo),
+            new \App\Presenter\PlanningView(new SlotService($slotRepository, $groupRepository, $exceptionRepository), new \App\Presenter\PlanningDays(), new \Symfony\Component\Clock\MockClock('2026-10-06 12:00:00'), new \DateTimeZone('Europe/Paris')),
             new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
         );
     }

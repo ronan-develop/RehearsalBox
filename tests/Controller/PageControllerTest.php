@@ -16,7 +16,10 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
+use App\Presenter\PlanningDays;
+use App\Presenter\PlanningView;
 use App\Security\AuthGuard;
+use Symfony\Component\Clock\MockClock;
 use App\Security\CsrfTokenManager;
 use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
@@ -54,6 +57,7 @@ final class PageControllerTest extends RepositoryTestCase
             $slotService,
             $groupService,
             $groupDocumentRepository,
+            new PlanningView($slotService, new PlanningDays(), new MockClock('2026-10-06 12:00:00'), new \DateTimeZone('Europe/Paris')),
         );
 
         return [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository];
@@ -92,6 +96,29 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
         self::assertStringContainsString('data-contact-group-slug="groupe-test"', $response->body());
         self::assertStringNotContainsString('contact@example.test', $response->body());
+    }
+
+    #[Test]
+    public function testPlanningIsGroupedByDayStartingTodayWithEachDayHeading(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $slotService->create($group->id(), Weekday::Monday, '18:00:00', '20:00:00');
+        $slotService->create($group->id(), Weekday::Wednesday, '18:00:00', '20:00:00');
+        $slotService->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00'); // aujourd'hui : mardi 6 octobre 2026
+
+        $body = $controller->dashboard()->body();
+
+        preg_match_all('/data-planning-day="(\d)"/', $body, $days);
+        self::assertSame(['1', '2', '0'], $days[1], 'mardi (aujourd\'hui), mercredi, puis lundi de la semaine suivante');
+        self::assertSame(1, substr_count($body, 'data-today'), 'un seul jour est marqué aujourd\'hui');
+        self::assertLessThan(
+            strpos($body, 'data-planning-day="2"'),
+            strpos($body, 'data-today'),
+            'le marqueur est sur le premier jour',
+        );
+        self::assertStringNotContainsString('aria-hidden="true" style="display: contents;"', $body, 'plus de copie dupliquée dans le HTML (créée par le JS si besoin)');
     }
 
     #[Test]
@@ -173,14 +200,14 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        // La section reste dans le DOM (hidden) plutôt qu'absente : #79 a
-        // besoin de pouvoir la faire apparaître dynamiquement après une
-        // acceptation, sans reload complet.
+        // La section reste dans le DOM (marquée vide : masquée sur bureau, message sur mobile) plutôt
+        // qu'absente : #79 a besoin de la remplir dynamiquement après une acceptation, sans reload complet.
         self::assertStringContainsString('data-planning-slider-exceptional', $response->body());
         $sliderPosition = strpos($response->body(), 'data-planning-slider-exceptional');
         $sectionStart = strrpos(substr($response->body(), 0, $sliderPosition), '<section');
         $sectionOpenTag = substr($response->body(), $sectionStart, $sliderPosition - $sectionStart);
-        self::assertStringContainsString('hidden', $sectionOpenTag);
+        self::assertStringContainsString('rb-planning-section--empty', $sectionOpenTag);
+        self::assertStringContainsString('Aucun créneau exceptionnel cette semaine.', $response->body());
     }
 
     #[Test]

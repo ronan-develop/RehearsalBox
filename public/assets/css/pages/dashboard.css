@@ -4,16 +4,6 @@
   padding-bottom: calc(var(--rb-space-6) + env(safe-area-inset-bottom));
 }
 
-/* Ancre invisible dans le flow normal, juste au-dessus de "Demandes de
-   créneau" : sert uniquement de repère géométrique pour le parallax du
-   watermark (cf. parallax.js) — sa position réelle à l'écran, recalculée à
-   chaque frame de scroll, indique où stabiliser le watermark, identique en
-   desktop et mobile. */
-.rb-parallax-anchor {
-  display: block;
-  height: 0;
-}
-
 @media (min-width: 768px) {
   /* Confort desktop/tablette (cf. .claude/layout.md, #93) : le contenu
      "statique" (header, titres) suit la largeur du viewport avec un
@@ -37,43 +27,50 @@
 
 }
 
-/* Calque plein-page "#B27" en fond, indépendant du header (frère de
-   .rb-dashboard-page, cf. templates/dashboard/index.php). Au repos il est
-   centré horizontalement dans la page, quel que soit l'écran ; parallax.js
-   n'ajoute qu'un décalage par rapport à ce centre : vers le premier tiers du
-   header au chargement, tendant vers 0 une fois le watermark stabilisé sous
-   le deck d'exceptions (cf. parallax.js). */
-.rb-page-bg {
+/* Barre du haut : invisible au repos, elle apparaît (opacité pilotée par logo-migration.js) à mesure que le logo y migre, avec un
+   fondu du fond de page plutôt qu'un cadre : le logo y est posé comme un tag, pas rangé dans une barre d'outils. */
+.rb-topbar {
   position: fixed;
-  inset: 0;
-  z-index: -1;
-  /* Position de repos du watermark : centré horizontalement dans la page, quel
-     que soit l'écran. parallax.js n'ajoute qu'un décalage par rapport à ce
-     centre (qui tend vers 0 en fin de scroll). */
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  overflow: hidden;
-  background: var(--rb-bg);
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: 56px;
+  background: linear-gradient(var(--rb-bg) 55%, transparent);
+  opacity: var(--topbar-opacity, 0);
   pointer-events: none;
 }
 
+/* Logo « #B27 » (#201). Fixe, AU-DESSUS de tout (le panneau de l'en-tête ne le ternit pas) : logo-migration.js pose --wm-x/--wm-y
+   (position à l'écran), --wm-s (échelle) et --wm-r (inclinaison). Au repos il est dans l'en-tête et suit la page ; en descendant il
+   migre vers la barre du haut. Invisible tant que le JavaScript ne l'a pas placé (sinon il resterait en haut à gauche). */
 .rb-page-bg-text {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
   display: block;
+  visibility: hidden;
   font-family: 'ADrippingMarker', sans-serif;
   color: var(--rb-accent);
   opacity: 0.35;
   line-height: 1;
   white-space: nowrap;
-  font-size: 56px;
-  position: relative;
+  font-size: 72px;
+  pointer-events: none;
+  transform-origin: 0 0;
   will-change: transform;
   transition: text-shadow 0.4s ease;
-  /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
-     interpole entre une position centrée dans le header au chargement
-     (scroll 0) et une position finale fixe une fois le scroll dépassé un
-     certain seuil. */
-  transform: translate(var(--wm-x, 0px), calc(var(--wm-y, 0px) + var(--wm-scroll-y, 0px)));
+  transform: translate(var(--wm-x, 0px), var(--wm-y, 0px)) rotate(var(--wm-r, 0deg)) scale(var(--wm-s, 1));
+}
+
+.rb-page-bg-text--placed {
+  visibility: visible;
+}
+
+/* Mouvement réduit : pas de migration, le logo reste dans l'en-tête et défile avec la page. */
+.rb-page-bg-text--static {
+  position: absolute;
 }
 
 @media (min-width: 768px) {
@@ -82,19 +79,8 @@
   }
 }
 
-/* Lissage du déplacement (classe posée par parallax.js une fois le logo en place,
-   jamais en mouvement réduit) : le logo glisse au lieu de sauter quand la page
-   est peu scrollable (mobile). Transform et opacité : compositeur, pas de repaint. */
-.rb-page-bg-text--smooth {
-  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.rb-page-bg-text--smooth::after {
-  transition: opacity 0.3s ease-out;
-}
-
-/* Effet néon, statique — seulement quand le logo est passé sous la barre de
-   recherche (cf. parallax.js, isLogoBelowSearchBar), pas de glow permanent.
+/* Effet néon, statique — allumé en permanence sur téléphone, sur bureau dès que le logo a commencé sa migration vers la barre
+   (cf. logo-migration.js).
    Empilement de text-shadow plutôt qu'un filter: drop-shadow() unique, pour
    garder un liseré net sur le tracé en plus d'une lueur courte. */
 .rb-page-bg-text--neon {
@@ -109,7 +95,7 @@
     0 0 10px var(--rb-accent);
 }
 
-/* Brillance progressive : plus le logo descend (parallax.js, --wm-glow de 0 à
+/* Brillance progressive : plus le logo migre (logo-migration.js, --wm-glow de 0 à
    1), plus le jaune est brillant. Couche de lueur superposée au texte, dont
    SEULE l'opacité varie avec le scroll : opération du compositeur, pas de
    text-shadow redessiné à chaque image. Le texte de la couche reste rouge
@@ -134,10 +120,6 @@
   will-change: opacity;
   pointer-events: none;
 }
-
-/* Mouvement réduit : aucune animation ici, et le transform n'est PAS supprimé :
-   parallax.js n'applique alors que le décalage de départ (une fois), qui garde
-   le logo dans le cadre du header au chargement (#145). */
 
 body {
   --rb-dashboard-header-h: 132px;
@@ -294,32 +276,6 @@ body {
   gap: var(--rb-space-3);
   width: max-content;
   min-width: 100%;
-  /* Calque de compositeur propre : les cartes (filtre SVG « papier déchiré »,
-     coûteux) sont rastérisées une fois, l'auto-défilement ne fait que déplacer
-     le calque au lieu de les repeindre à chaque image (#149). */
-  will-change: transform;
-}
-
-/* Auto-défilement : animation CSS sur le compositeur, aucun JS par image
-   (planning-slider.js ne pose que la durée --rb-planning-duration et les
-   pauses). De 0 à -50 % : la piste contient le contenu dupliqué une fois, la
-   boucle est donc sans saut (#149). */
-@keyframes rb-planning-scroll {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-.rb-planning-track--auto {
-  animation: rb-planning-scroll var(--rb-planning-duration, 60s) linear infinite;
-}
-
-.rb-planning-track--paused {
-  animation-play-state: paused;
 }
 
 .rb-planning-card--hidden {
@@ -426,6 +382,7 @@ body {
 }
 
 .rb-exceptions-tabs,
+.rb-planning-tabs,
 .rb-messages-tabs {
   display: flex;
   gap: var(--rb-space-1);
@@ -437,6 +394,7 @@ body {
 }
 
 .rb-exceptions-tab,
+.rb-planning-tab,
 .rb-messages-tab {
   flex: 1;
   min-height: 40px;
@@ -449,6 +407,7 @@ body {
 }
 
 .rb-exceptions-tab[aria-selected="true"],
+.rb-planning-tab[aria-selected="true"],
 .rb-messages-tab[aria-selected="true"] {
   background: var(--rb-surface-strong);
   color: var(--rb-accent);
@@ -658,3 +617,183 @@ body {
   border-color: var(--rb-err);
 }
 
+/* --- Planning : onglets et liste par jour sur mobile (#201) ---
+   Sous 768 px le carrousel devient une liste (un seul balisage, restylé ici) : onglets Planning | Exceptionnels, un titre par
+   jour à partir d'aujourd'hui, une ligne par créneau. Dès 768 px rien ne change : carrousel, deux sections visibles. Les onglets
+   n'existent que si le JavaScript les a activés (data-planning-tabs-ready) : sans lui, tout reste affiché. */
+.rb-planning-tabs {
+  display: none;
+}
+
+.rb-planning-tab-count {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: var(--rb-space-1);
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--rb-accent);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.rb-planning-card-when {
+  margin: 0;
+}
+
+.rb-planning-card-when span {
+  display: block;
+}
+
+.rb-planning-day,
+[data-planning-empty] {
+  display: none;
+}
+
+.rb-planning-empty {
+  color: var(--rb-text-2);
+}
+
+@media (min-width: 768px) {
+  .rb-planning-section--empty {
+    display: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Le nom du groupe et l'avatar en bas de l'en-tête : le logo occupe sa partie haute (#201). */
+  .rb-dashboard-header {
+    align-items: flex-end;
+    padding-bottom: var(--rb-space-3);
+  }
+
+  [data-planning-tabs-ready] .rb-planning-tabs {
+    display: flex;
+  }
+
+  [data-planning-tabs-ready] .rb-planning-section:not(.is-active) {
+    display: none;
+  }
+
+  [data-planning-tabs-ready] .rb-planning-section > h2 {
+    display: none;
+  }
+
+  .rb-planning-section--empty .rb-planning-slider {
+    display: none;
+  }
+
+  .rb-planning-section--empty [data-planning-empty] {
+    display: block;
+  }
+
+  .rb-planning-slider {
+    overflow: visible;
+    padding-block: 0;
+  }
+
+  .rb-planning-track {
+    display: block;
+    width: auto;
+    min-width: 0;
+  }
+
+  .rb-planning-day {
+    display: flex;
+    align-items: baseline;
+    gap: var(--rb-space-2);
+    margin: 0;
+    padding: var(--rb-space-3) 0 var(--rb-space-2);
+    border-bottom: 1px solid var(--rb-border);
+    font-size: 0.9375rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .rb-planning-day[data-today] {
+    color: var(--rb-accent);
+  }
+
+  .rb-planning-day-today {
+    margin-left: auto;
+    padding: 2px var(--rb-space-2);
+    border-radius: 99px;
+    background: var(--rb-accent);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+
+  .rb-planning-day--hidden {
+    display: none;
+  }
+
+  /* Une ligne par créneau : l'heure à gauche (en couleur d'accent), le groupe à droite ; zone tactile d'au moins 44 px. */
+  .rb-planning-card {
+    display: grid;
+    grid-template-columns: 7.25rem 1fr auto;
+    grid-template-areas: "time group badge";
+    align-items: center;
+    align-content: center;
+    column-gap: var(--rb-space-2);
+    width: auto;
+    min-height: 56px;
+    padding: var(--rb-space-2) var(--rb-space-1);
+    background: transparent;
+    border-bottom: 1px solid var(--rb-border);
+    color: var(--rb-text);
+    clip-path: none;
+  }
+
+  .rb-planning-card--exceptional {
+    grid-template-areas: "time group badge" "time when when";
+  }
+
+  .rb-planning-card:not(.rb-planning-card--exceptional):hover,
+  .rb-planning-card:not(.rb-planning-card--exceptional):focus-visible {
+    transform: none;
+    background: var(--rb-surface);
+  }
+
+  .rb-planning-card-group {
+    grid-area: group;
+    margin: 0;
+    color: var(--rb-text);
+  }
+
+  .rb-planning-card-time {
+    grid-area: time;
+    color: var(--rb-accent);
+    font-size: 0.9375rem;
+  }
+
+  .rb-planning-card-when {
+    grid-area: when;
+    margin: 0;
+    color: var(--rb-text-2);
+    font-size: 0.8125rem;
+  }
+
+  .rb-planning-card-when span {
+    display: inline;
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .rb-planning-card:not(.rb-planning-card--exceptional) .rb-planning-card-weekday {
+    display: none;
+  }
+
+  .rb-planning-card--exceptional .rb-badge {
+    position: static;
+    grid-area: badge;
+    border-color: var(--rb-warn);
+    color: var(--rb-warn);
+  }
+
+  .rb-planning-card--exceptional .rb-planning-card-group {
+    padding-right: 0;
+  }
+}

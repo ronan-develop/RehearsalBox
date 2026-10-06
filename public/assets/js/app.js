@@ -1,10 +1,10 @@
-import { initParallax } from './parallax.js';
+import { initLogoMigration } from './logo-migration.js';
 import { initAuth } from './auth.js';
 import { initAvailability } from './availability.js';
 import { initAdminSlots } from './admin-slots.js';
 import { initAdminGroups } from './admin-groups.js';
 import { initAdminUsers } from './admin-users.js';
-import { initPlanningSlider, initExceptionalPlanningSlider } from './planning-slider.js';
+import { initPlanningTabs } from './planning-tabs.js';
 import { initTornPaper } from './tornpaper-init.js';
 import { initPlanningSearch } from './planning-search.js';
 import { initScrollHint } from './scroll-hint.js';
@@ -20,14 +20,13 @@ import { initGroupSpaceEditor } from './group-space.js';
 document.addEventListener('DOMContentLoaded', () => {
   // Après le chargement de la police du watermark : la position de repos
   // (centrée par le CSS) dépend de la largeur réelle du texte.
-  (document.fonts?.ready ?? Promise.resolve()).then(() => initParallax());
+  (document.fonts?.ready ?? Promise.resolve()).then(() => initLogoMigration());
   initAuth();
   initAvailability();
   initAdminSlots();
   initAdminGroups();
   initAdminUsers();
-  initPlanningSlider();
-  initExceptionalPlanningSlider();
+  initPlanningTabs();
   initTornPaper();
   initPlanningSearch();
   initScrollHint();

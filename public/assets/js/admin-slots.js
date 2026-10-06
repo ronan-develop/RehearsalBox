@@ -8,8 +8,9 @@ import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
 import { confirmAction } from './rb-confirm-modal.js';
 import { escapeHtml } from './html.js';
+import { WEEKDAY_LABELS } from './weekdays.js';
 
-export const WEEKDAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+export { WEEKDAY_LABELS };
 
 /** Affichage HH:MM d'une heure API en HH:MM:SS. */
 export function formatTime(time) {
