@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\InvalidUploadException;
 use App\Service\Exception\RequestAlreadyRespondedException;
+use App\Service\Exception\RequestChangedException;
 use App\Service\Exception\StorageQuotaExceededException;
 use App\Service\Exception\UserAdminRuleException;
 use App\Service\Exception\UserNotFoundException;
@@ -28,13 +31,16 @@ final class ExceptionTranslator
     {
         return match (true) {
             $e instanceof ConversationValidationException => new JsonResponse(['error' => $e->getMessage(), 'fields' => $e->fields()], 422),
-            $e instanceof UserValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
+            $e instanceof UserValidationException,
+            $e instanceof AvailabilityValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
             $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], 429),
             $e instanceof InvalidResetTokenException,
             $e instanceof InvalidEmailChangeException,
             $e instanceof InvalidUploadException,
             $e instanceof UserAdminRuleException => new JsonResponse(['error' => $e->getMessage()], 422),
             $e instanceof RequestAlreadyRespondedException,
+            $e instanceof RequestChangedException,
+            $e instanceof DuplicateOccurrenceException,
             $e instanceof StorageQuotaExceededException => new JsonResponse(['error' => $e->getMessage()], 409),
             // Le message nomme l'identifiant demandé : il n'est jamais renvoyé.
             $e instanceof UserNotFoundException => new JsonResponse(['error' => 'Utilisateur introuvable.'], 404),
