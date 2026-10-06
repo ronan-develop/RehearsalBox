@@ -32,6 +32,8 @@ final class MailRendererTest extends TestCase
             ['conversation-reminder', ['counterpartName' => 'Alpha', 'link' => self::LINK]],
             ['mention-new', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]],
             ['mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]],
+            ['booking-pending', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'link' => self::LINK]],
+            ['booking-decided', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'accepted' => true, 'note' => null, 'link' => self::LINK]],
         ] as [$template, $data]) {
             $html = $this->renderer->render($template, $data)['html'];
 
@@ -211,6 +213,46 @@ final class MailRendererTest extends TestCase
                 self::assertStringContainsString('se lit sur le site', $body, $template . ' : le contenu n\'est pas envoyé');
             }
         }
+    }
+
+    #[Test]
+    public function testTheBookingToValidateNamesTheGroupTheDayAndTheRangeWithoutAnyUnsubscribeNorReason(): void
+    {
+        $mail = $this->renderer->render('booking-pending', ['groupName' => '<b>Alpha</b>', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'link' => self::LINK]);
+
+        self::assertStringContainsString(htmlspecialchars(self::LINK), $mail['html'], 'le lien est échappé en HTML');
+        self::assertStringContainsString(self::LINK, $mail['text']);
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('mercredi 7 octobre 2026', $body);
+            self::assertStringContainsString('09:00 – 14:00', $body);
+            self::assertStringNotContainsStringIgnoringCase('désinscri', $body, 'alerte de gestion : non désactivable');
+            self::assertStringNotContainsStringIgnoringCase('notifications dans Mon compte', $body);
+        }
+        self::assertStringContainsString('&lt;b&gt;Alpha&lt;/b&gt;', $mail['html']);
+        self::assertStringNotContainsString('<b>Alpha</b>', $mail['html']);
+    }
+
+    #[Test]
+    public function testTheDecisionMailSaysValidatedOrRefusedAndShowsTheEscapedOptionalNote(): void
+    {
+        $data = ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'link' => self::LINK];
+
+        $accepted = $this->renderer->render('booking-decided', $data + ['accepted' => true, 'note' => null]);
+        foreach ([$accepted['html'], $accepted['text']] as $body) {
+            self::assertStringContainsStringIgnoringCase('validée', $body);
+            self::assertStringNotContainsStringIgnoringCase('refusée', $body);
+        }
+
+        $refused = $this->renderer->render('booking-decided', $data + ['accepted' => false, 'note' => 'Local fermé <script>x</script>']);
+        foreach ([$refused['html'], $refused['text']] as $body) {
+            self::assertStringContainsStringIgnoringCase('refusée', $body);
+            self::assertStringContainsString('Local fermé', $body);
+        }
+        self::assertStringContainsString('&lt;script&gt;x&lt;/script&gt;', $refused['html']);
+        self::assertStringNotContainsString('<script>', $refused['html']);
+
+        $withoutNote = $this->renderer->render('booking-decided', $data + ['accepted' => false, 'note' => null]);
+        self::assertStringNotContainsStringIgnoringCase('motif', $withoutNote['html'], 'sans motif, rien n\'est inventé');
     }
 
     #[Test]
