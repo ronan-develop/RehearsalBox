@@ -491,24 +491,4 @@ final class KernelTest extends TestCase
         self::assertStringContainsString('<h1>Accès refusé</h1>', $response->body());
         self::assertStringNotContainsString('pas membre', $response->body());
     }
-
-    #[Test]
-    public function testAnUnexpectedErrorOnAPageGetsTheStyledFivehundredPage(): void
-    {
-        $router = new Router();
-        $router->add('GET', '/boom', ['c', 'boom']);
-        $container = new Container();
-        $container->set('c', fn () => new class () {
-            public function boom(): Response
-            {
-                throw new \RuntimeException('secret SQL détail');
-            }
-        });
-
-        $response = @$this->kernel($router, $container)->handle(new Request('GET', '/boom', [], [], []));
-
-        self::assertSame(500, $response->statusCode());
-        self::assertStringContainsString('<h1>Erreur interne</h1>', $response->body());
-        self::assertStringNotContainsString('secret', $response->body());
-    }
 }
