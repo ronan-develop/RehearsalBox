@@ -1,4 +1,7 @@
 :root {
+  /* Contrôles natifs (calendrier, listes) : popup sombre et accent de la palette (#289). */
+  color-scheme: dark;
+  accent-color: var(--rb-accent);
   /* Palette "braise éteinte" — sobre, sans cliché rock/metal (pas de rouge
      sang ni de couleurs saturées, cf. issue #17) : fond quasi noir à teinte
      froide, accent rouille/terracotta désaturé évoquant le cuir et le métal
@@ -292,6 +295,16 @@ button:active::after, .rb-btn:active::after {
   border: 1px solid var(--rb-border);
   border-radius: var(--rb-radius-sm);
   color: var(--rb-text);
+}
+
+.rb-input[type="date"],
+.rb-input[type="time"] {
+  min-height: 2.5rem;
+}
+
+.rb-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
 }
 
 .rb-input:focus {
