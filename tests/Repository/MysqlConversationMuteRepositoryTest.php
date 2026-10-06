@@ -93,4 +93,26 @@ final class MysqlConversationMuteRepositoryTest extends RepositoryTestCase
 
         self::assertSame(0, $this->conversations->countUnreadFor($bob->id(), $this->cutoff), 'sourdine = pas de comptage de non-lus');
     }
+
+    #[Test]
+    public function testTheListCarriesTheMutedStateAndHasNoUnreadMarkerForAMutedConversation(): void
+    {
+        [$alice, $bob, $a, $b] = $this->pair();
+        $thread = $this->conversations->create($a->id(), $b->id(), 'Fil', $this->now);
+        $this->messages->addMessage($thread->id(), $alice->id(), 'Salut', $this->now);
+
+        [$row] = $this->conversations->listFor($bob->id(), MysqlConversationRepository::BOX_ACTIVE, $this->cutoff);
+        self::assertFalse($row->isMuted());
+        self::assertTrue($row->isUnread());
+
+        $this->mutes->setMuted($thread->id(), $bob->id(), true);
+
+        [$row] = $this->conversations->listFor($bob->id(), MysqlConversationRepository::BOX_ACTIVE, $this->cutoff);
+        self::assertTrue($row->isMuted());
+        self::assertFalse($row->isUnread(), 'en sourdine : pas de point « non lu »');
+        self::assertFalse($row->isMentioned());
+
+        [$otherRow] = $this->conversations->listFor($alice->id(), MysqlConversationRepository::BOX_ACTIVE, $this->cutoff);
+        self::assertFalse($otherRow->isMuted(), 'personnelle');
+    }
 }

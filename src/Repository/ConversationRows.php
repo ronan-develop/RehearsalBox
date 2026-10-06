@@ -22,6 +22,7 @@ final class ConversationRows
             self::message($row, (int) $row['id'], 'last_'),
             (bool) ($row['unread'] ?? false),
             (bool) ($row['mentioned'] ?? false),
+            (bool) ($row['muted'] ?? false),
         );
     }
 

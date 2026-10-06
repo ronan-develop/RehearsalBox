@@ -14,6 +14,7 @@ final class ConversationSummary
         private readonly ConversationMessage $lastMessage,
         private readonly bool $unread,
         private readonly bool $mentioned = false,
+        private readonly bool $muted = false,
     ) {
     }
 
@@ -45,6 +46,12 @@ final class ConversationSummary
     }
 
     /** La personne est mentionnée dans un message qu'elle n'a pas encore lu. */
+    /** Sourdine de la personne qui consulte la liste (#210). */
+    public function isMuted(): bool
+    {
+        return $this->muted;
+    }
+
     public function isMentioned(): bool
     {
         return $this->mentioned;
