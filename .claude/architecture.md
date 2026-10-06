@@ -143,6 +143,14 @@ Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requ�
 - **Réponse** : un objet interdit et un objet inexistant renvoient la **même réponse** (403, même message) pour les ressources de groupe, document et demande ; 401 si anonyme. Ne jamais distinguer « n'existe pas » de « pas à vous » (énumération des identifiants). Les routes admin gardent leurs codes propres.
 - **Test** : toute nouvelle route à identifiant s'ajoute à `tests/Security/IdorMatrixTest.php` (acteurs refusés, identifiant inexistant, cas limites).
 
+## Planning du tableau de bord : liste mobile, carrousel bureau (#201)
+
+Un **seul balisage** rendu par le serveur, restylé par le CSS à 768 px (`viewport.js` : même seuil en JavaScript).
+- **Serveur** : `Presenter\PlanningDays` regroupe les créneaux fixes par jour **à partir d'aujourd'hui** (heure locale, `PlanningView` + `ClockInterface` + `app.timezone`) ; un jour sans créneau n'apparaît pas. Le gabarit pose un titre `rb-planning-day` avant les cartes de chaque jour ; la copie dupliquée qui servait à boucler le défilement n'est plus dans le HTML.
+- **Mobile (< 768 px)** : onglets Planning | Exceptionnels (n) (`planning-tabs.js`, dernier onglet mémorisé en `localStorage`, tout reste visible sans JavaScript), une liste par jour (heure à gauche, groupe à droite, lignes de 56 px), cartes à plat (pas de filtre « papier déchiré »), pas de défilement automatique. La recherche masque aussi les jours sans carte visible (`syncDayHeadings`).
+- **Bureau (≥ 768 px)** : le carrousel et ses deux sections inchangés ; `planning-slider.js` ajoute lui-même **une** copie `aria-hidden`/`inert` pour boucler, seulement quand l'animation démarre (corrige les cartes exceptionnelles en double). Section exceptionnelle vide : masquée sur bureau (`rb-planning-section--empty`), message sur mobile ; l'acceptation d'une demande (#79) met à jour la liste et le compteur de l'onglet.
+- **Logo « #B27 »** : sur bureau, `parallax.js` comme avant (calque fixe qui voyage, brillance progressive). Sur mobile le calque n'est plus fixe : le logo reste centré dans la partie haute de l'en-tête, **allumé en néon en permanence**, et défile avec la page ; une **mini barre** « #B27 » (`mini-logo.js`, `IntersectionObserver`, sans écouteur de scroll) apparaît dès que l'en-tête sort de l'écran.
+
 ## Messagerie entre groupes (#153, #169)
 
 - **Modèle** : `conversations` (groupe initiateur, groupe visé, **titre facultatif**), `conversation_messages` (auteur, texte brut, `is_system` pour les lignes générées comme « a renommé la conversation »), `conversation_states` (par personne : `last_read_at`, `typing_at`) — migrations 014 et 015. Le « non lu » se déduit de `last_read_at`.
