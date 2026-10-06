@@ -11,6 +11,8 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
+use App\Service\Exception\GroupValidationException;
+use App\Support\StrictId;
 use App\Service\Contract\GroupServiceInterface;
 
 final class GroupSpaceApiController
@@ -25,7 +27,7 @@ final class GroupSpaceApiController
     public function show(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $groupId = (int) $id;
+        $groupId = StrictId::orDenied($id);
 
         if (!$this->groupRepository->isMember($groupId, $user->id())) {
             return new JsonResponse(['error' => "Vous n'appartenez pas à ce groupe."], 403);
@@ -42,7 +44,7 @@ final class GroupSpaceApiController
     public function updateProfile(Request $request, string $id): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $groupId = (int) $id;
+        $groupId = StrictId::orDenied($id);
 
         $lineupData = $request->body('lineup', []);
         $showsData = $request->body('upcomingShows', []);
@@ -61,6 +63,8 @@ final class GroupSpaceApiController
 
         try {
             $group = $this->groupService->updateProfile($groupId, $lineup, $upcomingShows, $user->id());
+        } catch (GroupValidationException $e) {
+            throw $e; // erreur de saisie (composition ou concerts hors limites) : traduite en 422 par le Kernel
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 404);
         }

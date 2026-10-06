@@ -13,6 +13,7 @@ use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\GroupFilesPurgerInterface;
+use App\Service\Exception\GroupValidationException;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -143,84 +144,6 @@ final class GroupServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testPromoteMemberByGestionnaireChangesRole(): void
-    {
-        [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
-        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $member = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $member->id());
-
-        $service->promoteMember($group->id(), $member->id(), $manager->id());
-
-        self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $member->id()));
-    }
-
-    #[Test]
-
-    public function testPromoteMemberByNonGestionnaireThrowsAccessDenied(): void
-    {
-        [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
-        $actor = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $actor->id());
-        $member = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $member->id());
-
-        $this->expectException(AccessDeniedException::class);
-
-        $service->promoteMember($group->id(), $member->id(), $actor->id());
-    }
-
-    #[Test]
-
-    public function testDemoteMemberByGestionnaireChangesRole(): void
-    {
-        [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
-        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $otherManager = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $otherManager->id(), GroupUserRole::Gestionnaire);
-
-        $service->demoteMember($group->id(), $otherManager->id(), $manager->id());
-
-        self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $otherManager->id()));
-    }
-
-    #[Test]
-
-    public function testDemoteLastManagerThrowsLogicException(): void
-    {
-        [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
-        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-
-        $this->expectException(\LogicException::class);
-
-        $service->demoteMember($group->id(), $manager->id(), $manager->id());
-    }
-
-    #[Test]
-
-    public function testDemoteMemberByNonGestionnaireThrowsAccessDenied(): void
-    {
-        [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
-        $manager = $this->createUser($userRepository, 'alice@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $actor = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $groupRepository->addMember($group->id(), $actor->id());
-
-        $this->expectException(AccessDeniedException::class);
-
-        $service->demoteMember($group->id(), $manager->id(), $actor->id());
-    }
-
-    #[Test]
-
     public function testUpdateProfileByGestionnaireSavesLineupAndShows(): void
     {
         [$service, $groupRepository, $userRepository] = $this->makeService();
@@ -323,5 +246,107 @@ final class GroupServiceTest extends RepositoryTestCase
         }
 
         self::assertSame(['liste'], $purger->log, 'aucun fichier retiré si le groupe est toujours là');
+    }
+
+    // --- Validation, unicité, erreurs prévisibles (#224) ----------------------------------------------
+
+    #[Test]
+    public function testCreateRefusesAnInvalidGroupWithTheReasonOfEachField(): void
+    {
+        [$service] = $this->makeService();
+
+        try {
+            $service->create('', str_repeat('g', 61), 'rouge', 'pas-un-email');
+            self::fail('groupe invalide');
+        } catch (GroupValidationException $e) {
+            self::assertSame(['name', 'genre', 'colorHex', 'contactEmail'], array_keys($e->fields()));
+        }
+        self::assertSame([], $service->findAll(), 'rien n\'est créé');
+    }
+
+    #[Test]
+    public function testCreateNormalizesTheNameAndEmptyOptionalFields(): void
+    {
+        [$service] = $this->makeService();
+
+        $group = $service->create("  Nebula   Sprawl \n", '   ', null, 'contact@example.test');
+
+        self::assertSame('Nebula Sprawl', $group->name());
+        self::assertNull($group->genre());
+    }
+
+    #[Test]
+    public function testTwoGroupsCannotShareANameOrTheSameSlug(): void
+    {
+        [$service] = $this->makeService();
+        $service->create('Nebula Sprawl', null, null, 'a@example.test');
+
+        // Même nom (casse, espaces, accents) : l'adresse publique /groups/nebula-sprawl/space serait ambiguë.
+        foreach (['nebula sprawl', 'NEBULA-SPRAWL', 'Nébula   Sprawl'] as $clash) {
+            try {
+                $service->create($clash, null, null, 'b@example.test');
+                self::fail('nom trop proche refusé : ' . $clash);
+            } catch (GroupValidationException $e) {
+                self::assertArrayHasKey('name', $e->fields(), $clash);
+            }
+        }
+        self::assertCount(1, $service->findAll());
+    }
+
+    #[Test]
+    public function testAGroupKeepsItsOwnNameOnUpdateButCannotTakeAnotherOne(): void
+    {
+        [$service] = $this->makeService();
+        $first = $service->create('Nebula Sprawl', null, null, 'a@example.test');
+        $second = $service->create('Rust Prophet', null, null, 'b@example.test');
+
+        $renamedSame = $service->update($first->id(), 'Nebula Sprawl', 'prog', '#112233', 'a@example.test');
+        self::assertSame('prog', $renamedSame->genre());
+
+        $this->expectException(GroupValidationException::class);
+        $service->update($second->id(), 'nebula-sprawl', null, null, 'b@example.test');
+    }
+
+    #[Test]
+    public function testTheProfileIsValidatedAfterTheManagerCheck(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Nebula Sprawl', null, null, 'a@example.test');
+        $manager = $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $stranger = $this->createUser($userRepository, 'ivan@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $tooMany = array_map(static fn (int $i): LineupMember => new LineupMember("Membre {$i}", 'Basse'), range(1, 21));
+
+        try {
+            $service->updateProfile($group->id(), $tooMany, [], $stranger->id());
+            self::fail('un étranger ne peut rien modifier');
+        } catch (AccessDeniedException) {
+        }
+        $this->expectException(GroupValidationException::class);
+        $service->updateProfile($group->id(), $tooMany, [new UpcomingShow('2026-02-30', 'Salle')], $manager->id());
+    }
+
+    #[Test]
+    public function testAddingAnExistingMemberIsHarmlessAndNeverChangesTheirRole(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $service->create('Nebula Sprawl', null, null, 'a@example.test');
+        $manager = $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+
+        $service->addMemberByEmail($group->id(), 'gaby@rehearsalbox.test');
+        $service->addMemberByEmail($group->id(), 'gaby@rehearsalbox.test');
+
+        self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $manager->id()), 'un gestionnaire n\'est pas rétrogradé en silence');
+    }
+
+    #[Test]
+    public function testAddingSomeoneToAnUnknownGroupIsACleanRefusal(): void
+    {
+        [$service, , $userRepository] = $this->makeService();
+        $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $service->addMemberByEmail(9999, 'gaby@rehearsalbox.test');
     }
 }

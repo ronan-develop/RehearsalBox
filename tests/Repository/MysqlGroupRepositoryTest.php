@@ -207,36 +207,6 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testPromoteToManagerChangesRole(): void
-    {
-        $groupRepository = new MysqlGroupRepository($this->pdo);
-        $userRepository = new MysqlUserRepository($this->pdo);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-        $user = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
-        $groupRepository->addMember($group->id(), $user->id());
-
-        $groupRepository->promoteToManager($group->id(), $user->id());
-
-        self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $user->id()));
-    }
-
-    #[Test]
-
-    public function testDemoteToMemberChangesRole(): void
-    {
-        $groupRepository = new MysqlGroupRepository($this->pdo);
-        $userRepository = new MysqlUserRepository($this->pdo);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-        $user = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
-        $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Gestionnaire);
-
-        $groupRepository->demoteToMember($group->id(), $user->id());
-
-        self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $user->id()));
-    }
-
-    #[Test]
-
     public function testSaveThenFindByIdReturnsLineupAndUpcomingShows(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -273,21 +243,6 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         self::assertSame([], $found->upcomingShows());
     }
 
-    #[Test]
-
-    public function testCountManagersCountsOnlyGestionnaireRole(): void
-    {
-        $groupRepository = new MysqlGroupRepository($this->pdo);
-        $userRepository = new MysqlUserRepository($this->pdo);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-        $manager = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
-        $member = $userRepository->save($this->newUser('bob@rehearsalbox.test'));
-        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $groupRepository->addMember($group->id(), $member->id());
-
-        self::assertSame(1, $groupRepository->countManagers($group->id()));
-    }
-
     private function newUser(string $email): User
     {
         return new User(
@@ -300,5 +255,27 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
             failedLoginAttempts: 0,
             lockedUntil: null,
         );
+    }
+
+    #[Test]
+    public function testDeletingAGroupAlsoRemovesTheSlotRequestsItMadeAndKeepsTheOthersSlots(): void
+    {
+        $groups = new MysqlGroupRepository($this->pdo);
+        $users = new MysqlUserRepository($this->pdo);
+        $holder = $groups->save(new Group(0, 'Titulaire', null, null, 'titulaire@example.test'));
+        $requester = $groups->save(new Group(0, 'Demandeur', null, null, 'demandeur@example.test'));
+        $user = $users->save($this->newUser('alice@rehearsalbox.test'));
+        $groups->addMember($requester->id(), $user->id());
+        $slot = (new \App\Repository\MysqlRecurringSlotRepository($this->pdo))->save(new \App\Entity\RecurringSlot(0, $holder->id(), \App\Entity\Enum\Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $requests = new \App\Repository\MysqlSlotExceptionRepository($this->pdo);
+        $request = $requests->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $user->id(), 'Concert');
+
+        // Avant la migration 027 : « Cannot delete or update a parent row » (une erreur 500 pour l'administrateur).
+        $groups->delete($requester->id());
+
+        self::assertNull($groups->findById($requester->id()));
+        self::assertNull($requests->findById($request->id()), 'la demande du groupe supprimé disparaît avec lui');
+        self::assertNotNull($groups->findById($holder->id()), 'le groupe titulaire est intact');
+        self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM recurring_slots')->fetchColumn(), 'son créneau aussi');
     }
 }

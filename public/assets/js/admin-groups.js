@@ -27,7 +27,7 @@ export function renderGroupCard(group) {
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
           </svg>
         </button>
-        <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-group-button data-group-id="${group.id}" aria-label="Supprimer">
+        <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-group-button data-group-id="${group.id}" data-members-count="0" data-conversations-count="0" data-documents-count="0" data-requests-count="0" aria-label="Supprimer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
@@ -80,8 +80,44 @@ function initGroupCard(card) {
     });
 }
 
+const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+const countOf = (value) => (Number.isInteger(Number(value)) && Number(value) > 0 ? Number(value) : 0);
+
+/**
+ * Texte de la confirmation avant de supprimer un groupe (#224) : dit exactement ce qui disparaît avec lui, d'après les comptes
+ * calculés par le serveur (jamais une promesse générique). Sans rien de lié, une simple question.
+ */
+export function groupDeletionWarning({ members, conversations, documents, requests }) {
+  const [m, c, d, r] = [countOf(members), countOf(conversations), countOf(documents), countOf(requests)];
+  if (m + c + d + r === 0) {
+    return 'Supprimer ce groupe ?';
+  }
+
+  const lines = ['Supprimer ce groupe ?'];
+  if (c > 0) {
+    lines.push(`• ${plural(c, 'conversation, avec tous ses messages', 'conversations, avec tous leurs messages')}, pour les deux groupes concernés ;`);
+  }
+  if (d > 0) {
+    lines.push(`• ${plural(d, 'document', 'documents')} (les fichiers sont effacés) ;`);
+  }
+  if (r > 0) {
+    lines.push(`• ${plural(r, 'demande de créneau', 'demandes de créneau')} ;`);
+  }
+  if (m > 0) {
+    lines.push(`• ${m === 1 ? '1 membre sera retiré du groupe' : `${m} membres seront retirés du groupe`} (leurs comptes restent).`);
+  }
+  lines.push('Cette action ne peut pas être annulée.');
+
+  return lines.join('\n');
+}
+
 async function handleDeleteGroup(button, root) {
-  const confirmed = await confirmAction('Supprimer ce groupe ? Cette action retire aussi ses membres et créneaux.');
+  const confirmed = await confirmAction(groupDeletionWarning({
+    members: button.dataset.membersCount,
+    conversations: button.dataset.conversationsCount,
+    documents: button.dataset.documentsCount,
+    requests: button.dataset.requestsCount,
+  }));
   if (!confirmed) {
     return;
   }

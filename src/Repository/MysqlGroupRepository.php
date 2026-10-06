@@ -9,6 +9,7 @@ use App\Entity\Group;
 use App\Entity\LineupMember;
 use App\Entity\UpcomingShow;
 use App\Repository\Contract\GroupRepositoryInterface;
+use App\Repository\Exception\DuplicateGroupNameException;
 use App\Support\Slug;
 
 final class MysqlGroupRepository implements GroupRepositoryInterface
@@ -67,7 +68,7 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
             $statement = $this->pdo->prepare(
                 'INSERT INTO `groups` (name, genre, color_hex, contact_email, lineup, upcoming_shows) VALUES (:name, :genre, :color_hex, :contact_email, :lineup, :upcoming_shows)'
             );
-            $statement->execute([
+            $this->executeUniqueName($statement, [
                 'name' => $group->name(),
                 'genre' => $group->genre(),
                 'color_hex' => $group->colorHex(),
@@ -82,7 +83,7 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         $statement = $this->pdo->prepare(
             'UPDATE `groups` SET name = :name, genre = :genre, color_hex = :color_hex, contact_email = :contact_email, lineup = :lineup, upcoming_shows = :upcoming_shows WHERE id = :id'
         );
-        $statement->execute([
+        $this->executeUniqueName($statement, [
             'id' => $group->id(),
             'name' => $group->name(),
             'genre' => $group->genre(),
@@ -95,6 +96,24 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         return $this->findById($group->id());
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     *
+     * @throws DuplicateGroupNameException un autre groupe porte déjà ce nom (1062 : la clé d'unicité ignore casse et accents)
+     */
+    private function executeUniqueName(\PDOStatement $statement, array $parameters): void
+    {
+        try {
+            $statement->execute($parameters);
+        } catch (\PDOException $e) {
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                throw new DuplicateGroupNameException();
+            }
+
+            throw $e;
+        }
+    }
+
     public function delete(int $id): void
     {
         $statement = $this->pdo->prepare('DELETE FROM `groups` WHERE id = :id');
@@ -103,8 +122,10 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
 
     public function addMember(int $groupId, int $userId, GroupUserRole $role = GroupUserRole::Membre): void
     {
+        // Déjà membre : sans effet (et le rôle actuel est CONSERVÉ : ajouter deux fois un gestionnaire ne le rétrograde pas).
         $statement = $this->pdo->prepare(
-            'INSERT INTO group_user (group_id, user_id, role) VALUES (:group_id, :user_id, :role)'
+            'INSERT INTO group_user (group_id, user_id, role) VALUES (:group_id, :user_id, :role)
+             ON DUPLICATE KEY UPDATE role = role'
         );
         $statement->execute(['group_id' => $groupId, 'user_id' => $userId, 'role' => $role->value]);
     }
@@ -137,34 +158,6 @@ final class MysqlGroupRepository implements GroupRepositoryInterface
         $role = $statement->fetchColumn();
 
         return $role === false ? null : GroupUserRole::from($role);
-    }
-
-    public function promoteToManager(int $groupId, int $userId): void
-    {
-        $this->updateRole($groupId, $userId, GroupUserRole::Gestionnaire);
-    }
-
-    public function demoteToMember(int $groupId, int $userId): void
-    {
-        $this->updateRole($groupId, $userId, GroupUserRole::Membre);
-    }
-
-    public function countManagers(int $groupId): int
-    {
-        $statement = $this->pdo->prepare(
-            "SELECT COUNT(*) FROM group_user WHERE group_id = :group_id AND role = 'gestionnaire'"
-        );
-        $statement->execute(['group_id' => $groupId]);
-
-        return (int) $statement->fetchColumn();
-    }
-
-    private function updateRole(int $groupId, int $userId, GroupUserRole $role): void
-    {
-        $statement = $this->pdo->prepare(
-            'UPDATE group_user SET role = :role WHERE group_id = :group_id AND user_id = :user_id'
-        );
-        $statement->execute(['role' => $role->value, 'group_id' => $groupId, 'user_id' => $userId]);
     }
 
     /** @param array<string, mixed> $row */

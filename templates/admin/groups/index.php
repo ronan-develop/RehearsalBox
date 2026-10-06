@@ -45,7 +45,7 @@
                           data-method="PATCH" class="rb-edit-group-form" hidden>
                         <input type="text" name="name" class="rb-input" value="<?= e($group->name()) ?>" required maxlength="120">
                         <input type="text" name="genre" class="rb-input" value="<?= e($group->genre() ?? '') ?>" maxlength="60">
-                        <input type="color" name="colorHex" value="<?= e($group->colorHex() ?? '#b5654a') ?>">
+                        <input type="color" name="colorHex" value="<?= e(\App\Support\SafeColor::from($group->colorHex()) ?? '#b5654a') ?>">
                         <input type="email" name="contactEmail" class="rb-input" value="<?= e($group->contactEmail()) ?>" required maxlength="190">
                         <button type="submit" class="rb-btn">Enregistrer</button>
                     </form>
@@ -57,8 +57,12 @@
                                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
                             </svg>
                         </button>
+                        <?php $impact = $impacts[$group->id()] ?? ['members' => 0, 'conversations' => 0, 'documents' => 0, 'requests' => 0]; ?>
                         <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-group-button
-                                data-group-id="<?= e((string) $group->id()) ?>" aria-label="Supprimer">
+                                data-group-id="<?= e((string) $group->id()) ?>"
+                                data-members-count="<?= e((string) $impact['members']) ?>" data-conversations-count="<?= e((string) $impact['conversations']) ?>"
+                                data-documents-count="<?= e((string) $impact['documents']) ?>" data-requests-count="<?= e((string) $impact['requests']) ?>"
+                                aria-label="Supprimer">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                 <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>

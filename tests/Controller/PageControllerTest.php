@@ -529,25 +529,6 @@ final class PageControllerTest extends RepositoryTestCase
         ));
     }
 
-    #[Test]
-
-    public function testAdminGroupsPageHasGroupsAndUsersTabsWithGroupsCurrent(): void
-    {
-        [$controller, , , $userRepository, $authService] = $this->makeController();
-        $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
-        $authService->attempt('admin@rehearsalbox.test', 'password');
-
-        $body = $controller->adminGroups()->body();
-
-        // Onglets Groupes | Utilisateurs (#155) : l'onglet courant est marqué, l'autre mène à la page Utilisateurs.
-        self::assertStringContainsString('class="rb-admin-tabs"', $body);
-        self::assertMatchesRegularExpression('/<a href="\/admin\/groups" class="rb-admin-tab" aria-current="page">\s*Groupes\s*<\/a>/u', $body);
-        self::assertMatchesRegularExpression('/<a href="\/admin\/users" class="rb-admin-tab">\s*Utilisateurs\s*<\/a>/u', $body);
-        self::assertStringNotContainsString('Gérer les utilisateurs', $body, 'plus de petit lien pris pour un « retour »');
-        // La barre du bas garde ses 5 entrées (pas de 6e lien qui déborderait sur mobile).
-        self::assertSame(5, substr_count($body, 'rb-bottom-nav-link'), 'la navigation du bas reste à 5 entrées');
-    }
-
     // --- Messagerie (#153) ------------------------------------------------------------------------
 
     #[Test]
@@ -578,5 +559,28 @@ final class PageControllerTest extends RepositoryTestCase
             self::assertStringNotContainsString('data-contact-modal-overlay', $body, 'on écrit dans une page de conversation, plus dans une modale');
             self::assertStringNotContainsString('data-contact-form', $body);
         }
+    }
+
+    #[Test]
+    public function testAHostileGroupColourStoredInTheDatabaseNeverReachesTheStyleAttribute(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
+        $admin = $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+        $holder = $groupRepository->save(new Group(0, 'Groupe Admin', null, null, 'contact@example.test'));
+        $groupRepository->addMember($holder->id(), $admin->id());
+        $slot = $slotService->create($holder->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
+        $requester = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $bob = $userRepository->save(new User(0, 'bob@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Bob', UserRole::Musicien, true, 0, null));
+        $groupRepository->addMember($requester->id(), $bob->id());
+        // La validation à l'écriture (#224) l'interdirait : on l'écrit directement, comme le ferait un ancien enregistrement ou un accès à la base.
+        $this->pdo->prepare('UPDATE `groups` SET color_hex = ? WHERE id = ?')->execute([';top:0;', $requester->id()]);
+        (new \App\Repository\MysqlSlotExceptionRepository($this->pdo))->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $bob->id(), 'Concert');
+
+        $body = $controller->dashboard()->body();
+
+        self::assertStringContainsString('data-exception-deck', $body);
+        self::assertStringNotContainsString(';top:0;', $body, 'du CSS venu de la base n\'arrive jamais dans la page');
+        self::assertStringContainsString('--group-color: var(--rb-accent);', $body, 'repli sur la couleur du thème');
     }
 }

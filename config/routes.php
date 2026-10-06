@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminGroupPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
@@ -30,7 +31,7 @@ return [
         ['GET', '/account/secure', [PageController::class, 'secureAccount']],
         ['GET', '/account/email/confirm', [PageController::class, 'confirmEmail']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
-        ['GET', '/admin/groups', [PageController::class, 'adminGroups']],
+        ['GET', '/admin/groups', [AdminGroupPageController::class, 'index']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],

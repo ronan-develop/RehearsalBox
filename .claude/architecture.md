@@ -110,6 +110,15 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - **Booléen strict** : `accepted` n'accepte que `true/false`, `1/0`, `"1"/"0"`, `"true"/"false"` ; toute autre valeur est une erreur 422 (la chaîne `"false"` refuse, elle n'accepte jamais). Identifiants d'URL lus par `StrictId::orDenied`.
 - `createRequest` n'a aucun appelant HTTP (les demandes ne se créent pas encore depuis l'interface) : **décision de produit en attente du propriétaire**, le code n'est pas supprimé.
 
+## Groupes : validation, unicité, suppression (#224)
+
+- `Security\GroupInputPolicy` valide toute saisie de groupe (nom 1–120 sans caractère de contrôle, genre ≤60, couleur `#rrggbb`, e-mail de contact, profil ≤20 membres / ≤20 concerts, vraies dates) ; `GroupValidationException` → 422 avec les champs fautifs (via `ExceptionTranslator`).
+- Nom unique (casse et accents ignorés) : le service refuse un slug déjà pris, la clé d'unicité SQL tranche la concurrence (`DuplicateGroupNameException` → 409).
+- Couleurs affichées via `Support\SafeColor` (jamais une valeur brute dans un attribut `style`).
+- Suppression : l'écran admin affiche l'impact réel (`GroupImpactRepositoryInterface` : membres, conversations, documents, demandes) avant confirmation ; la migration 027 supprime en cascade les demandes de créneau du groupe (plus d'erreur 500).
+- `addMember` est idempotent et conserve le rôle existant.
+- La page `/groups/{slug}/space` est **publique voulue** (vitrine) : documentée et testée, pas protégée.
+- Rôle de gestionnaire sorti dans `GroupManagerService` / `GroupManagerRepositoryInterface` (promotion, rétrogradation, dernier gestionnaire protégé). **Non câblé** : aucune route ne crée de gestionnaire, décision produit du propriétaire.
 ## Mots de passe, sessions et jetons (#223)
 
 - **Règle des mots de passe** (`PasswordPolicy`) : **10 caractères au moins** (comptés en caractères, pas en octets), **72 octets au plus** (au-delà bcrypt tronquerait en silence : on refuse plutôt que d'accepter un mot de passe dont la fin ne compte pas) et pas un mot de passe parmi les plus courants (courte liste lisible, insensible à la casse, plus « un seul caractère répété »). Elle ne s'applique qu'au moment de **choisir** un mot de passe : les comptes existants se connectent toujours avec l'ancien. Les formulaires l'annoncent (`minlength="10"`). Personne, administrateur compris, ne connaît ni ne fixe le mot de passe d'un autre.

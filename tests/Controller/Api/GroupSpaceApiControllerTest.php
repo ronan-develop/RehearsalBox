@@ -18,6 +18,7 @@ use App\Service\AuthService;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use App\Tests\Support\KernelTranslation;
 use App\Security\Exception\AccessDeniedException;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -33,7 +34,8 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         $authGuard = new AuthGuard($authService);
         $groupService = new GroupService($groupRepository, $userRepository);
 
-        $controller = new GroupSpaceApiController($groupService, $groupRepository, $authGuard);
+        // Le contrôleur tel que le sert le Kernel : une exception métier devient sa réponse (KernelTranslation).
+        $controller = new KernelTranslation(new GroupSpaceApiController($groupService, $groupRepository, $authGuard));
 
         return [$controller, $groupRepository, $userRepository, $authService];
     }
@@ -139,5 +141,60 @@ final class GroupSpaceApiControllerTest extends RepositoryTestCase
         $request = new Request('PATCH', "/api/groups/{$group->id()}/space", [], ['lineup' => [], 'upcomingShows' => []], []);
         $this->expectException(AccessDeniedException::class);
         $controller->updateProfile($request, (string) $group->id());
+    }
+
+    // --- Profil borné et public documenté (#224) ----------------------------------------------------------
+
+    #[Test]
+    public function testAnOversizedOrInvalidProfileIsRefusedWith422AndNothingIsStored(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $authService->attempt('gaby@rehearsalbox.test', 'password');
+        $member = static fn (int $i): array => ['name' => "Membre {$i}", 'instrument' => 'Basse'];
+
+        $tooMany = $controller->updateProfile(new Request('PATCH', '/x', [], ['lineup' => array_map($member, range(1, 21)), 'upcomingShows' => []], []), (string) $group->id());
+        $badDate = $controller->updateProfile(new Request('PATCH', '/x', [], ['lineup' => [], 'upcomingShows' => [['date' => 'bientôt', 'venue' => 'Salle']]], []), (string) $group->id());
+
+        self::assertSame(422, $tooMany->statusCode());
+        self::assertArrayHasKey('lineup', json_decode($tooMany->body(), true)['fields']);
+        self::assertSame(422, $badDate->statusCode());
+        self::assertArrayHasKey('upcomingShows', json_decode($badDate->body(), true)['fields']);
+        self::assertSame([], $groupRepository->findById($group->id())->lineup(), 'rien n\'est enregistré');
+    }
+
+    #[Test]
+    public function testAnUnknownGroupIsStillA404ForTheManagerRoute(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $authService->attempt('gaby@rehearsalbox.test', 'password');
+        $groupRepository->delete($group->id());
+
+        $this->expectException(AccessDeniedException::class); // plus gestionnaire d'un groupe qui n'existe plus : refus uniforme
+        $controller->updateProfile(new Request('PATCH', '/x', [], ['lineup' => [], 'upcomingShows' => []], []), (string) $group->id());
+    }
+
+    #[Test]
+    public function testMalformedIdentifiersAreRefusedAsForbidden(): void
+    {
+        [$controller, , $userRepository, $authService] = $this->makeController();
+        $this->createUser($userRepository, 'gaby@rehearsalbox.test');
+        $authService->attempt('gaby@rehearsalbox.test', 'password');
+
+        foreach (['5abc', '0', '-1'] as $id) {
+            foreach (['show', 'updateProfile'] as $action) {
+                try {
+                    $controller->{$action}(new Request('GET', '/x', [], ['lineup' => [], 'upcomingShows' => []], []), $id);
+                    self::fail("{$action} : identifiant refusé attendu : {$id}");
+                } catch (AccessDeniedException) {
+                    self::addToAssertionCount(1);
+                }
+            }
+        }
     }
 }

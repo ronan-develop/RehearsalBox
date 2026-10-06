@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Http;
 
 use App\Http\ExceptionTranslator;
+use App\Repository\Exception\DuplicateGroupNameException;
 use App\Repository\Exception\DuplicateOccurrenceException;
 use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
+use App\Service\Exception\GroupValidationException;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\InvalidUploadException;
@@ -30,6 +32,7 @@ final class ExceptionTranslatorTest extends TestCase
     {
         yield 'validation de conversation' => [new ConversationValidationException(['title' => 'Trop long.']), 422, ['error' => 'Trop long.', 'fields' => ['title' => 'Trop long.']]];
         yield 'validation de compte' => [new UserValidationException(['email' => 'Invalide.']), 422, ['error' => 'Validation échouée', 'fields' => ['email' => 'Invalide.']]];
+        yield 'groupe invalide' => [new GroupValidationException(['name' => 'Nom requis.', 'colorHex' => 'Couleur invalide.']), 422, ['error' => 'Nom requis. Couleur invalide.', 'fields' => ['name' => 'Nom requis.', 'colorHex' => 'Couleur invalide.']]];
         yield 'demande de créneau invalide' => [new AvailabilityValidationException(['occurrenceDate' => 'Passé.']), 422, ['error' => 'Validation échouée', 'fields' => ['occurrenceDate' => 'Passé.']]];
         yield 'trop de messages' => [new ConversationRateLimitException('Trop de messages envoyés.'), 429, ['error' => 'Trop de messages envoyés.']];
         yield 'jeton de réinitialisation' => [new InvalidResetTokenException(), 422, ['error' => (new InvalidResetTokenException())->getMessage()]];
@@ -38,6 +41,7 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'règle d\'administration' => [new UserAdminRuleException('Dernier administrateur.'), 422, ['error' => 'Dernier administrateur.']];
         yield 'demande déjà traitée' => [new RequestAlreadyRespondedException('Déjà traitée.'), 409, ['error' => 'Déjà traitée.']];
         yield 'demande modifiée entre-temps' => [new RequestChangedException(), 409, ['error' => (new RequestChangedException())->getMessage()]];
+        yield 'nom de groupe déjà pris' => [new DuplicateGroupNameException(), 409, ['error' => (new DuplicateGroupNameException())->getMessage()]];
         yield 'date déjà demandée' => [new DuplicateOccurrenceException(), 409, ['error' => (new DuplicateOccurrenceException())->getMessage()]];
         yield 'quota dépassé' => [new StorageQuotaExceededException('Quota dépassé.'), 409, ['error' => 'Quota dépassé.']];
     }
