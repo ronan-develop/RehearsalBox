@@ -26,21 +26,3 @@ export function offsetFor(dx, startOpen, width = ACTION_WIDTH) {
 export function shouldOpen(offset, width = ACTION_WIDTH) {
   return offset <= -width / 2;
 }
-
-/**
- * Glissement qui DÉCLENCHE une action au relâchement (corriger son message, #200/#212) au lieu de la révéler : il faut avoir
- * tiré franchement, aux trois quarts de la largeur de l'action, pour éviter les déclenchements accidentels.
- */
-export function shouldTrigger(offset, width = ACTION_WIDTH) {
-  return offset <= -width * 0.75;
-}
-
-/** Vers la DROITE (citer un message, #214) : la ligne suit le doigt entre le repos (0) et la largeur de l'action. */
-export function offsetForRight(dx, width = ACTION_WIDTH) {
-  return Math.max(0, Math.min(width, dx));
-}
-
-/** Même règle que vers la gauche : l'action ne se déclenche qu'après avoir tiré aux trois quarts de sa largeur. */
-export function shouldTriggerRight(offset, width = ACTION_WIDTH) {
-  return offset >= width * 0.75;
-}

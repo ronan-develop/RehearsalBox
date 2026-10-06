@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyGesture, offsetFor, offsetForRight, shouldOpen, shouldTrigger, shouldTriggerRight, ACTION_WIDTH } from './swipe.js';
+import { classifyGesture, offsetFor, shouldOpen, ACTION_WIDTH } from './swipe.js';
 
 test('a small movement is undecided: neither a swipe nor a scroll yet', () => {
   assert.equal(classifyGesture(4, 3), 'undecided');
@@ -35,27 +35,4 @@ test('the action opens past half of its width and closes otherwise', () => {
   assert.equal(shouldOpen(-ACTION_WIDTH / 2), true);
   assert.equal(shouldOpen(-ACTION_WIDTH / 2 + 1), false);
   assert.equal(shouldOpen(0), false);
-});
-
-test('shouldTrigger asks for a deliberate swipe: three quarters of the action width, not half', async () => {
-  const { shouldTrigger } = await import('./swipe.js');
-
-  assert.equal(shouldTrigger(-72, 72), true);
-  assert.equal(shouldTrigger(-54, 72), true, 'exactement trois quarts');
-  assert.equal(shouldTrigger(-53, 72), false);
-  assert.equal(shouldTrigger(0, 72), false);
-});
-
-test('toward the right the row follows the finger but never past the action width nor to the left of its rest position', () => {
-  assert.equal(offsetForRight(30, 72), 30);
-  assert.equal(offsetForRight(200, 72), 72);
-  assert.equal(offsetForRight(-40, 72), 0);
-});
-
-test('a rightward swipe triggers only once pulled to three quarters of the width, like the leftward one', () => {
-  assert.equal(shouldTriggerRight(53, 72), false);
-  assert.equal(shouldTriggerRight(54, 72), true);
-  assert.equal(shouldTriggerRight(72, 72), true);
-  assert.equal(shouldTrigger(-54, 72), true, 'le sens gauche est inchangé');
-  assert.equal(shouldTrigger(-30, 72), false);
 });
