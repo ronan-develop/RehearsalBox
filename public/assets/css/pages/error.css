@@ -1,0 +1,57 @@
+/* Pages d'erreur (#259) : une carte centrée, mêmes jetons que la connexion ; aucun style en ligne (politique de sécurité). */
+.rb-error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--rb-space-4);
+  background: var(--rb-bg);
+  color: var(--rb-text);
+}
+
+.rb-error-card {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--rb-space-5) var(--rb-space-4);
+  text-align: center;
+  box-shadow: none;
+}
+
+.rb-error-code {
+  margin: 0;
+  font-family: 'ADrippingMarker', sans-serif;
+  font-size: 5.5rem;
+  line-height: 1;
+  color: var(--rb-accent);
+  text-shadow: 0 0 22px rgba(181, 101, 74, 0.45);
+}
+
+.rb-error-logo {
+  display: block;
+  margin-top: var(--rb-space-2);
+  font-family: 'ADrippingMarker', sans-serif;
+  font-size: 1.5rem;
+  color: var(--rb-text-2);
+}
+.rb-error-logo span { color: var(--rb-stone-flame); }
+
+.rb-error-card h1 {
+  margin: var(--rb-space-4) 0 var(--rb-space-2);
+  font-size: 1.5rem;
+}
+
+.rb-error-text {
+  margin: 0;
+  color: var(--rb-text-2);
+  text-wrap: balance;
+}
+
+.rb-error-actions {
+  margin-top: var(--rb-space-5);
+}
+
+.rb-error-actions .rb-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
