@@ -345,6 +345,32 @@ final class SlotServiceTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testAValidatedFreeBookingOfTheWeekShowsAsAnOccasionalCardAndAPendingOneDoesNot(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $bookings = new \App\Repository\MysqlFreeSlotBookingRepository($this->pdo);
+        $service = new SlotService(new MysqlRecurringSlotRepository($this->pdo), $groupRepository, new MysqlSlotExceptionRepository($this->pdo), $bookings);
+        $group = $groupRepository->save(new Group(0, 'Groupe Réservant', null, null, 'contact@example.test'));
+        $admin = (new MysqlUserRepository($this->pdo))->save(new User(0, 'admin@rehearsalbox.test', 'hash', 'Admin', UserRole::Admin, true, 0, null));
+        $requester = new \App\Entity\Requester($group->id(), $admin->id());
+        $wednesday = (new \DateTimeImmutable('today'))->modify('monday this week')->modify('+2 days');
+
+        $validated = $bookings->create($requester, $wednesday, new \App\Entity\TimeRange('09:00:00', '14:00:00'), null);
+        $bookings->decide($validated->id(), \App\Entity\Enum\FreeSlotBookingStatus::Validee, $admin->id(), null, new \DateTimeImmutable());
+        $bookings->create($requester, $wednesday, new \App\Entity\TimeRange('15:00:00', '16:00:00'), null); // en attente
+        $bookings->create($requester, $wednesday->modify('+8 days'), new \App\Entity\TimeRange('09:00:00', '10:00:00'), null); // semaine suivante
+
+        $cards = $service->findOccasionalPlanningSlots();
+
+        self::assertCount(1, $cards);
+        self::assertSame('Groupe Réservant', $cards[0]->groupName());
+        self::assertSame(Weekday::Wednesday, $cards[0]->slot()->weekday());
+        self::assertSame(['09:00:00', '14:00:00'], [$cards[0]->slot()->startTime(), $cards[0]->slot()->endTime()]);
+        self::assertFalse($cards[0]->isRecurring());
+        self::assertSame($wednesday->format('Y-m-d'), $cards[0]->occurrenceDate()?->format('Y-m-d'));
+    }
+
+    #[Test]
 
     public function testFindFixedPlanningSlotsMarksSlotsAsRecurring(): void
     {
