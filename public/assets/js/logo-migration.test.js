@@ -39,14 +39,17 @@ test('on desktop the logo starts at the first third of the header, vertically ce
   assert.equal(start.top, 32 + 176 / 2 - 150 / 2);
 });
 
-test('on a phone the logo starts centered in the header, in its upper part (the group name sits below)', () => {
+test('on a phone the logo starts at the left and middle of the header, where there is room (the group name sits bottom right)', () => {
   const header = rect({ top: 32, left: 16, width: 358, height: 132 });
+  const size = { width: 150, height: 72 };
 
-  const start = computeStartPosition(header, { width: 230, height: 72 }, true);
+  const start = computeStartPosition(header, size, true);
 
-  assert.equal(start.left, 16 + 358 / 2 - 230 / 2);
-  assert.ok(start.top > 32 && start.top + 72 < 32 + 132, 'dans le cadre de l\'en-tête');
-  assert.ok(start.top + 72 / 2 < 32 + 132 / 2, 'centre du logo dans la moitié haute');
+  const center = { x: start.left + size.width / 2, y: start.top + size.height / 2 };
+  assert.ok(Math.abs(center.x - (16 + 358 * 0.28)) < 1, 'centre à ~28 % de la largeur de l\'en-tête');
+  assert.ok(Math.abs(center.y - (32 + 132 * 0.45)) < 1, 'centre à ~45 % de sa hauteur');
+  assert.ok(start.left >= 16, 'ne déborde pas à gauche de l\'en-tête');
+  assert.ok(start.left + size.width < 16 + 358 * 0.75, 'laisse la droite de l\'en-tête au nom du groupe');
 });
 
 test('the logo ends at the left of the top bar, vertically centered at its small size', () => {

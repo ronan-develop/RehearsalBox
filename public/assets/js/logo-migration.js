@@ -12,7 +12,9 @@ import { isDesktopWidth } from './viewport.js';
 /** Hauteur visuelle du logo une fois posé dans la barre (px). */
 export const TOPBAR_LOGO_HEIGHT = 34;
 const TOPBAR_PADDING = 16;
-const PHONE_START_HEIGHT_RATIO = 0.36;
+/** Centre du logo au repos sur téléphone : à gauche et à mi-hauteur de l'en-tête (le nom du groupe est en bas à droite). */
+const PHONE_START_X_RATIO = 0.28;
+const PHONE_START_Y_RATIO = 0.45;
 const REST_ROTATION_PHONE = -3;
 const DOCKED_ROTATION = -3;
 /** Progression à partir de laquelle le néon s'allume sur bureau. */
@@ -35,8 +37,9 @@ export function computeDistance(headerBottom, topbarHeight, maxScroll) {
 export function computeStartPosition(headerRect, size, isPhone) {
   if (isPhone) {
     return {
-      left: headerRect.left + headerRect.width / 2 - size.width / 2,
-      top: headerRect.top + headerRect.height * PHONE_START_HEIGHT_RATIO - size.height / 2,
+      // Jamais à gauche du cadre de l'en-tête, même sur un écran très étroit.
+      left: Math.max(headerRect.left, headerRect.left + headerRect.width * PHONE_START_X_RATIO - size.width / 2),
+      top: headerRect.top + headerRect.height * PHONE_START_Y_RATIO - size.height / 2,
     };
   }
 
