@@ -9,6 +9,7 @@ use App\Entity\Enum\Weekday;
 use App\Entity\Group;
 use App\Entity\RecurringSlot;
 use App\Entity\User;
+use App\Repository\Exception\DuplicateOccurrenceException;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
@@ -443,6 +444,48 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertCount(2, $archived);
         self::assertSame($newer->id(), $archived[0]->id());
         self::assertSame($older->id(), $archived[1]->id());
+    }
+
+    // --- Date épinglée et unicité (#221) ------------------------------------------------------------
+
+    #[Test]
+    public function testRespondWithTheDateTheHolderSawSucceeds(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+        $date = new \DateTimeImmutable('+7 days');
+        $exception = $repository->createRequest($holderSlotId, $date, $requestingGroupId, $requestingUserId, null);
+
+        self::assertTrue($repository->respond($exception->id(), true, $requestingUserId, $date));
+        self::assertFalse($repository->findById($exception->id())->isEnAttente());
+    }
+
+    #[Test]
+    public function testRespondIsRefusedAtomicallyWhenTheDateChangedSinceItWasSeen(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+        $seen = new \DateTimeImmutable('+7 days');
+        $exception = $repository->createRequest($holderSlotId, $seen, $requestingGroupId, $requestingUserId, null);
+        // Le groupe demandeur change la date juste avant que le titulaire clique « Accepter ».
+        $repository->update($exception->id(), $seen->modify('+7 days'), null);
+
+        self::assertFalse($repository->respond($exception->id(), true, $requestingUserId, $seen), 'l\'acceptation ne vaut pas pour une autre date');
+        self::assertTrue($repository->findById($exception->id())->isEnAttente(), 'la demande reste en attente');
+    }
+
+    #[Test]
+    public function testUpdatingToADateAlreadyRequestedForTheSameSlotIsAClearConflictNotAnSqlError(): void
+    {
+        [$holderSlotId, , , $requestingGroupId, $requestingUserId] = $this->createHolderAndRequester();
+        $repository = new MysqlSlotExceptionRepository($this->pdo);
+        $first = new \DateTimeImmutable('+7 days');
+        $second = $first->modify('+7 days');
+        $repository->createRequest($holderSlotId, $first, $requestingGroupId, $requestingUserId, null);
+        $other = $repository->createRequest($holderSlotId, $second, $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(DuplicateOccurrenceException::class);
+        $repository->update($other->id(), $first, null);
     }
 
     /** @return array{0: int, 1: int, 2: int, 3: int, 4: int} [holderSlotId, holderGroupId, holderUserId, requestingGroupId, requestingUserId] */
