@@ -33,8 +33,10 @@ Déploiement par **releases** en SSH depuis le poste de dev, sans démon ni bina
 
 ```bash
 export RB_SSH_CONFIG=<chemin/ssh_config> RB_DOCROOT_LINK=<dossier-domaine>/public RB_SECRETS_FILE=<chemin/.secrets>
-./bin/deploy.sh          # phpunit + npm test + composer audit, puis envoi, install, sauvegarde, migrations, bascule
+./bin/deploy.sh          # contrôles (voir ci-dessous), puis envoi, install, sauvegarde, migrations, bascule
 ```
+
+**Contrôles (#300)** : si la CI est **verte sur le commit déployé** (toutes ses exécutions terminées avec succès, vérifié via `gh`, `bin/lib/ci-status.sh`), le script ne rejoue pas phpunit ni npm test et ne lance que `composer audit` (l'étape l'indique). Au moindre doute — `gh` absent ou en erreur, aucune exécution, une en cours ou en échec — il retombe sur les contrôles locaux complets. `RB_FORCE_LOCAL_CHECKS=1` les impose quand même. L'audit des dépendances n'est jamais sauté (hors `RB_SKIP_CHECKS=1`).
 
 **Progression (#277)** : le script annonce **11 étapes numérotées** avec une barre (`[3/11] ███░░░ 27%  composer install … (+12 s)`, `bin/lib/progress.sh`) ; une étape sautée (`RB_SKIP_CHECKS=1`, `config.local.php` déjà présent) compte quand même et est marquée « ignorée » ; la dernière ligne donne la durée totale. La barre n'affiche que le nom des étapes : jamais une variable d'environnement, un chemin ni un identifiant d'hébergement. **Suivi dans Claude Code** : l'interface n'affiche d'un moniteur d'évènements que son **titre**, pas les lignes qu'il émet (vérifié sur une capture du propriétaire) ; un moniteur ne sert donc qu'à Claude. Pour que le propriétaire **voie** la progression, même en tâche de fond : lancer `./bin/deploy.sh` en tâche de fond avec son journal (`> journal 2>&1`), puis enchaîner de **courtes lectures du journal** (les lignes `[n/11]`) et **écrire la barre dans un message texte à chaque nouvelle étape** (les messages texte sont ce qui s'affiche à l'écran). Ne jamais recopier autre chose que les lignes de la barre.
 

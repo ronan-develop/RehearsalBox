@@ -10,7 +10,8 @@
 #   RB_SSH_HOST (rehearsalbox), RB_REMOTE_BASE (rehearsalbox), RB_SECRETS_FILE (.secrets),
 #   RB_REMOTE_PHP (/usr/local/bin/php), RB_REMOTE_COMPOSER (/usr/local/bin/composer),
 #   RB_MAILER_DSN, RB_MAILER_FROM, RB_APP_URL (sinon MAILER_DSN / MAILER_FROM / APP_URL du fichier de secrets),
-#   RB_REGEN_CONFIG=1 (régénère config.local.php), RB_SKIP_CHECKS=1 (saute phpunit/npm/audit)
+#   RB_REGEN_CONFIG=1 (régénère config.local.php), RB_SKIP_CHECKS=1 (saute phpunit/npm/audit),
+#   RB_FORCE_LOCAL_CHECKS=1 (rejoue phpunit/npm même si la CI est verte sur le commit, cf. #300)
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -28,6 +29,7 @@ KEEP_BACKUPS=7
 rb_ssh() { ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@"; }
 # Étapes numérotées avec barre de progression (#277) : 11 étapes au total, celles qu'on saute comptent quand même.
 source "$(dirname "$0")/lib/progress.sh"
+source "$(dirname "$0")/lib/ci-status.sh"
 progress_init 11
 
 secret() {
@@ -43,9 +45,16 @@ fi
 commit=$(git rev-parse --short HEAD)
 
 if [ "${RB_SKIP_CHECKS:-0}" != "1" ]; then
-    progress_step "Contrôles locaux (phpunit, npm test, composer audit)"
-    ./vendor/bin/phpunit
-    npm test --silent
+    # CI verte sur ce commit (#300) : phpunit et npm test ont déjà tourné, on ne les rejoue pas ; au moindre doute, contrôles complets.
+    ci_label=""
+    if [ "${RB_FORCE_LOCAL_CHECKS:-0}" != "1" ] && ci_green_for_commit "$(git rev-parse HEAD)"; then
+        ci_label="Contrôles : CI verte sur ${commit}, tests non rejoués (composer audit)"
+    fi
+    progress_step "${ci_label:-Contrôles locaux (phpunit, npm test, composer audit)}"
+    if [ -z "$ci_label" ]; then
+        ./vendor/bin/phpunit
+        npm test --silent
+    fi
     composer audit
 else
     progress_skip "Contrôles locaux (RB_SKIP_CHECKS=1)"
