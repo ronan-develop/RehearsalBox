@@ -40,23 +40,24 @@ test('on desktop the logo starts at the first third of the header, vertically ce
   assert.equal(start.top, 32 + 176 / 2 - 150 / 2);
 });
 
-test('on a phone the logo sits at the left of the header, its baseline on the bottom row (group name and avatar)', () => {
+test('on a phone the logo sits on the bottom line of the header, centered at about 29 % of its width', () => {
   const header = rect({ top: 32, left: 16, width: 358, height: 132 });
   const size = { width: 150, height: 72 };
-  const rowBottom = 32 + 132 - 16; // bas de la rangée nom du groupe / avatar
+  const rowBottom = 32 + 132 - 16; // bas du contenu de l'en-tête (padding bas de 16 px)
 
   const start = computeStartPosition(header, size, true, rowBottom);
 
   assert.ok(Math.abs(start.top + size.height * LOGO_BASELINE_RATIO - rowBottom) < 0.001, 'la ligne de base du logo = le bas de la rangée');
-  assert.ok(start.left >= 16 && start.left <= 16 + 24, 'à gauche, là où se trouvait l\'icône');
+  assert.ok(Math.abs(start.left + size.width / 2 - (16 + 358 * 0.29)) < 1, 'centre du logo à ~29 % de la largeur de l\'en-tête (le point du propriétaire)');
+  assert.ok(start.left >= 16, 'jamais à gauche du cadre de l\'en-tête');
 });
 
-test('on a phone without a bottom row the logo falls back on the bottom of the header', () => {
+test('on a phone without a measured baseline the logo falls back on the bottom of the header', () => {
   const header = rect({ top: 32, left: 16, width: 358, height: 132 });
 
   const start = computeStartPosition(header, { width: 150, height: 72 }, true, null);
 
-  assert.ok(start.top + 72 <= 32 + 132, 'reste dans le cadre de l\'en-tête');
+  assert.ok(start.top + 72 * LOGO_BASELINE_RATIO <= 32 + 132, 'sa ligne de base reste dans le cadre de l\'en-tête');
 });
 
 test('the logo ends at the left of the top bar, vertically centered at its small size', () => {
