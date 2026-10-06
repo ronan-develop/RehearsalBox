@@ -36,6 +36,8 @@ export RB_SSH_CONFIG=<chemin/ssh_config> RB_DOCROOT_LINK=<dossier-domaine>/publi
 ./bin/deploy.sh          # phpunit + npm test + composer audit, puis envoi, install, sauvegarde, migrations, bascule
 ```
 
+**Progression (#277)** : le script annonce **11 étapes numérotées** avec une barre (`[3/11] ███░░░ 27%  composer install … (+12 s)`, `bin/lib/progress.sh`) ; une étape sautée (`RB_SKIP_CHECKS=1`, `config.local.php` déjà présent) compte quand même et est marquée « ignorée » ; la dernière ligne donne la durée totale. La barre n'affiche que le nom des étapes : jamais une variable d'environnement, un chemin ni un identifiant d'hébergement. **Suivi dans Claude Code** : lancer `./bin/deploy.sh` dans un outil de suivi d'évènements (une ligne `[n/11]` = un évènement, filtre `^\[|^==>|rror|FAILED`) et **relayer chaque étape dans le chat** pour que la progression s'affiche même quand le déploiement tourne en tâche de fond.
+
 Étapes : contrôles locaux → envoi de la release → `composer install --no-dev` avec le PHP CLI **explicite** + vérification `Nothing to install` → génération de `config.local.php` si absent (`RB_REGEN_CONFIG=1` pour forcer) → dump si la base contient des tables → `bin/migrate.php` → rendu à blanc de `GET /login` en CLI → bascule de `current` → purge d'OPcache → contrôle de la release servie. Si une étape échoue, `current` n'est pas modifié. **Jamais** `database/seed.php` en production.
 
 ## Comptes (sans fixtures)
