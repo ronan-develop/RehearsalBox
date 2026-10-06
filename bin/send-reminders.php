@@ -8,6 +8,7 @@ declare(strict_types=1);
 //    plus de 24 h par ce groupe.
 // 2. Relance de MENTION (#178) : à l'adresse du compte d'une personne taguée qui n'a pas lu la conversation 24 h après l'e-mail
 //    de mention (une seule relance par e-mail de mention).
+// 3. Oubli des anciennes versions de messages corrigés (#225) : au-delà de 30 jours, elles sont supprimées.
 // Jamais le contenu d'un message. Seulement dans la plage de jour (heure locale) ; hors plage, ne fait rien et les relances
 // dues partent le matin. Idempotent : peut être relancé sans doublon.
 // Code de sortie : 0 = succès (même s'il n'y a rien à envoyer), 1 = au moins un échec d'envoi (réessayé à la prochaine
@@ -22,6 +23,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use App\Service\ConversationReminderService;
 use App\Service\MentionReminderService;
+use App\Service\MessageVersionPurge;
 
 $config = require __DIR__ . '/../config/config.php';
 $container = (require __DIR__ . '/../config/services.php')($config);
@@ -41,5 +43,7 @@ foreach ([
     printf("%s : %d envoyée(s), %d échec(s), %d ignorée(s).\n", $label, $report->sent(), $report->failed(), $report->skipped());
     $failed += $report->failed();
 }
+
+printf("Anciennes versions de messages : %d supprimée(s).\n", $container->get(MessageVersionPurge::class)->purge());
 
 exit($failed > 0 ? 1 : 0);

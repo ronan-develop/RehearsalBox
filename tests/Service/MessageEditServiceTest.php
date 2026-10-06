@@ -115,7 +115,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
 
         self::assertSame('Bonjour à tous', $edited->body(), 'même normalisation qu\'à l\'envoi');
         self::assertEquals($this->clock->now(), $edited->editedAt());
-        self::assertSame(['Bonjour'], array_column($this->messages->versionsOf($this->messageId), 'body'));
+        self::assertSame(['Bonjour'], array_column((new \App\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($this->messageId), 'body'));
         self::assertSame('Bonjour à tous', $this->body());
     }
 
@@ -177,7 +177,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
             }
         }
         self::assertSame('Bonjour', $this->body());
-        self::assertSame([], $this->messages->versionsOf($this->messageId));
+        self::assertSame([], (new \App\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($this->messageId));
     }
 
     #[Test]
@@ -186,7 +186,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
         $this->editor->edit($this->id('alice'), $this->conversationId, $this->messageId, ' Bonjour ');
 
         self::assertNull($this->messages->messageById($this->conversationId, $this->messageId)->editedAt());
-        self::assertSame([], $this->messages->versionsOf($this->messageId));
+        self::assertSame([], (new \App\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($this->messageId));
     }
 
     #[Test]
