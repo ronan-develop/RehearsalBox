@@ -28,7 +28,7 @@ final class GroupManagerServiceTest extends RepositoryTestCase
 
     private function createUser(MysqlUserRepository $userRepository, string $email): User
     {
-        return $userRepository->save(new User(id: 0, email: $email, passwordHash: password_hash('password', PASSWORD_DEFAULT), displayName: $email, role: UserRole::Musicien, isActive: true, failedLoginAttempts: 0, lockedUntil: null));
+        return $userRepository->save(new User(id: 0, email: $email, passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), displayName: $email, role: UserRole::Musicien, isActive: true, failedLoginAttempts: 0, lockedUntil: null));
     }
 
     #[Test]

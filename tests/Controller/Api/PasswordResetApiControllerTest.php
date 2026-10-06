@@ -52,7 +52,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
 
     private function insertUser(): User
     {
-        return $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('ancien-mdp', PASSWORD_DEFAULT), 'Alice', UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('ancien-mdp', PASSWORD_BCRYPT, ['cost' => 4]), 'Alice', UserRole::Musicien, true, 0, null));
     }
 
     private function post(string $path, array $body): Request

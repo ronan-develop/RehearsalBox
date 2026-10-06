@@ -18,7 +18,7 @@ final class MysqlPasswordResetRepositoryTest extends RepositoryTestCase
         return (new MysqlUserRepository($this->pdo))->save(new User(
             id: 0,
             email: $email,
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Utilisateur',
             role: UserRole::Musicien,
             isActive: true,

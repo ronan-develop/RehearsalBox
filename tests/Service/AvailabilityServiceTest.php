@@ -49,7 +49,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             id: 0,
             email: 'alice@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Alice',
             role: UserRole::Musicien,
             isActive: true,
@@ -68,7 +68,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             id: 0,
             email: 'bob@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Bob',
             role: UserRole::Musicien,
             isActive: true,

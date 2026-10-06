@@ -47,7 +47,7 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
 
     private function user(string $email, UserRole $role = UserRole::Musicien, bool $active = true): User
     {
-        return $this->users->save(new User(0, $email, password_hash('password', PASSWORD_DEFAULT), $email, $role, $active, 0, null));
+        return $this->users->save(new User(0, $email, password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), $email, $role, $active, 0, null));
     }
 
     private function loginAsAdmin(): User

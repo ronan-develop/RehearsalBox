@@ -64,7 +64,7 @@ final class MysqlGroupManagerRepositoryTest extends RepositoryTestCase
         return new User(
             id: 0,
             email: $email,
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Test',
             role: UserRole::Musicien,
             isActive: true,
