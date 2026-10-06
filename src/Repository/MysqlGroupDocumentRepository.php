@@ -31,6 +31,11 @@ final class MysqlGroupDocumentRepository implements GroupDocumentRepositoryInter
         return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    public function lockGroupQuota(int $groupId): void
+    {
+        $this->pdo->prepare('SELECT id FROM `groups` WHERE id = :id FOR UPDATE')->execute(['id' => $groupId]);
+    }
+
     public function countByGroup(int $groupId): int
     {
         $statement = $this->pdo->prepare('SELECT COUNT(*) FROM group_documents WHERE group_id = :group_id');

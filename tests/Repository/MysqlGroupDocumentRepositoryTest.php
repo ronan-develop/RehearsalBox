@@ -12,6 +12,7 @@ use App\Repository\MysqlGroupDocumentRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
+use App\Tests\TestDatabase;
 use PHPUnit\Framework\Attributes\Test;
 
 final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
@@ -117,5 +118,35 @@ final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
         $groupRepository->delete($group->id());
 
         self::assertNull($repository->findById($inserted->id()));
+    }
+
+    #[Test]
+    public function testTheQuotaLockMakesUploadsOfTheSameGroupWaitForEachOther(): void
+    {
+        [$group] = $this->makeGroupAndUser();
+        $other = (new MysqlGroupRepository($this->pdo))->save(new Group(0, 'Autre groupe', null, null, 'autre@example.test'));
+        $second = TestDatabase::connection(); // une AUTRE connexion : un autre envoi simultané
+        $second->exec('SET SESSION innodb_lock_wait_timeout = 1');
+
+        $this->pdo->beginTransaction();
+        try {
+            (new MysqlGroupDocumentRepository($this->pdo))->lockGroupQuota($group->id());
+
+            $second->beginTransaction();
+            try {
+                (new MysqlGroupDocumentRepository($second))->lockGroupQuota($group->id());
+                self::fail('le second envoi du même groupe doit attendre le premier');
+            } catch (\PDOException $e) {
+                self::assertSame(1205, $e->errorInfo[1] ?? null, 'délai d\'attente du verrou : il était bien bloqué');
+            }
+            $second->rollBack();
+
+            // Un autre groupe n'est jamais gêné.
+            $second->beginTransaction();
+            (new MysqlGroupDocumentRepository($second))->lockGroupQuota($other->id());
+            $second->rollBack();
+        } finally {
+            $this->pdo->rollBack();
+        }
     }
 }

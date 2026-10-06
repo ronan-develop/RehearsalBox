@@ -95,6 +95,14 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - **Entrées invalides = 4xx, jamais une erreur PHP** : p. ex. un jour de semaine absent ou invalide est refusé (422), il ne devient plus lundi par défaut.
 - **`database/seed.php`** (script destructif) : refusé hors ligne de commande, hors application locale (`app.base_url` sur `localhost`) et sans `--force-local` (`SeedGuard`) ; il est **exclu de l'archive de déploiement** (`bin/deploy.sh`) et ne part donc jamais en production.
 
+## Documents de groupe : fichiers d'utilisateurs (#222)
+
+- **Téléchargement isolé** : un fichier envoyé par un utilisateur est servi comme **pièce jointe** s'il s'agit d'un PDF (un PDF actif ne s'ouvre jamais dans l'origine du site) et **en ligne pour JPEG et PNG seulement** ; toujours avec `X-Content-Type-Options: nosniff` et une CSP qui interdit tout contenu actif (`default-src 'none'; style-src 'unsafe-inline'; sandbox`), plus `Cache-Control: private, no-store` (défaut du Kernel). Le nom d'origine ne sert jamais à construire un chemin (nom stocké aléatoire) ; en-tête `Content-Disposition` avec repli ASCII et forme RFC 5987.
+- **Envoi en flux** : `FileResponse` envoie le fichier avec `readfile` (jamais chargé en mémoire, `Content-Length` exact). Un fichier **absent du disque** est un **404** (journalisé sans donnée personnelle), jamais un 200 vide.
+- **Quota atomique** : « compter puis ajouter » se fait dans une transaction qui **verrouille le groupe** (`lockGroupQuota`, `SELECT … FOR UPDATE` sur la ligne du groupe) : des envois simultanés d'un même groupe passent l'un après l'autre et le quota ne peut pas être dépassé (testé avec deux connexions réelles) ; un autre groupe n'est jamais gêné.
+- **Pas de fichier orphelin** : si le quota est atteint ou si l'enregistrement échoue, le fichier copié est retiré ; à la suppression d'un document, la ligne part d'abord puis le fichier ; à la suppression d'un **groupe**, ses fichiers sont listés avant (`GroupFilesPurgerInterface::filesOf`) puis retirés après (`remove`, au mieux) — `NoGroupFilesPurger` (Null Object) pour les scripts et tests.
+- **Nom d'origine borné** : sans chemin ni caractère de contrôle, 150 caractères au plus (extension conservée, jamais coupé au milieu d'un caractère), `document` s'il ne reste rien.
+
 ## Demandes de créneau : intégrité (#221)
 
 - **Date épinglée à la réponse** : « Accepter » ou « Refuser » envoie la date que le titulaire a sous les yeux (`occurrenceDate`, portée par `data-occurrence-date` sur les boutons) et l'`UPDATE` atomique ne s'applique que si la demande la porte encore (`respond(..., $expectedOccurrenceDate)`). Si le groupe demandeur l'a changée entre-temps : `RequestChangedException` → **409**, la demande reste en attente et le titulaire la revoit avec sa nouvelle date. `AvailabilityService::respond` et l'API **exigent** cette date (le paramètre est optionnel seulement dans le dépôt, pour les données de test).
