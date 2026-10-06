@@ -122,8 +122,7 @@ final class ChatCssTest extends TestCase
 
         self::assertMatchesRegularExpression('/\.rb-chat-body\s*\{[^}]*display:\s*contents/s', $css, 'le conteneur remplaçable ne change pas la mise en page');
         self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-edit,\s*\.rb-chat-edit:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier');
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message--mine \.rb-chat-edit\s*\{[^}]*position:\s*absolute[^}]*right:\s*calc\(100% \+ 4px\)/s', $css, 'tactile : le crayon est à GAUCHE de ma bulle');
-        self::assertMatchesRegularExpression('/\.rb-chat-message--actions \.rb-chat-edit[^{]*\{[^}]*opacity:\s*1/s', $css, 'révélé au tap sur la bulle');
+        self::assertMatchesRegularExpression('/rb-message-actions\[data-side="left"\]\s*\{[^}]*right:\s*calc\(100% \+ 4px\)/s', $css, 'tactile : le crayon est à GAUCHE de ma bulle');
         self::assertMatchesRegularExpression('/\.rb-chat-editing\[hidden\]\s*\{[^}]*display:\s*none/', $css);
         self::assertMatchesRegularExpression('/\.rb-chat-editing-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
     }
@@ -174,9 +173,8 @@ final class ChatCssTest extends TestCase
         self::assertMatchesRegularExpression('/\.rb-chat-quote\s*\{[^}]*border-left:\s*3px solid var\(--rb-accent\)/s', $css, 'citation dans la bulle');
         self::assertMatchesRegularExpression('/\.rb-chat-quote-text\s*\{[^}]*-webkit-line-clamp:\s*2/s', $css, 'l\'aperçu reste court');
         self::assertMatchesRegularExpression('/\.rb-chat-message:hover \.rb-chat-quote-action,\s*\.rb-chat-quote-action:focus-visible\s*\{[^}]*opacity:\s*1/s', $css, 'survol ou clavier sur ordinateur');
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-quote-action\s*\{[^}]*position:\s*absolute[^}]*left:\s*calc\(100% \+ 4px\)/s', $css, 'tactile : l\'icône est à DROITE de la bulle des autres');
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-quote-action\s*\{[^}]*opacity:\s*0/s', $css, 'tactile : l\'icône n\'est jamais visible en permanence');
-        self::assertMatchesRegularExpression('/\.rb-chat-message--actions \.rb-chat-quote-action[^{]*\{[^}]*opacity:\s*1/s', $css, 'elle apparaît au tap sur la bulle');
+        self::assertMatchesRegularExpression('/rb-message-actions\[data-side="right"\]\s*\{[^}]*left:\s*calc\(100% \+ 4px\)/s', $css, 'tactile : l\'icône est à DROITE de la bulle des autres');
+        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message > \.rb-chat-quote-action,[^{]*\{[^}]*display:\s*none/s', $css, 'tactile : les boutons de ligne (survol) ne sont pas affichés, le composant les remplace');
         self::assertMatchesRegularExpression('/\.rb-chat-quoting\[hidden\]\s*\{[^}]*display:\s*none/', $css, 'aperçu masqué par défaut');
         self::assertMatchesRegularExpression('/\.rb-chat-quoting-cancel\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
         self::assertMatchesRegularExpression('/@keyframes rb-chat-flash/', $css, 'le message cité clignote');
@@ -184,26 +182,19 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
-    public function testTouchActionsAreRevealedByATapOnTheBubbleWithoutAnySwipe(): void
+    public function testTouchActionsAreAComponentInsertedAtTapNotAHiddenButtonRevealedByAClass(): void
     {
         $css = $this->css();
 
         self::assertStringNotContainsString('--swipe-x: var', substr($css, (int) strpos($css, '.rb-chat-message[data-message-id]')), 'plus de bulle qui suit le doigt');
         self::assertStringNotContainsString('rb-chat-message--swiping', $css);
         self::assertStringNotContainsString('rb-chat-message--dragging', $css);
-        // iOS (Safari, Chrome) n'envoie pas toujours « click » pour un toucher sur une zone non interactive : cursor: pointer.
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-bubble\s*\{[^}]*cursor:\s*pointer/s', $css);
+        self::assertStringNotContainsString('rb-chat-message--actions', $css, 'plus de classe qui révèle un bouton caché (#257)');
+        self::assertStringNotContainsString('pointer-events: none', substr($css, (int) strpos($css, 'rb-message-actions')), 'rien de caché à toucher : le composant n\'existe que quand il est ouvert');
+        self::assertMatchesRegularExpression('/\.rb-chat-message\s*\{[^}]*position:\s*relative/s', $css, 'le composant se positionne par rapport à la ligne');
+        self::assertMatchesRegularExpression('/rb-message-actions\s*\{[^}]*position:\s*absolute/s', $css);
         self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-bubble\s*\{[^}]*-webkit-tap-highlight-color:\s*transparent/s', $css);
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-quote-action\s*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
-    }
-
-    #[Test]
-    public function testOnTouchMyOwnQuoteActionYieldsToTheEditPencilAndOtherwiseSitsOnTheLeft(): void
-    {
-        $css = $this->css();
-
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message--mine \.rb-chat-quote-action\s*\{[^}]*right:\s*calc\(100% \+ 4px\)/s', $css);
-        self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message--mine\[data-editable\] \.rb-chat-quote-action\s*\{[^}]*display:\s*none/s', $css, 'une seule action à gauche de ma bulle modifiable');
+        self::assertMatchesRegularExpression('/\.rb-chat-message > rb-message-actions > \.rb-chat-quote-action[^{]*\{[^}]*min-height:\s*44px/s', $css, 'zone tactile suffisante');
     }
 
     /** CSS sans les at-rules (@media, @keyframes) de premier niveau : il ne reste que les règles qui s'appliquent PARTOUT. */

@@ -45,6 +45,8 @@ $hasPane = $thread !== null || $draft !== null;
             </div>
         </section>
     </rb-chat>
+    <?php /* Modèle du composant d'actions inséré au tap sur écran tactile (tap-actions.js, #257) : les deux boutons, le script garde ceux qui conviennent. */ ?>
+    <template data-message-actions><rb-message-actions><?php $withEdit = true; require __DIR__ . '/_message-action-buttons.php'; ?></rb-message-actions></template>
     <rb-confirm-modal></rb-confirm-modal>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
