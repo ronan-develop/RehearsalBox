@@ -61,4 +61,12 @@ final class NativeControlsCssTest extends TestCase
         self::assertMatchesRegularExpression('/max-width:\s*100%/', $body);
         self::assertMatchesRegularExpression('/min-height:/', $body, 'un champ vide s\'écrase sinon sur iOS');
     }
+
+    #[Test]
+    public function testAnEmptyRequiredDateFieldShowsADiscreetFormatHintOnIosOnly(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/@supports\s*\(-webkit-touch-callout:\s*none\)\s*\{[^@]*\.rb-input\[type="date"\]:required:invalid::before\s*\{[^}]*content:\s*"jj\/mm\/aaaa"[^}]*color:\s*var\(--rb-text-3\)/s', $css, 'repère gris, iOS seulement (les navigateurs de bureau ont déjà le leur)');
+    }
 }
