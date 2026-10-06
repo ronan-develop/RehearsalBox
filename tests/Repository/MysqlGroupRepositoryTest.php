@@ -301,4 +301,26 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
             lockedUntil: null,
         );
     }
+
+    #[Test]
+    public function testDeletingAGroupAlsoRemovesTheSlotRequestsItMadeAndKeepsTheOthersSlots(): void
+    {
+        $groups = new MysqlGroupRepository($this->pdo);
+        $users = new MysqlUserRepository($this->pdo);
+        $holder = $groups->save(new Group(0, 'Titulaire', null, null, 'titulaire@example.test'));
+        $requester = $groups->save(new Group(0, 'Demandeur', null, null, 'demandeur@example.test'));
+        $user = $users->save($this->newUser('alice@rehearsalbox.test'));
+        $groups->addMember($requester->id(), $user->id());
+        $slot = (new \App\Repository\MysqlRecurringSlotRepository($this->pdo))->save(new \App\Entity\RecurringSlot(0, $holder->id(), \App\Entity\Enum\Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $requests = new \App\Repository\MysqlSlotExceptionRepository($this->pdo);
+        $request = $requests->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $user->id(), 'Concert');
+
+        // Avant la migration 027 : « Cannot delete or update a parent row » (une erreur 500 pour l'administrateur).
+        $groups->delete($requester->id());
+
+        self::assertNull($groups->findById($requester->id()));
+        self::assertNull($requests->findById($request->id()), 'la demande du groupe supprimé disparaît avec lui');
+        self::assertNotNull($groups->findById($holder->id()), 'le groupe titulaire est intact');
+        self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM recurring_slots')->fetchColumn(), 'son créneau aussi');
+    }
 }
