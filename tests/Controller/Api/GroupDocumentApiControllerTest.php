@@ -19,6 +19,8 @@ use App\Service\AuthService;
 use App\Service\GroupDocumentService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use App\Tests\Support\KernelTranslation;
+use App\Security\Exception\AccessDeniedException;
 use PHPUnit\Framework\Attributes\Test;
 
 final class GroupDocumentApiControllerTest extends RepositoryTestCase
@@ -50,7 +52,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
 
-        $controller = new GroupDocumentApiController($documentService, $authGuard);
+        $controller = new KernelTranslation(new GroupDocumentApiController($documentService, $authGuard));
 
         return [$controller, $groupRepository, $userRepository, $authService];
     }
@@ -98,7 +100,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testStoreByNonGestionnaireReturns403(): void
+    public function testStoreByNonGestionnaireIsRefused(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -110,9 +112,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $files = ['document' => ['name' => 'fiche.pdf', 'type' => 'application/pdf', 'tmp_name' => $tmpPath, 'error' => UPLOAD_ERR_OK, 'size' => 20]];
         $request = new Request('POST', "/api/groups/{$group->id()}/documents", [], [], [], $files);
 
-        $response = $controller->store($request, (string) $group->id());
-
-        self::assertSame(403, $response->statusCode());
+        $this->expectException(AccessDeniedException::class);
+        $controller->store($request, (string) $group->id());
     }
 
     #[Test]
@@ -173,16 +174,15 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testIndexByNonMemberReturns403(): void
+    public function testIndexByNonMemberIsRefused(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $this->createUser($userRepository, 'fanny@rehearsalbox.test');
         $authService->attempt('fanny@rehearsalbox.test', 'password');
 
-        $response = $controller->index(new Request('GET', "/api/groups/{$group->id()}/documents", [], [], []), (string) $group->id());
-
-        self::assertSame(403, $response->statusCode());
+        $this->expectException(AccessDeniedException::class);
+        $controller->index(new Request('GET', "/api/groups/{$group->id()}/documents", [], [], []), (string) $group->id());
     }
 
     #[Test]
@@ -233,7 +233,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testDownloadByNonMemberReturns403(): void
+    public function testDownloadByNonMemberIsRefused(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -248,9 +248,8 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $stranger = $this->createUser($userRepository, 'ivan@rehearsalbox.test');
         $authService->attempt('ivan@rehearsalbox.test', 'password');
 
-        $response = $controller->download(new Request('GET', "/api/documents/{$documentId}", [], [], []), (string) $documentId);
-
-        self::assertSame(403, $response->statusCode());
+        $this->expectException(AccessDeniedException::class);
+        $controller->download(new Request('GET', "/api/documents/{$documentId}", [], [], []), (string) $documentId);
     }
 
     #[Test]
@@ -274,7 +273,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testDestroyByNonGestionnaireReturns403(): void
+    public function testDestroyByNonGestionnaireIsRefused(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
@@ -290,8 +289,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $groupRepository->addMember($group->id(), $member->id());
         $authService->attempt('liam@rehearsalbox.test', 'password');
 
-        $response = $controller->destroy(new Request('DELETE', "/api/documents/{$documentId}", [], [], []), (string) $documentId);
-
-        self::assertSame(403, $response->statusCode());
+        $this->expectException(AccessDeniedException::class);
+        $controller->destroy(new Request('DELETE', "/api/documents/{$documentId}", [], [], []), (string) $documentId);
     }
 }

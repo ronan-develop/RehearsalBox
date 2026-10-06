@@ -16,6 +16,7 @@ use App\Security\PasswordPolicy;
 use App\Repository\MysqlThrottleEventRepository;
 use App\Service\IpThrottle;
 use App\Service\PasswordResetService;
+use App\Tests\Support\KernelTranslation;
 use App\Tests\Support\RecordingMailer;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,9 +35,10 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
 
     private const THROTTLE_LIMIT = 3;
 
-    private function controller(): PasswordResetApiController
+    /** Le contrôleur tel que le sert le Kernel : une exception métier devient sa réponse (KernelTranslation). */
+    private function controller(): KernelTranslation
     {
-        return new PasswordResetApiController(new PasswordResetService(
+        return new KernelTranslation(new PasswordResetApiController(new PasswordResetService(
             $this->users,
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
@@ -45,7 +47,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
             new TransactionRunner($this->pdo),
             'no-reply@rehearsalbox.example',
             'https://rehearsalbox.example',
-        ), new IpThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour'));
+        ), new IpThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour')));
     }
 
     private function insertUser(): User
@@ -141,7 +143,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
         self::assertSame(422, $response->statusCode());
     }
 
-    private function forgotFrom(PasswordResetApiController $controller, string $ip, string $email): \App\Http\JsonResponse
+    private function forgotFrom(KernelTranslation $controller, string $ip, string $email): \App\Http\JsonResponse
     {
         return $controller->forgotPassword(new Request('POST', '/api/auth/forgot-password', [], ['email' => $email], [], [], $ip));
     }

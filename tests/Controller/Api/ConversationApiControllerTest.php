@@ -28,6 +28,7 @@ use App\Service\AuthService;
 use App\Service\ConversationService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use App\Tests\Support\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
 use App\View\PhpTemplateRenderer;
 use Symfony\Component\Clock\MockClock;
@@ -126,7 +127,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
             in_array($action, ['index', 'listFragment', 'updates', 'typing'], true) => $this->feedController,
             default => $this->controller,
         };
-        $response = $controller->{$action}($request, ...$args);
+        $response = (new KernelTranslation($controller))->{$action}($request, ...$args);
 
         return [$response->statusCode(), json_decode($response->body(), true) ?? []];
     }

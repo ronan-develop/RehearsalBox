@@ -137,6 +137,55 @@ final class SlotApiControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testStoreWithAnInvalidWeekdayReturns422InsteadOfCrashing(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        foreach ([7, 8, -1, 'abc', '', '1.5', null, [1]] as $weekday) {
+            $response = $controller->store(new Request('POST', '/api/admin/slots', [], [
+                'groupId' => $group->id(), 'weekday' => $weekday, 'startTime' => '18:00:00', 'endTime' => '20:00:00',
+            ], []));
+
+            self::assertSame(422, $response->statusCode(), 'jour : ' . json_encode($weekday));
+            self::assertSame('Jour de la semaine invalide.', json_decode($response->body(), true)['error']);
+        }
+    }
+
+    #[Test]
+    public function testAnAbsentWeekdayIsRefusedAndNeverSilentlyBecomesMonday(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $response = $controller->store(new Request('POST', '/api/admin/slots', [], ['groupId' => $group->id(), 'startTime' => '18:00:00', 'endTime' => '20:00:00'], []));
+
+        self::assertSame(422, $response->statusCode());
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM recurring_slots')->fetchColumn(), 'aucun créneau créé le lundi par défaut');
+    }
+
+    #[Test]
+    public function testEveryRealWeekdayIsAcceptedFromAnIntegerOrADigitString(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        foreach ([0, '6'] as $i => $weekday) {
+            $response = $controller->store(new Request('POST', '/api/admin/slots', [], [
+                'groupId' => $group->id(), 'weekday' => $weekday, 'startTime' => '18:00:00', 'endTime' => '20:00:00',
+            ], []));
+
+            self::assertSame(201, $response->statusCode(), 'jour : ' . json_encode($weekday));
+        }
+    }
+
+    #[Test]
 
     public function testUpdateByAdminReturns200(): void
     {

@@ -21,6 +21,7 @@ use App\Service\AuthService;
 use App\Service\AvailabilityService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use App\Tests\Support\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
 
 final class AvailabilityApiControllerTest extends RepositoryTestCase
@@ -37,7 +38,7 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         $authGuard = new AuthGuard($authService);
         $availabilityService = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
 
-        $controller = new AvailabilityApiController($availabilityService, $authGuard);
+        $controller = new KernelTranslation(new AvailabilityApiController($availabilityService, $authGuard));
 
         return [$controller, $groupRepository, $slotRepository, $exceptionRepository, $userRepository, $authService];
     }

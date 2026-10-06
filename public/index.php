@@ -20,6 +20,13 @@ use App\Security\CsrfTokenManager;
 use App\Security\SecurityHeaders;
 
 $config = require __DIR__ . '/../config/config.php';
+
+// Hors développement, aucune trace ni message d'erreur PHP n'est affiché au visiteur (#220) : tout va au journal du serveur.
+// (`debug` vaut false dans la configuration générée pour la production.)
+if (!($config['debug'] ?? false)) {
+    ini_set('display_errors', '0');
+}
+
 $buildContainer = require __DIR__ . '/../config/services.php';
 $routeGroups = require __DIR__ . '/../config/routes.php';
 

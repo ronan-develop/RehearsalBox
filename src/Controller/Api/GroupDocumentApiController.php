@@ -9,9 +9,6 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Http\Response;
 use App\Security\AuthGuard;
-use App\Security\Exception\AccessDeniedException;
-use App\Service\Exception\InvalidUploadException;
-use App\Service\Exception\StorageQuotaExceededException;
 use App\Service\GroupDocumentService;
 
 final class GroupDocumentApiController
@@ -31,21 +28,13 @@ final class GroupDocumentApiController
             return new JsonResponse(['error' => 'Fichier manquant ou invalide.'], 422);
         }
 
-        try {
-            $document = $this->documentService->upload(
-                (int) $groupId,
-                $user->id(),
-                $file['tmp_name'],
-                $file['name'],
-                $file['size'],
-            );
-        } catch (AccessDeniedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 403);
-        } catch (InvalidUploadException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 422);
-        } catch (StorageQuotaExceededException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 409);
-        }
+        $document = $this->documentService->upload(
+            (int) $groupId,
+            $user->id(),
+            $file['tmp_name'],
+            $file['name'],
+            $file['size'],
+        );
 
         return new JsonResponse(self::toArray($document), 201);
     }
@@ -54,11 +43,7 @@ final class GroupDocumentApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        try {
-            $documents = $this->documentService->listForGroup((int) $groupId, $user->id());
-        } catch (AccessDeniedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 403);
-        }
+        $documents = $this->documentService->listForGroup((int) $groupId, $user->id());
 
         return new JsonResponse(['documents' => array_map(self::toArray(...), $documents)]);
     }
@@ -69,8 +54,6 @@ final class GroupDocumentApiController
 
         try {
             $document = $this->documentService->resolveDownload((int) $id, $user->id());
-        } catch (AccessDeniedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 403);
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 404);
         }
@@ -95,8 +78,6 @@ final class GroupDocumentApiController
 
         try {
             $this->documentService->delete((int) $id, $user->id());
-        } catch (AccessDeniedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 403);
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 404);
         }

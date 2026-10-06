@@ -21,6 +21,7 @@ use App\Service\UserAdminService;
 use App\Service\UserProvisioningService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
+use App\Tests\Support\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
 
 final class UserAdminApiControllerTest extends RepositoryTestCase
@@ -28,7 +29,8 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
     private MysqlUserRepository $users;
     private MysqlGroupRepository $groups;
     private AuthService $auth;
-    private UserAdminApiController $controller;
+    /** Le contrôleur tel que le sert le Kernel : une exception métier devient sa réponse (KernelTranslation). */
+    private KernelTranslation $controller;
 
     protected function setUp(): void
     {
@@ -37,10 +39,10 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $hasher = new FastPasswordHasher();
         $this->auth = new AuthService($this->users, $hasher, new InMemorySession(), $this->groups);
-        $this->controller = new UserAdminApiController(
+        $this->controller = new KernelTranslation(new UserAdminApiController(
             new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy())),
             new AuthGuard($this->auth),
-        );
+        ));
     }
 
     private function user(string $email, UserRole $role = UserRole::Musicien, bool $active = true): User

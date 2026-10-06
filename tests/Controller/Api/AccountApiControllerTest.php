@@ -26,6 +26,7 @@ use App\Service\PasswordResetService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use App\Tests\Support\RecordingMailer;
+use App\Tests\Support\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
 
 final class AccountApiControllerTest extends RepositoryTestCase
@@ -34,7 +35,8 @@ final class AccountApiControllerTest extends RepositoryTestCase
     private RecordingMailer $mailer;
     private AuthService $auth;
     private AccountSecurityService $security;
-    private AccountApiController $controller;
+    /** Le contrôleur tel que le sert le Kernel : une exception métier devient sa réponse (KernelTranslation). */
+    private KernelTranslation $controller;
 
     protected function setUp(): void
     {
@@ -48,14 +50,14 @@ final class AccountApiControllerTest extends RepositoryTestCase
         $policy = new PasswordPolicy();
         $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
         $this->security = new AccountSecurityService($this->users, $resets, $this->mailer, $transactions, $resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
-        $this->controller = new AccountApiController(
+        $this->controller = new KernelTranslation(new AccountApiController(
             new AuthGuard($this->auth),
             $this->auth,
             new PasswordChangeService($this->users, $hasher, $policy, $this->security),
             $this->security,
             new ProfileService($this->users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo)),
             new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $hasher, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
-        );
+        ));
     }
 
     private function insertUser(string $email = 'alice@rehearsalbox.test'): User

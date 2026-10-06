@@ -11,7 +11,6 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Security\AuthGuard;
-use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\GroupServiceInterface;
 
 final class GroupSpaceApiController
@@ -62,8 +61,6 @@ final class GroupSpaceApiController
 
         try {
             $group = $this->groupService->updateProfile($groupId, $lineup, $upcomingShows, $user->id());
-        } catch (AccessDeniedException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 403);
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 404);
         }

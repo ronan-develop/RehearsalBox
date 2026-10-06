@@ -44,7 +44,11 @@ final class SlotApiController
         $this->authGuard->requireRole(UserRole::Admin);
 
         $groupId = (int) $request->body('groupId', 0);
-        $weekday = Weekday::from((int) $request->body('weekday', 0));
+        // Jour absent ou invalide : refusé (jamais converti en lundi par défaut, jamais une erreur PHP brute).
+        $weekday = $this->weekdayOrNull($request->body('weekday'));
+        if ($weekday === null) {
+            return new JsonResponse(['error' => 'Jour de la semaine invalide.'], 422);
+        }
         $startTime = (string) $request->body('startTime', '');
         $endTime = (string) $request->body('endTime', '');
 
@@ -55,6 +59,16 @@ final class SlotApiController
         }
 
         return new JsonResponse(self::toArray($slot), 201);
+    }
+
+    /** Entier ou chaîne de chiffres de 0 (lundi) à 6 (dimanche) ; tout le reste (absent, texte, décimal, tableau) donne null. */
+    private function weekdayOrNull(mixed $value): ?Weekday
+    {
+        if (is_string($value) && preg_match('/^[0-9]$/', $value) === 1) {
+            $value = (int) $value;
+        }
+
+        return is_int($value) ? Weekday::tryFrom($value) : null;
     }
 
     public function update(Request $request, string $id): JsonResponse

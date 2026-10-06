@@ -8,10 +8,7 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Presenter\EditedMessageFragments;
 use App\Security\AuthGuard;
-use App\Security\Exception\AccessDeniedException;
 use App\Service\ConversationReader;
-use App\Service\Exception\ConversationRateLimitException;
-use App\Service\Exception\ConversationValidationException;
 use App\Service\MessageEditService;
 use App\Support\StrictId;
 
@@ -45,13 +42,7 @@ final class MessageApiController
             return new JsonResponse(['error' => 'Mentions invalides.', 'fields' => ['mentions' => 'La liste des personnes mentionnées est invalide.']], 422);
         }
 
-        try {
-            $message = $this->editor->edit($user->id(), $conversationId, $messageId, $text, $mentions ?? []);
-        } catch (ConversationValidationException $e) {
-            return new JsonResponse(['error' => $e->getMessage(), 'fields' => $e->fields()], 422);
-        } catch (ConversationRateLimitException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 429);
-        }
+        $message = $this->editor->edit($user->id(), $conversationId, $messageId, $text, $mentions ?? []);
 
         // Le corps corrigé, dessiné par le même gabarit que la page ; relu avec ses mentions pour le surlignage.
         $since = ($message->editedAt() ?? $message->createdAt())->modify('-1 second');

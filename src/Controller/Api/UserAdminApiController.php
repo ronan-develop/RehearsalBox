@@ -12,9 +12,6 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
 use App\Service\Contract\UserAdminServiceInterface;
-use App\Service\Exception\UserAdminRuleException;
-use App\Service\Exception\UserNotFoundException;
-use App\Service\Exception\UserValidationException;
 
 /**
  * Gestion des comptes (#138). Admin uniquement. L'admin ne choisit ni ne voit jamais
@@ -67,11 +64,7 @@ final class UserAdminApiController
 
         $groupIdValue = ($groupId === null || $groupId === '') ? null : (int) $groupId;
 
-        try {
-            $user = $this->userAdminService->create(trim((string) $email), (string) $displayName, $role, $groupIdValue);
-        } catch (UserValidationException $e) {
-            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
-        }
+        $user = $this->userAdminService->create(trim((string) $email), (string) $displayName, $role, $groupIdValue);
 
         return new JsonResponse(self::userToArray($user), 201);
     }
@@ -90,13 +83,7 @@ final class UserAdminApiController
             return new JsonResponse(['error' => 'Utilisateur introuvable.'], 404);
         }
 
-        try {
-            $user = $this->userAdminService->setActive($userId, $active, $actor->id());
-        } catch (UserNotFoundException) {
-            return new JsonResponse(['error' => 'Utilisateur introuvable.'], 404);
-        } catch (UserAdminRuleException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 422);
-        }
+        $user = $this->userAdminService->setActive($userId, $active, $actor->id());
 
         return new JsonResponse(self::userToArray($user));
     }
@@ -110,11 +97,7 @@ final class UserAdminApiController
             return new JsonResponse(['error' => 'Utilisateur introuvable.'], 404);
         }
 
-        try {
-            $user = $this->userAdminService->unlock($userId);
-        } catch (UserNotFoundException) {
-            return new JsonResponse(['error' => 'Utilisateur introuvable.'], 404);
-        }
+        $user = $this->userAdminService->unlock($userId);
 
         return new JsonResponse(self::userToArray($user));
     }

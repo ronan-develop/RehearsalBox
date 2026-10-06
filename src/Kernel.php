@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Container\ContainerInterface;
+use App\Http\ExceptionTranslator;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Http\Response;
@@ -26,6 +27,7 @@ final class Kernel
         private readonly ContainerInterface $container,
         private readonly CsrfTokenManager $csrfTokenManager,
         private readonly SecurityHeaders $securityHeaders,
+        private readonly ExceptionTranslator $translator = new ExceptionTranslator(),
     ) {
     }
 
@@ -52,10 +54,9 @@ final class Kernel
         }
 
         [$serviceId, $method] = $matched->handler;
-        $controller = $this->container->get($serviceId);
 
         try {
-            return $controller->$method($request, ...array_values($matched->params));
+            return $this->container->get($serviceId)->$method($request, ...array_values($matched->params));
         } catch (UnauthenticatedException $e) {
             if (str_starts_with($request->path(), '/api/')) {
                 return $this->errorResponse($request, 401, $e->getMessage());
@@ -67,6 +68,18 @@ final class Kernel
             return new Response(statusCode: 302, headers: ['Location' => $next === null ? '/login' : '/login?next=' . rawurlencode($next)]);
         } catch (AccessDeniedException $e) {
             return $this->errorResponse($request, 403, $e->getMessage());
+        } catch (\Throwable $e) {
+            // Une erreur métier connue (validation, quota, limite…) devient sa réponse, via la table unique (ExceptionTranslator).
+            $translated = $this->translator->translate($e);
+            if ($translated !== null) {
+                return $translated;
+            }
+
+            // Filet de sécurité (#220) : une erreur inattendue (base, bogue, service introuvable…) ne montre JAMAIS sa trace ni son
+            // message au visiteur. Journal : classe, point d'origine (fichier:ligne) et route, sans donnée personnelle ni jeton.
+            error_log(sprintf('Erreur non gérée : %s (%s:%d) sur %s %s', $e::class, basename($e->getFile()), $e->getLine(), $request->method(), $request->path()));
+
+            return $this->errorResponse($request, 500, 'Erreur interne.');
         }
     }
 

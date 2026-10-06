@@ -6,13 +6,25 @@ declare(strict_types=1);
 // passe "password" — le hash est généré à l'exécution (pas de hash figé en
 // dur dans le code source, cf. plan §10.8 / bonne pratique anti-secret).
 //
-// Usage : php database/seed.php
+// ATTENTION : ce script VIDE utilisateurs, groupes et créneaux. Il refuse de tourner hors ligne de commande, hors
+// application locale (app.base_url) et sans accord explicite ; il n'est jamais livré en production (bin/deploy.sh).
+//
+// Usage : php database/seed.php --force-local
 
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Database\ConnectionFactory;
+use App\Deploy\SeedGuard;
 
 $config = require __DIR__ . '/../config/config.php';
+
+try {
+    SeedGuard::assertSafe(PHP_SAPI, (string) ($config['app']['base_url'] ?? ''), $argv ?? []);
+} catch (\RuntimeException $e) {
+    fwrite(STDERR, $e->getMessage() . "\n");
+    exit(1);
+}
+
 $pdo = (new ConnectionFactory($config['db']))->create();
 
 $passwordHash = password_hash('password', PASSWORD_DEFAULT);

@@ -11,8 +11,6 @@ use App\Service\AccountSecurityService;
 use App\Service\Contract\AuthServiceInterface;
 use App\Service\EmailChangeService;
 use App\Service\Exception\InvalidEmailChangeException;
-use App\Service\Exception\InvalidResetTokenException;
-use App\Service\Exception\UserValidationException;
 use App\Service\PasswordChangeService;
 use App\Service\ProfileService;
 
@@ -41,11 +39,7 @@ final class AccountApiController
             return new JsonResponse(['error' => 'Validation échouée', 'fields' => ['displayName' => 'Le nom affiché est requis.']], 422);
         }
 
-        try {
-            $updated = $this->profile->updateDisplayName($user->id(), $displayName);
-        } catch (UserValidationException $e) {
-            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
-        }
+        $updated = $this->profile->updateDisplayName($user->id(), $displayName);
 
         return new JsonResponse(['displayName' => $updated->displayName()]);
     }
@@ -90,11 +84,7 @@ final class AccountApiController
             return new JsonResponse(['error' => 'Validation échouée', 'fields' => ['currentPassword' => 'Mot de passe actuel incorrect.']], 422);
         }
 
-        try {
-            $this->emailChange->requestChange($user->id(), $currentPassword, $email);
-        } catch (UserValidationException $e) {
-            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
-        }
+        $this->emailChange->requestChange($user->id(), $currentPassword, $email);
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -107,11 +97,7 @@ final class AccountApiController
             return new JsonResponse(['error' => (new InvalidEmailChangeException())->getMessage()], 422);
         }
 
-        try {
-            $this->emailChange->confirm($token);
-        } catch (InvalidEmailChangeException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 422);
-        }
+        $this->emailChange->confirm($token);
 
         return new JsonResponse(['status' => 'ok']);
     }
@@ -121,16 +107,12 @@ final class AccountApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        try {
-            $updated = $this->passwordChange->changePassword(
-                $user->id(),
-                (string) $request->body('currentPassword', ''),
-                (string) $request->body('password', ''),
-                (string) $request->body('passwordConfirmation', ''),
-            );
-        } catch (UserValidationException $e) {
-            return new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422);
-        }
+        $updated = $this->passwordChange->changePassword(
+            $user->id(),
+            (string) $request->body('currentPassword', ''),
+            (string) $request->body('password', ''),
+            (string) $request->body('passwordConfirmation', ''),
+        );
 
         // Les autres appareils sont déconnectés ; celui-ci reste connecté (nouvel identifiant de session).
         $this->authService->refreshSession($updated);
@@ -141,11 +123,7 @@ final class AccountApiController
     /** Bouton « Ce n'est pas moi » du mail d'alerte : public (le jeton fait foi), appelé après confirmation. */
     public function secureAccount(Request $request): JsonResponse
     {
-        try {
-            $this->accountSecurity->secureAccount((string) $request->body('token', ''));
-        } catch (InvalidResetTokenException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 422);
-        }
+        $this->accountSecurity->secureAccount((string) $request->body('token', ''));
 
         return new JsonResponse(['status' => 'ok']);
     }
