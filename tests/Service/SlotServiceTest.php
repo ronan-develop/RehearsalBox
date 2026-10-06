@@ -290,7 +290,7 @@ final class SlotServiceTest extends RepositoryTestCase
         $requestingUser = $userRepository->save(new User(
             id: 0,
             email: uniqid('user-', true) . '@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Demandeur',
             role: UserRole::Musicien,
             isActive: true,

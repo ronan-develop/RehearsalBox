@@ -59,7 +59,7 @@ final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
 
     private function user(MysqlUserRepository $users, string $name, UserRole $role): User
     {
-        return $users->save(new User(0, "{$name}@rehearsalbox.test", password_hash('password', PASSWORD_DEFAULT), ucfirst($name), $role, true, 0, null));
+        return $users->save(new User(0, "{$name}@rehearsalbox.test", password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), ucfirst($name), $role, true, 0, null));
     }
 
     private function login(string $name): void

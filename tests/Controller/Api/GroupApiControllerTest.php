@@ -43,7 +43,7 @@ final class GroupApiControllerTest extends RepositoryTestCase
         return $userRepository->save(new User(
             id: 0,
             email: $email,
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: $email,
             role: $role,
             isActive: true,

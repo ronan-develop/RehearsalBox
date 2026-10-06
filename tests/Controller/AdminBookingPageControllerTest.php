@@ -45,8 +45,8 @@ final class AdminBookingPageControllerTest extends RepositoryTestCase
         $users = new MysqlUserRepository($this->pdo);
         $session = new InMemorySession();
         $this->auth = new AuthService($users, new FastPasswordHasher(), $session, $groups);
-        $alice = $users->save(new User(0, 'alice@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Alice', UserRole::Musicien, true, 0, null));
-        $users->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
+        $alice = $users->save(new User(0, 'alice@rehearsalbox.test', password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), 'Alice', UserRole::Musicien, true, 0, null));
+        $users->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), 'Admin', UserRole::Admin, true, 0, null));
         $this->aliceId = $alice->id();
         $this->groupId = $groups->save(new Group(0, 'Groupe <Alpha>', null, null, 'alpha@example.test'))->id();
         $groups->addMember($this->groupId, $alice->id());

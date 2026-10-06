@@ -41,7 +41,7 @@ final class AccountSecurityServiceTest extends RepositoryTestCase
 
     private function insertUser(): User
     {
-        return $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('mdp-actuel', PASSWORD_DEFAULT), 'Alice', UserRole::Musicien, true, 0, null));
+        return $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('mdp-actuel', PASSWORD_BCRYPT, ['cost' => 4]), 'Alice', UserRole::Musicien, true, 0, null));
     }
 
     private function alertToken(User $user): string
@@ -134,7 +134,7 @@ final class AccountSecurityServiceTest extends RepositoryTestCase
     #[Test]
     public function testTheAlertMailIsMultipartWithTheBrandedHtmlAndThePlainTextVersion(): void
     {
-        $user = $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('x', PASSWORD_DEFAULT), 'Alice', UserRole::Musicien, true, 0, null));
+        $user = $this->users->save(new User(0, 'alice@rehearsalbox.test', password_hash('x', PASSWORD_BCRYPT, ['cost' => 4]), 'Alice', UserRole::Musicien, true, 0, null));
 
         $this->service->sendPasswordChangedAlert($user, new \DateTimeImmutable('2026-10-04 12:00:00'));
 

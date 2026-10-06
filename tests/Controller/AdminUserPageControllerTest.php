@@ -51,7 +51,7 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
 
     private function user(string $email, string $name, UserRole $role = UserRole::Musicien, bool $active = true): User
     {
-        return $this->users->save(new User(0, $email, password_hash('password', PASSWORD_DEFAULT), $name, $role, $active, 0, null));
+        return $this->users->save(new User(0, $email, password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), $name, $role, $active, 0, null));
     }
 
     private function loginAsAdmin(): User

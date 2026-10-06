@@ -78,7 +78,7 @@ final class IdorMatrixTest extends TestCase
         $makeUser = static fn (string $name, UserRole $role): User => $users->save(new User(
             id: 0,
             email: "{$name}@rehearsalbox.test",
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: $name,
             role: $role,
             isActive: true,

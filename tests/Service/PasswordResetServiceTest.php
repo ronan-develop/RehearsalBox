@@ -42,7 +42,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         return $this->users->save(new User(
             id: 0,
             email: $email,
-            passwordHash: password_hash('ancien-mdp', PASSWORD_DEFAULT),
+            passwordHash: password_hash('ancien-mdp', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Alice',
             role: UserRole::Musicien,
             isActive: $active,

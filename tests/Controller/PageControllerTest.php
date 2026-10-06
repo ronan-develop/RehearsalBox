@@ -68,7 +68,7 @@ final class PageControllerTest extends RepositoryTestCase
         $user = $userRepository->save(new User(
             id: 0,
             email: 'musicien@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Musicien Test',
             role: UserRole::Musicien,
             isActive: true,
@@ -263,7 +263,7 @@ final class PageControllerTest extends RepositoryTestCase
         $requester = $userRepository->save(new User(
             id: 0,
             email: 'requester@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Requester',
             role: UserRole::Musicien,
             isActive: true,
@@ -311,7 +311,7 @@ final class PageControllerTest extends RepositoryTestCase
         $userRepository->save(new User(
             id: 0,
             email: 'admin@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Admin Test',
             role: UserRole::Admin,
             isActive: true,
@@ -337,7 +337,7 @@ final class PageControllerTest extends RepositoryTestCase
         $admin = $userRepository->save(new User(
             id: 0,
             email: 'admin@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Admin Test',
             role: UserRole::Admin,
             isActive: true,
@@ -354,7 +354,7 @@ final class PageControllerTest extends RepositoryTestCase
         $requester = $userRepository->save(new User(
             id: 0,
             email: 'bob@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Bob',
             role: UserRole::Musicien,
             isActive: true,
@@ -383,7 +383,7 @@ final class PageControllerTest extends RepositoryTestCase
         $admin = $userRepository->save(new User(
             id: 0,
             email: 'admin@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Admin Test',
             role: UserRole::Admin,
             isActive: true,
@@ -400,7 +400,7 @@ final class PageControllerTest extends RepositoryTestCase
         $requester = $userRepository->save(new User(
             id: 0,
             email: 'bob@rehearsalbox.test',
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: 'Bob',
             role: UserRole::Musicien,
             isActive: true,
@@ -630,7 +630,7 @@ final class PageControllerTest extends RepositoryTestCase
         return $userRepository->save(new User(
             id: 0,
             email: $email,
-            passwordHash: password_hash('password', PASSWORD_DEFAULT),
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
             displayName: $email,
             role: UserRole::Musicien,
             isActive: true,
@@ -675,13 +675,13 @@ final class PageControllerTest extends RepositoryTestCase
     public function testAHostileGroupColourStoredInTheDatabaseNeverReachesTheStyleAttribute(): void
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
-        $admin = $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Admin', UserRole::Admin, true, 0, null));
+        $admin = $userRepository->save(new User(0, 'admin@rehearsalbox.test', password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), 'Admin', UserRole::Admin, true, 0, null));
         $authService->attempt('admin@rehearsalbox.test', 'password');
         $holder = $groupRepository->save(new Group(0, 'Groupe Admin', null, null, 'contact@example.test'));
         $groupRepository->addMember($holder->id(), $admin->id());
         $slot = $slotService->create($holder->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
         $requester = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
-        $bob = $userRepository->save(new User(0, 'bob@rehearsalbox.test', password_hash('password', PASSWORD_DEFAULT), 'Bob', UserRole::Musicien, true, 0, null));
+        $bob = $userRepository->save(new User(0, 'bob@rehearsalbox.test', password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]), 'Bob', UserRole::Musicien, true, 0, null));
         $groupRepository->addMember($requester->id(), $bob->id());
         // La validation à l'écriture (#224) l'interdirait : on l'écrit directement, comme le ferait un ancien enregistrement ou un accès à la base.
         $this->pdo->prepare('UPDATE `groups` SET color_hex = ? WHERE id = ?')->execute([';top:0;', $requester->id()]);
