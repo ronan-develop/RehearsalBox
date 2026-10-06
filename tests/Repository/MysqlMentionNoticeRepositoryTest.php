@@ -179,6 +179,20 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testMutingTheConversationCancelsThePendingReminderAndUnmutingBringsItBack(): void
+    {
+        $this->tagDenis('2026-10-05 10:00:00');
+        $this->notices->claimNotice($this->conversationId, $this->id('denis'), $this->id('alice'), new \DateTimeImmutable('2026-10-05 10:00:00'), new \DateTimeImmutable('2026-10-04 10:00:00'));
+        $mutes = new \App\Repository\MysqlConversationMuteRepository($this->pdo);
+
+        $mutes->setMuted($this->conversationId, $this->id('denis'), true);
+        self::assertSame([], $this->due(), 'sourdine (#210) : aucune relance');
+
+        $mutes->setMuted($this->conversationId, $this->id('denis'), false);
+        self::assertSame([[$this->id('denis'), 'Alice']], $this->due(), 'sourdine levée : la relance reste due');
+    }
+
+    #[Test]
     public function testNoReminderForUnsubscribedPeopleTrashedConversationsOrRemovedGuests(): void
     {
         $this->tagDenis('2026-10-05 10:00:00');

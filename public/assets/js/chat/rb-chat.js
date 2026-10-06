@@ -11,7 +11,7 @@ import './rb-thread-header.js';
 import './rb-message-list.js';
 import './rb-composer.js';
 import {
-  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, searchMembers, editMessage,
+  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, searchMembers, editMessage, setMute,
 } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
 import { EVT } from './events.js';
@@ -42,6 +42,7 @@ export class RbChat extends HTMLElement {
 
     this.addEventListener(EVT.EDIT_REQUEST, (event) => this.composer.startEdit(event.detail));
     this.addEventListener(EVT.QUOTE_REQUEST, (event) => this.composer.startQuote(event.detail));
+    this.addEventListener(EVT.MUTE_REQUEST, (event) => this.#mute(event));
     this.addEventListener(EVT.EDIT, (event) => this.#serial(() => this.#edit(event.detail)));
     this.addEventListener(EVT.RENAME, (event) => this.#serial(() => this.#rename(event.detail.title)));
     this.addEventListener(EVT.SUBMIT, (event) => this.#serial(() => this.#submit(event.detail)));
@@ -104,6 +105,22 @@ export class RbChat extends HTMLElement {
   #applyEdits({ edited = [], editedAt = 0 }) {
     edited.forEach(({ id, html }) => this.messageList.replaceBody(id, html));
     this.#editedAt = Math.max(this.#editedAt, editedAt);
+  }
+
+  /** Sourdine (#210) : l'appel est indépendant du fil (pas de file d'attente) ; le serveur confirme, la cloche affiche l'état reçu. */
+  async #mute(event) {
+    const toggle = event.target.closest('rb-mute-toggle');
+    const { id, muted } = event.detail;
+    try {
+      await setMute(id, muted);
+      if (toggle !== null) {
+        toggle.muted = muted;
+      }
+      this.sidebar.refresh().catch(() => {});
+    } catch (error) {
+      toggle?.release();
+      showToast(error.message, 'error');
+    }
   }
 
   /** Corrige un de mes messages : la saisie garde son texte tant que le serveur n'a pas répondu. */

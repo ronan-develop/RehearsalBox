@@ -173,6 +173,23 @@ final class MessageRowsTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testEveryRowHasAMuteToggleOutsideTheLinkWithItsStateAndAnEscapedAccessibleName(): void
+    {
+        $html = $this->renderer->render('messages/_conversation-items', ['items' => [
+            ['id' => 7, 'url' => '/messages/7', 'title' => '<b>Concert</b>', 'date' => '09:05', 'preview' => 'x', 'unread' => false, 'active' => false, 'muted' => false],
+            ['id' => 8, 'url' => '/messages/8', 'title' => 'Fil', 'date' => 'Hier', 'preview' => 'y', 'unread' => false, 'active' => false, 'muted' => true],
+        ]]);
+
+        self::assertSame(2, substr_count($html, '<rb-mute-toggle'), 'un interrupteur par conversation, quel que soit le droit de suppression');
+        self::assertMatchesRegularExpression('/<rb-mute-toggle[^>]*data-id="7"[^>]*>\s*<button[^>]*aria-pressed="false"/', $html);
+        self::assertMatchesRegularExpression('/<rb-mute-toggle[^>]*data-id="8"[^>]*>\s*<button[^>]*aria-pressed="true"/', $html);
+        self::assertStringContainsString('aria-label="Mettre en sourdine : &lt;b&gt;Concert&lt;/b&gt;"', $html);
+        self::assertStringContainsString('aria-label="Réactiver les notifications : Fil"', $html);
+        self::assertSame(1, substr_count($html, 'rb-chat-item--muted'), 'la ligne en sourdine est marquée');
+        self::assertDoesNotMatchRegularExpression('#<a [^>]*>[^<]*(<span[^>]*>.*?</span>\s*)*<rb-mute-toggle#s', $html, 'hors du lien');
+    }
+
+    #[Test]
     public function testConversationItemsAreRealLinksWithUnreadAndActiveStatesAndEscapedText(): void
     {
         $html = $this->renderer->render('messages/_conversation-items', ['items' => [

@@ -35,6 +35,11 @@ export function renameConversation(id, title) {
   return apiFetch(base(id), { method: 'PATCH', body: JSON.stringify({ title }) });
 }
 
+/** Sourdine de la conversation, propre à la personne connectée (#210) ; idempotent. */
+export function setMute(id, muted) {
+  return apiFetch(`${base(id)}/mute`, { method: muted ? 'PUT' : 'DELETE' });
+}
+
 export function sendTyping(id) {
   return apiFetch(`${base(id)}/typing`, { method: 'POST', body: JSON.stringify({}) });
 }

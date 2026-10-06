@@ -85,6 +85,20 @@ final class ChatCssTest extends TestCase
     }
 
     #[Test]
+    public function testTheMuteBellIsAlwaysVisibleKeepsATouchTargetAndFollowsTheSwipedRow(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-item-mute\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/s', $css, 'zone tactile de 44 px');
+        self::assertMatchesRegularExpression('/rb-mute-toggle\s*\{[^}]*position:\s*absolute[^}]*translate\(var\(--swipe-x/s', $css, 'suit la ligne glissée, pas posée sur le bouton rouge');
+        self::assertMatchesRegularExpression('/\.rb-chat-item-mute\[aria-pressed="true"\]\s+\.rb-chat-item-mute-slash\s*\{[^}]*display:\s*inline/s', $css, 'la cloche est barrée quand elle est en sourdine');
+        self::assertMatchesRegularExpression('/\.rb-chat-item-mute:focus-visible/', $css, 'visible au clavier');
+        // Le survol n'est jamais la seule voie ni un état collant sur iOS : :hover seulement sur les appareils à survol.
+        self::assertMatchesRegularExpression('/@media \(hover: hover\)\s*\{[^@]*\.rb-chat-item-mute:hover/s', $css);
+        self::assertDoesNotMatchRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-item-mute\b[^}]*display:\s*none/s', $css, 'jamais masquée sur écran tactile');
+    }
+
+    #[Test]
     public function testTheSwipeWidthMatchesBetweenTheScriptAndTheStylesheet(): void
     {
         $script = (string) file_get_contents(__DIR__ . '/../../public/assets/js/chat/swipe.js');

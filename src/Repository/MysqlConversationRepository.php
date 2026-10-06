@@ -57,7 +57,8 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
                        lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
                        lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at,
                        ' . ConversationSql::UNREAD_FOR_USER . ' AS unread,
-                       ' . ConversationSql::MENTIONED_USER . ' AS mentioned
+                       ' . ConversationSql::MENTIONED_USER . ' AS mentioned,
+                       COALESCE(s.muted, 0) AS muted
                 FROM conversations c
                 JOIN `groups` gi ON gi.id = c.initiator_group_id
                 JOIN `groups` gt ON gt.id = c.target_group_id

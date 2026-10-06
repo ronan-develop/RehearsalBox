@@ -9,6 +9,7 @@ use App\Controller\AdminGroupPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
+use App\Controller\Api\ConversationMuteApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\MemberApiController;
 use App\Controller\Api\MessageApiController;
@@ -79,6 +80,8 @@ return [
         ['GET',    '/api/conversations/{id}/updates', [ConversationFeedApiController::class, 'updates']],
         ['PATCH',  '/api/conversations/{id}', [ConversationApiController::class, 'rename']],
         ['DELETE', '/api/conversations/{id}', [ConversationTrashApiController::class, 'destroy']],
+        ['PUT',    '/api/conversations/{id}/mute', [ConversationMuteApiController::class, 'mute']],
+        ['DELETE', '/api/conversations/{id}/mute', [ConversationMuteApiController::class, 'unmute']],
         ['POST',   '/api/conversations/{id}/restore', [ConversationTrashApiController::class, 'restore']],
         ['DELETE', '/api/conversations/{id}/permanent', [ConversationTrashApiController::class, 'destroyPermanently']],
         ['DELETE', '/api/conversations/{id}/guests/{userId}', [ConversationApiController::class, 'removeGuest']],

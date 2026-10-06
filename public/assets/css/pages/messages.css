@@ -770,6 +770,94 @@ rb-composer {
   }
 }
 
+/* Sourdine (#210) : une cloche toujours visible, sur mobile comme sur ordinateur (jamais cachée derrière un geste). Posée sur la ligne
+   mais hors du lien ; elle suit la ligne quand on la glisse (--swipe-x), pour ne jamais recouvrir le bouton rouge « Supprimer ». */
+rb-mute-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--rb-space-1);
+  z-index: 2;
+  transform: translate(var(--swipe-x, 0px), -50%);
+  transition: transform 0.2s ease;
+}
+
+.rb-chat-item--dragging rb-mute-toggle {
+  transition: none;
+}
+
+.rb-chat-item-link {
+  padding-right: 56px; /* la place de la cloche */
+}
+
+.rb-chat-item-dot {
+  right: calc(var(--rb-space-3) + 44px);
+}
+
+.rb-chat-item-mention {
+  right: calc(var(--rb-space-3) + 62px);
+}
+
+.rb-chat-item-mute {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--rb-text-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--rb-radius-md);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rb-chat-item-mute-slash {
+  display: none;
+}
+
+.rb-chat-item-mute[aria-pressed="true"] {
+  color: var(--rb-text-2);
+}
+
+.rb-chat-item-mute[aria-pressed="true"] .rb-chat-item-mute-slash {
+  display: inline;
+}
+
+.rb-chat-item-mute:focus-visible {
+  color: var(--rb-accent);
+  outline: 2px solid var(--rb-accent);
+  outline-offset: -2px;
+}
+
+rb-mute-toggle[aria-busy] {
+  opacity: 0.5;
+}
+
+/* En sourdine, la ligne s'efface : son titre et son aperçu perdent leur relief. */
+.rb-chat-item--muted .rb-chat-item-title,
+.rb-chat-item--muted .rb-chat-item-preview {
+  color: var(--rb-text-3);
+}
+
+/* :hover seulement là où il existe vraiment : sur iOS il resterait collé après un tap (cf. #257). */
+@media (hover: hover) {
+  .rb-chat-item-mute:hover {
+    color: var(--rb-accent);
+  }
+}
+
+@media (min-width: 900px) {
+  /* La colonne de suppression de 44 px est à droite : la cloche se place à sa gauche, sans suivre de glissement. */
+  .rb-chat-item[data-can-delete] rb-mute-toggle {
+    right: calc(44px + var(--rb-space-1));
+    transform: translateY(-50%);
+  }
+
+  .rb-chat-item:not([data-can-delete]) rb-mute-toggle {
+    transform: translateY(-50%);
+  }
+}
+
 /* Indicateur « ↓ Nouveaux messages » (#187) : flotte au-dessus de la ligne d'état quand on relit l'historique. */
 .rb-chat-new-anchor {
   position: relative;

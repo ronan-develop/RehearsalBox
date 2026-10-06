@@ -8,6 +8,7 @@ use App\Entity\Conversation;
 use App\Entity\MentionNotice;
 use App\Mail\MailRenderer;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
+use App\Repository\Contract\ConversationMuteRepositoryInterface;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Support\HeaderText;
@@ -31,6 +32,7 @@ final class MentionNotifier
         private readonly MentionNoticeRepositoryInterface $notices,
         private readonly UserRepositoryInterface $users,
         private readonly NotificationPreferenceRepositoryInterface $preferences,
+        private readonly ConversationMuteRepositoryInterface $mutes,
         private readonly string $fromAddress,
         private readonly string $baseUrl,
         private readonly ?MailRenderer $mailRenderer = null,
@@ -57,6 +59,10 @@ final class MentionNotifier
     {
         $user = $this->users->findById($userId);
         if ($user === null || !$user->isActive() || !$this->preferences->emailEnabled($userId)) {
+            return;
+        }
+        // Sourdine (#210) : aucune mention de cette conversation n'envoie d'e-mail, et rien n'est réservé (levée = reprise).
+        if ($this->mutes->isMuted($conversation->id(), $userId)) {
             return;
         }
         if (filter_var($user->email(), FILTER_VALIDATE_EMAIL) === false) {

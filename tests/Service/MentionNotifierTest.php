@@ -9,6 +9,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
+use App\Repository\MysqlConversationMuteRepository;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
@@ -27,6 +28,7 @@ final class MentionNotifierTest extends RepositoryTestCase
     private \DateTimeImmutable $now;
     private MysqlMentionNoticeRepository $notices;
     private MysqlNotificationPreferenceRepository $preferences;
+    private MysqlConversationMuteRepository $mutes;
     private MysqlUserRepository $users;
     private Conversation $conversation;
     /** @var array<string, User> */
@@ -38,6 +40,7 @@ final class MentionNotifierTest extends RepositoryTestCase
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->notices = new MysqlMentionNoticeRepository($this->pdo);
         $this->preferences = new MysqlNotificationPreferenceRepository($this->pdo);
+        $this->mutes = new MysqlConversationMuteRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
         foreach (['alice', 'bob', 'denis'] as $name) {
@@ -59,7 +62,7 @@ final class MentionNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): MentionNotifier
     {
-        return new MentionNotifier($mailer, $this->notices, $this->users, $this->preferences, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        return new MentionNotifier($mailer, $this->notices, $this->users, $this->preferences, $this->mutes, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
     }
 
     private function mention(MentionNotifier $notifier, array $ids, ?\DateTimeImmutable $at = null): void
@@ -125,6 +128,42 @@ final class MentionNotifierTest extends RepositoryTestCase
 
         self::assertSame([], $mailer->sent);
         self::assertNull($this->notices->find($this->conversation->id(), $this->id('denis')), 'rien n\'est réservé');
+    }
+
+    #[Test]
+    public function testAMutedConversationSendsNothingAndReservesNothingThenResumesWhenUnmuted(): void
+    {
+        $this->mutes->setMuted($this->conversation->id(), $this->id('denis'), true);
+        $mailer = new RecordingMailer();
+        $notifier = $this->notifier($mailer);
+
+        $this->mention($notifier, [$this->id('denis')]);
+
+        self::assertSame([], $mailer->sent, 'sourdine : pas d\'e-mail de mention, quelle que soit la mention');
+        self::assertNull($this->notices->find($this->conversation->id(), $this->id('denis')), 'rien n\'est réservé');
+
+        $this->mutes->setMuted($this->conversation->id(), $this->id('denis'), false);
+        $this->mention($notifier, [$this->id('denis')]);
+        self::assertCount(1, $mailer->sent, 'sourdine levée : l\'e-mail repart');
+    }
+
+    #[Test]
+    public function testMutingOneConversationDoesNotSilenceAnotherOne(): void
+    {
+        $other = (new MysqlConversationRepository($this->pdo))->create(
+            $this->conversation->initiatorGroupId(),
+            $this->conversation->targetGroupId(),
+            'Autre fil',
+            $this->now->modify('-1 day'),
+            $this->id('alice'),
+        );
+        (new MysqlConversationGuestRepository($this->pdo))->add($other->id(), $this->id('denis'), $this->id('alice'), $this->now->modify('-1 day'));
+        $this->mutes->setMuted($this->conversation->id(), $this->id('denis'), true);
+        $mailer = new RecordingMailer();
+
+        $this->notifier($mailer)->mentioned($other, $this->id('alice'), 'Alice', [$this->id('denis')], $this->now);
+
+        self::assertCount(1, $mailer->sent, 'la sourdine est propre à une conversation');
     }
 
     #[Test]

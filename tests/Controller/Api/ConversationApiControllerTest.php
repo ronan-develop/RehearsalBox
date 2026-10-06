@@ -41,6 +41,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     private \App\Controller\Api\ConversationFeedApiController $feedController;
     private \App\Controller\Api\ConversationTrashApiController $trashController;
     private \App\Controller\Api\MessageApiController $messageController;
+    private \App\Controller\Api\ConversationMuteApiController $muteController;
     private MysqlGroupRepository $groups;
     private MysqlUserRepository $users;
     private AuthService $auth;
@@ -70,6 +71,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         );
         $trash = new \App\Service\ConversationTrashService($access, new \App\Repository\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Repository\MysqlConversationAlertRepository($this->pdo));
         $guestService = new \App\Service\ConversationGuestService($access, $guests, $messages, $this->users, new TransactionRunner($this->pdo), $this->clock);
+        $this->muteController = new \App\Controller\Api\ConversationMuteApiController(new \App\Service\ConversationMuteService($access, new \App\Repository\MysqlConversationMuteRepository($this->pdo)), new AuthGuard($this->auth));
         $this->trashController = new \App\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
         $editService = new \App\Service\MessageEditService($access, $messages, $mentionService, new TransactionRunner($this->pdo), $this->clock);
         $conversations = new MysqlConversationRepository($this->pdo);
@@ -124,6 +126,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $controller = match (true) {
             in_array($action, ['destroy', 'restore', 'destroyPermanently', 'dismissAlert'], true) => $this->trashController,
             $action === 'edit' => $this->messageController,
+            in_array($action, ['mute', 'unmute'], true) => $this->muteController,
             in_array($action, ['index', 'listFragment', 'updates', 'typing'], true) => $this->feedController,
             default => $this->controller,
         };
@@ -167,6 +170,47 @@ final class ConversationApiControllerTest extends RepositoryTestCase
                 self::fail('connexion exigée : ' . $call[0]);
             } catch (UnauthenticatedException) {
                 $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    #[Test]
+    public function testMuteRequiresALoginAndAMutedConversationLeavesTheUnreadCount(): void
+    {
+        [$alice, $bob, $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+
+        $this->loginAs($bob);
+        [, $before] = $this->call('index');
+        self::assertSame(1, $before['unread']['total'], 'Bob a un message non lu');
+
+        [$status, $json] = $this->call('mute', [], [], $id);
+        self::assertSame(200, $status);
+        self::assertTrue($json['muted']);
+        [, $muted] = $this->call('index');
+        self::assertSame(0, $muted['unread']['total'], 'sourdine : plus de non-lu compté');
+
+        [, $json] = $this->call('unmute', [], [], $id);
+        self::assertFalse($json['muted']);
+        [, $after] = $this->call('index');
+        self::assertSame(1, $after['unread']['total']);
+    }
+
+    #[Test]
+    public function testMuteIsRefusedToAnOutsiderAndToAnonymousVisitors(): void
+    {
+        [$alice, , $a, $b] = $this->world();
+        $id = $this->startAsAlice($alice, $a, $b);
+        $carole = $this->user('Carole');
+        $this->group('Gamma', $carole);
+
+        $this->loginAs($carole);
+        foreach ([$id, '9999', 'abc'] as $target) {
+            try {
+                $this->call('mute', [], [], $target);
+                self::fail('refus attendu pour ' . $target);
+            } catch (AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage(), 'même refus : interdit, inexistant ou mal formé');
             }
         }
     }
