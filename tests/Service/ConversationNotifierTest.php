@@ -112,6 +112,11 @@ final class ConversationNotifierTest extends RepositoryTestCase
                 throw new \PDOException('base indisponible');
             }
 
+            public function countInitialSince(int $groupId, \DateTimeImmutable $since): int
+            {
+                return 0;
+            }
+
             public function releaseInitial(int $conversationId, int $groupId): void
             {
                 throw new \PDOException('base indisponible');
@@ -184,5 +189,30 @@ final class ConversationNotifierTest extends RepositoryTestCase
         self::assertStringNotContainsString('<script>alert(1)</script>', $html);
         self::assertStringNotContainsString('<img src=x', $html);
         self::assertStringContainsString('&lt;script&gt;', $html);
+    }
+
+    #[Test]
+    public function testAGroupReceivesAtMostAFewNewConversationEmailsPerDayWhoeverWrites(): void
+    {
+        $mailer = new RecordingMailer();
+        $notifier = $this->notifier($mailer);
+        $conversations = new MysqlConversationRepository($this->pdo);
+        $groups = new MysqlGroupRepository($this->pdo);
+        $other = $groups->save(new Group(0, 'Gamma', null, null, 'gamma@rehearsalbox.test'));
+
+        for ($i = 0; $i < ConversationNotifier::MAX_NEW_CONVERSATIONS_PER_DAY + 3; $i++) {
+            $conversation = $conversations->create($this->source->id(), $this->target->id(), null, $this->now);
+            $notifier->newConversation($conversation, 'Alice', 'Alpha', $this->target, $this->now->modify("+{$i} minutes"));
+        }
+
+        self::assertCount(ConversationNotifier::MAX_NEW_CONVERSATIONS_PER_DAY, $mailer->sent, 'au-delà du plafond : plus d\'e-mail vers ce groupe');
+
+        $conversation = $conversations->create($this->source->id(), $other->id(), null, $this->now);
+        $notifier->newConversation($conversation, 'Alice', 'Alpha', $other, $this->now);
+        self::assertCount(ConversationNotifier::MAX_NEW_CONVERSATIONS_PER_DAY + 1, $mailer->sent, 'un autre groupe n\'est pas concerné');
+
+        $conversation = $conversations->create($this->source->id(), $this->target->id(), null, $this->now);
+        $notifier->newConversation($conversation, 'Alice', 'Alpha', $this->target, $this->now->modify('+25 hours'));
+        self::assertCount(ConversationNotifier::MAX_NEW_CONVERSATIONS_PER_DAY + 2, $mailer->sent, 'le lendemain, le plafond est levé');
     }
 }

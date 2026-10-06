@@ -19,6 +19,9 @@ interface ConversationNoticeRepositoryInterface
     public function claimInitial(int $conversationId, int $groupId, \DateTimeImmutable $now): bool;
 
     /** Annule la réservation (envoi échoué) pour qu'un nouvel essai reste possible. */
+    /** Groupes visés prévenus depuis $since (plafond quotidien d'e-mails par groupe). */
+    public function countInitialSince(int $groupId, \DateTimeImmutable $since): int;
+
     public function releaseInitial(int $conversationId, int $groupId): void;
 
     public function initialNotifiedAt(int $conversationId, int $groupId): ?\DateTimeImmutable;

@@ -21,6 +21,9 @@ use App\Service\Contract\NewConversationNotifierInterface;
  */
 final class ConversationNotifier implements NewConversationNotifierInterface
 {
+    /** Plafond par groupe visé et par 24 h, quel que soit l'expéditeur : l'adresse de contact d'un tiers n'est pas un canal à saturer. */
+    public const MAX_NEW_CONVERSATIONS_PER_DAY = 5;
+
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly ConversationNoticeRepositoryInterface $notices,
@@ -49,6 +52,13 @@ final class ConversationNotifier implements NewConversationNotifierInterface
             return;
         }
         if (!$this->notices->claimInitial($conversation->id(), $targetGroup->id(), $now)) {
+            return;
+        }
+        if ($this->notices->countInitialSince($targetGroup->id(), $now->modify('-24 hours')) > self::MAX_NEW_CONVERSATIONS_PER_DAY) {
+            // Le groupe a déjà reçu son quota : la conversation existe, seul l'e-mail est retenu (sans réessai).
+            $this->notices->releaseInitial($conversation->id(), $targetGroup->id());
+            error_log(sprintf('Notification de conversation : plafond quotidien atteint (groupe #%d).', $targetGroup->id()));
+
             return;
         }
 

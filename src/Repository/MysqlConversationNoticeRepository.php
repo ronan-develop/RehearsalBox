@@ -27,6 +27,14 @@ final class MysqlConversationNoticeRepository implements ConversationNoticeRepos
         return $statement->rowCount() === 1;
     }
 
+    public function countInitialSince(int $groupId, \DateTimeImmutable $since): int
+    {
+        $statement = $this->pdo->prepare('SELECT COUNT(*) FROM conversation_group_notices WHERE group_id = :group_id AND notified_at >= :since');
+        $statement->execute(['group_id' => $groupId, 'since' => $since->format(self::DATE_FORMAT)]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function releaseInitial(int $conversationId, int $groupId): void
     {
         $statement = $this->pdo->prepare('DELETE FROM conversation_group_notices WHERE conversation_id = :conversation_id AND group_id = :group_id');
