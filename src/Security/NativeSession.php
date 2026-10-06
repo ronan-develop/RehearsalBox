@@ -6,27 +6,32 @@ namespace App\Security;
 
 final class NativeSession implements SessionInterface
 {
-    /**
-     * @param array<string, mixed> $server
-     *
-     * @return array{cookie_httponly: bool, cookie_samesite: string, cookie_secure: bool}
-     */
-    public static function cookieOptions(array $server): array
+    public function __construct(private readonly bool $secureCookies)
     {
-        $https = strtolower((string) ($server['HTTPS'] ?? ''));
-        $forwardedProto = strtolower((string) ($server['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    }
 
+    /**
+     * Options du cookie de session (#223). `Secure` vient de la CONFIGURATION (jamais d'un en-tête que le client peut falsifier) ;
+     * en HTTPS le nom porte le préfixe « __Host- » (le navigateur refuse alors tout cookie de ce nom qui ne serait pas Secure,
+     * sans Domain et sur « / ») ; le mode strict ignore tout identifiant que le serveur n'a pas émis.
+     *
+     * @return array{cookie_httponly: bool, cookie_samesite: string, cookie_secure: bool, use_strict_mode: bool, name: string}
+     */
+    public static function cookieOptions(bool $secure): array
+    {
         return [
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
-            'cookie_secure' => ($https !== '' && $https !== 'off') || $forwardedProto === 'https',
+            'cookie_secure' => $secure,
+            'use_strict_mode' => true,
+            'name' => $secure ? '__Host-rbsid' : 'rbsid',
         ];
     }
 
     public function start(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start(self::cookieOptions($_SERVER));
+            session_start(self::cookieOptions($this->secureCookies));
         }
     }
 

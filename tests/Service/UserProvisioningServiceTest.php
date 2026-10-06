@@ -82,7 +82,7 @@ final class UserProvisioningServiceTest extends RepositoryTestCase
             $this->service()->create('denis@example.test', 'denis', UserRole::Admin, '1234567');
             self::fail('Une UserValidationException était attendue.');
         } catch (UserValidationException $e) {
-            self::assertSame(['password' => 'Le mot de passe doit faire au moins 8 caractères.'], $e->fields());
+            self::assertSame(['password' => 'Le mot de passe doit faire au moins 10 caractères.'], $e->fields());
         }
 
         self::assertNull((new MysqlUserRepository($this->pdo))->findByEmail('denis@example.test'));

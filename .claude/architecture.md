@@ -119,6 +119,12 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - `addMember` est idempotent et conserve le rôle existant.
 - La page `/groups/{slug}/space` est **publique voulue** (vitrine) : documentée et testée, pas protégée.
 - Rôle de gestionnaire sorti dans `GroupManagerService` / `GroupManagerRepositoryInterface` (promotion, rétrogradation, dernier gestionnaire protégé). **Non câblé** : aucune route ne crée de gestionnaire, décision produit du propriétaire.
+## Mots de passe, sessions et jetons (#223)
+
+- **Règle des mots de passe** (`PasswordPolicy`) : **10 caractères au moins** (comptés en caractères, pas en octets), **72 octets au plus** (au-delà bcrypt tronquerait en silence : on refuse plutôt que d'accepter un mot de passe dont la fin ne compte pas) et pas un mot de passe parmi les plus courants (courte liste lisible, insensible à la casse, plus « un seul caractère répété »). Elle ne s'applique qu'au moment de **choisir** un mot de passe : les comptes existants se connectent toujours avec l'ancien. Les formulaires l'annoncent (`minlength="10"`). Personne, administrateur compris, ne connaît ni ne fixe le mot de passe d'un autre.
+- **Session** (`NativeSession`) : `use_strict_mode` (un identifiant que le serveur n'a pas émis est ignoré), `HttpOnly`, `SameSite=Lax`, et `Secure` décidé par la **configuration** (`AppUrl::isHttps(app.base_url)`), plus jamais par un en-tête que le client peut falsifier. En HTTPS le cookie s'appelle `__Host-rbsid` (le navigateur refuse alors tout cookie de ce nom qui ne serait pas `Secure`, sans `Domain` et sur `/`) ; en développement HTTP il s'appelle `rbsid`. `AppUrl::isHttps` est aussi la source de HSTS.
+- **Révocation des jetons au changement d'adresse** : confirmer le changement invalide, dans la même transaction, tous les liens déjà émis vers l'ancienne boîte : réinitialisation, alerte « sécuriser mon compte » et autres changements d'adresse en attente. Les jetons des autres comptes ne sont jamais touchés.
+- ⚠️ **Au déploiement**, le cookie change de nom : **tout le monde est déconnecté une fois** (une reconnexion suffit).
 
 ## Règle critique — pas d'ORM
 

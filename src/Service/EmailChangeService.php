@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Mail\MailRenderer;
 use App\Mail\SafeMail;
 use App\Repository\Contract\EmailChangeRepositoryInterface;
+use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\PasswordHasherInterface;
 use App\Security\ResetToken;
@@ -32,6 +33,7 @@ final class EmailChangeService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly EmailChangeRepositoryInterface $changeRepository,
+        private readonly PasswordResetRepositoryInterface $resetRepository,
         private readonly PasswordHasherInterface $passwordHasher,
         private readonly MailerInterface $mailer,
         private readonly TransactionRunner $transactions,
@@ -120,16 +122,30 @@ final class EmailChangeService
             }
 
             try {
-                return [$this->userRepository->save($user->withEmail($change['newEmail'])), $user->email()];
+                $saved = $this->userRepository->save($user->withEmail($change['newEmail']));
             } catch (\PDOException) {
                 // Course sur l'unicité de l'adresse (clé unique en base) : même issue.
                 throw new InvalidEmailChangeException();
             }
+            $this->revokeOutstandingTokens($user->id(), $now);
+
+            return [$saved, $user->email()];
         });
 
         $this->sendChangedAlert($oldEmail, $updated->email());
 
         return $updated;
+    }
+
+    /**
+     * Tout lien déjà envoyé à l'ANCIENNE boîte (réinitialisation, alerte « sécuriser mon compte », autre changement en attente) cesse
+     * de valoir : qui garde l'accès à cette boîte ne peut plus s'en servir une fois l'adresse changée. Dans la même transaction.
+     */
+    private function revokeOutstandingTokens(int $userId, \DateTimeImmutable $now): void
+    {
+        $this->resetRepository->invalidateAllForUser($userId, $now, PasswordResetRepositoryInterface::PURPOSE_RESET);
+        $this->resetRepository->invalidateAllForUser($userId, $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
+        $this->changeRepository->invalidateAllForUser($userId, $now);
     }
 
     /** L'alerte part à l'ANCIENNE adresse ; la nouvelle y est masquée. Un échec d'envoi n'annule pas le changement. */

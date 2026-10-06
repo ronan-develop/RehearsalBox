@@ -38,6 +38,7 @@ use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\NativePasswordHasher;
+use App\Security\AppUrl;
 use App\Security\NativeSession;
 use App\Security\PasswordHasherInterface;
 use App\Security\PasswordPolicy;
@@ -128,7 +129,7 @@ return static function (array $config): Container {
 
     $container->set(PasswordHasherInterface::class, fn () => new NativePasswordHasher());
     $container->set(SessionInterface::class, function () {
-        $session = new NativeSession();
+        $session = new NativeSession(AppUrl::isHttps((string) $config['app']['base_url']));
         $session->start();
 
         return $session;
@@ -245,6 +246,7 @@ return static function (array $config): Container {
     $container->set(EmailChangeService::class, fn ($c) => new EmailChangeService(
         $c->get(UserRepositoryInterface::class),
         $c->get(EmailChangeRepositoryInterface::class),
+        $c->get(PasswordResetRepositoryInterface::class),
         $c->get(PasswordHasherInterface::class),
         $c->get(MailerInterface::class),
         $c->get(TransactionRunner::class),

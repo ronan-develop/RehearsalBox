@@ -8,6 +8,7 @@ use App\Database\TransactionRunner;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Repository\MysqlEmailChangeRepository;
+use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\Support\FastPasswordHasher;
 use App\Service\EmailChangeService;
@@ -44,6 +45,7 @@ final class EmailChangeServiceTest extends RepositoryTestCase
         return new EmailChangeService(
             $this->users,
             new MysqlEmailChangeRepository($this->pdo),
+            new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
             $mailer,
             new TransactionRunner($this->pdo),
@@ -303,5 +305,55 @@ final class EmailChangeServiceTest extends RepositoryTestCase
         $this->expectException(InvalidEmailChangeException::class);
 
         $service->confirm($token, $this->now->modify('+5 minutes'));
+    }
+
+    // --- Révocation des jetons déjà émis (#223) ----------------------------------------------------------
+
+    #[Test]
+    public function testConfirmingTheChangeRevokesEveryTokenIssuedToTheOldMailbox(): void
+    {
+        [$service, $alice, , $token] = $this->requested();
+        $resets = new MysqlPasswordResetRepository($this->pdo);
+        $changes = new MysqlEmailChangeRepository($this->pdo);
+        // Un lien de réinitialisation, une alerte « sécuriser mon compte » et une autre demande de changement, tous encore valables.
+        $resets->create($alice->id(), hash('sha256', 'reinit'), $this->now->modify('+1 hour'), $this->now);
+        $resets->create($alice->id(), hash('sha256', 'alerte'), $this->now->modify('+1 day'), $this->now, MysqlPasswordResetRepository::PURPOSE_ALERT);
+        $changes->create($alice->id(), 'pirate@rehearsalbox.test', hash('sha256', 'autre-changement'), $this->now->modify('+1 hour'), $this->now);
+
+        $service->confirm($token, $this->now->modify('+5 minutes'));
+
+        $later = $this->now->modify('+6 minutes');
+        self::assertNull($resets->consume(hash('sha256', 'reinit'), $later), 'le lien de réinitialisation envoyé à l\'ancienne boîte est mort');
+        self::assertNull($resets->consume(hash('sha256', 'alerte'), $later, MysqlPasswordResetRepository::PURPOSE_ALERT), 'l\'alerte aussi');
+        self::assertNull($changes->consume(hash('sha256', 'autre-changement'), $later), 'une autre demande de changement en attente aussi');
+    }
+
+    #[Test]
+    public function testTheTokensOfAnotherAccountAreNeverTouched(): void
+    {
+        [$service, $alice, , $token] = $this->requested();
+        $bob = $this->user('bob@rehearsalbox.test');
+        $resets = new MysqlPasswordResetRepository($this->pdo);
+        $resets->create($bob->id(), hash('sha256', 'reinit-bob'), $this->now->modify('+1 hour'), $this->now);
+
+        $service->confirm($token, $this->now->modify('+5 minutes'));
+
+        self::assertSame($bob->id(), $resets->consume(hash('sha256', 'reinit-bob'), $this->now->modify('+6 minutes')));
+    }
+
+    #[Test]
+    public function testARefusedConfirmationRevokesNothing(): void
+    {
+        [$service, $alice] = $this->requested();
+        $resets = new MysqlPasswordResetRepository($this->pdo);
+        $resets->create($alice->id(), hash('sha256', 'reinit'), $this->now->modify('+1 hour'), $this->now);
+
+        try {
+            $service->confirm(str_repeat('0', 64), $this->now->modify('+5 minutes'));
+            self::fail('jeton inconnu');
+        } catch (\App\Service\Exception\InvalidEmailChangeException) {
+        }
+
+        self::assertSame($alice->id(), $resets->consume(hash('sha256', 'reinit'), $this->now->modify('+6 minutes')));
     }
 }

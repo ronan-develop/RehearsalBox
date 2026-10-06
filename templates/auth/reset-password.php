@@ -20,12 +20,12 @@
                 <p class="rb-auth-intro">Ce lien de réinitialisation est invalide ou incomplet.</p>
                 <p class="rb-auth-link"><a href="/forgot-password">Demander un nouveau lien</a></p>
             <?php else: ?>
-                <p class="rb-auth-intro">Choisissez un nouveau mot de passe (8 caractères minimum).</p>
+                <p class="rb-auth-intro">Choisissez un nouveau mot de passe (10 caractères minimum).</p>
                 <form data-async data-endpoint="/api/auth/reset-password" data-method="POST">
                     <input type="hidden" name="token" value="<?= e($token) ?>">
                     <div class="rb-field">
                         <label for="password">Nouveau mot de passe</label>
-                        <input type="password" id="password" name="password" class="rb-input" required minlength="8" autocomplete="new-password">
+                        <input type="password" id="password" name="password" class="rb-input" required minlength="10" autocomplete="new-password">
                         <span class="rb-field-error" data-field-error="password"></span>
                     </div>
                     <button type="submit" class="rb-btn-primary">Enregistrer</button>

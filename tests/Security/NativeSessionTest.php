@@ -11,35 +11,43 @@ use PHPUnit\Framework\TestCase;
 final class NativeSessionTest extends TestCase
 {
     #[Test]
-    public function testCookieOptionsAreSecureWhenHttpsIsOn(): void
+    public function testASecureApplicationGetsASecureHostLockedCookie(): void
     {
-        $options = NativeSession::cookieOptions(['HTTPS' => 'on']);
+        $options = NativeSession::cookieOptions(secure: true);
 
         self::assertTrue($options['cookie_secure']);
         self::assertTrue($options['cookie_httponly']);
         self::assertSame('Lax', $options['cookie_samesite']);
+        // « __Host- » : le navigateur refuse tout cookie de ce nom qui ne soit pas Secure, sans Domain et sur le chemin « / ».
+        self::assertSame('__Host-rbsid', $options['name']);
     }
 
     #[Test]
-    public function testCookieOptionsAreSecureBehindProxyForwardingHttps(): void
+    public function testALocalDevelopmentApplicationKeepsAPlainCookieName(): void
     {
-        $options = NativeSession::cookieOptions(['HTTP_X_FORWARDED_PROTO' => 'https']);
-
-        self::assertTrue($options['cookie_secure']);
-    }
-
-    #[Test]
-    public function testCookieOptionsAreNotSecureOverPlainHttp(): void
-    {
-        $options = NativeSession::cookieOptions(['HTTPS' => 'off']);
+        $options = NativeSession::cookieOptions(secure: false);
 
         self::assertFalse($options['cookie_secure']);
         self::assertTrue($options['cookie_httponly']);
+        self::assertSame('rbsid', $options['name'], 'le préfixe « __Host- » exige Secure : pas en HTTP local');
     }
 
     #[Test]
-    public function testCookieOptionsAreNotSecureWithoutAnyHttpsIndicator(): void
+    public function testAnIdentifierTheServerNeverIssuedIsNeverAdopted(): void
     {
-        self::assertFalse(NativeSession::cookieOptions([])['cookie_secure']);
+        foreach ([true, false] as $secure) {
+            self::assertTrue(NativeSession::cookieOptions($secure)['use_strict_mode'], 'mode strict : un identifiant inconnu est ignoré');
+        }
+    }
+
+    #[Test]
+    public function testTheSecureFlagComesFromTheConfigurationNeverFromTheRequest(): void
+    {
+        // Plus aucun en-tête du client (HTTPS, X-Forwarded-Proto) n'entre en compte : la signature ne les accepte pas.
+        $parameters = (new \ReflectionMethod(NativeSession::class, 'cookieOptions'))->getParameters();
+
+        self::assertCount(1, $parameters);
+        self::assertSame('secure', $parameters[0]->getName());
+        self::assertSame('bool', (string) $parameters[0]->getType());
     }
 }
