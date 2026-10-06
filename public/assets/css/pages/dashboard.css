@@ -82,6 +82,27 @@
   }
 }
 
+/* Mobile (#201) : le calque n'est plus fixe, il défile avec la page (le logo reste dans l'en-tête, allumé en néon, sans
+   passer derrière les lignes du planning). Le comportement fixe et voyageur reste celui du bureau. */
+@media (max-width: 767.98px) {
+  /* Calque transparent AU-DESSUS du panneau de l'en-tête (sinon le panneau le ternit), sans rien recouvrir plus bas : sa
+     hauteur se limite à l'en-tête, pointer-events: none. */
+  .rb-page-bg {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 220px;
+    z-index: 2;
+    overflow: visible;
+    background: transparent;
+  }
+
+  /* Un tag, pas un composant : plus grand que sur le calque de repos et légèrement penché, avec ses coulures. */
+  .rb-page-bg-text {
+    font-size: 72px;
+    transform: translate(var(--wm-x, 0px), var(--wm-y, 0px)) rotate(-3deg);
+  }
+}
+
 /* Lissage du déplacement (classe posée par parallax.js une fois le logo en place,
    jamais en mouvement réduit) : le logo glisse au lieu de sauter quand la page
    est peu scrollable (mobile). Transform et opacité : compositeur, pas de repaint. */
@@ -318,6 +339,11 @@ body {
   animation: rb-planning-scroll var(--rb-planning-duration, 60s) linear infinite;
 }
 
+/* Copie des cartes ajoutée par planning-slider.js pour boucler : sans effet de mise en page. */
+.rb-planning-loop-copy {
+  display: contents;
+}
+
 .rb-planning-track--paused {
   animation-play-state: paused;
 }
@@ -426,6 +452,7 @@ body {
 }
 
 .rb-exceptions-tabs,
+.rb-planning-tabs,
 .rb-messages-tabs {
   display: flex;
   gap: var(--rb-space-1);
@@ -437,6 +464,7 @@ body {
 }
 
 .rb-exceptions-tab,
+.rb-planning-tab,
 .rb-messages-tab {
   flex: 1;
   min-height: 40px;
@@ -449,6 +477,7 @@ body {
 }
 
 .rb-exceptions-tab[aria-selected="true"],
+.rb-planning-tab[aria-selected="true"],
 .rb-messages-tab[aria-selected="true"] {
   background: var(--rb-surface-strong);
   color: var(--rb-accent);
@@ -658,3 +687,236 @@ body {
   border-color: var(--rb-err);
 }
 
+/* --- Planning : onglets et liste par jour sur mobile (#201) ---
+   Sous 768 px le carrousel devient une liste (un seul balisage, restylé ici) : onglets Planning | Exceptionnels, un titre par
+   jour à partir d'aujourd'hui, une ligne par créneau. Dès 768 px rien ne change : carrousel, deux sections visibles. Les onglets
+   n'existent que si le JavaScript les a activés (data-planning-tabs-ready) : sans lui, tout reste affiché. */
+.rb-planning-tabs {
+  display: none;
+}
+
+.rb-planning-tab-count {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: var(--rb-space-1);
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--rb-accent);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.rb-planning-card-when {
+  margin: 0;
+}
+
+.rb-planning-card-when span {
+  display: block;
+}
+
+.rb-planning-day,
+[data-planning-empty] {
+  display: none;
+}
+
+.rb-planning-empty {
+  color: var(--rb-text-2);
+}
+
+@media (min-width: 768px) {
+  .rb-planning-section--empty {
+    display: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Le nom du groupe et l'avatar en bas de l'en-tête : le logo occupe sa partie haute (#201). */
+  .rb-dashboard-header {
+    align-items: flex-end;
+    padding-bottom: var(--rb-space-3);
+  }
+
+  [data-planning-tabs-ready] .rb-planning-tabs {
+    display: flex;
+  }
+
+  [data-planning-tabs-ready] .rb-planning-section:not(.is-active) {
+    display: none;
+  }
+
+  [data-planning-tabs-ready] .rb-planning-section > h2 {
+    display: none;
+  }
+
+  .rb-planning-section--empty .rb-planning-slider {
+    display: none;
+  }
+
+  .rb-planning-section--empty [data-planning-empty] {
+    display: block;
+  }
+
+  .rb-planning-slider {
+    overflow: visible;
+    padding-block: 0;
+  }
+
+  .rb-planning-track {
+    display: block;
+    width: auto;
+    min-width: 0;
+    will-change: auto;
+  }
+
+  .rb-planning-loop-copy {
+    display: none;
+  }
+
+  .rb-planning-day {
+    display: flex;
+    align-items: baseline;
+    gap: var(--rb-space-2);
+    margin: 0;
+    padding: var(--rb-space-3) 0 var(--rb-space-2);
+    border-bottom: 1px solid var(--rb-border);
+    font-size: 0.9375rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .rb-planning-day[data-today] {
+    color: var(--rb-accent);
+  }
+
+  .rb-planning-day-today {
+    margin-left: auto;
+    padding: 2px var(--rb-space-2);
+    border-radius: 99px;
+    background: var(--rb-accent);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+
+  .rb-planning-day--hidden {
+    display: none;
+  }
+
+  /* Une ligne par créneau : l'heure à gauche (en couleur d'accent), le groupe à droite ; zone tactile d'au moins 44 px. */
+  .rb-planning-card {
+    display: grid;
+    grid-template-columns: 7.25rem 1fr auto;
+    grid-template-areas: "time group badge";
+    align-items: center;
+    align-content: center;
+    column-gap: var(--rb-space-2);
+    width: auto;
+    min-height: 56px;
+    padding: var(--rb-space-2) var(--rb-space-1);
+    background: transparent;
+    border-bottom: 1px solid var(--rb-border);
+    color: var(--rb-text);
+    clip-path: none;
+  }
+
+  .rb-planning-card--exceptional {
+    grid-template-areas: "time group badge" "time when when";
+  }
+
+  .rb-planning-card:not(.rb-planning-card--exceptional):hover,
+  .rb-planning-card:not(.rb-planning-card--exceptional):focus-visible {
+    transform: none;
+    background: var(--rb-surface);
+  }
+
+  .rb-planning-card-group {
+    grid-area: group;
+    margin: 0;
+    color: var(--rb-text);
+  }
+
+  .rb-planning-card-time {
+    grid-area: time;
+    color: var(--rb-accent);
+    font-size: 0.9375rem;
+  }
+
+  .rb-planning-card-when {
+    grid-area: when;
+    margin: 0;
+    color: var(--rb-text-2);
+    font-size: 0.8125rem;
+  }
+
+  .rb-planning-card-when span {
+    display: inline;
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .rb-planning-card:not(.rb-planning-card--exceptional) .rb-planning-card-weekday {
+    display: none;
+  }
+
+  .rb-planning-card--exceptional .rb-badge {
+    position: static;
+    grid-area: badge;
+    border-color: var(--rb-warn);
+    color: var(--rb-warn);
+  }
+
+  .rb-planning-card--exceptional .rb-planning-card-group {
+    padding-right: 0;
+  }
+}
+
+/* Mini logo mobile (#201) : fine barre néon qui apparaît quand l'en-tête (où le grand logo est allumé) est sorti de l'écran.
+   Décorative (aria-hidden), absente dès 768 px où le logo voyage. */
+.rb-mini-logo {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .rb-mini-logo {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding-inline: var(--rb-space-3);
+    /* Pas de barre d'outils : le tag se pose sur un fondu du fond de page, sans filet ni cadre. */
+    background: linear-gradient(var(--rb-bg) 55%, transparent);
+    pointer-events: none;
+    transform: translateY(-110%);
+    transition: transform 0.25s ease;
+  }
+
+  .rb-mini-logo--visible {
+    transform: none;
+  }
+
+  .rb-mini-logo span {
+    display: inline-block;
+    transform: rotate(-3deg);
+    font-family: 'ADrippingMarker', sans-serif;
+    font-size: 34px;
+    line-height: 1;
+    color: color-mix(in srgb, var(--rb-neon-red) 80%, white);
+    -webkit-text-stroke: 0.5px var(--rb-stone-flame);
+    text-shadow:
+      0 0 3px var(--rb-stone-flame),
+      0 0 8px var(--rb-neon-red);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-mini-logo {
+    transition: none;
+  }
+}
