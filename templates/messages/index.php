@@ -24,7 +24,7 @@ $hasPane = $thread !== null || $draft !== null;
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
-<body class="rb-chat-body">
+<body class="rb-chat-page">
     <rb-chat class="rb-chat" data-chat data-user-id="<?= e((string) ($currentUserId ?? 0)) ?>" data-active-id="<?= $thread !== null ? e((string) $thread['id']) : '' ?>" data-last-id="<?= $thread !== null ? e((string) $thread['lastId']) : '0' ?>" data-edited-at="<?= $thread !== null ? e((string) $thread['editedAt']) : '0' ?>"<?= $draft !== null ? ' data-draft-target-id="' . e((string) $draft['targetId']) . '"' : '' ?><?= $draft !== null && $draft['blocked'] ? ' data-draft-blocked' : '' ?> data-view="<?= $hasPane ? 'thread' : 'list' ?>">
         <?php require __DIR__ . '/_sidebar.php'; ?>
 

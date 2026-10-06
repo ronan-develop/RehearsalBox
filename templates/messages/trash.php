@@ -17,9 +17,9 @@
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
-<body class="rb-chat-body">
+<body class="rb-chat-page">
     <main class="rb-trash">
-        <header class="rb-trash-head">
+        <header class="rb-chat-sidebar-head rb-trash-head">
             <a href="/messages" class="rb-chat-icon-link" aria-label="Retour aux conversations">←</a>
             <h1>Corbeille</h1>
         </header>
