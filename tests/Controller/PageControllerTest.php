@@ -171,6 +171,22 @@ final class PageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheDashboardLinksToTheBookingPageOnlyForPeopleWhoHaveAGroup(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+
+        self::assertStringNotContainsString('href="/bookings"', $controller->dashboard()->body(), 'sans groupe : rien à réserver');
+
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Membre);
+
+        $html = $controller->dashboard()->body();
+        self::assertStringContainsString('href="/bookings"', $html);
+        self::assertStringContainsString('Réserver le local', $html);
+    }
+
+    #[Test]
 
     public function testDashboardExposesFirstGroupAlphabeticallyWhenUserBelongsToMultipleGroups(): void
     {

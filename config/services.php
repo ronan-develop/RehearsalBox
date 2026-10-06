@@ -8,6 +8,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminBookingPageController;
 use App\Controller\AdminGroupPageController;
+use App\Controller\BookingPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
@@ -59,6 +60,7 @@ use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
 use App\Presenter\AdminBookingsView;
+use App\Presenter\MemberBookingsView;
 use App\Presenter\ConversationFormatter;
 use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
@@ -369,6 +371,15 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupImpactRepositoryInterface::class),
+    ));
+
+    $container->set(BookingPageController::class, fn ($c) => new BookingPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(FreeSlotBookingService::class),
+        new MemberBookingsView(),
     ));
 
     $container->set(AdminBookingPageController::class, fn ($c) => new AdminBookingPageController(

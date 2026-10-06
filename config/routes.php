@@ -7,6 +7,7 @@ use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
 use App\Controller\AdminBookingPageController;
 use App\Controller\AdminGroupPageController;
+use App\Controller\BookingPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
@@ -37,6 +38,7 @@ return [
         ['GET', '/admin/groups', [AdminGroupPageController::class, 'index']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
+        ['GET', '/bookings', [BookingPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],
         ['GET', '/messages/archives', [MessagesPageController::class, 'archives']],
