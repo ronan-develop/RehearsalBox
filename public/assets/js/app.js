@@ -6,6 +6,7 @@ import { initAdminGroups } from './admin-groups.js';
 import { initAdminUsers } from './admin-users.js';
 import { initAdminBookings } from './admin-bookings.js';
 import { initBookingsBadge } from './bookings-badge.js';
+import { initBookings } from './bookings.js';
 import { initPlanningTabs } from './planning-tabs.js';
 import { initTornPaper } from './tornpaper-init.js';
 import { initPlanningSearch } from './planning-search.js';
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminUsers();
   initAdminBookings();
   initBookingsBadge();
+  initBookings();
   initPlanningTabs();
   initTornPaper();
   initPlanningSearch();

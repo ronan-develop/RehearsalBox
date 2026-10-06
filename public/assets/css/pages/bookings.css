@@ -1,0 +1,150 @@
+/* Page « Réserver le local » (#263) : mobile d'abord, une colonne, zones tactiles de 44 px. */
+.rb-bookings-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--rb-space-4);
+  padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
+}
+
+.rb-bookings-back {
+  display: inline-block;
+  margin-bottom: var(--rb-space-3);
+  color: var(--rb-text-2);
+  text-decoration: none;
+}
+
+.rb-bookings-intro {
+  margin-bottom: var(--rb-space-4);
+  color: var(--rb-text-2);
+}
+
+.rb-bookings-empty {
+  color: var(--rb-text-2);
+}
+
+rb-booking-form,
+rb-booking-item {
+  display: block; /* un élément personnalisé est « inline » par défaut */
+}
+
+.rb-booking-form {
+  padding: var(--rb-space-4);
+  margin-bottom: var(--rb-space-5);
+}
+
+.rb-booking-form .rb-input {
+  min-height: 44px;
+}
+
+/* Le menu fixe du bas ne doit jamais masquer un champ ni le bouton quand on y arrive au clavier ou par défilement. */
+.rb-booking-form .rb-input,
+.rb-booking-form select,
+.rb-booking-submit,
+.rb-booking-item .rb-btn {
+  scroll-margin-bottom: 112px;
+}
+
+.rb-booking-form-group {
+  margin: 0 0 var(--rb-space-3);
+}
+
+.rb-booking-form-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--rb-space-3);
+}
+
+/* Le plan : une ligne par partie libre ou recouvrement. La couleur n'est jamais seule : un trait et le texte disent la même chose. */
+.rb-booking-plan,
+.rb-booking-result {
+  display: grid;
+  gap: var(--rb-space-2);
+  margin: 0 0 var(--rb-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.rb-booking-plan[hidden],
+.rb-booking-result[hidden] {
+  display: none;
+}
+
+.rb-booking-plan-line,
+.rb-booking-result-line {
+  padding: var(--rb-space-2) var(--rb-space-3);
+  border-left: 4px solid var(--rb-border);
+  background: var(--rb-bg-2);
+  border-radius: var(--rb-radius-sm);
+  overflow-wrap: anywhere;
+}
+
+.rb-booking-plan-line--free {
+  border-left-color: var(--rb-ok, #4c9a6a);
+}
+
+.rb-booking-plan-line--request {
+  border-left: 4px solid var(--rb-accent);
+}
+
+.rb-booking-result-line--ok {
+  border-left-color: var(--rb-ok, #4c9a6a);
+}
+
+.rb-booking-result-line--warn {
+  border-left-color: var(--rb-err);
+}
+
+.rb-booking-submit {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-booking-items {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin: 0 0 var(--rb-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.rb-booking-item {
+  padding: var(--rb-space-3) var(--rb-space-4);
+}
+
+.rb-booking-item-when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+  margin: 0 0 var(--rb-space-1);
+}
+
+.rb-booking-item-when span {
+  color: var(--rb-accent);
+  font-weight: 600;
+}
+
+.rb-booking-item-status {
+  margin: 0 0 var(--rb-space-2);
+  font-weight: 600;
+}
+
+.rb-booking-item-status--refusee,
+.rb-booking-item-status--annulee {
+  color: var(--rb-text-2);
+}
+
+.rb-booking-item-note {
+  margin: 0 0 var(--rb-space-2);
+  color: var(--rb-text-2);
+  overflow-wrap: anywhere;
+}
+
+.rb-booking-item .rb-btn {
+  min-height: 44px;
+}
+
+rb-booking-form[aria-busy],
+rb-booking-item[aria-busy] {
+  opacity: 0.6;
+}

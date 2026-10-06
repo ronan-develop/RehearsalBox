@@ -21,6 +21,10 @@
             </div>
         </header>
 
+        <?php if ($currentUserGroupRoles !== []): ?>
+            <p class="rb-dashboard-book"><a href="/bookings" class="rb-btn">Réserver le local</a></p>
+        <?php endif; ?>
+
         <?php if ($planningDays !== []): ?>
             <div class="rb-field">
                 <label for="planning-search" class="rb-visually-hidden">Rechercher un groupe ou un jour</label>
