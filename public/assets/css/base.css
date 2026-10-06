@@ -669,3 +669,21 @@ button:active::after, .rb-btn:active::after {
   color: var(--rb-text-2);
   overflow-wrap: anywhere;
 }
+
+/* Pastille « à valider » du lien Créneaux du menu administrateur (#263). */
+.rb-bottom-nav-badge {
+  margin-left: var(--rb-space-1);
+  min-width: 18px;
+  padding: 0 var(--rb-space-1);
+  color: #fff;
+  background: var(--rb-accent);
+  border-radius: 99px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.rb-bottom-nav-badge[hidden] {
+  display: none;
+}
