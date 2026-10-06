@@ -407,11 +407,32 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('data-edited-at="0"', $mine);
 
         $this->loginAs($bob);
-        self::assertStringNotContainsString('data-edit-message', $this->controller->show($this->request(), (string) $id)->body(), 'jamais sur les messages des autres');
+        self::assertStringNotContainsString('data-edit-message', $this->withoutActionsTemplate($this->controller->show($this->request(), (string) $id)->body()), 'jamais sur les messages des autres');
 
         $this->clock->modify('+16 minutes');
         $this->loginAs($alice);
-        self::assertStringNotContainsString('data-edit-message', $this->controller->show($this->request(), (string) $id)->body(), 'plus de bouton après 15 minutes');
+        self::assertStringNotContainsString('data-edit-message', $this->withoutActionsTemplate($this->controller->show($this->request(), (string) $id)->body()), 'plus de bouton après 15 minutes');
+    }
+
+    /** Le modèle des actions (#257) contient toujours les deux boutons : les assertions « absent » portent sur les lignes du fil. */
+    private function withoutActionsTemplate(string $html): string
+    {
+        return preg_replace('#<template data-message-actions>.*?</template>#s', '', $html) ?? $html;
+    }
+
+    #[Test]
+    public function testThePageCarriesOneTemplateOfTheTapActionsWithBothButtons(): void
+    {
+        [$alice, , $id] = $this->conversationFromAlice();
+        $this->loginAs($alice);
+
+        $body = $this->controller->show($this->request(), (string) $id)->body();
+
+        self::assertSame(1, substr_count($body, '<template data-message-actions>'), 'une seule définition des boutons');
+        preg_match('#<template data-message-actions>(.*?)</template>#s', $body, $template);
+        self::assertStringNotContainsString('<rb-message-actions', $template[1], 'le modèle ne contient que les boutons : le composant, lui, s\'insère au tap');
+        self::assertStringContainsString('data-quote-message', $template[1]);
+        self::assertStringContainsString('data-edit-message', $template[1]);
     }
 
     #[Test]

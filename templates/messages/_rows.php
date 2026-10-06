@@ -25,16 +25,8 @@ foreach ($rows as $row):
         <?php if (!$row['mine'] && $row['startsRun']): ?><span class="rb-chat-author"><?= e($row['author']) ?></span><?php endif; ?>
         <div class="rb-chat-body" data-message-body><?php require __DIR__ . '/_message-body.php'; ?></div>
     </div>
-    <?php /* Citer (#214) : au survol ou au clavier sur ordinateur ; sur mobile, tap sur la bulle (tap-actions.js, #253). */ ?>
-    <button type="button" class="rb-chat-quote-action" data-quote-message aria-label="Répondre à ce message" title="Répondre à ce message">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5V20"/></svg>
-    </button>
-    <?php if (!empty($row['editable'])): ?>
-        <?php /* Corriger : au survol ou au clavier sur ordinateur ; sur mobile, tap sur la bulle (tap-actions.js, #253). */ ?>
-        <button type="button" class="rb-chat-edit" data-edit-message aria-label="Modifier ce message" title="Modifier ce message">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        </button>
-    <?php endif; ?>
+    <?php /* Citer et corriger : au survol ou au clavier sur ordinateur ; sur écran tactile, le composant cloné au tap (<rb-message-actions>, #257). */ ?>
+    <?php $withEdit = !empty($row['editable']); require __DIR__ . '/_message-action-buttons.php'; ?>
 </li>
 <?php endif;
 endforeach;
