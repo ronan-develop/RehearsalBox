@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Enum\FreeSlotBookingStatus;
 use App\Entity\Enum\Weekday;
 use App\Entity\RecurringSlot;
+use App\Repository\MysqlBookingDateLock;
 use App\Repository\MysqlFreeSlotBookingRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Security\Exception\AccessDeniedException;
@@ -49,7 +50,7 @@ final class FreeSlotBookingServiceTest extends RepositoryTestCase
         $this->alpha = $this->group('Alpha', $alice)->id();
         $this->beta = $this->group('Beta', $bob)->id();
         $this->slots->save(new RecurringSlot(0, $this->beta, Weekday::Wednesday, '18:30:00', '22:45:00', true));
-        $this->service = new FreeSlotBookingService($this->bookings, $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock);
+        $this->service = new FreeSlotBookingService($this->bookings, new MysqlBookingDateLock($this->pdo), $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock);
     }
 
     private function wednesday(): \DateTimeImmutable
@@ -216,14 +217,14 @@ final class FreeSlotBookingServiceTest extends RepositoryTestCase
     #[Test]
     public function testABookingWaitsForTheDateLockAndFailsCleanlyIfItIsStillHeld(): void
     {
-        $other = new MysqlFreeSlotBookingRepository(TestDatabase::connection());
-        $service = new FreeSlotBookingService($this->bookings, $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock, lockWaitSeconds: 0);
-        self::assertTrue($other->acquireDateLock($this->wednesday()));
+        $other = new MysqlBookingDateLock(TestDatabase::connection());
+        $service = new FreeSlotBookingService($this->bookings, new MysqlBookingDateLock($this->pdo), $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock, lockWaitSeconds: 0);
+        self::assertTrue($other->acquire($this->wednesday()));
         try {
             $this->expectException(FreeSlotBookingConflictException::class);
             $service->request($this->alice, $this->alpha, $this->wednesday(), '09:00', '10:00', null);
         } finally {
-            $other->releaseDateLock($this->wednesday());
+            $other->release($this->wednesday());
         }
     }
 

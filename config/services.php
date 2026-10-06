@@ -73,6 +73,7 @@ use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlThrottleEventRepository;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
+use App\Repository\Contract\BookingDateLockInterface;
 use App\Repository\Contract\ConversationMuteRepositoryInterface;
 use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
@@ -88,6 +89,7 @@ use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\MysqlNotificationPreferenceRepository;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
+use App\Repository\MysqlBookingDateLock;
 use App\Repository\MysqlConversationMuteRepository;
 use App\Repository\MysqlFreeSlotBookingRepository;
 use App\Repository\MysqlMemberDirectory;
@@ -172,8 +174,11 @@ return static function (array $config): Container {
 
     $container->set(FreeSlotBookingRepositoryInterface::class, fn ($c) => new MysqlFreeSlotBookingRepository($c->get(PDO::class)));
 
+    $container->set(BookingDateLockInterface::class, fn ($c) => new MysqlBookingDateLock($c->get(PDO::class)));
+
     $container->set(FreeSlotBookingService::class, fn ($c) => new FreeSlotBookingService(
         $c->get(FreeSlotBookingRepositoryInterface::class),
+        $c->get(BookingDateLockInterface::class),
         $c->get(RecurringSlotRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         new FreeSlotBookingPolicy(),
@@ -189,6 +194,7 @@ return static function (array $config): Container {
         $c->get(RecurringSlotRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(SlotExceptionRepositoryInterface::class),
+        $c->get(FreeSlotBookingRepositoryInterface::class),
     ));
 
     $container->set(GroupServiceInterface::class, fn ($c) => new GroupService(

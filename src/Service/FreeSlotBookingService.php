@@ -8,6 +8,7 @@ use App\Entity\Enum\FreeSlotBookingStatus;
 use App\Entity\FreeSlotBooking;
 use App\Entity\Requester;
 use App\Entity\TimeRange;
+use App\Repository\Contract\BookingDateLockInterface;
 use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
@@ -26,6 +27,7 @@ final class FreeSlotBookingService
 {
     public function __construct(
         private readonly FreeSlotBookingRepositoryInterface $bookings,
+        private readonly BookingDateLockInterface $dateLock,
         private readonly RecurringSlotRepositoryInterface $slots,
         private readonly GroupRepositoryInterface $groups,
         private readonly FreeSlotBookingPolicy $policy,
@@ -50,7 +52,7 @@ final class FreeSlotBookingService
         $range = $this->policy->assertAllowed($date, $startTime, $endTime, $reason, $this->bookings->countUpcomingFor($groupId, $now), $now);
 
         // Le verrou du jour sérialise « vérifier puis insérer » : deux réservations simultanées, une seule passe (409 pour l'autre).
-        if (!$this->bookings->acquireDateLock($date, $this->lockWaitSeconds)) {
+        if (!$this->dateLock->acquire($date, $this->lockWaitSeconds)) {
             throw new FreeSlotBookingConflictException('Une autre réservation est en cours pour ce jour : réessayez dans un instant.');
         }
         try {
@@ -58,7 +60,7 @@ final class FreeSlotBookingService
 
             return $this->bookings->create(new Requester($groupId, $userId), $date, $range, $reason);
         } finally {
-            $this->bookings->releaseDateLock($date);
+            $this->dateLock->release($date);
         }
     }
 

@@ -50,7 +50,7 @@ final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
         $groups->addMember($this->alphaId, $alice->id());
         $slots = new MysqlRecurringSlotRepository($this->pdo);
         $slots->save(new RecurringSlot(0, $this->betaId, Weekday::Wednesday, '18:30:00', '22:45:00', true));
-        $service = new FreeSlotBookingService(new MysqlFreeSlotBookingRepository($this->pdo), $slots, $groups, new FreeSlotBookingPolicy(), new MockClock('2026-10-04 12:00:00'));
+        $service = new FreeSlotBookingService(new MysqlFreeSlotBookingRepository($this->pdo), new \App\Repository\MysqlBookingDateLock($this->pdo), $slots, $groups, new FreeSlotBookingPolicy(), new MockClock('2026-10-04 12:00:00'));
         $this->api = new KernelTranslation(new FreeSlotBookingApiController($service, new AuthGuard($this->auth)));
     }
 

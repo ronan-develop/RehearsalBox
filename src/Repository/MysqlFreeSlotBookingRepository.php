@@ -18,20 +18,6 @@ final class MysqlFreeSlotBookingRepository implements FreeSlotBookingRepositoryI
     {
     }
 
-    public function acquireDateLock(\DateTimeImmutable $date, int $waitSeconds = 5): bool
-    {
-        $statement = $this->pdo->prepare('SELECT GET_LOCK(:name, :wait)');
-        $statement->execute(['name' => $this->lockName($date), 'wait' => $waitSeconds]);
-
-        return (int) $statement->fetchColumn() === 1;
-    }
-
-    public function releaseDateLock(\DateTimeImmutable $date): void
-    {
-        $statement = $this->pdo->prepare('SELECT RELEASE_LOCK(:name)');
-        $statement->execute(['name' => $this->lockName($date)]);
-    }
-
     public function create(Requester $requester, \DateTimeImmutable $date, TimeRange $range, ?string $reason): FreeSlotBooking
     {
         $statement = $this->pdo->prepare(
@@ -141,11 +127,6 @@ final class MysqlFreeSlotBookingRepository implements FreeSlotBookingRepositoryI
         $statement->execute($parameters);
 
         return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
-    }
-
-    private function lockName(\DateTimeImmutable $date): string
-    {
-        return 'rb-booking-' . $date->format('Y-m-d');
     }
 
     /** @param array<string, mixed> $row */

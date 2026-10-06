@@ -12,16 +12,6 @@ use App\Entity\TimeRange;
 /** Réservations libres du local (#263). */
 interface FreeSlotBookingRepositoryInterface
 {
-    /**
-     * Verrou applicatif par DATE (GET_LOCK) : sérialise les réservations d'un même jour, sans jamais gêner un autre jour.
-     * Un verrou de lignes sur une date vide ne conviendrait pas : deux verrous de vide se croisent et finissent en blocage mortel.
-     *
-     * @return bool faux si le verrou n'a pas été obtenu dans le délai ($waitSeconds)
-     */
-    public function acquireDateLock(\DateTimeImmutable $date, int $waitSeconds = 5): bool;
-
-    public function releaseDateLock(\DateTimeImmutable $date): void;
-
     public function create(Requester $requester, \DateTimeImmutable $date, TimeRange $range, ?string $reason): FreeSlotBooking;
 
     public function findById(int $id): ?FreeSlotBooking;

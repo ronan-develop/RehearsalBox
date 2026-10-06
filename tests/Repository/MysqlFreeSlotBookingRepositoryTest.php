@@ -10,7 +10,6 @@ use App\Entity\TimeRange;
 use App\Repository\MysqlFreeSlotBookingRepository;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\MessagingScenario;
-use App\Tests\TestDatabase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #263 partie 2 : réservations libres du local. */
@@ -164,22 +163,5 @@ final class MysqlFreeSlotBookingRepositoryTest extends RepositoryTestCase
         $booking = $this->book();
         $this->groups->delete($this->alphaGroup);
         self::assertNull($this->bookings->findById($booking->id()), 'la réservation part avec son groupe');
-    }
-
-    #[Test]
-    public function testTheDateLockMakesTwoBookingsOfTheSameDayWaitForEachOtherButNotAnotherDay(): void
-    {
-        $second = new MysqlFreeSlotBookingRepository(TestDatabase::connection()); // une AUTRE connexion : une autre réservation simultanée
-
-        self::assertTrue($this->bookings->acquireDateLock($this->day()));
-        try {
-            self::assertFalse($second->acquireDateLock($this->day(), 0), 'même jour : il doit attendre');
-            self::assertTrue($second->acquireDateLock($this->day('+2 days'), 0), 'un autre jour n\'est jamais gêné');
-            $second->releaseDateLock($this->day('+2 days'));
-        } finally {
-            $this->bookings->releaseDateLock($this->day());
-        }
-        self::assertTrue($second->acquireDateLock($this->day(), 0), 'libéré : le second passe');
-        $second->releaseDateLock($this->day());
     }
 }
