@@ -6,7 +6,7 @@
  */
 import { apiFetch } from './api.js';
 import { showToast } from './toast.js';
-import { refreshExceptionalPlanning } from './planning-slider.js';
+import { refreshExceptionalPlanning } from './exceptional-planning.js';
 import { renumberDeck } from './exception-deck.js';
 
 function removeExceptionCard(root, exceptionId) {
