@@ -448,4 +448,93 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertArrayHasKey('reason', json_decode($longReason->body(), true)['fields']);
         self::assertSame(422, $arrayReason->statusCode());
     }
+
+    /** @return array{object, array<string, int>, AuthService} le contrôleur, les identifiants utiles, l'authentification */
+    private function requestWorld(): array
+    {
+        [$controller, $groupRepository, $slotRepository, , $userRepository, $authService] = $this->makeController();
+        $holder = $groupRepository->save(new Group(0, 'The Office', null, null, 'office@example.test'));
+        $requester = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $slot = $slotRepository->save(new RecurringSlot(0, $holder->id(), Weekday::Tuesday, '18:30:00', '22:45:00', true));
+        $groupRepository->addMember($requester->id(), $this->createUser($userRepository, 'alice@rehearsalbox.test')->id());
+        $groupRepository->addMember($holder->id(), $this->createUser($userRepository, 'bob@rehearsalbox.test')->id());
+
+        return [$controller, ['slot' => $slot->id(), 'requester' => $requester->id(), 'holder' => $holder->id()], $authService];
+    }
+
+    #[Test]
+    public function testAMemberRequestsAPartOfAnotherGroupsSlotAndGetsItBackWithItsRange(): void
+    {
+        [$controller, $ids, $authService] = $this->requestWorld();
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+
+        $response = $controller->store(new Request('POST', '/api/availability', [], [
+            'recurringSlotId' => $ids['slot'], 'groupId' => $ids['requester'], 'occurrenceDate' => $this->futureTuesday(),
+            'startTime' => '18:30', 'endTime' => '19:00', 'reason' => 'On déborde un peu',
+        ], []));
+
+        self::assertSame(201, $response->statusCode());
+        $exception = json_decode($response->body(), true)['exception'];
+        self::assertSame(['en_attente', '18:30', '19:00', $ids['requester']], [$exception['status'], $exception['startTime'], $exception['endTime'], $exception['requestedByGroupId']]);
+    }
+
+    #[Test]
+    public function testARequestWithoutARangeCoversTheWholeSlotAndInvalidInputIsRefusedPerField(): void
+    {
+        [$controller, $ids, $authService] = $this->requestWorld();
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+        $body = ['recurringSlotId' => $ids['slot'], 'groupId' => $ids['requester'], 'occurrenceDate' => $this->futureTuesday()];
+
+        $whole = json_decode($controller->store(new Request('POST', '/x', [], $body, []))->body(), true)['exception'];
+        self::assertNull($whole['startTime']);
+        self::assertNull($whole['endTime']);
+
+        $outside = $controller->store(new Request('POST', '/x', [], ['occurrenceDate' => $this->futureTuesday(1), 'startTime' => '17:00', 'endTime' => '19:00'] + $body, []));
+        self::assertSame(422, $outside->statusCode());
+        self::assertArrayHasKey('startTime', json_decode($outside->body(), true)['fields']);
+
+        $badDate = $controller->store(new Request('POST', '/x', [], ['occurrenceDate' => '07/10/2026'] + $body, []));
+        self::assertSame(422, $badDate->statusCode());
+        self::assertArrayHasKey('occurrenceDate', json_decode($badDate->body(), true)['fields']);
+    }
+
+    #[Test]
+    public function testTheSameDateCannotBeRequestedTwiceOnASlot(): void
+    {
+        [$controller, $ids, $authService] = $this->requestWorld();
+        $authService->attempt('alice@rehearsalbox.test', 'password');
+        $body = ['recurringSlotId' => $ids['slot'], 'groupId' => $ids['requester'], 'occurrenceDate' => $this->futureTuesday()];
+        $controller->store(new Request('POST', '/x', [], $body, []));
+
+        self::assertSame(409, $controller->store(new Request('POST', '/x', [], $body, []))->statusCode());
+    }
+
+    #[Test]
+    public function testItRequiresALoginAndRefusesANonMemberTheOwnSlotAnUnknownSlotAndMalformedIds(): void
+    {
+        [$controller, $ids, $authService] = $this->requestWorld();
+        $body = ['recurringSlotId' => $ids['slot'], 'groupId' => $ids['requester'], 'occurrenceDate' => $this->futureTuesday()];
+
+        try {
+            $controller->store(new Request('POST', '/x', [], $body, []));
+            self::fail('connexion exigée');
+        } catch (\App\Security\Exception\UnauthenticatedException) {
+            $this->addToAssertionCount(1);
+        }
+
+        $authService->attempt('bob@rehearsalbox.test', 'password'); // membre du groupe titulaire, pas du demandeur
+        foreach ([
+            'pas membre du groupe demandeur' => $body,
+            'son propre créneau' => ['groupId' => $ids['holder']] + $body,
+            'créneau inconnu' => ['recurringSlotId' => 999999] + $body,
+            'identifiant mal formé' => ['recurringSlotId' => 'abc'] + $body,
+        ] as $label => $payload) {
+            try {
+                $controller->store(new Request('POST', '/x', [], $payload, []));
+                self::fail("accès refusé attendu : {$label}");
+            } catch (\App\Security\Exception\AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage(), $label);
+            }
+        }
+    }
 }

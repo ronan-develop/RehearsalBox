@@ -155,6 +155,8 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/availability/{excBA}/respond', ['accepted' => true, 'occurrenceDate' => '2026-01-06'], ['anon', 'stranger', 'outsiderB', 'admin', 'dual']],
             ['PATCH', '/api/availability/{excBA}', ['occurrenceDate' => $future], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             ['DELETE', '/api/availability/{excBA}', [], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
+            // Demande d'échange (#263) : A détient le créneau, la demande est faite au nom de B — seuls les membres de B peuvent la faire
+            ['POST', '/api/availability', ['recurringSlotId' => '{slotA}', 'groupId' => '{groupB}', 'occurrenceDate' => $future, 'startTime' => '18:00', 'endTime' => '19:00'], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             // Réservations libres (#263)
             ['DELETE', '/api/bookings/{bkA}', [], ['anon', 'stranger', 'outsiderB', 'admin']],
             ['POST', '/api/bookings', ['groupId' => '{groupA}', 'bookingDate' => $future, 'startTime' => '09:00', 'endTime' => '10:00'], ['anon', 'stranger', 'outsiderB', 'admin']],
