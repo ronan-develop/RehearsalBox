@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\RecurringSlot;
 use App\Entity\SlotException;
+use App\Entity\TimeRange;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
@@ -79,7 +80,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         // Un membre du groupe demandeur ne répond pas à sa propre demande, même
         // s'il appartient aussi au groupe titulaire : c'est un échange entre deux groupes.
-        if ($this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+        if ($this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
             throw $this->accessDenied();
         }
 
@@ -141,7 +142,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         // IDOR : seul le groupe DEMANDEUR (A), déduit de l'exception en base
         // et jamais d'un paramètre client, peut modifier sa propre demande.
-        if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+        if (!$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
             throw $this->accessDenied();
         }
 
@@ -167,7 +168,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
             throw $this->accessDenied();
         }
 
-        if (!$this->groupRepository->isMember($exception->requestedByGroupId(), $userId)) {
+        if (!$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
             throw $this->accessDenied();
         }
 
@@ -227,7 +228,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
         if ($end <= $start) {
             return ['endTime' => 'La fin doit être après le début.'];
         }
-        if ($start < $slot->startTime() || $end > $slot->endTime()) {
+        if (!(new TimeRange($start, $end))->isWithin(new TimeRange($slot->startTime(), $slot->endTime()))) {
             return ['startTime' => 'La plage doit rester dans le créneau du groupe titulaire.'];
         }
 

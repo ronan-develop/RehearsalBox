@@ -146,7 +146,7 @@ final class PageController
                 $sentItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Envoyee, $slotsById);
             }
             foreach ($this->availabilityService->findArchivedForGroup($group->id(), $user->id()) as $exception) {
-                $direction = $exception->requestedByGroupId() === $group->id() ? ExceptionDirection::Envoyee : ExceptionDirection::Recue;
+                $direction = $exception->requester()->groupId() === $group->id() ? ExceptionDirection::Envoyee : ExceptionDirection::Recue;
                 $archivedItems[$exception->id()] ??= $this->toDashboardItem($exception, $direction, $slotsById);
             }
         }
@@ -182,7 +182,7 @@ final class PageController
     /** @param array<int, RecurringSlot> $slotsById */
     private function toDashboardItem(SlotException $exception, ExceptionDirection $direction, array $slotsById): DashboardExceptionItem
     {
-        $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+        $requestingGroup = $this->groupRepository->findById($exception->requester()->groupId());
         \assert($requestingGroup !== null);
 
         $holderSlot = $slotsById[$exception->recurringSlotId()] ?? null;
@@ -193,7 +193,7 @@ final class PageController
             $requestingGroup->name(),
             $requestingGroup->colorHex(),
             // Plage demandée (#263) : la carte montre ce que le titulaire accorde, pas tout son créneau.
-            $holderSlot === null ? null : $exception->appliedTo($holderSlot),
+            $holderSlot?->within($exception->range()),
         );
     }
 

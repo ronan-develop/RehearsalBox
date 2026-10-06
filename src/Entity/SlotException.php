@@ -13,13 +13,11 @@ final class SlotException
         private readonly int $recurringSlotId,
         private readonly \DateTimeImmutable $occurrenceDate,
         private readonly SlotExceptionStatus $status,
-        private readonly int $requestedByGroupId,
-        private readonly int $requestedByUserId,
+        private readonly Requester $requester,
         private readonly ?string $requestReason,
         private readonly ?int $respondedByUserId,
         private readonly \DateTimeImmutable $createdAt,
-        private readonly ?string $startTime = null,
-        private readonly ?string $endTime = null,
+        private readonly ?TimeRange $range = null,
     ) {
     }
 
@@ -43,14 +41,9 @@ final class SlotException
         return $this->status;
     }
 
-    public function requestedByGroupId(): int
+    public function requester(): Requester
     {
-        return $this->requestedByGroupId;
-    }
-
-    public function requestedByUserId(): int
-    {
-        return $this->requestedByUserId;
+        return $this->requester;
     }
 
     public function requestReason(): ?string
@@ -73,27 +66,9 @@ final class SlotException
         return $this->createdAt;
     }
 
-    /** Début de la plage demandée (#263), null = tout le créneau du titulaire. */
-    public function startTime(): ?string
+    /** Plage demandée (#263), null = tout le créneau du titulaire ; le reste du créneau reste au titulaire. */
+    public function range(): ?TimeRange
     {
-        return $this->startTime;
-    }
-
-    public function endTime(): ?string
-    {
-        return $this->endTime;
-    }
-
-    /**
-     * Le créneau tel que le demandeur l'occupera : celui du titulaire (même jour) restreint à la plage demandée, ou le créneau
-     * entier sans plage. Le reste du créneau reste au titulaire.
-     */
-    public function appliedTo(RecurringSlot $holder): RecurringSlot
-    {
-        if ($this->startTime === null || $this->endTime === null) {
-            return $holder;
-        }
-
-        return new RecurringSlot($holder->id(), $holder->groupId(), $holder->weekday(), $this->startTime, $this->endTime, $holder->isActive());
+        return $this->range;
     }
 }

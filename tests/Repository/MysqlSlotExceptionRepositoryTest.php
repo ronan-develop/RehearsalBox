@@ -38,8 +38,8 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         self::assertNotNull($found);
         self::assertTrue($found->isEnAttente());
         self::assertSame('Concert samedi', $found->requestReason());
-        self::assertSame($requestingGroupId, $found->requestedByGroupId());
-        self::assertSame($requestingUserId, $found->requestedByUserId());
+        self::assertSame($requestingGroupId, $found->requester()->groupId());
+        self::assertSame($requestingUserId, $found->requester()->userId());
         self::assertInstanceOf(\DateTimeImmutable::class, $found->createdAt());
     }
 
@@ -52,10 +52,9 @@ final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
         $partial = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null, '18:30:00', '19:00:00');
         $whole = $repository->createRequest($holderSlotId, new \DateTimeImmutable('+14 days'), $requestingGroupId, $requestingUserId, null);
 
-        self::assertSame('18:30:00', $repository->findById($partial->id())?->startTime());
-        self::assertSame('19:00:00', $repository->findById($partial->id())?->endTime());
-        self::assertNull($repository->findById($whole->id())?->startTime(), 'sans plage : tout le créneau');
-        self::assertNull($repository->findById($whole->id())?->endTime());
+        self::assertSame('18:30:00', $repository->findById($partial->id())?->range()?->start());
+        self::assertSame('19:00:00', $repository->findById($partial->id())?->range()?->end());
+        self::assertNull($repository->findById($whole->id())?->range(), 'sans plage : tout le créneau');
     }
 
     #[Test]

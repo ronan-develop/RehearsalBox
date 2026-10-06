@@ -107,9 +107,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $request = $service->createRequest($slotId, $groupId, $this->tuesday(0), 'Concert', $userId);
 
         self::assertTrue($request->isEnAttente());
-        self::assertSame($groupId, $request->requestedByGroupId());
-        self::assertNull($request->startTime());
-        self::assertNull($request->endTime());
+        self::assertSame($groupId, $request->requester()->groupId());
+        self::assertNull($request->range());
     }
 
     #[Test]
@@ -120,8 +119,8 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $start = $service->createRequest($slotId, $groupId, $this->tuesday(0), null, $userId, '18:00', '18:30');
         $end = $service->createRequest($slotId, $groupId, $this->tuesday(1), null, $userId, '19:15:00', '20:00:00');
 
-        self::assertSame(['18:00:00', '18:30:00'], [$start->startTime(), $start->endTime()]);
-        self::assertSame(['19:15:00', '20:00:00'], [$end->startTime(), $end->endTime()]);
+        self::assertSame(['18:00:00', '18:30:00'], [$start->range()?->start(), $start->range()?->end()]);
+        self::assertSame(['19:15:00', '20:00:00'], [$end->range()?->start(), $end->range()?->end()]);
     }
 
     #[Test]
@@ -563,7 +562,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
     {
         [$service, , $requestingUserId, $slotId, $exception] = $this->pendingRequest();
         $groupRepository = new MysqlGroupRepository($this->pdo);
-        $requestingGroupId = $exception->requestedByGroupId();
+        $requestingGroupId = $exception->requester()->groupId();
         (new MysqlSlotExceptionRepository($this->pdo))->createRequest($slotId, $this->tuesday(2), $requestingGroupId, $requestingUserId, null);
 
         $this->expectException(DuplicateOccurrenceException::class);

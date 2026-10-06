@@ -119,7 +119,7 @@ final class AvailabilityApiController
             'recurringSlotId' => $exception->recurringSlotId(),
             'occurrenceDate' => $exception->occurrenceDate()->format('Y-m-d'),
             'status' => $exception->status()->value,
-            'requestedByGroupId' => $exception->requestedByGroupId(),
+            'requestedByGroupId' => $exception->requester()->groupId(),
             'requestReason' => $exception->requestReason(),
             'respondedByUserId' => $exception->respondedByUserId(),
         ];

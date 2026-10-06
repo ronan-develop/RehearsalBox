@@ -140,11 +140,11 @@ final class SlotService implements SlotServiceInterface
             function (\App\Entity\SlotException $exception): RequestableSlot {
                 $holderSlot = $this->slotRepository->findById($exception->recurringSlotId());
                 \assert($holderSlot !== null);
-                $requestingGroup = $this->groupRepository->findById($exception->requestedByGroupId());
+                $requestingGroup = $this->groupRepository->findById($exception->requester()->groupId());
                 \assert($requestingGroup !== null);
 
                 // Plage demandée (#263) : le reste du créneau reste au titulaire ; sans plage, tout le créneau.
-                return RequestableSlot::occasional($exception->appliedTo($holderSlot), $requestingGroup->name(), $requestingGroup->id(), $exception->occurrenceDate());
+                return RequestableSlot::occasional($holderSlot->within($exception->range()), $requestingGroup->name(), $requestingGroup->id(), $exception->occurrenceDate());
             },
             $this->exceptionRepository->findAcceptedForCurrentWeek(),
         );

@@ -52,4 +52,15 @@ final class RecurringSlot
     {
         return $startTime < $this->endTime && $this->startTime < $endTime;
     }
+
+    /**
+     * Ce créneau restreint à une plage (#263) : même identifiant, même jour et même groupe, seules les heures changent ; sans plage,
+     * le créneau lui-même.
+     */
+    public function within(?TimeRange $range): self
+    {
+        return $range === null
+            ? $this
+            : new self($this->id, $this->groupId, $this->weekday, $range->start(), $range->end(), $this->isActive);
+    }
 }

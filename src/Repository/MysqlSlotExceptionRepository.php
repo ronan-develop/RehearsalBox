@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Enum\SlotExceptionStatus;
+use App\Entity\Requester;
 use App\Entity\SlotException;
+use App\Entity\TimeRange;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Repository\Exception\DuplicateOccurrenceException;
 
@@ -184,13 +186,11 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
             recurringSlotId: (int) $row['recurring_slot_id'],
             occurrenceDate: new \DateTimeImmutable((string) $row['occurrence_date']),
             status: SlotExceptionStatus::from((string) $row['status']),
-            requestedByGroupId: (int) $row['requested_by_group_id'],
-            requestedByUserId: (int) $row['requested_by_user_id'],
+            requester: new Requester((int) $row['requested_by_group_id'], (int) $row['requested_by_user_id']),
             requestReason: $row['request_reason'] !== null ? (string) $row['request_reason'] : null,
             respondedByUserId: $row['responded_by_user_id'] !== null ? (int) $row['responded_by_user_id'] : null,
             createdAt: new \DateTimeImmutable((string) $row['created_at']),
-            startTime: $row['start_time'] !== null ? (string) $row['start_time'] : null,
-            endTime: $row['end_time'] !== null ? (string) $row['end_time'] : null,
+            range: TimeRange::fromColumns($row['start_time'] !== null ? (string) $row['start_time'] : null, $row['end_time'] !== null ? (string) $row['end_time'] : null),
         );
     }
 }
