@@ -443,4 +443,22 @@ final class KernelTest extends TestCase
 
         self::assertSame(500, $response->statusCode());
     }
+
+    #[Test]
+    public function testABusinessExceptionBubblingUpFromAControllerBecomesItsResponse(): void
+    {
+        foreach ([
+            [new \App\Service\Exception\UserValidationException(['email' => 'Invalide.']), 422, '{"error":"Validation échouée","fields":{"email":"Invalide."}}'],
+            [new \App\Service\Exception\RequestAlreadyRespondedException('Déjà traitée.'), 409, '{"error":"Déjà traitée."}'],
+            [new \App\Service\Exception\ConversationRateLimitException('Trop de messages.'), 429, '{"error":"Trop de messages."}'],
+            [new \App\Service\Exception\UserNotFoundException('Utilisateur 42 introuvable.'), 404, '{"error":"Utilisateur introuvable."}'],
+        ] as [$error, $status, $body]) {
+            [, $response, $logged] = $this->crash('GET', '/api/boom', $error);
+
+            self::assertSame($status, $response->statusCode(), $error::class);
+            self::assertSame($body, $response->body(), $error::class);
+            self::assertSame('', $logged, 'une erreur métier attendue n\'est pas une « erreur non gérée »');
+            self::assertSame('DENY', $response->headers()['X-Frame-Options'], 'les en-têtes de sécurité restent posés');
+        }
+    }
 }
