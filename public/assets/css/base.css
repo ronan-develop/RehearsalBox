@@ -309,6 +309,14 @@ button:active::after, .rb-btn:active::after {
   box-sizing: border-box;
 }
 
+/* iOS : sans apparence native, un champ date vide n'affiche rien ; un repère gris le dit (#309). Les autres navigateurs ont déjà le leur. */
+@supports (-webkit-touch-callout: none) {
+  .rb-input[type="date"]:required:invalid::before {
+    content: "jj/mm/aaaa";
+    color: var(--rb-text-3);
+  }
+}
+
 .rb-input::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.8;
