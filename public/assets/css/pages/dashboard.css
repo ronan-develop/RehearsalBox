@@ -792,3 +792,15 @@ body {
     white-space: nowrap;
   }
 }
+
+/* Lien « Réserver le local » (#263), au-dessus de la recherche du planning. */
+.rb-dashboard-book {
+  margin: 0 0 var(--rb-space-3);
+}
+
+.rb-dashboard-book .rb-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
