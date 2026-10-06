@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchesPlanningSearch, initPlanningSearch } from './planning-search.js';
+import { matchesPlanningSearch, initPlanningSearch, syncDayHeadings } from './planning-search.js';
 
 test('matchesPlanningSearch matches on group name, case-insensitive', () => {
   const card = { weekday: '2', groupName: 'Dead Kennedys Cover' };
@@ -91,4 +91,37 @@ test('initPlanningSearch does nothing when the search input is absent from the p
   };
 
   assert.doesNotThrow(() => initPlanningSearch(doc));
+});
+
+function fakeTrack(children) {
+  return { children, querySelectorAll: () => children.filter((c) => c.isCard) };
+}
+
+function fakeDayHeading() {
+  const classes = new Set();
+  return { isDay: true, classList: { toggle: (c, force) => (force ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) }, matches: (s) => s === '.rb-planning-day' };
+}
+
+function fakeHideableCard(hidden = false) {
+  return { isCard: true, classList: { contains: (c) => c === 'rb-planning-card--hidden' && hidden }, matches: (s) => s === '.rb-planning-card' };
+}
+
+test('syncDayHeadings hides a day heading when none of its cards is visible', () => {
+  const monday = fakeDayHeading();
+  const tuesday = fakeDayHeading();
+  const track = fakeTrack([monday, fakeHideableCard(true), tuesday, fakeHideableCard(false)]);
+
+  syncDayHeadings(track);
+
+  assert.equal(monday.classList.contains('rb-planning-day--hidden'), true);
+  assert.equal(tuesday.classList.contains('rb-planning-day--hidden'), false);
+});
+
+test('syncDayHeadings keeps a heading when at least one of its cards is visible', () => {
+  const day = fakeDayHeading();
+  const track = fakeTrack([day, fakeHideableCard(true), fakeHideableCard(false)]);
+
+  syncDayHeadings(track);
+
+  assert.equal(day.classList.contains('rb-planning-day--hidden'), false);
 });

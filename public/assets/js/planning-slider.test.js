@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoScrollController, initPlanningSlider, shouldAutoScroll, buildExceptionalCardMarkup, refreshExceptionalPlanning } from './planning-slider.js';
+import { createAutoScrollController, initPlanningSlider, shouldAutoScroll, appendLoopCopy, buildExceptionalCardMarkup, refreshExceptionalPlanning } from './planning-slider.js';
 
 function makeFakeTrack(offsetWidth = 1000) {
   const reads = { offsetWidth: 0 };
@@ -93,7 +93,7 @@ test('createAutoScrollController does not start an animation on a track with no 
 
 // --- Pilotage : animation CSS, pauses (toucher, survol, hors écran, onglet caché), aucun JS par image ---
 
-function makeDriver({ reducedMotion = false, offsetWidth = 1000 } = {}) {
+function makeDriver({ reducedMotion = false, offsetWidth = 1000, width = 1280 } = {}) {
   const winListeners = {};
   const sliderListeners = {};
   const rootListeners = {};
@@ -106,7 +106,7 @@ function makeDriver({ reducedMotion = false, offsetWidth = 1000 } = {}) {
     querySelector: (selector) => (selector === '[data-planning-slider]' ? slider : selector === '[data-planning-track]' ? track : null),
   };
   const win = {
-    innerWidth: 390,
+    innerWidth: width,
     matchMedia: () => ({ matches: reducedMotion }),
     requestAnimationFrame: () => { throw new Error('aucune boucle JS par image attendue'); },
     addEventListener: (event, cb) => { winListeners[event] = cb; },
@@ -198,12 +198,39 @@ test('initPlanningSlider does not auto-scroll with prefers-reduced-motion (nativ
   assert.equal(d.track.classes.has('rb-planning-track--auto'), false);
 });
 
-test('shouldAutoScroll returns true when the viewport is narrower than the desktop breakpoint (mobile-first)', () => {
-  assert.equal(shouldAutoScroll(767), true);
+test('shouldAutoScroll is only true from the desktop breakpoint: the mobile planning is a list, not a carousel (#201)', () => {
+  assert.equal(shouldAutoScroll(767), false);
+  assert.equal(shouldAutoScroll(768), true);
 });
 
-test('shouldAutoScroll returns false when the viewport is at least as wide as the desktop breakpoint', () => {
-  assert.equal(shouldAutoScroll(768), false);
+test('initPlanningSlider never animates the list on a phone-width viewport', () => {
+  const d = makeDriver({ width: 390 });
+
+  initPlanningSlider(d.root, d.win);
+
+  assert.equal(d.track.classes.has('rb-planning-track--auto'), false);
+});
+
+test('appendLoopCopy adds ONE inert, hidden-from-assistive-tech copy of the cards, created only when the loop runs', () => {
+  const created = [];
+  const doc = {
+    createElement: (tag) => {
+      const el = { tag, attrs: {}, children: [], className: '', setAttribute(n, v) { this.attrs[n] = v; }, append(...nodes) { this.children.push(...nodes); } };
+      created.push(el);
+      return el;
+    },
+  };
+  const cards = [{ cloneNode: () => ({ clone: 'a' }) }, { cloneNode: () => ({ clone: 'b' }) }];
+  const appended = [];
+  const track = { ownerDocument: doc, children: cards, append: (node) => appended.push(node) };
+
+  appendLoopCopy(track);
+
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0].attrs['aria-hidden'], 'true');
+  assert.ok('inert' in appended[0].attrs, 'la copie ne reçoit ni focus ni clic');
+  assert.equal(appended[0].className, 'rb-planning-loop-copy');
+  assert.deepEqual(appended[0].children, [{ clone: 'a' }, { clone: 'b' }]);
 });
 
 test('buildExceptionalCardMarkup renders group name, weekday, occurrence date and time range', () => {
@@ -279,11 +306,13 @@ test('refreshExceptionalPlanning fetches /api/planning and replaces the exceptio
     },
     querySelectorAll: () => [],
   };
-  const section = { hidden: true, removeAttribute: function (attr) { if (attr === 'hidden') this.hidden = false; } };
+  const section = fakeSection(true);
+  const count = { textContent: '0' };
   const root = {
     querySelector: (selector) => {
       if (selector === '[data-planning-track-exceptional]') return track;
       if (selector === '[data-exceptional-planning-section]') return section;
+      if (selector === '[data-planning-tab-count]') return count;
       return null;
     },
   };
@@ -292,26 +321,38 @@ test('refreshExceptionalPlanning fetches /api/planning and replaces the exceptio
 
   assert.match(assignedHtml, /Rust Prophet/);
   assert.ok(!assignedHtml.includes('Fixed Group'));
-  assert.equal(section.hidden, false, 'the section must be revealed when occasional slots are present');
+  assert.equal(section.isEmpty(), false, 'the section must be shown when occasional slots are present');
+  assert.equal(count.textContent, '1', 'le compteur de l\'onglet suit le nombre de créneaux');
 });
 
-test('refreshExceptionalPlanning hides the section again when there are no more occasional slots', async () => {
+function fakeSection(empty) {
+  const classes = new Set(empty ? ['rb-planning-section--empty'] : []);
+  return {
+    classList: { toggle: (c, force) => (force ? classes.add(c) : classes.delete(c)) },
+    isEmpty: () => classes.has('rb-planning-section--empty'),
+  };
+}
+
+test('refreshExceptionalPlanning marks the section empty again when there are no more occasional slots', async () => {
   globalThis.fetch = async () => ({
     ok: true,
     json: async () => ({ fixedSlots: [], occasionalSlots: [] }),
   });
 
   const track = { innerHTML: '', querySelectorAll: () => [] };
-  const section = { hidden: false, setAttribute: function (attr) { if (attr === 'hidden') this.hidden = true; } };
+  const section = fakeSection(false);
+  const count = { textContent: '2' };
   const root = {
     querySelector: (selector) => {
       if (selector === '[data-planning-track-exceptional]') return track;
       if (selector === '[data-exceptional-planning-section]') return section;
+      if (selector === '[data-planning-tab-count]') return count;
       return null;
     },
   };
 
   await refreshExceptionalPlanning(root);
 
-  assert.equal(section.hidden, true);
+  assert.equal(section.isEmpty(), true);
+  assert.equal(count.textContent, '0');
 });

@@ -4,11 +4,13 @@
  *
  * Le défilement est une animation CSS sur le track (transform, compositeur) :
  * le conteneur visible [data-planning-slider] n'est pas lui-même scrollable
- * dans ce layout, seul [data-planning-track] déborde (width: max-content). Le
- * HTML dans templates/dashboard/index.php duplique une fois la liste de
- * cartes ; l'animation va de 0 à -50 % de la largeur du track et boucle donc
- * pile là où la copie dupliquée est visuellement identique à l'original (pas
- * de saut). Ce module ne fait que la durée du tour et les pauses.
+ * dans ce layout, seul [data-planning-track] déborde (width: max-content).
+ * Il ne tourne que sur bureau (≥ 768 px) : sur mobile le planning est une liste
+ * (#201). La copie des cartes qui permet de boucler est AJOUTÉE ICI, seulement
+ * quand l'animation tourne (jamais dans le HTML : pas de cartes en double hors
+ * boucle) ; l'animation va de 0 à -50 % de la largeur du track et boucle donc
+ * pile là où la copie est visuellement identique à l'original (pas de saut).
+ * Ce module ne fait que la copie, la durée du tour et les pauses.
  *
  * Logique extraite de tout DOM/timer pour rester testable en environnement
  * node --test.
@@ -16,6 +18,7 @@
 import { apiFetch } from './api.js';
 import { initTornPaper } from './tornpaper-init.js';
 import { escapeHtml } from './html.js';
+import { isDesktopWidth } from './viewport.js';
 
 /** Vitesse historique : 1 px toutes les 40 ms. */
 const DEFAULT_SPEED_PX_PER_SECOND = 25;
@@ -72,15 +75,28 @@ export function createAutoScrollController(track, { speed = DEFAULT_SPEED_PX_PER
 }
 
 /**
- * Breakpoint desktop (#83) : au-delà, le slider exceptionnel ne défile pas
- * automatiquement — règle simplifiée basée sur le viewport plutôt que sur
- * les dimensions DOM post-rendu (scrollWidth/clientWidth, cf. #81), pour ne
- * pas dépendre du layout déjà calculé.
+ * Breakpoint desktop (#83, #201) : en dessous, le planning est une liste à onglets, pas un carrousel — règle basée sur le
+ * viewport (comme le CSS), pas sur les dimensions DOM post-rendu.
  */
-const DESKTOP_BREAKPOINT = 768;
-
 export function shouldAutoScroll(viewportWidth) {
-  return viewportWidth < DESKTOP_BREAKPOINT;
+  return isDesktopWidth(viewportWidth);
+}
+
+/**
+ * Ajoute à la fin de la piste UNE copie des cartes pour boucler sans saut : masquée aux lecteurs d'écran, inerte (ni focus ni
+ * clic) et sans effet de mise en page (display: contents, cf. CSS). Appelée seulement quand l'animation démarre.
+ */
+export function appendLoopCopy(track) {
+  const doc = track.ownerDocument;
+  if (!doc) {
+    return;
+  }
+  const copy = doc.createElement('div');
+  copy.className = 'rb-planning-loop-copy';
+  copy.setAttribute('aria-hidden', 'true');
+  copy.setAttribute('inert', '');
+  copy.append(...Array.from(track.children).map((child) => child.cloneNode(true)));
+  track.append(copy);
 }
 
 function attachAutoScroll(slider, track, win, root) {
@@ -93,6 +109,8 @@ function attachAutoScroll(slider, track, win, root) {
     onChange: (running) => track.classList.toggle('rb-planning-track--paused', !running),
   });
 
+  // La copie double la largeur de la piste : la durée du tour est mesurée APRÈS son ajout (moitié de la largeur totale).
+  appendLoopCopy(track);
   if (controller.measure() === null) {
     return;
   }
@@ -137,18 +155,14 @@ function attachAutoScroll(slider, track, win, root) {
 export function initPlanningSlider(root = document, win = window) {
   const slider = root.querySelector('[data-planning-slider]');
   const track = root.querySelector('[data-planning-track]');
-  if (!slider || !track) {
+  if (!slider || !track || !shouldAutoScroll(win.innerWidth)) {
     return;
   }
 
   return attachAutoScroll(slider, track, win, root);
 }
 
-/**
- * Second slider (#81) : créneaux exceptionnels, cartes non cliquables
- * (pas de listener de contact posé dessus), défilement conditionnel via
- * shouldAutoScroll — contrairement au planning fixe qui défile toujours.
- */
+
 const WEEKDAY_LABELS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 function formatTime(time) {
@@ -174,9 +188,8 @@ export function buildExceptionalCardMarkup(requestableSlot) {
   return `
     <article class="rb-planning-card rb-planning-card--exceptional">
       <span class="rb-badge" aria-hidden="true">Occasionnel</span>
-      <h3 class="rb-planning-card-group">${groupName}</h3>
-      <p class="rb-planning-card-weekday">${escapeHtml(weekdayLabel)}</p>
-      <p class="rb-planning-card-date">${escapeHtml(occurrenceDate)}</p>
+      <h4 class="rb-planning-card-group">${groupName}</h4>
+      <p class="rb-planning-card-when"><span class="rb-planning-card-weekday">${escapeHtml(weekdayLabel)}</span> <span class="rb-planning-card-date">${escapeHtml(occurrenceDate)}</span></p>
       <p class="rb-planning-card-time">${escapeHtml(formatTime(requestableSlot.startTime))} – ${escapeHtml(formatTime(requestableSlot.endTime))}</p>
     </article>
   `;
@@ -199,28 +212,12 @@ export async function refreshExceptionalPlanning(root = document) {
   track.innerHTML = data.occasionalSlots.map(buildExceptionalCardMarkup).join('');
   initTornPaper(track);
 
-  const section = root.querySelector('[data-exceptional-planning-section]');
-  if (!section) {
-    return;
+  const count = root.querySelector('[data-planning-tab-count]');
+  if (count) {
+    count.textContent = String(data.occasionalSlots.length);
   }
 
-  if (data.occasionalSlots.length > 0) {
-    section.removeAttribute('hidden');
-  } else {
-    section.setAttribute('hidden', '');
-  }
+  // Vide : masquée sur bureau (CSS), message « aucun créneau » sur mobile.
+  root.querySelector('[data-exceptional-planning-section]')?.classList.toggle('rb-planning-section--empty', data.occasionalSlots.length === 0);
 }
 
-export function initExceptionalPlanningSlider(root = document, win = window) {
-  const slider = root.querySelector('[data-planning-slider-exceptional]');
-  const track = root.querySelector('[data-planning-track-exceptional]');
-  if (!slider || !track) {
-    return;
-  }
-
-  if (!shouldAutoScroll(win.innerWidth)) {
-    return;
-  }
-
-  return attachAutoScroll(slider, track, win, root);
-}
