@@ -46,4 +46,19 @@ final class NativeControlsCssTest extends TestCase
         self::assertMatchesRegularExpression('/\.rb-select\s*\{[^}]*padding-right:/s', $css);
         self::assertMatchesRegularExpression('/\.rb-select option\s*\{[^}]*background:\s*var\(--rb-surface\)/s', $css, 'les lignes de la liste gardent le fond sombre');
     }
+
+    #[Test]
+    public function testADateFieldNeverOverflowsItsContainerOnIosAndKeepsItsHeightWhenEmpty(): void
+    {
+        $css = $this->css();
+
+        preg_match('/\.rb-input\[type="date"\][^{]*\{([^}]*)\}/s', $css, $rule);
+        $body = $rule[1] ?? '';
+
+        self::assertMatchesRegularExpression('/-webkit-appearance:\s*none/', $body, 'iOS ignore la largeur d\'un champ date natif');
+        self::assertMatchesRegularExpression('/appearance:\s*none/', $body);
+        self::assertMatchesRegularExpression('/min-width:\s*0/', $body, 'sans largeur minimale intrinsèque');
+        self::assertMatchesRegularExpression('/max-width:\s*100%/', $body);
+        self::assertMatchesRegularExpression('/min-height:/', $body, 'un champ vide s\'écrase sinon sur iOS');
+    }
 }
