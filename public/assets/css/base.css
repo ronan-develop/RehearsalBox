@@ -300,6 +300,13 @@ button:active::after, .rb-btn:active::after {
 .rb-input[type="date"],
 .rb-input[type="time"] {
   min-height: 2.5rem;
+  /* iOS : un champ date natif garde sa largeur intrinsèque et déborde de sa carte ; on le force à suivre son conteneur (#307). */
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .rb-input::-webkit-calendar-picker-indicator {
