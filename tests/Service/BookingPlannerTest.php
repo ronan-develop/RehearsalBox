@@ -22,6 +22,7 @@ final class BookingPlannerTest extends RepositoryTestCase
     use MessagingScenario;
 
     private BookingPlanner $planner;
+    private \Symfony\Component\Clock\MockClock $clock;
     private MysqlRecurringSlotRepository $slots;
     private MysqlFreeSlotBookingRepository $bookings;
     private int $alpha;
@@ -40,7 +41,8 @@ final class BookingPlannerTest extends RepositoryTestCase
         $this->beta = $this->group('The Office', $bob)->id();
         $this->slots = new MysqlRecurringSlotRepository($this->pdo);
         $this->bookings = new MysqlFreeSlotBookingRepository($this->pdo);
-        $this->planner = new BookingPlanner($this->slots, $this->groups, $this->bookings);
+        $this->clock = new \Symfony\Component\Clock\MockClock('2026-10-04 12:00:00');
+        $this->planner = new BookingPlanner($this->slots, $this->groups, $this->bookings, new \App\Service\FreeSlotBookingPolicy(), $this->clock);
     }
 
     private function wednesday(): \DateTimeImmutable
@@ -140,4 +142,30 @@ final class BookingPlannerTest extends RepositoryTestCase
         self::assertSame(['booking', null, 'The Office'], [$conflict->kind(), $conflict->slotId(), $conflict->groupName()]);
         self::assertSame('10:00-12:00', $this->show([$conflict->overlap()])[0]);
     }
+
+    #[Test]
+    public function testPlanForChecksMembershipThenThePolicyThenPlans(): void
+    {
+        $this->slots->save(new RecurringSlot(0, $this->beta, Weekday::Wednesday, '18:30:00', '22:45:00', true));
+
+        $plan = $this->planner->planFor($this->aliceId, $this->alpha, $this->wednesday(), '09:00', '19:00');
+        self::assertSame(['09:00-18:30'], $this->show($plan->freeParts()));
+
+        foreach ([[$this->bobId, $this->alpha], [$this->aliceId, $this->beta], [$this->aliceId, 999999]] as [$user, $group]) {
+            try {
+                $this->planner->planFor($user, $group, $this->wednesday(), '09:00', '10:00');
+                self::fail('accès refusé attendu');
+            } catch (\App\Security\Exception\AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage());
+            }
+        }
+
+        try {
+            $this->planner->planFor($this->aliceId, $this->alpha, $this->wednesday(), '08:00', '21:00'); // 13 h
+            self::fail('règle de la politique attendue');
+        } catch (\App\Service\Exception\AvailabilityValidationException $e) {
+            self::assertArrayHasKey('endTime', $e->fields());
+        }
+    }
 }
+
