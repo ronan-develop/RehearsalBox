@@ -11,6 +11,7 @@ use App\Entity\UpcomingShow;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\Contract\GroupFilesPurgerInterface;
 use App\Service\Contract\GroupServiceInterface;
 
 final class GroupService implements GroupServiceInterface
@@ -18,6 +19,7 @@ final class GroupService implements GroupServiceInterface
     public function __construct(
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly GroupFilesPurgerInterface $files = new NoGroupFilesPurger(),
     ) {
     }
 
@@ -35,9 +37,12 @@ final class GroupService implements GroupServiceInterface
         return $this->groupRepository->save(new Group($groupId, $name, $genre, $colorHex, $contactEmail));
     }
 
+    /** Les documents du groupe partent en cascade en base ; leurs FICHIERS sont listés avant, retirés après (jamais orphelins). */
     public function delete(int $groupId): void
     {
+        $files = $this->files->filesOf($groupId);
         $this->groupRepository->delete($groupId);
+        $this->files->remove($files);
     }
 
     public function addMemberByEmail(int $groupId, string $email): void

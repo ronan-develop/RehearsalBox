@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\Contract\GroupFilesPurgerInterface;
 use App\Service\GroupService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -264,5 +265,63 @@ final class GroupServiceTest extends RepositoryTestCase
         $this->expectException(AccessDeniedException::class);
 
         $service->updateProfile($group->id(), [], [], $stranger->id());
+    }
+
+    // --- Suppression d'un groupe : ses fichiers partent avec lui (#222) ----------------------------------
+
+    /** Faux purgeur : mémorise ce qu'on lui demande, dans l'ordre. */
+    private function recordingPurger(array $paths): GroupFilesPurgerInterface
+    {
+        return new class ($paths) implements GroupFilesPurgerInterface {
+            /** @var list<string> */
+            public array $log = [];
+
+            public function __construct(private readonly array $paths)
+            {
+            }
+
+            public function filesOf(int $groupId): array
+            {
+                $this->log[] = 'liste';
+
+                return $this->paths;
+            }
+
+            public function remove(array $paths): void
+            {
+                $this->log[] = 'retrait:' . implode(',', $paths);
+            }
+        };
+    }
+
+    #[Test]
+    public function testDeletingAGroupRemovesItsFilesAfterTheGroupIsGone(): void
+    {
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $purger = $this->recordingPurger(['/stockage/a.pdf', '/stockage/b.png']);
+        $service = new GroupService($groupRepository, new MysqlUserRepository($this->pdo), $purger);
+        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
+
+        $service->delete($group->id());
+
+        self::assertNull($groupRepository->findById($group->id()));
+        self::assertSame(['liste', 'retrait:/stockage/a.pdf,/stockage/b.png'], $purger->log, 'listés avant la suppression, retirés après');
+    }
+
+    #[Test]
+    public function testTheFilesAreKeptWhenTheGroupCannotBeDeleted(): void
+    {
+        $purger = $this->recordingPurger(['/stockage/a.pdf']);
+        $groupRepository = $this->createStub(\App\Repository\Contract\GroupRepositoryInterface::class);
+        $groupRepository->method('delete')->willThrowException(new \PDOException('contrainte'));
+        $service = new GroupService($groupRepository, new MysqlUserRepository($this->pdo), $purger);
+
+        try {
+            $service->delete(1);
+            self::fail('la suppression échoue');
+        } catch (\PDOException) {
+        }
+
+        self::assertSame(['liste'], $purger->log, 'aucun fichier retiré si le groupe est toujours là');
     }
 }
