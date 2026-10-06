@@ -133,7 +133,8 @@ return static function (array $config): Container {
     $container->set(UserRepositoryInterface::class, fn ($c) => new MysqlUserRepository($c->get(PDO::class)));
 
     $container->set(PasswordHasherInterface::class, fn () => new NativePasswordHasher());
-    $container->set(SessionInterface::class, function () {
+    // `use ($config)` : sans lui, l'URL publique est lue vide et le cookie perd Secure et le préfixe __Host- (#244).
+    $container->set(SessionInterface::class, function () use ($config) {
         $session = new NativeSession(AppUrl::isHttps((string) $config['app']['base_url']));
         $session->start();
 
