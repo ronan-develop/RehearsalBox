@@ -147,6 +147,8 @@ body {
   position: relative;
   z-index: 40;
   margin-left: auto;
+  /* Petit retrait : le badge ne colle pas au bord droit de l'en-tête. */
+  margin-right: var(--rb-space-2);
   display: flex;
   align-items: center;
   gap: var(--rb-space-2);

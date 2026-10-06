@@ -56,4 +56,16 @@ final class DashboardHeaderCssTest extends TestCase
 
         self::assertStringContainsString('isolation: auto', $this->rule($css, '.rb-dashboard-header'));
     }
+
+    #[Test]
+    public function testTheAvatarDoesNotTouchTheRightEdgeOfTheHeader(): void
+    {
+        $css = (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+
+        self::assertMatchesRegularExpression(
+            '/margin-right:\s*var\(--rb-space-[1-9]\)/',
+            $this->rule($css, '.rb-dashboard-header-user'),
+            'petit retrait entre le badge et le bord de l\'en-tête',
+        );
+    }
 }
