@@ -64,10 +64,10 @@ final class MessageEditService
         if ($body === $message->body()) {
             return $message;
         }
-        $this->rateLimit->assertWithin($userId, $now);
         $plan = $this->mentions->planEdit($userId, $conversation, $messageId, $body, $mentionIds);
 
         $this->transactions->run(function () use ($plan, $userId, $conversationId, $messageId, $body, $now): void {
+            $this->rateLimit->assertWithin($userId, $now);
             $this->mentions->addGuests($plan, $userId, $conversationId, $now);
             $this->messages->updateBody($messageId, $body, $now);
             $this->mentions->replace($plan, $messageId);

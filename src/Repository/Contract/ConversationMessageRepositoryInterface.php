@@ -47,4 +47,10 @@ interface ConversationMessageRepositoryInterface
 
     /** Modifications de messages faites par cet auteur depuis $since (limite de débit : une modification compte comme un envoi). */
     public function countEditsBySince(int $authorId, \DateTimeImmutable $since): int;
+
+    /**
+     * Verrouille la ligne de l'auteur jusqu'à la fin de la transaction en cours : deux écritures simultanées du même auteur
+     * passent l'une après l'autre (la limite de débit lit alors un compte à jour).
+     */
+    public function lockAuthor(int $authorId): void;
 }

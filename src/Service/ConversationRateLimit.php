@@ -19,9 +19,15 @@ final class ConversationRateLimit
     {
     }
 
-    /** @throws ConversationRateLimitException */
+    /**
+     * À appeler DANS la transaction de l'écriture : le verrou de l'auteur est tenu jusqu'à son terme, donc des requêtes
+     * parallèles ne lisent pas toutes le même compte périmé.
+     *
+     * @throws ConversationRateLimitException
+     */
     public function assertWithin(int $userId, \DateTimeImmutable $now): void
     {
+        $this->messages->lockAuthor($userId);
         $since = $now->modify('-1 hour');
         if ($this->messages->countMessagesBySince($userId, $since) + $this->messages->countEditsBySince($userId, $since) >= self::MAX_PER_HOUR) {
             throw new ConversationRateLimitException('Trop de messages envoyés : réessayez dans un moment.');

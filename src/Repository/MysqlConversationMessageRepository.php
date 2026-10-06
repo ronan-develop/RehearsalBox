@@ -139,4 +139,9 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
 
         return (int) $statement->fetchColumn();
     }
+
+    public function lockAuthor(int $authorId): void
+    {
+        $this->pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE')->execute(['id' => $authorId]);
+    }
 }
