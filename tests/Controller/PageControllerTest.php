@@ -122,6 +122,25 @@ final class PageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheHeaderHasNoGroupPhotoIconForAnyone(): void
+    {
+        [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
+        $user = $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+
+        foreach ([GroupUserRole::Gestionnaire, GroupUserRole::Membre] as $role) {
+            $groupRepository->removeMember($group->id(), $user->id());
+            $groupRepository->addMember($group->id(), $user->id(), $role);
+
+            $body = $controller->dashboard()->body();
+
+            self::assertStringNotContainsString('rb-group-photo', $body, "aucune icône photo pour un {$role->value}");
+            self::assertStringNotContainsString('Modifier la photo du groupe', $body);
+            self::assertStringContainsString('rb-dashboard-header-user', $body, 'le nom du groupe et l\'avatar restent');
+        }
+    }
+
+    #[Test]
 
     public function testDashboardExposesCurrentUserGroupRoleOnPlanningCard(): void
     {

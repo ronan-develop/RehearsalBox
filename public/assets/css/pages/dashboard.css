@@ -140,64 +140,6 @@ body {
   margin-bottom: var(--rb-space-4);
 }
 
-/* Vignette photo du groupe — volontairement petite pour manger le moins
-   possible le "#B27" de fond. Éditable uniquement par le gestionnaire
-   (badge crayon) ; simple vignette en lecture seule sinon. */
-.rb-group-photo {
-  position: relative;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--rb-radius-sm);
-  overflow: hidden;
-  background: var(--rb-surface-strong);
-  border: 1px solid var(--rb-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--rb-text-3);
-  box-shadow: var(--rb-elevation-1);
-}
-
-.rb-group-photo svg {
-  width: 18px;
-  height: 18px;
-}
-
-.rb-group-photo--editable {
-  cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: none;
-}
-
-.rb-group-photo--editable:hover {
-  border-color: var(--rb-accent);
-}
-
-.rb-group-photo-edit-badge {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--rb-accent);
-  border: 2px solid var(--rb-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rb-group-photo-edit-badge svg {
-  width: 9px;
-  height: 9px;
-  color: #fff;
-}
-
 .rb-dashboard-header-user {
   margin-left: auto;
   display: flex;
