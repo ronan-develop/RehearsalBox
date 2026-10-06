@@ -87,6 +87,17 @@ rb-composer {
   color: var(--rb-accent);
 }
 
+/* Retour (#256) : un bouton léger, texte plein sur fond relevé — sans bordure ni ombre, moins lourd que .rb-btn. */
+.rb-chat-icon-link--back {
+  color: var(--rb-text);
+  background: var(--rb-surface);
+  border-radius: var(--rb-radius-md);
+}
+
+.rb-chat-icon-link--back:hover {
+  color: var(--rb-accent);
+}
+
 .rb-chat-icon-link[hidden] {
   display: none;
 }
