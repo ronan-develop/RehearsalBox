@@ -4,16 +4,6 @@
   padding-bottom: calc(var(--rb-space-6) + env(safe-area-inset-bottom));
 }
 
-/* Ancre invisible dans le flow normal, juste au-dessus de "Demandes de
-   créneau" : sert uniquement de repère géométrique pour le parallax du
-   watermark (cf. parallax.js) — sa position réelle à l'écran, recalculée à
-   chaque frame de scroll, indique où stabiliser le watermark, identique en
-   desktop et mobile. */
-.rb-parallax-anchor {
-  display: block;
-  height: 0;
-}
-
 @media (min-width: 768px) {
   /* Confort desktop/tablette (cf. .claude/layout.md, #93) : le contenu
      "statique" (header, titres) suit la largeur du viewport avec un
@@ -37,43 +27,50 @@
 
 }
 
-/* Calque plein-page "#B27" en fond, indépendant du header (frère de
-   .rb-dashboard-page, cf. templates/dashboard/index.php). Au repos il est
-   centré horizontalement dans la page, quel que soit l'écran ; parallax.js
-   n'ajoute qu'un décalage par rapport à ce centre : vers le premier tiers du
-   header au chargement, tendant vers 0 une fois le watermark stabilisé sous
-   le deck d'exceptions (cf. parallax.js). */
-.rb-page-bg {
+/* Barre du haut : invisible au repos, elle apparaît (opacité pilotée par logo-migration.js) à mesure que le logo y migre, avec un
+   fondu du fond de page plutôt qu'un cadre : le logo y est posé comme un tag, pas rangé dans une barre d'outils. */
+.rb-topbar {
   position: fixed;
-  inset: 0;
-  z-index: -1;
-  /* Position de repos du watermark : centré horizontalement dans la page, quel
-     que soit l'écran. parallax.js n'ajoute qu'un décalage par rapport à ce
-     centre (qui tend vers 0 en fin de scroll). */
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  overflow: hidden;
-  background: var(--rb-bg);
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: 56px;
+  background: linear-gradient(var(--rb-bg) 55%, transparent);
+  opacity: var(--topbar-opacity, 0);
   pointer-events: none;
 }
 
+/* Logo « #B27 » (#201). Fixe, AU-DESSUS de tout (le panneau de l'en-tête ne le ternit pas) : logo-migration.js pose --wm-x/--wm-y
+   (position à l'écran), --wm-s (échelle) et --wm-r (inclinaison). Au repos il est dans l'en-tête et suit la page ; en descendant il
+   migre vers la barre du haut. Invisible tant que le JavaScript ne l'a pas placé (sinon il resterait en haut à gauche). */
 .rb-page-bg-text {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
   display: block;
+  visibility: hidden;
   font-family: 'ADrippingMarker', sans-serif;
   color: var(--rb-accent);
   opacity: 0.35;
   line-height: 1;
   white-space: nowrap;
-  font-size: 56px;
-  position: relative;
+  font-size: 72px;
+  pointer-events: none;
+  transform-origin: 0 0;
   will-change: transform;
   transition: text-shadow 0.4s ease;
-  /* --wm-x/--wm-y : décalage additionnel piloté en JS (parallax.js), qui
-     interpole entre une position centrée dans le header au chargement
-     (scroll 0) et une position finale fixe une fois le scroll dépassé un
-     certain seuil. */
-  transform: translate(var(--wm-x, 0px), calc(var(--wm-y, 0px) + var(--wm-scroll-y, 0px)));
+  transform: translate(var(--wm-x, 0px), var(--wm-y, 0px)) rotate(var(--wm-r, 0deg)) scale(var(--wm-s, 1));
+}
+
+.rb-page-bg-text--placed {
+  visibility: visible;
+}
+
+/* Mouvement réduit : pas de migration, le logo reste dans l'en-tête et défile avec la page. */
+.rb-page-bg-text--static {
+  position: absolute;
 }
 
 @media (min-width: 768px) {
@@ -82,40 +79,8 @@
   }
 }
 
-/* Mobile (#201) : le calque n'est plus fixe, il défile avec la page (le logo reste dans l'en-tête, allumé en néon, sans
-   passer derrière les lignes du planning). Le comportement fixe et voyageur reste celui du bureau. */
-@media (max-width: 767.98px) {
-  /* Calque transparent AU-DESSUS du panneau de l'en-tête (sinon le panneau le ternit), sans rien recouvrir plus bas : sa
-     hauteur se limite à l'en-tête, pointer-events: none. */
-  .rb-page-bg {
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 220px;
-    z-index: 2;
-    overflow: visible;
-    background: transparent;
-  }
-
-  /* Un tag, pas un composant : plus grand que sur le calque de repos et légèrement penché, avec ses coulures. */
-  .rb-page-bg-text {
-    font-size: 72px;
-    transform: translate(var(--wm-x, 0px), var(--wm-y, 0px)) rotate(-3deg);
-  }
-}
-
-/* Lissage du déplacement (classe posée par parallax.js une fois le logo en place,
-   jamais en mouvement réduit) : le logo glisse au lieu de sauter quand la page
-   est peu scrollable (mobile). Transform et opacité : compositeur, pas de repaint. */
-.rb-page-bg-text--smooth {
-  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.rb-page-bg-text--smooth::after {
-  transition: opacity 0.3s ease-out;
-}
-
-/* Effet néon, statique — seulement quand le logo est passé sous la barre de
-   recherche (cf. parallax.js, isLogoBelowSearchBar), pas de glow permanent.
+/* Effet néon, statique — allumé en permanence sur téléphone, sur bureau dès que le logo a commencé sa migration vers la barre
+   (cf. logo-migration.js).
    Empilement de text-shadow plutôt qu'un filter: drop-shadow() unique, pour
    garder un liseré net sur le tracé en plus d'une lueur courte. */
 .rb-page-bg-text--neon {
@@ -130,7 +95,7 @@
     0 0 10px var(--rb-accent);
 }
 
-/* Brillance progressive : plus le logo descend (parallax.js, --wm-glow de 0 à
+/* Brillance progressive : plus le logo migre (logo-migration.js, --wm-glow de 0 à
    1), plus le jaune est brillant. Couche de lueur superposée au texte, dont
    SEULE l'opacité varie avec le scroll : opération du compositeur, pas de
    text-shadow redessiné à chaque image. Le texte de la couche reste rouge
@@ -155,10 +120,6 @@
   will-change: opacity;
   pointer-events: none;
 }
-
-/* Mouvement réduit : aucune animation ici, et le transform n'est PAS supprimé :
-   parallax.js n'applique alors que le décalage de départ (une fois), qui garde
-   le logo dans le cadre du header au chargement (#145). */
 
 body {
   --rb-dashboard-header-h: 132px;
@@ -315,37 +276,6 @@ body {
   gap: var(--rb-space-3);
   width: max-content;
   min-width: 100%;
-  /* Calque de compositeur propre : les cartes (filtre SVG « papier déchiré »,
-     coûteux) sont rastérisées une fois, l'auto-défilement ne fait que déplacer
-     le calque au lieu de les repeindre à chaque image (#149). */
-  will-change: transform;
-}
-
-/* Auto-défilement : animation CSS sur le compositeur, aucun JS par image
-   (planning-slider.js ne pose que la durée --rb-planning-duration et les
-   pauses). De 0 à -50 % : la piste contient le contenu dupliqué une fois, la
-   boucle est donc sans saut (#149). */
-@keyframes rb-planning-scroll {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-.rb-planning-track--auto {
-  animation: rb-planning-scroll var(--rb-planning-duration, 60s) linear infinite;
-}
-
-/* Copie des cartes ajoutée par planning-slider.js pour boucler : sans effet de mise en page. */
-.rb-planning-loop-copy {
-  display: contents;
-}
-
-.rb-planning-track--paused {
-  animation-play-state: paused;
 }
 
 .rb-planning-card--hidden {
@@ -765,11 +695,6 @@ body {
     display: block;
     width: auto;
     min-width: 0;
-    will-change: auto;
-  }
-
-  .rb-planning-loop-copy {
-    display: none;
   }
 
   .rb-planning-day {
@@ -870,53 +795,5 @@ body {
 
   .rb-planning-card--exceptional .rb-planning-card-group {
     padding-right: 0;
-  }
-}
-
-/* Mini logo mobile (#201) : fine barre néon qui apparaît quand l'en-tête (où le grand logo est allumé) est sorti de l'écran.
-   Décorative (aria-hidden), absente dès 768 px où le logo voyage. */
-.rb-mini-logo {
-  display: none;
-}
-
-@media (max-width: 767.98px) {
-  .rb-mini-logo {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: 0;
-    right: 0;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    height: 56px;
-    padding-inline: var(--rb-space-3);
-    /* Pas de barre d'outils : le tag se pose sur un fondu du fond de page, sans filet ni cadre. */
-    background: linear-gradient(var(--rb-bg) 55%, transparent);
-    pointer-events: none;
-    transform: translateY(-110%);
-    transition: transform 0.25s ease;
-  }
-
-  .rb-mini-logo--visible {
-    transform: none;
-  }
-
-  .rb-mini-logo span {
-    display: inline-block;
-    transform: rotate(-3deg);
-    font-family: 'ADrippingMarker', sans-serif;
-    font-size: 34px;
-    line-height: 1;
-    color: color-mix(in srgb, var(--rb-neon-red) 80%, white);
-    -webkit-text-stroke: 0.5px var(--rb-stone-flame);
-    text-shadow:
-      0 0 3px var(--rb-stone-flame),
-      0 0 8px var(--rb-neon-red);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rb-mini-logo {
-    transition: none;
   }
 }

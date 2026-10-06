@@ -10,10 +10,9 @@
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body>
-    <div class="rb-page-bg" aria-hidden="true">
-        <span class="rb-page-bg-text" data-parallax="bg" data-text="#B27">#B27</span>
-    </div>
-    <div class="rb-mini-logo" data-mini-logo aria-hidden="true"><span>#B27</span></div>
+    <?php // Barre du haut : invisible au repos, elle apparaît quand le logo y migre en descendant (logo-migration.js). ?>
+    <div class="rb-topbar" data-topbar aria-hidden="true"></div>
+    <span class="rb-page-bg-text" data-logo data-text="#B27" aria-hidden="true">#B27</span>
     <div class="rb-dashboard-page">
         <header class="rb-dashboard-header rb-stone-panel rb-stone-panel--ember">
             <?php if ($currentUserGroupRole === \App\Entity\Enum\GroupUserRole::Gestionnaire): ?>
@@ -122,8 +121,6 @@
                 </div>
             </section>
         </div>
-
-        <span class="rb-parallax-anchor" data-parallax-anchor aria-hidden="true"></span>
 
         <?php
         $renderExceptionCard = static function (\App\Entity\DashboardExceptionItem $item, int $deckPosition) {
