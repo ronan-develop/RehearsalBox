@@ -31,9 +31,6 @@ interface GroupRepositoryInterface
 
     public function roleOf(int $groupId, int $userId): ?GroupUserRole;
 
-    public function promoteToManager(int $groupId, int $userId): void;
 
-    public function demoteToMember(int $groupId, int $userId): void;
 
-    public function countManagers(int $groupId): int;
 }

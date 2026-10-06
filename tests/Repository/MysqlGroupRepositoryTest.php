@@ -207,36 +207,6 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testPromoteToManagerChangesRole(): void
-    {
-        $groupRepository = new MysqlGroupRepository($this->pdo);
-        $userRepository = new MysqlUserRepository($this->pdo);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-        $user = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
-        $groupRepository->addMember($group->id(), $user->id());
-
-        $groupRepository->promoteToManager($group->id(), $user->id());
-
-        self::assertSame(GroupUserRole::Gestionnaire, $groupRepository->roleOf($group->id(), $user->id()));
-    }
-
-    #[Test]
-
-    public function testDemoteToMemberChangesRole(): void
-    {
-        $groupRepository = new MysqlGroupRepository($this->pdo);
-        $userRepository = new MysqlUserRepository($this->pdo);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-        $user = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
-        $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Gestionnaire);
-
-        $groupRepository->demoteToMember($group->id(), $user->id());
-
-        self::assertSame(GroupUserRole::Membre, $groupRepository->roleOf($group->id(), $user->id()));
-    }
-
-    #[Test]
-
     public function testSaveThenFindByIdReturnsLineupAndUpcomingShows(): void
     {
         $repository = new MysqlGroupRepository($this->pdo);
@@ -271,21 +241,6 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
 
         self::assertSame([], $found->lineup());
         self::assertSame([], $found->upcomingShows());
-    }
-
-    #[Test]
-
-    public function testCountManagersCountsOnlyGestionnaireRole(): void
-    {
-        $groupRepository = new MysqlGroupRepository($this->pdo);
-        $userRepository = new MysqlUserRepository($this->pdo);
-        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
-        $manager = $userRepository->save($this->newUser('alice@rehearsalbox.test'));
-        $member = $userRepository->save($this->newUser('bob@rehearsalbox.test'));
-        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $groupRepository->addMember($group->id(), $member->id());
-
-        self::assertSame(1, $groupRepository->countManagers($group->id()));
     }
 
     private function newUser(string $email): User

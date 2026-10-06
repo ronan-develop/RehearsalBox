@@ -11,6 +11,9 @@ use App\Entity\UpcomingShow;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
+use App\Security\GroupInputPolicy;
+use App\Support\Slug;
+use App\Service\Exception\GroupValidationException;
 use App\Service\Contract\GroupFilesPurgerInterface;
 use App\Service\Contract\GroupServiceInterface;
 
@@ -20,19 +23,27 @@ final class GroupService implements GroupServiceInterface
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly UserRepositoryInterface $userRepository,
         private readonly GroupFilesPurgerInterface $files = new NoGroupFilesPurger(),
+        private readonly GroupInputPolicy $policy = new GroupInputPolicy(),
     ) {
     }
 
+    /** @throws GroupValidationException nom, genre, couleur ou e-mail refusé, ou nom déjà pris (même adresse publique) */
     public function create(string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group
     {
+        [$name, $genre] = [$this->policy->normalizedName($name), $this->policy->normalizedOptional($genre)];
+        $this->assertValid(null, $name, $genre, $colorHex, $contactEmail);
+
         return $this->groupRepository->save(new Group(0, $name, $genre, $colorHex, $contactEmail));
     }
 
+    /** @throws GroupValidationException */
     public function update(int $groupId, string $name, ?string $genre, ?string $colorHex, string $contactEmail): Group
     {
         if ($this->groupRepository->findById($groupId) === null) {
             throw new \InvalidArgumentException("Groupe {$groupId} introuvable.");
         }
+        [$name, $genre] = [$this->policy->normalizedName($name), $this->policy->normalizedOptional($genre)];
+        $this->assertValid($groupId, $name, $genre, $colorHex, $contactEmail);
 
         return $this->groupRepository->save(new Group($groupId, $name, $genre, $colorHex, $contactEmail));
     }
@@ -47,6 +58,9 @@ final class GroupService implements GroupServiceInterface
 
     public function addMemberByEmail(int $groupId, string $email): void
     {
+        if ($this->groupRepository->findById($groupId) === null) {
+            throw new \InvalidArgumentException("Groupe {$groupId} introuvable.");
+        }
         $user = $this->userRepository->findByEmail($email);
         if ($user === null) {
             throw new \InvalidArgumentException("Aucun compte n'existe avec l'email {$email}.");
@@ -65,26 +79,6 @@ final class GroupService implements GroupServiceInterface
         return $this->groupRepository->findAll();
     }
 
-    public function promoteMember(int $groupId, int $userId, int $actorUserId): void
-    {
-        $this->assertActorIsManager($groupId, $actorUserId);
-
-        $this->groupRepository->promoteToManager($groupId, $userId);
-    }
-
-    public function demoteMember(int $groupId, int $userId, int $actorUserId): void
-    {
-        $this->assertActorIsManager($groupId, $actorUserId);
-
-        if ($this->groupRepository->roleOf($groupId, $userId) === GroupUserRole::Gestionnaire
-            && $this->groupRepository->countManagers($groupId) <= 1
-        ) {
-            throw new \LogicException('Impossible de rétrograder le dernier gestionnaire du groupe.');
-        }
-
-        $this->groupRepository->demoteToMember($groupId, $userId);
-    }
-
     public function updateProfile(int $groupId, array $lineup, array $upcomingShows, int $actorUserId): Group
     {
         $this->assertActorIsManager($groupId, $actorUserId);
@@ -92,6 +86,10 @@ final class GroupService implements GroupServiceInterface
         $existing = $this->groupRepository->findById($groupId);
         if ($existing === null) {
             throw new \InvalidArgumentException("Groupe {$groupId} introuvable.");
+        }
+        $violations = $this->policy->profileViolations($lineup, $upcomingShows);
+        if ($violations !== []) {
+            throw new GroupValidationException($violations);
         }
 
         return $this->groupRepository->save(new Group(
@@ -103,6 +101,29 @@ final class GroupService implements GroupServiceInterface
             $lineup,
             $upcomingShows,
         ));
+    }
+
+    /**
+     * Valide le groupe et son unicité : deux groupes ne partagent ni leur nom ni leur adresse publique (`/groups/{slug}/space`,
+     * dérivée du nom : « Nebula Sprawl » et « nebula-sprawl » donneraient la même, la seconde serait inaccessible).
+     *
+     * @throws GroupValidationException
+     */
+    private function assertValid(?int $groupId, string $name, ?string $genre, ?string $colorHex, string $contactEmail): void
+    {
+        $errors = $this->policy->groupViolations($name, $genre, $colorHex, $contactEmail);
+        if (!isset($errors['name'])) {
+            foreach ($this->groupRepository->findAll() as $other) {
+                if ($other->id() !== $groupId && Slug::from($other->name()) === Slug::from($name)) {
+                    $errors['name'] = 'Un groupe porte déjà ce nom (ou un nom trop proche).';
+                    break;
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw new GroupValidationException($errors);
+        }
     }
 
     private function assertActorIsManager(int $groupId, int $actorUserId): void
