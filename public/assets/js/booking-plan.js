@@ -99,3 +99,19 @@ export function summarize(results) {
 
   return { ok: results.every((result) => result.ok), anySent: results.some((result) => result.ok), lines };
 }
+
+/** Message lisible d'une erreur de l'API : le premier message de champ, sinon le message du serveur, sinon un message générique. */
+export function errorText(error) {
+  const field = Object.values(error?.fields ?? {}).find((message) => typeof message === 'string' && message !== '');
+
+  return field ?? (typeof error?.message === 'string' && error.message !== '' ? error.message : 'Une erreur est survenue.');
+}
+
+/** L'annulation d'une réservation du groupe ; l'identifiant doit être strictement numérique avant de toucher l'URL. */
+export function cancelRequest(id) {
+  if (typeof id !== 'string' || !/^\d+$/.test(id)) {
+    throw new Error('Identifiant de réservation invalide.');
+  }
+
+  return { path: `/api/bookings/${id}`, options: { method: 'DELETE' } };
+}

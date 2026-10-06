@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planQuery, planLines, primaryAction, stepRequest, summarize } from './booking-plan.js';
+import { planQuery, planLines, primaryAction, stepRequest, summarize, errorText, cancelRequest } from './booking-plan.js';
 
 const OFFICE = { kind: 'fixed', slotId: 7, groupName: 'The Office', own: false, startTime: '18:30', endTime: '19:00' };
 const planWith = (freeParts, conflicts) => ({ fullyFree: conflicts.length === 0, freeParts, conflicts });
@@ -113,4 +113,19 @@ test('the summary says exactly what was sent and what failed, step by step', () 
   assert.equal(none.anySent, false);
   assert.equal(none.lines[0], 'Réservation 09:00 – 18:30 : non envoyée — Une erreur est survenue.');
   assert.deepEqual(summarize([]), { ok: true, anySent: false, lines: [] });
+});
+
+test('an API error reads as the first field message, else the server message, else a generic one', () => {
+  assert.equal(errorText({ status: 422, message: 'Validation échouée', fields: { startTime: 'L’heure doit tomber sur un quart d’heure.', endTime: 'Autre' } }), 'L’heure doit tomber sur un quart d’heure.');
+  assert.equal(errorText({ status: 409, message: 'Cette plage est déjà réservée.', fields: {} }), 'Cette plage est déjà réservée.');
+  assert.equal(errorText({ message: 'x', fields: { a: 5 } }), 'x', 'un champ qui n\'est pas un texte est ignoré');
+  assert.equal(errorText(null), 'Une erreur est survenue.');
+  assert.equal(errorText({}), 'Une erreur est survenue.');
+});
+
+test('cancelling targets only a strictly numeric booking id', () => {
+  assert.deepEqual(cancelRequest('12'), { path: '/api/bookings/12', options: { method: 'DELETE' } });
+  for (const bad of ['', 'abc', '12/../x', '-1', '1.5', undefined, null]) {
+    assert.throws(() => cancelRequest(bad), /identifiant/i, String(bad));
+  }
 });
