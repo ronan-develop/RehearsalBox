@@ -107,127 +107,6 @@
             </section>
         </div>
 
-        <?php
-        $renderExceptionCard = static function (\App\Entity\DashboardExceptionItem $item, int $deckPosition) {
-            $exception = $item->exception();
-            $isRecue = $item->direction() === \App\Entity\Enum\ExceptionDirection::Recue;
-            $slot = $item->slot();
-            $initials = \App\Support\Initials::from($item->requestedByGroupName());
-            // Profondeur de pile visible plafonnée (cf. exception-deck.js
-            // MAX_VISIBLE_DEPTH) : au-delà, les cartes se superposent sans
-            // creuser davantage l'offset visuel, pour ne jamais déborder
-            // avec un historique archivé volumineux.
-            $visualDeckIndex = min($deckPosition, 2);
-            ?>
-            <article class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" data-exception-id="<?= e((string) $exception->id()) ?>"
-                     style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e(\App\Support\SafeColor::from($item->requestedByGroupColorHex()) ?? 'var(--rb-accent)') ?>;">
-                <div class="rb-exception-card-head">
-                    <span class="rb-exception-card-avatar" aria-hidden="true"><?= e($initials) ?></span>
-                    <div class="rb-exception-card-head-text">
-                        <h3><?= e($item->requestedByGroupName()) ?></h3>
-                        <span class="rb-badge rb-badge-kind rb-badge-kind--echange"><?= e($item->kind()->label()) ?></span>
-                        <span class="rb-badge <?= e(formatExceptionStatusBadgeClass($exception->status())) ?>"><?= e(formatExceptionStatus($exception->status())) ?></span>
-                    </div>
-                </div>
-                <?php if ($exception->isEnAttente() && $item->holderGroupName() !== null): ?>
-                    <p class="rb-exception-card-validator">À valider par <?= e($item->holderGroupName()) ?></p>
-                <?php endif; ?>
-                <?php if ($slot !== null): ?>
-                    <div class="rb-exception-card-slot">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-                        <strong><?= e(formatWeekday($slot->weekday())) ?> <?= e($exception->occurrenceDate()->format('d/m/Y')) ?> <?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></strong>
-                    </div>
-                <?php endif; ?>
-                <?php if ($exception->requestReason() !== null): ?>
-                    <p class="rb-exception-card-body"><?= e($exception->requestReason()) ?></p>
-                <?php endif; ?>
-                <?php if ($isRecue && $exception->isEnAttente()): ?>
-                    <div class="rb-exception-card-actions">
-                        <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
-                                data-exception-id="<?= e((string) $exception->id()) ?>" data-occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>">
-                            Refuser
-                        </button>
-                        <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
-                                data-exception-id="<?= e((string) $exception->id()) ?>" data-occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>">
-                            Accepter
-                        </button>
-                    </div>
-                <?php elseif (!$isRecue && $exception->isEnAttente()): ?>
-                    <form data-update-form data-exception-id="<?= e((string) $exception->id()) ?>">
-                        <div class="rb-field">
-                            <label for="occurrence-date-<?= e((string) $exception->id()) ?>">Date précise</label>
-                            <input type="date" id="occurrence-date-<?= e((string) $exception->id()) ?>" name="occurrenceDate"
-                                   class="rb-input" value="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>" required>
-                        </div>
-                        <div class="rb-field">
-                            <label for="request-reason-<?= e((string) $exception->id()) ?>">Raison (optionnel)</label>
-                            <input type="text" id="request-reason-<?= e((string) $exception->id()) ?>" name="reason"
-                                   class="rb-input" value="<?= e($exception->requestReason() ?? '') ?>">
-                        </div>
-                        <div class="rb-exception-card-actions">
-                            <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
-                                    data-exception-id="<?= e((string) $exception->id()) ?>">
-                                Annuler
-                            </button>
-                            <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
-                        </div>
-                    </form>
-                <?php endif; ?>
-            </article>
-            <?php
-        };
-
-        $renderBookingCard = static function (\App\Entity\DashboardBookingItem $item, int $deckPosition) {
-            $booking = $item->booking();
-            $visualDeckIndex = min($deckPosition, 2);
-            $statusLabel = match ($booking->status()) {
-                \App\Entity\Enum\FreeSlotBookingStatus::EnAttente => 'En attente',
-                \App\Entity\Enum\FreeSlotBookingStatus::Validee => 'Validée',
-                \App\Entity\Enum\FreeSlotBookingStatus::Refusee => 'Refusée',
-                \App\Entity\Enum\FreeSlotBookingStatus::Annulee => 'Annulée',
-            };
-            $statusClass = match ($booking->status()) {
-                \App\Entity\Enum\FreeSlotBookingStatus::EnAttente => 'rb-badge-warn',
-                \App\Entity\Enum\FreeSlotBookingStatus::Validee => 'rb-badge-ok',
-                default => 'rb-badge-err',
-            };
-            ?>
-            <article class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" data-booking-id="<?= e((string) $booking->id()) ?>"
-                     style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e(\App\Support\SafeColor::from($item->groupColorHex()) ?? 'var(--rb-accent)') ?>;">
-                <div class="rb-exception-card-head">
-                    <span class="rb-exception-card-avatar" aria-hidden="true"><?= e(\App\Support\Initials::from($item->groupName())) ?></span>
-                    <div class="rb-exception-card-head-text">
-                        <h3><?= e($item->groupName()) ?></h3>
-                        <span class="rb-badge rb-badge-kind rb-badge-kind--reservation"><?= e($item->kind()->label()) ?></span>
-                        <span class="rb-badge <?= e($statusClass) ?>"><?= e($statusLabel) ?></span>
-                    </div>
-                </div>
-                <?php if ($booking->status() === \App\Entity\Enum\FreeSlotBookingStatus::EnAttente): ?>
-                    <p class="rb-exception-card-validator">À valider par les admins</p>
-                <?php endif; ?>
-                <div class="rb-exception-card-slot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-                    <strong><?= e(formatWeekday(\App\Entity\Enum\Weekday::from((int) $booking->date()->format('N') - 1))) ?> <?= e($booking->date()->format('d/m/Y')) ?> <?= e(substr($booking->range()->start(), 0, 5)) ?> – <?= e(substr($booking->range()->end(), 0, 5)) ?></strong>
-                </div>
-                <?php if ($booking->reason() !== null): ?>
-                    <p class="rb-exception-card-body"><?= e($booking->reason()) ?></p>
-                <?php endif; ?>
-                <?php if ($booking->decisionNote() !== null): ?>
-                    <p class="rb-exception-card-body">Réponse : <?= e($booking->decisionNote()) ?></p>
-                <?php endif; ?>
-                <?php if ($booking->status() === \App\Entity\Enum\FreeSlotBookingStatus::EnAttente): ?>
-                    <rb-booking-item class="rb-exception-card-actions" data-id="<?= e((string) $booking->id()) ?>">
-                        <button type="button" class="rb-btn rb-btn-danger" data-booking-cancel>Annuler</button>
-                        <p class="rb-field-error" role="alert" data-booking-error hidden></p>
-                    </rb-booking-item>
-                <?php endif; ?>
-            </article>
-            <?php
-        };
-        $renderRequestCard = static function (\App\Entity\DashboardRequestItem $item, int $deckPosition) use ($renderExceptionCard, $renderBookingCard) {
-            $item instanceof \App\Entity\DashboardBookingItem ? $renderBookingCard($item, $deckPosition) : $renderExceptionCard($item, $deckPosition);
-        };
-        ?>
         <section class="rb-exceptions-section">
             <h2>Demandes de créneau</h2>
             <div class="rb-exceptions-tabs" role="tablist">
@@ -240,7 +119,7 @@
 
             <div class="rb-exception-deck" data-exception-deck data-deck="received">
                 <?php foreach ($receivedExceptions as $deckPosition => $item): ?>
-                    <?php $renderRequestCard($item, $deckPosition); ?>
+                    <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
                 <div class="rb-exception-empty"<?= $receivedExceptions !== [] ? ' hidden' : '' ?>>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
@@ -250,7 +129,7 @@
 
             <div class="rb-exception-deck" data-exception-deck data-deck="sent" hidden>
                 <?php foreach ($sentExceptions as $deckPosition => $item): ?>
-                    <?php $renderRequestCard($item, $deckPosition); ?>
+                    <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
                 <div class="rb-exception-empty"<?= $sentExceptions !== [] ? ' hidden' : '' ?>>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
@@ -260,7 +139,7 @@
 
             <div class="rb-exception-deck" data-exception-deck data-deck="archived" hidden>
                 <?php foreach ($archivedExceptions as $deckPosition => $item): ?>
-                    <?php $renderRequestCard($item, $deckPosition); ?>
+                    <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
                 <div class="rb-exception-empty"<?= $archivedExceptions !== [] ? ' hidden' : '' ?>>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
