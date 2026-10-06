@@ -99,6 +99,7 @@ use App\Service\ConversationAccess;
 use App\Service\ConversationGuestService;
 use App\Service\ConversationMuteService;
 use App\Service\BookingNotifier;
+use App\Service\BookingPlanner;
 use App\Service\Contract\BookingNotifierInterface;
 use App\Service\FreeSlotBookingPolicy;
 use App\Service\FreeSlotBookingService;
@@ -200,8 +201,17 @@ return static function (array $config): Container {
         $c->get(BookingNotifierInterface::class),
     ));
 
+    $container->set(BookingPlanner::class, fn ($c) => new BookingPlanner(
+        $c->get(RecurringSlotRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(FreeSlotBookingRepositoryInterface::class),
+        new FreeSlotBookingPolicy(),
+        $c->get(ClockInterface::class),
+    ));
+
     $container->set(FreeSlotBookingApiController::class, fn ($c) => new FreeSlotBookingApiController(
         $c->get(FreeSlotBookingService::class),
+        $c->get(BookingPlanner::class),
         $c->get(AuthGuard::class),
     ));
 

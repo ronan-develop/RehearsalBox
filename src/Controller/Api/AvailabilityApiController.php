@@ -20,6 +20,33 @@ final class AvailabilityApiController
     ) {
     }
 
+    /**
+     * Demande l'occurrence d'un créneau fixe d'un AUTRE groupe, en entier ou sur une plage comprise dans ce créneau (#263). Les
+     * identifiants mal formés sont refusés comme un accès interdit ; les droits et les règles sont dans le service.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $slotId = StrictId::orDenied($request->body('recurringSlotId'));
+        $groupId = StrictId::orDenied($request->body('groupId'));
+        $date = self::parseDate($request->body('occurrenceDate'));
+        if ($date === null) {
+            throw new AvailabilityValidationException(['occurrenceDate' => 'Date invalide (format AAAA-MM-JJ).']);
+        }
+
+        $exception = $this->availabilityService->createRequest(
+            $slotId,
+            $groupId,
+            $date,
+            self::textOrNull($request->body('reason')),
+            $user->id(),
+            self::textOrNull($request->body('startTime')),
+            self::textOrNull($request->body('endTime')),
+        );
+
+        return new JsonResponse(['exception' => self::toArray($exception)], 201);
+    }
+
     public function pendingForGroup(Request $request, string $groupId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
@@ -111,6 +138,11 @@ final class AvailabilityApiController
         return $date;
     }
 
+    private static function textOrNull(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
     /** @return array<string, mixed> */
     private static function toArray(SlotException $exception): array
     {
@@ -119,6 +151,8 @@ final class AvailabilityApiController
             'recurringSlotId' => $exception->recurringSlotId(),
             'occurrenceDate' => $exception->occurrenceDate()->format('Y-m-d'),
             'status' => $exception->status()->value,
+            'startTime' => $exception->range() === null ? null : substr($exception->range()->start(), 0, 5),
+            'endTime' => $exception->range() === null ? null : substr($exception->range()->end(), 0, 5),
             'requestedByGroupId' => $exception->requester()->groupId(),
             'requestReason' => $exception->requestReason(),
             'respondedByUserId' => $exception->respondedByUserId(),

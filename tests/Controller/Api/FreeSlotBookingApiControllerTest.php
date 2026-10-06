@@ -50,8 +50,11 @@ final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
         $groups->addMember($this->alphaId, $alice->id());
         $slots = new MysqlRecurringSlotRepository($this->pdo);
         $slots->save(new RecurringSlot(0, $this->betaId, Weekday::Wednesday, '18:30:00', '22:45:00', true));
-        $service = new FreeSlotBookingService(new MysqlFreeSlotBookingRepository($this->pdo), new \App\Repository\MysqlBookingDateLock($this->pdo), $slots, $groups, new FreeSlotBookingPolicy(), new MockClock('2026-10-04 12:00:00'));
-        $this->api = new KernelTranslation(new FreeSlotBookingApiController($service, new AuthGuard($this->auth)));
+        $clock = new MockClock('2026-10-04 12:00:00');
+        $repository = new MysqlFreeSlotBookingRepository($this->pdo);
+        $service = new FreeSlotBookingService($repository, new \App\Repository\MysqlBookingDateLock($this->pdo), $slots, $groups, new FreeSlotBookingPolicy(), $clock);
+        $planner = new \App\Service\BookingPlanner($slots, $groups, $repository, new FreeSlotBookingPolicy(), $clock);
+        $this->api = new KernelTranslation(new FreeSlotBookingApiController($service, $planner, new AuthGuard($this->auth)));
     }
 
     private function user(MysqlUserRepository $users, string $name, UserRole $role): User
@@ -81,7 +84,7 @@ final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
     #[Test]
     public function testEveryRouteRequiresALoginAndTheAdminRoutesAnAdmin(): void
     {
-        foreach ([['store', []], ['destroy', ['1']], ['index', []], ['pending', []], ['approve', ['1']], ['refuse', ['1']]] as [$action, $args]) {
+        foreach ([['store', []], ['plan', []], ['destroy', ['1']], ['index', []], ['pending', []], ['approve', ['1']], ['refuse', ['1']]] as [$action, $args]) {
             try {
                 $this->api->{$action}(new Request('GET', '/x', ['groupId' => (string) $this->alphaId], [], []), ...$args);
                 self::fail("connexion exigée : {$action}");
@@ -184,4 +187,45 @@ final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
         self::assertSame(200, $this->api->destroy(new Request('DELETE', '/x', [], [], []), (string) $id)->statusCode());
         self::assertSame(409, $this->api->destroy(new Request('DELETE', '/x', [], [], []), (string) $id)->statusCode(), 'déjà annulée');
     }
+
+    #[Test]
+    public function testThePlanSplitsTheWantedRangeIntoTheFreePartAndTheRequestToAnotherGroupWithoutCreatingAnything(): void
+    {
+        $this->login('alice');
+
+        $response = $this->api->plan(new Request('GET', '/api/bookings/plan', [
+            'groupId' => (string) $this->alphaId, 'bookingDate' => '2026-10-07', 'startTime' => '09:00', 'endTime' => '19:00',
+        ], [], []));
+
+        self::assertSame(200, $response->statusCode());
+        $plan = $this->json($response)['plan'];
+        self::assertSame([['startTime' => '09:00', 'endTime' => '18:30']], $plan['freeParts']);
+        self::assertFalse($plan['fullyFree']);
+        self::assertSame(['fixed', 'Beta', false, '18:30', '19:00'], [$plan['conflicts'][0]['kind'], $plan['conflicts'][0]['groupName'], $plan['conflicts'][0]['own'], $plan['conflicts'][0]['startTime'], $plan['conflicts'][0]['endTime']]);
+        self::assertIsInt($plan['conflicts'][0]['slotId']);
+        $list = $this->api->index(new Request('GET', '/api/bookings', ['groupId' => (string) $this->alphaId], [], []));
+        self::assertSame([], $this->json($list)['bookings'], 'lecture seule : aucune réservation créée');
+    }
+
+    #[Test]
+    public function testThePlanRefusesBadInputPerFieldAndANonMemberLikeAnUnknownGroup(): void
+    {
+        $this->login('alice');
+
+        $invalid = $this->api->plan(new Request('GET', '/x', ['groupId' => (string) $this->alphaId, 'bookingDate' => '2026-10-07', 'startTime' => '09:10', 'endTime' => '10:00'], [], []));
+        self::assertSame(422, $invalid->statusCode());
+        self::assertArrayHasKey('startTime', $this->json($invalid)['fields']);
+        $badDate = $this->api->plan(new Request('GET', '/x', ['groupId' => (string) $this->alphaId, 'bookingDate' => 'demain', 'startTime' => '09:00', 'endTime' => '10:00'], [], []));
+        self::assertArrayHasKey('bookingDate', $this->json($badDate)['fields']);
+
+        foreach ([(string) $this->betaId, '999999', 'abc', ''] as $group) {
+            try {
+                $this->api->plan(new Request('GET', '/x', ['groupId' => $group, 'bookingDate' => '2026-10-07', 'startTime' => '09:00', 'endTime' => '10:00'], [], []));
+                self::fail('accès refusé attendu');
+            } catch (AccessDeniedException $e) {
+                self::assertSame('Accès refusé.', $e->getMessage());
+            }
+        }
+    }
 }
+

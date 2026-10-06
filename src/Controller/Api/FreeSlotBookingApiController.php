@@ -9,6 +9,9 @@ use App\Entity\FreeSlotBooking;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
+use App\Entity\BookingPlan;
+use App\Entity\PlanConflict;
+use App\Service\BookingPlanner;
 use App\Service\Exception\AvailabilityValidationException;
 use App\Service\FreeSlotBookingService;
 use App\Support\StrictId;
@@ -22,6 +25,7 @@ final class FreeSlotBookingApiController
 {
     public function __construct(
         private readonly FreeSlotBookingService $bookings,
+        private readonly BookingPlanner $planner,
         private readonly AuthGuard $authGuard,
     ) {
     }
@@ -40,6 +44,24 @@ final class FreeSlotBookingApiController
         );
 
         return new JsonResponse(['booking' => self::toArray($booking)], 201);
+    }
+
+    /**
+     * Plan d'une réservation voulue (`?groupId=&bookingDate=&startTime=&endTime=`) : les parties libres à réserver et ce qui chevauche
+     * d'autres groupes (avec le créneau visé, pour y adresser une demande). Lecture seule : rien n'est créé.
+     */
+    public function plan(Request $request): JsonResponse
+    {
+        $user = $this->authGuard->requireLogin();
+        $plan = $this->planner->planFor(
+            $user->id(),
+            StrictId::orDenied($request->query('groupId')),
+            $this->dateOrFail($request->query('bookingDate')),
+            $this->textOrNull($request->query('startTime')),
+            $this->textOrNull($request->query('endTime')),
+        );
+
+        return new JsonResponse(['plan' => self::planToArray($plan)]);
     }
 
     /** Annule une réservation de son groupe qui n'a pas commencé. */
@@ -97,6 +119,25 @@ final class FreeSlotBookingApiController
     private function textOrNull(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /** @return array<string, mixed> */
+    private static function planToArray(BookingPlan $plan): array
+    {
+        $hhmm = static fn (string $time): string => substr($time, 0, 5);
+
+        return [
+            'fullyFree' => $plan->isFullyFree(),
+            'freeParts' => array_map(static fn ($range): array => ['startTime' => $hhmm($range->start()), 'endTime' => $hhmm($range->end())], $plan->freeParts()),
+            'conflicts' => array_map(static fn (PlanConflict $conflict): array => [
+                'kind' => $conflict->kind(),
+                'slotId' => $conflict->slotId(),
+                'groupName' => $conflict->groupName(),
+                'own' => $conflict->isOwn(),
+                'startTime' => $hhmm($conflict->overlap()->start()),
+                'endTime' => $hhmm($conflict->overlap()->end()),
+            ], $plan->conflicts()),
+        ];
     }
 
     /** @return array<string, mixed> */
