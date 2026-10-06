@@ -607,11 +607,11 @@ body {
 }
 
 @media (max-width: 767.98px) {
-  /* Le nom du groupe et l'avatar restent en bas à droite ; le logo est à leur gauche, sur la même ligne de base (celle de
-     l'ancienne icône photo, #249). Le padding bas (16 px) est lu par logo-migration.js. */
+  /* Le nom du groupe et l'avatar en haut à droite ; la rangée du bas est pour le logo, sur la ligne de base de l'ancienne icône
+     photo (#249). Le padding bas (16 px) est lu par logo-migration.js. */
   .rb-dashboard-header {
-    align-items: flex-end;
-    padding-bottom: var(--rb-space-3);
+    align-items: flex-start;
+    padding: var(--rb-space-3) 0;
   }
 
   /* Le nom passe devant le logo (z-index) : on lui laisse beaucoup de place, un halo sombre le garde lisible quand il le croise ;
