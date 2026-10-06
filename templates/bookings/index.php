@@ -36,7 +36,7 @@
                 <?php else: ?>
                     <div class="rb-field">
                         <label for="booking-group">Groupe</label>
-                        <select id="booking-group" name="groupId" class="rb-input" required>
+                        <select id="booking-group" name="groupId" class="rb-input rb-select" required>
                             <?php foreach ($groups as $group): ?>
                                 <option value="<?= e((string) $group['id']) ?>"><?= e($group['name']) ?></option>
                             <?php endforeach; ?>
@@ -50,11 +50,11 @@
                 <div class="rb-booking-form-times">
                     <div class="rb-field">
                         <label for="booking-start">De</label>
-                        <input type="time" id="booking-start" name="start" class="rb-input" step="900" required>
+                        <?php $id = 'booking-start'; $name = 'start'; $times = \App\Support\QuarterHour::range('00:00', '23:45'); require __DIR__ . '/_time-select.php'; ?>
                     </div>
                     <div class="rb-field">
                         <label for="booking-end">À</label>
-                        <input type="time" id="booking-end" name="end" class="rb-input" step="900" required>
+                        <?php $id = 'booking-end'; $name = 'end'; $times = \App\Support\QuarterHour::range('00:15', substr(\App\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5)); require __DIR__ . '/_time-select.php'; ?>
                     </div>
                 </div>
                 <div class="rb-field">
