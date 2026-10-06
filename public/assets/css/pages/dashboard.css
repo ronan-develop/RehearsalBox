@@ -551,6 +551,29 @@ body {
   border-color: var(--rb-accent-2);
 }
 
+/* Nature d'une demande (#292) : libellé en capitales + couleur propre, jamais la couleur seule. */
+.rb-badge-kind {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rb-badge-kind--reservation {
+  color: var(--rb-accent);
+  border-color: var(--rb-accent);
+}
+
+.rb-badge-kind--echange {
+  color: var(--rb-accent-2);
+  border-color: var(--rb-accent-2);
+}
+
+.rb-exception-card-validator {
+  margin: 0 0 var(--rb-space-2);
+  color: var(--rb-text-2);
+  font-size: 0.8125rem;
+}
+
 .rb-badge-warn {
   color: var(--rb-warn);
   border-color: var(--rb-warn);
