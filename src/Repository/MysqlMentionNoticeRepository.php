@@ -100,6 +100,10 @@ final class MysqlMentionNoticeRepository implements MentionNoticeRepositoryInter
                    SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
                )
                AND NOT EXISTS (
+                   SELECT 1 FROM conversation_states ms
+                   WHERE ms.conversation_id = n.conversation_id AND ms.user_id = n.user_id AND ms.muted = 1
+               )
+               AND NOT EXISTS (
                    SELECT 1 FROM conversation_states s
                    WHERE s.conversation_id = n.conversation_id AND s.user_id = n.user_id
                      AND s.last_read_at >= COALESCE((
