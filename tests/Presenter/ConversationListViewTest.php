@@ -46,6 +46,22 @@ final class ConversationListViewTest extends TestCase
     }
 
     #[Test]
+    public function testItemsCarryTheMutedFlagOfTheViewer(): void
+    {
+        $view = new ConversationListView(new ConversationFormatter(new \DateTimeZone('Europe/Paris')));
+        $now = new \DateTimeImmutable('2026-10-04 16:00:00', new \DateTimeZone('UTC'));
+        $conversation = new Conversation(7, 3, 4, 'Fil', new \DateTimeImmutable('2026-10-01 10:00:00'), 10);
+        $message = new ConversationMessage(57, 7, 11, 'Bob', 'Salut', new \DateTimeImmutable('2026-10-04 07:05:00', new \DateTimeZone('UTC')));
+
+        $items = $view->items([
+            new ConversationSummary($conversation, 'Alpha', 'Beta', $message, false, false, true),
+            new ConversationSummary($conversation, 'Alpha', 'Beta', $message, false),
+        ], 10, $now, null);
+
+        self::assertSame([true, false], array_column($items, 'muted'));
+    }
+
+    #[Test]
     public function testOnlyTheConversationsTheViewerOpenedCanBeDeleted(): void
     {
         $view = new ConversationListView(new ConversationFormatter(new \DateTimeZone('Europe/Paris')));
