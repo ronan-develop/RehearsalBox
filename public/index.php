@@ -16,6 +16,7 @@ use App\Http\AfterResponseInterface;
 use App\Http\Request;
 use App\Kernel;
 use App\Routing\Router;
+use App\Security\AppUrl;
 use App\Security\CsrfTokenManager;
 use App\Security\SecurityHeaders;
 
@@ -38,7 +39,7 @@ foreach ([...$routeGroups['pages'], ...$routeGroups['api']] as [$method, $patter
 }
 
 // HSTS seulement si l'application est servie en HTTPS (jamais en développement local).
-$hsts = str_starts_with((string) ($config['app']['base_url'] ?? ''), 'https://');
+$hsts = AppUrl::isHttps((string) ($config['app']['base_url'] ?? ''));
 
 $kernel = new Kernel($router, $container, $container->get(CsrfTokenManager::class), new SecurityHeaders(hsts: $hsts));
 $request = Request::fromGlobals();

@@ -107,6 +107,8 @@ final class AccountPagesTest extends RepositoryTestCase
         self::assertStringContainsString('name="password"', $body);
         self::assertStringContainsString('name="passwordConfirmation"', $body);
         self::assertSame(2, substr_count($body, 'autocomplete="new-password"'));
+        self::assertSame(2, substr_count($body, 'minlength="10"'), 'les deux champs du nouveau mot de passe annoncent la règle (#223)');
+        self::assertStringContainsString('10 caractères minimum', $body);
     }
 
     #[Test]
