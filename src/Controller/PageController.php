@@ -225,15 +225,4 @@ final class PageController
             'documents' => $isMember ? $this->groupDocumentRepository->findByGroup($group->id()) : [],
         ]));
     }
-
-    public function adminGroups(): Response
-    {
-        $user = $this->authGuard->requireRole(UserRole::Admin);
-
-        return new Response($this->renderer->render('admin/groups/index', [
-            'csrfToken' => $this->csrfTokenManager->getToken(),
-            'groups' => $this->groupService->findAll(),
-            'currentUserRole' => $user->role(),
-        ]));
-    }
 }

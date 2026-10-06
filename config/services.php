@@ -6,6 +6,7 @@ use App\Container\Container;
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminGroupPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
@@ -20,6 +21,7 @@ use App\Controller\PageController;
 use App\Controller\Api\PasswordResetApiController;
 use App\Database\ConnectionFactory;
 use App\Database\TransactionRunner;
+use App\Repository\Contract\GroupImpactRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
@@ -27,6 +29,7 @@ use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\MysqlGroupDocumentRepository;
+use App\Repository\MysqlGroupImpactRepository;
 use App\Repository\MysqlGroupRepository;
 use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlRecurringSlotRepository;
@@ -285,6 +288,16 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(UserProvisioningService::class),
+    ));
+
+    $container->set(GroupImpactRepositoryInterface::class, fn ($c) => new MysqlGroupImpactRepository($c->get(PDO::class)));
+
+    $container->set(AdminGroupPageController::class, fn ($c) => new AdminGroupPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(GroupServiceInterface::class),
+        $c->get(GroupImpactRepositoryInterface::class),
     ));
 
     $container->set(AdminUserPageController::class, fn ($c) => new AdminUserPageController(
