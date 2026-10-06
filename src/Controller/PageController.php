@@ -164,7 +164,6 @@ final class PageController
         // arbitrairement dans le header. Pas de concept de "groupe principal" en base —
         // cf. issue à ouvrir si ce cas devient fréquent en usage réel.
         $primaryGroup = $groups[0] ?? null;
-        $primaryGroupRole = $primaryGroup !== null ? $groupRoles[$primaryGroup->id()] : null;
 
         return new Response($this->renderer->render('dashboard/index', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
@@ -176,8 +175,6 @@ final class PageController
             'currentUserRole' => $user->role(),
             'currentUserGroupRoles' => $groupRoles,
             'currentUserGroupName' => $primaryGroup?->name(),
-            'currentUserGroupRole' => $primaryGroupRole,
-            'currentUserGroupId' => $primaryGroup?->id(),
             'currentUserInitials' => Initials::from($user->displayName()),
         ]));
     }

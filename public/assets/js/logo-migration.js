@@ -12,9 +12,12 @@ import { isDesktopWidth } from './viewport.js';
 /** Hauteur visuelle du logo une fois posé dans la barre (px). */
 export const TOPBAR_LOGO_HEIGHT = 34;
 const TOPBAR_PADDING = 16;
-/** Centre du logo au repos sur téléphone : à gauche et à mi-hauteur de l'en-tête (le nom du groupe est en bas à droite). */
-const PHONE_START_X_RATIO = 0.28;
-const PHONE_START_Y_RATIO = 0.45;
+/** Part de la hauteur du logo située au-dessus de sa ligne de base (le reste : les coulures sous les lettres). */
+export const LOGO_BASELINE_RATIO = 0.74;
+/** Centre horizontal du logo au repos sur téléphone, en part de la largeur de l'en-tête (le point choisi par le propriétaire). */
+const PHONE_CENTER_X_RATIO = 0.29;
+/** Espace sous la ligne de base du logo, comme le padding bas de l'en-tête (l'ancienne place de l'icône photo) ; lu dans le CSS si possible (px). */
+const PHONE_BASELINE_GAP = 16;
 const REST_ROTATION_PHONE = -3;
 const DOCKED_ROTATION = -3;
 /** Progression à partir de laquelle le néon s'allume sur bureau. */
@@ -33,13 +36,18 @@ export function computeDistance(headerBottom, topbarHeight, maxScroll) {
   return Math.min(Math.max(headerBottom - topbarHeight, 1), maxScroll);
 }
 
-/** Coin haut-gauche du logo au repos, en coordonnées de la PAGE (indépendantes du scroll). */
-export function computeStartPosition(headerRect, size, isPhone) {
+/**
+ * Coin haut-gauche du logo au repos, en coordonnées de la PAGE (indépendantes du scroll). Sur téléphone, il est à gauche de
+ * l'en-tête (centre à ~29 % de sa largeur) et sa ligne de base est $baseline, le bas du contenu de l'en-tête (là où se trouvait l'icône photo).
+ */
+export function computeStartPosition(headerRect, size, isPhone, rowBottom = null) {
   if (isPhone) {
+    const baseline = rowBottom ?? headerRect.top + headerRect.height - PHONE_BASELINE_GAP;
+
     return {
       // Jamais à gauche du cadre de l'en-tête, même sur un écran très étroit.
-      left: Math.max(headerRect.left, headerRect.left + headerRect.width * PHONE_START_X_RATIO - size.width / 2),
-      top: headerRect.top + headerRect.height * PHONE_START_Y_RATIO - size.height / 2,
+      left: Math.max(headerRect.left, headerRect.left + headerRect.width * PHONE_CENTER_X_RATIO - size.width / 2),
+      top: baseline - size.height * LOGO_BASELINE_RATIO,
     };
   }
 
@@ -88,10 +96,12 @@ export function initLogoMigration(root = document, win = window) {
     const scrollY = win.scrollY;
     const headerRect = header.getBoundingClientRect();
     const size = { width: logo.offsetWidth, height: logo.offsetHeight };
+    const gap = Number.parseFloat(win.getComputedStyle?.(header)?.paddingBottom) || PHONE_BASELINE_GAP;
     start = computeStartPosition(
       { top: headerRect.top + scrollY, left: headerRect.left, width: headerRect.width, height: headerRect.height },
       size,
       isPhone,
+      headerRect.top + scrollY + headerRect.height - gap,
     );
     const barRect = topbar.getBoundingClientRect();
     end = computeEndPosition(barRect, size.height);

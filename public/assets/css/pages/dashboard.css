@@ -131,7 +131,10 @@ body {
   }
 }
 
+/* Le logo (fixe, z-index 30) passe devant le panneau de l'en-tête pour ne pas être terni, mais le nom du groupe et l'avatar passent
+   devant LUI : l'en-tête n'isole donc pas son empilement (sinon rien de ce qu'il contient ne pourrait dépasser le logo). */
 .rb-dashboard-header {
+  isolation: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -140,66 +143,12 @@ body {
   margin-bottom: var(--rb-space-4);
 }
 
-/* Vignette photo du groupe — volontairement petite pour manger le moins
-   possible le "#B27" de fond. Éditable uniquement par le gestionnaire
-   (badge crayon) ; simple vignette en lecture seule sinon. */
-.rb-group-photo {
-  position: relative;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--rb-radius-sm);
-  overflow: hidden;
-  background: var(--rb-surface-strong);
-  border: 1px solid var(--rb-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--rb-text-3);
-  box-shadow: var(--rb-elevation-1);
-}
-
-.rb-group-photo svg {
-  width: 18px;
-  height: 18px;
-}
-
-.rb-group-photo--editable {
-  cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: none;
-}
-
-.rb-group-photo--editable:hover {
-  border-color: var(--rb-accent);
-}
-
-.rb-group-photo-edit-badge {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--rb-accent);
-  border: 2px solid var(--rb-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rb-group-photo-edit-badge svg {
-  width: 9px;
-  height: 9px;
-  color: #fff;
-}
-
 .rb-dashboard-header-user {
+  position: relative;
+  z-index: 40;
   margin-left: auto;
+  /* Petit retrait : le badge ne colle pas au bord droit de l'en-tête. */
+  margin-right: var(--rb-space-2);
   display: flex;
   align-items: center;
   gap: var(--rb-space-2);
@@ -660,10 +609,21 @@ body {
 }
 
 @media (max-width: 767.98px) {
-  /* Le nom du groupe et l'avatar en bas de l'en-tête : le logo occupe sa partie haute (#201). */
+  /* Le nom du groupe et l'avatar en haut à droite ; la rangée du bas est pour le logo, sur la ligne de base de l'ancienne icône
+     photo (#249). Le padding bas (16 px) est lu par logo-migration.js. */
   .rb-dashboard-header {
-    align-items: flex-end;
-    padding-bottom: var(--rb-space-3);
+    align-items: flex-start;
+    padding: var(--rb-space-3) 0;
+  }
+
+  /* Le nom passe devant le logo (z-index) : on lui laisse beaucoup de place, un halo sombre le garde lisible quand il le croise ;
+     un nom vraiment très long est tronqué plutôt que de déborder de l'en-tête. */
+  .rb-dashboard-header-user > span:first-child {
+    max-width: 55vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-shadow: 0 0 4px var(--rb-bg), 0 0 8px var(--rb-bg);
   }
 
   [data-planning-tabs-ready] .rb-planning-tabs {
