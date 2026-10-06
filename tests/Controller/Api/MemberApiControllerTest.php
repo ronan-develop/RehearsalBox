@@ -25,6 +25,7 @@ use App\Service\MemberSearchService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MemberApiControllerTest extends RepositoryTestCase
 {
     private const PASSWORD = 'mot-de-passe-de-test';

@@ -13,6 +13,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Présence : dernière lecture, « en train d'écrire » et « vu par ». */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlConversationPresenceRepositoryTest extends RepositoryTestCase
 {
     use MessagingScenario;

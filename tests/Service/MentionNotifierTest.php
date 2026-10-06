@@ -23,6 +23,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 
 /** #178 : l'e-mail « vous avez été mentionné » — un par conversation et par personne toutes les 24 h, désinscription respectée. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MentionNotifierTest extends RepositoryTestCase
 {
     private \DateTimeImmutable $now;

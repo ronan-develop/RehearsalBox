@@ -20,6 +20,7 @@ use App\Service\UserProvisioningService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class UserAdminServiceTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

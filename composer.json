@@ -24,6 +24,9 @@
             "App\\Tools\\": "tools/"
         }
     },
+    "scripts": {
+        "test:quick": "phpunit --exclude-group db"
+    },
     "config": {
         "sort-packages": true
     }

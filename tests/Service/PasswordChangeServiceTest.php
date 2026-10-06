@@ -21,6 +21,7 @@ use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordChangeServiceTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

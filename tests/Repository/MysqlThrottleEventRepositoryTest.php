@@ -8,6 +8,7 @@ use App\Repository\MysqlThrottleEventRepository;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlThrottleEventRepositoryTest extends RepositoryTestCase
 {
     private const NOW = '2026-01-01 10:00:00';

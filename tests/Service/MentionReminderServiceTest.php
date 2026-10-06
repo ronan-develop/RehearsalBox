@@ -25,6 +25,7 @@ use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\MailerInterface;
 
 /** #178 : une seule relance, 24 h après l'e-mail de mention, si la mention n'est toujours pas lue (plage de jour, cron horaire). */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MentionReminderServiceTest extends RepositoryTestCase
 {
     private MysqlMentionNoticeRepository $notices;

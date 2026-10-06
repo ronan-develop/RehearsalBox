@@ -14,6 +14,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #210 : un participant met une conversation en sourdine ou la rétablit ; personne d'autre, aucun effet sur les autres. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationMuteServiceTest extends RepositoryTestCase
 {
     use MessagingScenario;

@@ -19,6 +19,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #178 : la liste proposée après « @ » — tous les membres actifs, par nom, avec leur groupe ; jamais d'adresse. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MemberSearchServiceTest extends RepositoryTestCase
 {
     private MemberSearchService $service;

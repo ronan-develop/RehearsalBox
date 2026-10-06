@@ -21,6 +21,7 @@ use App\Service\GroupDocumentService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class GroupDocumentServiceTest extends RepositoryTestCase
 {
     private string $storagePath;

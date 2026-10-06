@@ -10,6 +10,7 @@ use App\Tests\Support\ConversationWorld;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Lecture de la messagerie : ouverture d'un fil, pastilles, archivage dérivé, polling, « vu par » et « écrit… ». */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationReaderTest extends RepositoryTestCase
 {
     use ConversationWorld;

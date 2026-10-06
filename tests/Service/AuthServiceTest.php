@@ -18,6 +18,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AuthServiceTest extends RepositoryTestCase
 {
     private function makeService(): array

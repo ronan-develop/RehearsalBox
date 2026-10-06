@@ -20,6 +20,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AuthApiControllerTest extends RepositoryTestCase
 {
     private const THROTTLE_LIMIT = 5;

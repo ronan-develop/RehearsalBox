@@ -15,6 +15,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\TestDatabase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlGroupDocumentRepositoryTest extends RepositoryTestCase
 {
     private function makeGroupAndUser(): array

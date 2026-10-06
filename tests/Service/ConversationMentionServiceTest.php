@@ -20,6 +20,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #178 : valider les personnes mentionnées, séparer participants et extérieurs, inviter les extérieurs. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationMentionServiceTest extends RepositoryTestCase
 {
     private \DateTimeImmutable $now;

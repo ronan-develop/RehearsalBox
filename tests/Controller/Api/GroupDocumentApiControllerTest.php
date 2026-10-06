@@ -24,6 +24,7 @@ use App\Tests\Support\KernelTranslation;
 use App\Security\Exception\AccessDeniedException;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class GroupDocumentApiControllerTest extends RepositoryTestCase
 {
     private string $storagePath;

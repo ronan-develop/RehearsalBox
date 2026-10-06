@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\MailerInterface;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationReminderServiceTest extends RepositoryTestCase
 {
     private MysqlConversationRepository $conversations;

@@ -23,6 +23,7 @@ use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetPagesTest extends RepositoryTestCase
 {
     private function controller(): PageController

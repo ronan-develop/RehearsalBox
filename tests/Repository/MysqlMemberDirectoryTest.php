@@ -14,6 +14,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Annuaire des membres pour la liste après « @ » : noms et groupes, jamais d'adresse e-mail. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlMemberDirectoryTest extends RepositoryTestCase
 {
     private MysqlMemberDirectory $directory;

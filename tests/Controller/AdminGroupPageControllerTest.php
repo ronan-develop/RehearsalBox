@@ -25,6 +25,7 @@ use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Page admin « Groupes » : liste, onglets et confirmation chiffrée avant suppression (#224). */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AdminGroupPageControllerTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

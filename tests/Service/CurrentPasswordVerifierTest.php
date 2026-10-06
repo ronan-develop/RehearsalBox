@@ -13,6 +13,7 @@ use App\Service\Exception\UserValidationException;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class CurrentPasswordVerifierTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

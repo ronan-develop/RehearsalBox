@@ -29,6 +29,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #263 partie 3b-2 : la page « Réserver le local ». */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class BookingPageControllerTest extends RepositoryTestCase
 {
     private const PASSWORD = 'mot-de-passe-de-test'; // fixture factice : aucun compte réel

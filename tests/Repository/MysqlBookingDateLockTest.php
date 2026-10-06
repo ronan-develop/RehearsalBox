@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /** #263 : le verrou par date sérialise les réservations d'un même jour, jamais celles d'un autre jour. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlBookingDateLockTest extends TestCase
 {
     #[Test]

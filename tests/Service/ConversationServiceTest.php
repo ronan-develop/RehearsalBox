@@ -28,6 +28,7 @@ use App\Tests\Support\ConversationWorld;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationServiceTest extends RepositoryTestCase
 {
     use ConversationWorld;

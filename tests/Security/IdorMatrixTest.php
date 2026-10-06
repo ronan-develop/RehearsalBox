@@ -51,6 +51,7 @@ use Symfony\Component\Mailer\MailerInterface;
  * demandeur), memberA (membre de A, titulaire), managerA (gestionnaire de A),
  * dual (membre de A et de B), admin.
  */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class IdorMatrixTest extends TestCase
 {
     private const MISSING_ID = '99999999';

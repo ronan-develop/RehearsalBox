@@ -18,6 +18,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #178 : un invité (membre du site extérieur aux deux groupes) accède à cette conversation seulement. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlConversationGuestRepositoryTest extends RepositoryTestCase
 {
     private \DateTimeImmutable $now;

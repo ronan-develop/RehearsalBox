@@ -36,6 +36,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #292 : le bloc « Demandes de créneau » suit à la fois les échanges entre groupes et les réservations libres, et les distingue d'un coup d'œil. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class DashboardRequestsTest extends RepositoryTestCase
 {
     private const PASSWORD = 'fixture-secret';

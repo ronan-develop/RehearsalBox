@@ -24,6 +24,7 @@ use App\Tests\Security\InMemorySession;
 use App\Tests\Support\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AvailabilityApiControllerTest extends RepositoryTestCase
 {
     private function makeController(): array

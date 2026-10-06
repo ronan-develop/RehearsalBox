@@ -29,6 +29,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #263 partie 2 : l'API des réservations libres. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class FreeSlotBookingApiControllerTest extends RepositoryTestCase
 {
     private KernelTranslation $api;

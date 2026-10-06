@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 
 /** #263 partie 3a : l'e-mail « à valider » des administrateurs et l'e-mail d'issue du demandeur. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class BookingNotifierTest extends RepositoryTestCase
 {
     use MessagingScenario;

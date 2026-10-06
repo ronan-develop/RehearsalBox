@@ -9,6 +9,7 @@ use App\Service\IpThrottle;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class IpThrottleTest extends RepositoryTestCase
 {
     private const LIMIT = 4;

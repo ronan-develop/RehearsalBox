@@ -16,6 +16,7 @@ use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Migration 017 : les conversations antérieures au déploiement des e-mails ne déclenchent aucune relance rétroactive. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationNoticeBackfillMigrationTest extends RepositoryTestCase
 {
     private const MIGRATION = __DIR__ . '/../../database/migrations/017_backfill_conversation_group_notices.sql';

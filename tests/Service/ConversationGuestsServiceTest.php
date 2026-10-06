@@ -31,6 +31,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 
 /** #178 : taguer un membre du site lui ouvre CETTE conversation ; les invités y participent comme les autres. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationGuestsServiceTest extends RepositoryTestCase
 {
     private MockClock $clock;

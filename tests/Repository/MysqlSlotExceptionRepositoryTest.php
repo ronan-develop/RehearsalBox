@@ -17,6 +17,7 @@ use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlSlotExceptionRepositoryTest extends RepositoryTestCase
 {
     #[Test]

@@ -29,6 +29,7 @@ use App\Tests\Support\RecordingMailer;
 use App\Tests\Support\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class AccountApiControllerTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;

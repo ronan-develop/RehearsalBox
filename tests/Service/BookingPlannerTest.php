@@ -17,6 +17,7 @@ use App\Tests\Support\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #263 partie 3b-1 : ce qui est libre et ce qui chevauche un autre groupe, pour une plage voulue. */
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class BookingPlannerTest extends RepositoryTestCase
 {
     use MessagingScenario;

@@ -13,6 +13,7 @@ use App\Service\ProfileService;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
+#[\PHPUnit\Framework\Attributes\Group('db')]
 final class ProfileServiceTest extends RepositoryTestCase
 {
     private MysqlUserRepository $users;
