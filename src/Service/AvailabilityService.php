@@ -4,20 +4,30 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\RecurringSlot;
 use App\Entity\SlotException;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\AvailabilityServiceInterface;
+use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
+use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\RequestAlreadyRespondedException;
+use App\Service\Exception\RequestChangedException;
 
 final class AvailabilityService implements AvailabilityServiceInterface
 {
+    /** Taille de la colonne `request_reason` : au-delà, la base refuse (erreur 500 sans cette borne). */
+    private const MAX_REASON_LENGTH = 255;
+
     public function __construct(
         private readonly SlotExceptionRepositoryInterface $slotExceptionRepository,
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly RecurringSlotRepositoryInterface $recurringSlotRepository,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -48,7 +58,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
         return $this->slotExceptionRepository->findArchivedForGroup($groupId);
     }
 
-    public function respond(int $exceptionId, bool $accepted, int $userId): SlotException
+    public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate): SlotException
     {
         $exception = $this->slotExceptionRepository->findById($exceptionId);
         if ($exception === null) {
@@ -72,7 +82,14 @@ final class AvailabilityService implements AvailabilityServiceInterface
             throw $this->accessDenied();
         }
 
-        if (!$this->slotExceptionRepository->respond($exceptionId, $accepted, $userId)) {
+        // La date que le titulaire a vue fait partie de la condition atomique : si le demandeur l'a changée entre-temps,
+        // l'acceptation ne vaut pas pour une autre date que celle affichée.
+        if (!$this->slotExceptionRepository->respond($exceptionId, $accepted, $userId, $seenOccurrenceDate)) {
+            $current = $this->slotExceptionRepository->findById($exceptionId);
+            if ($current !== null && $current->isEnAttente()) {
+                throw new RequestChangedException();
+            }
+
             throw new RequestAlreadyRespondedException('Cette demande a déjà reçu une réponse.');
         }
 
@@ -95,6 +112,11 @@ final class AvailabilityService implements AvailabilityServiceInterface
             throw $this->accessDenied();
         }
 
+        $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
+        \assert($slot !== null);
+        $this->assertValidRequest($slot, $occurrenceDate, $reason);
+
+        // Conflit d'unicité (une autre demande occupe déjà cette date) : DuplicateOccurrenceException, traduite en 409 par le Kernel.
         if (!$this->slotExceptionRepository->update($exceptionId, $occurrenceDate, $reason)) {
             throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
         }
@@ -118,6 +140,28 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         if (!$this->slotExceptionRepository->delete($exceptionId)) {
             throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
+        }
+    }
+
+    /**
+     * Une demande vise une occurrence du créneau : même jour de semaine, jamais dans le passé, motif tenant dans la colonne.
+     *
+     * @throws AvailabilityValidationException
+     */
+    private function assertValidRequest(RecurringSlot $slot, \DateTimeImmutable $occurrenceDate, ?string $reason): void
+    {
+        $errors = [];
+        if ((int) $occurrenceDate->format('N') - 1 !== $slot->weekday()->value) {
+            $errors['occurrenceDate'] = 'La date ne correspond pas au jour de ce créneau.';
+        } elseif ($occurrenceDate < $this->clock->now()->setTime(0, 0)) {
+            $errors['occurrenceDate'] = 'La date ne peut pas être dans le passé.';
+        }
+        if ($reason !== null && mb_strlen($reason) > self::MAX_REASON_LENGTH) {
+            $errors['reason'] = 'Le motif ne peut pas dépasser ' . self::MAX_REASON_LENGTH . ' caractères.';
+        }
+
+        if ($errors !== []) {
+            throw new AvailabilityValidationException($errors);
         }
     }
 

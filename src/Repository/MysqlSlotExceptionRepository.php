@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Enum\SlotExceptionStatus;
 use App\Entity\SlotException;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
+use App\Repository\Exception\DuplicateOccurrenceException;
 
 final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInterface
 {
@@ -103,20 +104,26 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
         return $this->findById((int) $this->pdo->lastInsertId());
     }
 
-    public function respond(int $exceptionId, bool $accepted, int $respondedByUserId): bool
+    public function respond(int $exceptionId, bool $accepted, int $respondedByUserId, ?\DateTimeImmutable $expectedOccurrenceDate = null): bool
     {
         $newStatus = $accepted ? SlotExceptionStatus::Acceptee : SlotExceptionStatus::Refusee;
 
+        // La date vue par le titulaire fait partie de la condition ATOMIQUE : si le demandeur l'a changée entre-temps,
+        // la réponse ne s'applique pas (et la demande reste en attente).
         $statement = $this->pdo->prepare(
             "UPDATE slot_exceptions
              SET status = :new_status, responded_by_user_id = :user_id, responded_at = NOW()
-             WHERE id = :id AND status = 'en_attente'"
+             WHERE id = :id AND status = 'en_attente'" . ($expectedOccurrenceDate === null ? '' : ' AND occurrence_date = :expected_date')
         );
-        $statement->execute([
+        $parameters = [
             'new_status' => $newStatus->value,
             'id' => $exceptionId,
             'user_id' => $respondedByUserId,
-        ]);
+        ];
+        if ($expectedOccurrenceDate !== null) {
+            $parameters['expected_date'] = $expectedOccurrenceDate->format('Y-m-d');
+        }
+        $statement->execute($parameters);
 
         return $statement->rowCount() === 1;
     }
@@ -128,11 +135,20 @@ final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInter
              SET occurrence_date = :occurrence_date, request_reason = :request_reason
              WHERE id = :id AND status = 'en_attente'"
         );
-        $statement->execute([
-            'occurrence_date' => $occurrenceDate->format('Y-m-d'),
-            'request_reason' => $reason,
-            'id' => $exceptionId,
-        ]);
+        try {
+            $statement->execute([
+                'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+                'request_reason' => $reason,
+                'id' => $exceptionId,
+            ]);
+        } catch (\PDOException $e) {
+            // 1062 = clé d'unicité (créneau, date) : une autre demande occupe déjà cette date.
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                throw new DuplicateOccurrenceException();
+            }
+
+            throw $e;
+        }
 
         return $statement->rowCount() === 1;
     }

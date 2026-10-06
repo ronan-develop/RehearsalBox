@@ -9,6 +9,8 @@ use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
 use App\Service\Contract\AvailabilityServiceInterface;
+use App\Support\StrictId;
+use App\Service\Exception\AvailabilityValidationException;
 
 final class AvailabilityApiController
 {
@@ -22,7 +24,7 @@ final class AvailabilityApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        $exceptions = $this->availabilityService->findPendingForHolderGroup((int) $groupId, $user->id());
+        $exceptions = $this->availabilityService->findPendingForHolderGroup(StrictId::orDenied($groupId), $user->id());
 
         return new JsonResponse(['exceptions' => array_map(self::toArray(...), $exceptions)]);
     }
@@ -31,17 +33,38 @@ final class AvailabilityApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        $exceptions = $this->availabilityService->findByRequestingGroup((int) $groupId, $user->id());
+        $exceptions = $this->availabilityService->findByRequestingGroup(StrictId::orDenied($groupId), $user->id());
 
         return new JsonResponse(['exceptions' => array_map(self::toArray(...), $exceptions)]);
     }
 
+    /**
+     * Répond à une demande. Le corps porte la réponse (`accepted`, booléen strict : « false » refuse, il n'accepte jamais) ET la
+     * date que le titulaire a vue (`occurrenceDate`) : si le groupe demandeur l'a changée entre-temps, l'acceptation est refusée
+     * (409) et la demande reste en attente.
+     */
     public function respond(Request $request, string $exceptionId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
-        $accepted = (bool) $request->body('accepted', false);
+        $accepted = match ($request->body('accepted')) {
+            true, 1, '1', 'true' => true,
+            false, 0, '0', 'false' => false,
+            default => null,
+        };
+        $seenDate = self::parseDate($request->body('occurrenceDate'));
 
-        $responded = $this->availabilityService->respond((int) $exceptionId, $accepted, $user->id());
+        $errors = [];
+        if ($accepted === null) {
+            $errors['accepted'] = 'Indiquez si la demande est acceptée ou refusée.';
+        }
+        if ($seenDate === null) {
+            $errors['occurrenceDate'] = 'La date de la demande est requise (format AAAA-MM-JJ).';
+        }
+        if ($errors !== []) {
+            throw new AvailabilityValidationException($errors);
+        }
+
+        $responded = $this->availabilityService->respond(StrictId::orDenied($exceptionId), $accepted, $user->id(), $seenDate);
 
         return new JsonResponse(self::toArray($responded));
     }
@@ -51,11 +74,14 @@ final class AvailabilityApiController
         $user = $this->authGuard->requireLogin();
         $occurrenceDate = self::parseDate($request->body('occurrenceDate'));
         if ($occurrenceDate === null) {
-            return new JsonResponse(['error' => 'Date invalide (format AAAA-MM-JJ attendu).'], 422);
+            throw new AvailabilityValidationException(['occurrenceDate' => 'Date invalide (format AAAA-MM-JJ attendu).']);
         }
-        $reason = $request->body('reason') !== null ? (string) $request->body('reason') : null;
+        $rawReason = $request->body('reason');
+        if ($rawReason !== null && !is_string($rawReason)) {
+            throw new AvailabilityValidationException(['reason' => 'Le motif doit être du texte.']);
+        }
 
-        $updated = $this->availabilityService->updateRequest((int) $exceptionId, $occurrenceDate, $reason, $user->id());
+        $updated = $this->availabilityService->updateRequest(StrictId::orDenied($exceptionId), $occurrenceDate, $rawReason, $user->id());
 
         return new JsonResponse(self::toArray($updated));
     }
@@ -64,7 +90,7 @@ final class AvailabilityApiController
     {
         $user = $this->authGuard->requireLogin();
 
-        $this->availabilityService->cancelRequest((int) $exceptionId, $user->id());
+        $this->availabilityService->cancelRequest(StrictId::orDenied($exceptionId), $user->id());
 
         return new JsonResponse([], 204);
     }

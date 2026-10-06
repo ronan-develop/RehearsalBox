@@ -15,7 +15,10 @@ use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\AvailabilityService;
+use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\RequestAlreadyRespondedException;
+use App\Service\Exception\RequestChangedException;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -78,6 +81,12 @@ final class AvailabilityServiceTest extends RepositoryTestCase
     }
 
 
+    /** Un mardi futur (le créneau du titulaire est le mardi) : aujourd'hui compris s'il tombe un mardi, plus $weeksAhead semaines. */
+    private function tuesday(int $weeksAhead): \DateTimeImmutable
+    {
+        return (new \DateTimeImmutable('today'))->modify('tuesday this week')->modify('+1 week')->modify('+' . $weeksAhead . ' weeks');
+    }
+
     #[Test]
 
 
@@ -89,7 +98,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
-        $responded = $service->respond($exception->id(), true, $holderUserId);
+        $responded = $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
 
         self::assertFalse($responded->isEnAttente());
     }
@@ -104,7 +113,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
-        $responded = $service->respond($exception->id(), false, $holderUserId);
+        $responded = $service->respond($exception->id(), false, $holderUserId, $exception->occurrenceDate());
 
         self::assertFalse($responded->isEnAttente());
     }
@@ -126,7 +135,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
 
-        $service->respond($exception->id(), true, $requestingUserId);
+        $service->respond($exception->id(), true, $requestingUserId, $exception->occurrenceDate());
     }
 
     #[Test]
@@ -139,11 +148,11 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
 
-        $service->respond($exception->id(), true, $holderUserId);
+        $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
 
         $this->expectException(RequestAlreadyRespondedException::class);
 
-        $service->respond($exception->id(), true, $holderUserId);
+        $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
     }
 
     #[Test]
@@ -155,7 +164,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
 
-        $service->respond(9999, true, $holderUserId);
+        $service->respond(9999, true, $holderUserId, new \DateTimeImmutable("today"));
     }
 
     #[Test]
@@ -240,9 +249,9 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, 'Raison initiale');
 
-        $updated = $service->updateRequest($exception->id(), new \DateTimeImmutable('+14 days'), 'Raison modifiée', $requestingUserId);
+        $updated = $service->updateRequest($exception->id(), $this->tuesday(2), 'Raison modifiée', $requestingUserId);
 
-        self::assertSame((new \DateTimeImmutable('+14 days'))->format('Y-m-d'), $updated->occurrenceDate()->format('Y-m-d'));
+        self::assertSame(($this->tuesday(2))->format('Y-m-d'), $updated->occurrenceDate()->format('Y-m-d'));
         self::assertSame('Raison modifiée', $updated->requestReason());
     }
 
@@ -261,7 +270,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
 
-        $service->updateRequest($exception->id(), new \DateTimeImmutable('+14 days'), null, $holderUserId);
+        $service->updateRequest($exception->id(), $this->tuesday(2), null, $holderUserId);
     }
 
     #[Test]
@@ -273,11 +282,11 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
         $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
-        $service->respond($exception->id(), true, $holderUserId);
+        $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
 
         $this->expectException(RequestAlreadyRespondedException::class);
 
-        $service->updateRequest($exception->id(), new \DateTimeImmutable('+14 days'), null, $requestingUserId);
+        $service->updateRequest($exception->id(), $this->tuesday(2), null, $requestingUserId);
     }
 
     #[Test]
@@ -289,7 +298,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $this->expectException(AccessDeniedException::class);
 
-        $service->updateRequest(9999, new \DateTimeImmutable('+14 days'), null, $holderUserId);
+        $service->updateRequest(9999, $this->tuesday(2), null, $holderUserId);
     }
 
     #[Test]
@@ -334,7 +343,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
 
         $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
-        $service->respond($exception->id(), true, $holderUserId);
+        $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
 
         $this->expectException(RequestAlreadyRespondedException::class);
 
@@ -351,5 +360,104 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $this->expectException(AccessDeniedException::class);
 
         $service->cancelRequest(9999, $holderUserId);
+    }
+
+    // --- Intégrité d'une demande (#221) -------------------------------------------------------------
+
+    /** @return array{0: AvailabilityService, 1: int, 2: int, 3: int, 4: \App\Entity\SlotException} service, utilisateur titulaire, utilisateur demandeur, créneau, demande */
+    private function pendingRequest(?string $reason = null): array
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, $this->tuesday(1), $requestingGroupId, $requestingUserId, $reason);
+
+        return [$service, $holderUserId, $requestingUserId, $holderSlotId, $exception];
+    }
+
+    #[Test]
+    public function testTheRequesterCannotChangeTheDateJustBeforeTheHolderAccepts(): void
+    {
+        [$service, $holderUserId, $requestingUserId, , $exception] = $this->pendingRequest();
+        $seenByTheHolder = $exception->occurrenceDate();
+
+        $service->updateRequest($exception->id(), $this->tuesday(3), null, $requestingUserId);
+
+        try {
+            $service->respond($exception->id(), true, $holderUserId, $seenByTheHolder);
+            self::fail('l\'acceptation d\'une date que le titulaire n\'a pas vue doit être refusée');
+        } catch (RequestChangedException $e) {
+            self::assertStringContainsString('modifiée', $e->getMessage());
+        }
+        // La demande reste en attente, avec sa nouvelle date : le titulaire la revoit puis décide en connaissance de cause.
+        $pending = $service->findPendingForHolderGroup($this->holderGroupOf($service), $holderUserId);
+        self::assertCount(1, $pending);
+        self::assertSame($this->tuesday(3)->format('Y-m-d'), $pending[0]->occurrenceDate()->format('Y-m-d'));
+    }
+
+    private function holderGroupOf(AvailabilityService $service): int
+    {
+        return (int) $this->pdo->query('SELECT group_id FROM recurring_slots LIMIT 1')->fetchColumn();
+    }
+
+    #[Test]
+    public function testAnAlreadyRespondedRequestStillSaysSoRatherThanChanged(): void
+    {
+        [$service, $holderUserId, , , $exception] = $this->pendingRequest();
+        $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+        $service->respond($exception->id(), false, $holderUserId, $exception->occurrenceDate());
+    }
+
+    #[Test]
+    public function testTheNewDateMustFallOnTheWeekdayOfTheSlot(): void
+    {
+        [$service, , $requestingUserId, , $exception] = $this->pendingRequest();
+
+        try {
+            $service->updateRequest($exception->id(), $this->tuesday(2)->modify('+1 day'), null, $requestingUserId);
+            self::fail('un mercredi ne peut pas remplacer un mardi');
+        } catch (AvailabilityValidationException $e) {
+            self::assertArrayHasKey('occurrenceDate', $e->fields());
+        }
+    }
+
+    #[Test]
+    public function testThePastCannotBeRequested(): void
+    {
+        [$service, , $requestingUserId, , $exception] = $this->pendingRequest();
+        $pastTuesday = (new \DateTimeImmutable('today'))->modify('last tuesday')->modify('-1 week');
+
+        $this->expectException(AvailabilityValidationException::class);
+        $service->updateRequest($exception->id(), $pastTuesday, null, $requestingUserId);
+    }
+
+    #[Test]
+    public function testTheReasonIsBoundedToWhatTheColumnCanHold(): void
+    {
+        [$service, , $requestingUserId, , $exception] = $this->pendingRequest();
+
+        $accepted = $service->updateRequest($exception->id(), $this->tuesday(2), str_repeat('é', 255), $requestingUserId);
+        self::assertSame(255, mb_strlen((string) $accepted->requestReason()));
+
+        try {
+            $service->updateRequest($exception->id(), $this->tuesday(2), str_repeat('é', 256), $requestingUserId);
+            self::fail('un motif de 256 caractères doit être refusé');
+        } catch (AvailabilityValidationException $e) {
+            self::assertArrayHasKey('reason', $e->fields());
+        }
+    }
+
+    #[Test]
+    public function testMovingARequestOntoADateAlreadyRequestedIsAConflictNotAServerError(): void
+    {
+        [$service, , $requestingUserId, $slotId, $exception] = $this->pendingRequest();
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $requestingGroupId = $exception->requestedByGroupId();
+        (new MysqlSlotExceptionRepository($this->pdo))->createRequest($slotId, $this->tuesday(2), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(DuplicateOccurrenceException::class);
+        $service->updateRequest($exception->id(), $this->tuesday(2), null, $requestingUserId);
     }
 }
