@@ -10,6 +10,7 @@ php -S localhost:8000 -t public public/index.php
 
 ```bash
 php bin/migrate.php              # applique les migrations non jouées (table migrations_log)
+php database/seed.php --force-local   # jeu de démo (EFFACE la base de développement ; refusé hors local, jamais livré en production)
 mysql -u root < database/schema.sql   # (re)création complète du schéma en local
 ```
 

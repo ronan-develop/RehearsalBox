@@ -87,6 +87,14 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - `ImmediateAfterResponse` (scripts, tests) exécute la tâche tout de suite ; c'est le défaut des services, la production câble `DeferredAfterResponse`.
 - **Limite connue** : sur un serveur sans fonction pour libérer le client (serveur de développement `php -S`), le travail suit la réponse sans la couper et l'écart de temps réapparaît. **À vérifier en production après chaque changement d'hébergement ou de version de PHP** (voir `.claude/deploiement.md`).
 
+## Erreurs, 500 génériques et seed protégé (#220)
+
+- **Filet de sécurité du Kernel** : toute exception inattendue (base, bogue, service introuvable, `PDOException`, `ValueError`…) donne une **500 générique** (`{"error":"Erreur interne."}` pour l'API, « Erreur interne. » pour une page), jamais une trace ni un message. Journal : la **classe**, le point d'origine (`fichier:ligne`) et la route, sans donnée personnelle ni jeton. Les en-têtes de sécurité restent posés sur cette réponse.
+- **`display_errors` coupé hors développement** (`public/index.php`, quand `debug` est faux : c'est le cas de la configuration générée pour la production) : une erreur PHP n'est jamais affichée au visiteur.
+- **Une seule table exception → réponse** : `ExceptionTranslator` (utilisé par le Kernel) donne à chaque exception métier son statut et sa forme (validation 422 avec les champs, limite 429, jeton ou fichier invalide 422, conflit 409, compte introuvable 404 sans l'identifiant). Les contrôleurs **laissent remonter** ces exceptions au lieu de répéter des `try/catch` (33 → 7 ; les 7 restants sont des `InvalidArgumentException`, dont le statut 404 ou 422 dépend du contrôleur). Pour ajouter une erreur métier : créer l'exception et **une ligne** dans `ExceptionTranslator` (+ un cas dans son test). Les tests de contrôleur enveloppent le contrôleur dans `KernelTranslation` pour garder leurs assertions sur le statut.
+- **Entrées invalides = 4xx, jamais une erreur PHP** : p. ex. un jour de semaine absent ou invalide est refusé (422), il ne devient plus lundi par défaut.
+- **`database/seed.php`** (script destructif) : refusé hors ligne de commande, hors application locale (`app.base_url` sur `localhost`) et sans `--force-local` (`SeedGuard`) ; il est **exclu de l'archive de déploiement** (`bin/deploy.sh`) et ne part donc jamais en production.
+
 ## Règle critique — pas d'ORM
 
 Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requêtes en PDO préparé (`PDO::ATTR_EMULATE_PREPARES => false`). Voir le point clé sur la concurrence ci-dessous et le plan de sécurité pour le détail des règles (injection, IDOR).
