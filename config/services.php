@@ -71,6 +71,7 @@ use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlThrottleEventRepository;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
+use App\Repository\Contract\ConversationMuteRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
 use App\Repository\MysqlMentionNoticeRepository;
@@ -84,6 +85,7 @@ use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\MysqlNotificationPreferenceRepository;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
+use App\Repository\MysqlConversationMuteRepository;
 use App\Repository\MysqlMemberDirectory;
 use App\Service\ConversationAccess;
 use App\Service\ConversationGuestService;
@@ -373,6 +375,8 @@ return static function (array $config): Container {
         $c->get(ConversationGuestRepositoryInterface::class),
     ));
 
+    $container->set(ConversationMuteRepositoryInterface::class, fn ($c) => new MysqlConversationMuteRepository($c->get(PDO::class)));
+
     $container->set(MentionNoticeRepositoryInterface::class, fn ($c) => new MysqlMentionNoticeRepository($c->get(PDO::class)));
 
     $container->set(MentionNotifier::class, fn ($c) => new MentionNotifier(
@@ -380,6 +384,7 @@ return static function (array $config): Container {
         $c->get(MentionNoticeRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),
         $c->get(NotificationPreferenceRepositoryInterface::class),
+        $c->get(ConversationMuteRepositoryInterface::class),
         $config['mailer']['from'],
         $config['app']['base_url'],
         $c->get(MailRenderer::class),

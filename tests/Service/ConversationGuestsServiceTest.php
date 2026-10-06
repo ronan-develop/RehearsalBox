@@ -79,7 +79,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $this->guests,
             $this->mentions,
             $this->messages,
-            new MentionNotifier($this->mailer, new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+            new MentionNotifier($this->mailer, new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), new \App\Repository\MysqlConversationMuteRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
         );
         $this->service = new ConversationService(
             $this->conversations,
