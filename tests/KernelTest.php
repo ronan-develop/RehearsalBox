@@ -348,4 +348,99 @@ final class KernelTest extends TestCase
 
         return null;
     }
+
+    // --- Exceptions inattendues (#220) ----------------------------------------------------------------
+
+    /** @return array{Request, \App\Http\Response, string} la réponse du Kernel et ce qui a été journalisé */
+    private function crash(string $method, string $path, \Throwable $error): array
+    {
+        $router = new Router();
+        $router->add($method, $path, ['boom', 'run']);
+        $container = new Container();
+        $container->set('boom', fn () => new class ($error) {
+            public function __construct(private readonly \Throwable $error)
+            {
+            }
+
+            public function run(): Response
+            {
+                throw $this->error;
+            }
+        });
+        $request = new Request($method, $path, [], [], []);
+
+        $file = tempnam(sys_get_temp_dir(), 'errlog');
+        $previous = ini_set('error_log', $file);
+        try {
+            $response = $this->kernel($router, $container)->handle($request);
+        } finally {
+            ini_set('error_log', (string) $previous);
+        }
+        $logged = (string) file_get_contents($file);
+        unlink($file);
+
+        return [$request, $response, $logged];
+    }
+
+    #[Test]
+    public function testAnUnexpectedErrorOnTheApiIsAGenericJson500WithoutAnyLeak(): void
+    {
+        [, $response, $logged] = $this->crash('GET', '/api/boom', new \RuntimeException('SQLSTATE alice@rehearsalbox.test jeton-secret /var/www/chemin'));
+
+        self::assertSame(500, $response->statusCode());
+        self::assertSame('{"error":"Erreur interne."}', $response->body());
+        self::assertStringContainsString('application/json', $response->headers()['Content-Type']);
+        self::assertStringNotContainsString('alice', $response->body() . $logged);
+        self::assertStringNotContainsString('jeton-secret', $response->body() . $logged);
+        self::assertStringNotContainsString('SQLSTATE', $response->body() . $logged);
+        self::assertStringContainsString('RuntimeException', $logged, 'la classe de l’erreur suffit au diagnostic');
+        self::assertStringContainsString('GET /api/boom', $logged);
+    }
+
+    #[Test]
+    public function testAnUnexpectedErrorOnAPageIsAGenericPageWithoutAnyLeak(): void
+    {
+        [, $response, $logged] = $this->crash('GET', '/boom', new \PDOException('Access denied for user root@localhost password=secret'));
+
+        self::assertSame(500, $response->statusCode());
+        self::assertSame('Erreur interne.', $response->body());
+        self::assertStringNotContainsString('secret', $response->body() . $logged);
+        self::assertStringContainsString('PDOException', $logged);
+    }
+
+    #[Test]
+    public function testPhpErrorsAreCaughtToo(): void
+    {
+        [, $response] = $this->crash('GET', '/api/boom', new \ValueError('3 is not a valid backing value'));
+
+        self::assertSame(500, $response->statusCode());
+        self::assertSame('{"error":"Erreur interne."}', $response->body());
+    }
+
+    #[Test]
+    public function testTheGenericErrorStillCarriesTheSecurityHeaders(): void
+    {
+        [, $response] = $this->crash('GET', '/boom', new \RuntimeException('x'));
+
+        self::assertSame('DENY', $response->headers()['X-Frame-Options']);
+        self::assertSame('private, no-store', $response->headers()['Cache-Control']);
+    }
+
+    #[Test]
+    public function testAServiceThatCannotBeBuiltIsAlsoAGenericError(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/boom', ['inconnu', 'run']);
+
+        $file = tempnam(sys_get_temp_dir(), 'errlog');
+        $previous = ini_set('error_log', $file);
+        try {
+            $response = $this->kernel($router, new Container())->handle(new Request('GET', '/boom', [], [], []));
+        } finally {
+            ini_set('error_log', (string) $previous);
+            unlink($file);
+        }
+
+        self::assertSame(500, $response->statusCode());
+    }
 }
