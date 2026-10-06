@@ -798,6 +798,12 @@ body {
   margin: 0 0 var(--rb-space-3);
 }
 
+.rb-dashboard-book-hint {
+  margin: 0 0 var(--rb-space-3);
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
 .rb-dashboard-book .rb-btn {
   display: inline-flex;
   align-items: center;
