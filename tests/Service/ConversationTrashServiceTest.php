@@ -221,4 +221,29 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $this->trash->dismissAlert($this->id('bob'), $alert->id());
         self::assertSame(0, $this->trash->alertCount($this->id('bob')));
     }
+
+    #[Test]
+    public function testTheInitiatorWhoLeftBothGroupsCanNoLongerDeleteRestoreOrEraseTheConversation(): void
+    {
+        $this->trash->delete($this->id('alice'), $this->conversationId);
+        $groups = new MysqlGroupRepository($this->pdo);
+        foreach ($groups->findByMember($this->id('alice')) as $group) {
+            $groups->removeMember($group->id(), $this->id('alice'));
+        }
+
+        $this->denied(fn () => $this->trash->restore($this->id('alice'), $this->conversationId));
+        $this->denied(fn () => $this->trash->deletePermanently($this->id('alice'), $this->conversationId));
+        self::assertNotNull($this->conversations->findById($this->conversationId), 'la conversation reste');
+    }
+
+    #[Test]
+    public function testTheInitiatorWhoLeftBothGroupsCannotTrashItEither(): void
+    {
+        $groups = new MysqlGroupRepository($this->pdo);
+        foreach ($groups->findByMember($this->id('alice')) as $group) {
+            $groups->removeMember($group->id(), $this->id('alice'));
+        }
+
+        $this->denied(fn () => $this->trash->delete($this->id('alice'), $this->conversationId));
+    }
 }

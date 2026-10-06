@@ -41,11 +41,17 @@ final class ConversationAccess
         return $conversation;
     }
 
-    /** Conversation ouverte par cette personne, en service ou à la corbeille. @throws AccessDeniedException */
+    /**
+     * Conversation ouverte par cette personne, en service ou à la corbeille, TANT QU'elle appartient encore à l'un des deux
+     * groupes : en les quittant, elle perd aussi le droit de la supprimer. @throws AccessDeniedException
+     */
     public function ownedBy(int $userId, int $conversationId): Conversation
     {
         $conversation = $this->conversations->findById($conversationId);
-        if ($conversation === null || $conversation->createdBy() !== $userId) {
+        if ($conversation === null
+            || $conversation->createdBy() !== $userId
+            || (!$this->groups->isMember($conversation->initiatorGroupId(), $userId)
+                && !$this->groups->isMember($conversation->targetGroupId(), $userId))) {
             throw new AccessDeniedException(self::DENIED);
         }
 
