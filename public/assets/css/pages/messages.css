@@ -868,14 +868,18 @@ rb-composer {
   order: -2;
 }
 
-.rb-chat-message:hover .rb-chat-quote-action,
-.rb-chat-quote-action:focus-visible {
-  opacity: 1;
-}
+/* Survol : ordinateur seulement (#257). Sur écran tactile, iOS laisse un survol « collant » après un tap : l'action apparaîtrait
+   sans que tap-actions.js l'ait activée (donc pointer-events: none) et iOS ne renverrait pas toujours « click ». */
+@media (hover: hover) {
+  .rb-chat-message:hover .rb-chat-quote-action,
+  .rb-chat-quote-action:focus-visible {
+    opacity: 1;
+  }
 
-.rb-chat-quote-action:hover,
-.rb-chat-quote-action:focus-visible {
-  color: var(--rb-accent);
+  .rb-chat-quote-action:hover,
+  .rb-chat-quote-action:focus-visible {
+    color: var(--rb-accent);
+  }
 }
 
 /* Aperçu de la citation au-dessus de la saisie */
@@ -952,14 +956,16 @@ rb-composer {
   opacity: 0;
 }
 
-.rb-chat-message:hover .rb-chat-edit,
-.rb-chat-edit:focus-visible {
-  opacity: 1;
-}
+@media (hover: hover) {
+  .rb-chat-message:hover .rb-chat-edit,
+  .rb-chat-edit:focus-visible {
+    opacity: 1;
+  }
 
-.rb-chat-edit:hover,
-.rb-chat-edit:focus-visible {
-  color: var(--rb-accent);
+  .rb-chat-edit:hover,
+  .rb-chat-edit:focus-visible {
+    color: var(--rb-accent);
+  }
 }
 
 @media (hover: none) {

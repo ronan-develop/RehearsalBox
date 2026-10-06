@@ -205,4 +205,46 @@ final class ChatCssTest extends TestCase
         self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message--mine \.rb-chat-quote-action\s*\{[^}]*right:\s*calc\(100% \+ 4px\)/s', $css);
         self::assertMatchesRegularExpression('/@media \(hover: none\)\s*\{[^@]*\.rb-chat-message--mine\[data-editable\] \.rb-chat-quote-action\s*\{[^}]*display:\s*none/s', $css, 'une seule action à gauche de ma bulle modifiable');
     }
+
+    /** CSS sans les at-rules (@media, @keyframes) de premier niveau : il ne reste que les règles qui s'appliquent PARTOUT. */
+    private function unconditionalRules(): string
+    {
+        $css = $this->css();
+        $out = '';
+        $depth = 0;
+        $skipping = false;
+        for ($i = 0, $len = strlen($css); $i < $len; $i++) {
+            $char = $css[$i];
+            if ($depth === 0 && $char === '@') {
+                $skipping = true;
+            }
+            if ($char === '{') {
+                $depth++;
+            } elseif ($char === '}') {
+                $depth--;
+                if ($depth === 0 && $skipping) {
+                    $skipping = false;
+                    continue;
+                }
+            }
+            if (!$skipping) {
+                $out .= $char;
+            }
+        }
+
+        return $out;
+    }
+
+    #[Test]
+    public function testHoverNeverRevealsTheMessageActionsOnTouchScreens(): void
+    {
+        // iOS laisse un survol « collant » après un tap : le crayon apparaîtrait sans la classe posée par tap-actions.js, alors que
+        // le bouton tactile est alors pointer-events: none, et iOS n'envoie pas toujours « click » quand le survol change l'affichage (#257).
+        $always = $this->unconditionalRules();
+
+        self::assertStringNotContainsString('.rb-chat-message:hover .rb-chat-edit', $always);
+        self::assertStringNotContainsString('.rb-chat-message:hover .rb-chat-quote-action', $always);
+        self::assertMatchesRegularExpression('/@media \(hover: hover\)\s*\{[^@]*\.rb-chat-message:hover \.rb-chat-edit/s', $this->css(), 'le survol reste pour l\'ordinateur');
+        self::assertMatchesRegularExpression('/@media \(hover: hover\)\s*\{[^@]*\.rb-chat-message:hover \.rb-chat-quote-action/s', $this->css());
+    }
 }
