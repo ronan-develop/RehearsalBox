@@ -58,4 +58,28 @@ final class BookingsCssTest extends TestCase
         self::assertStringContainsString('statusLabel', $template, 'l\'état est un texte, la couleur ne fait que le souligner');
         self::assertMatchesRegularExpression('/\.rb-booking-plan-line--request\s*\{[^}]*border-left:/s', $this->css(), 'un trait en plus de la couleur');
     }
+
+    #[Test]
+    public function testTheTimePickerLaysOutHoursColonMinutesInOneRowAndIsABlockElement(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/rb-time-picker\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center/s', $css, 'un élément personnalisé est « inline » par défaut');
+        self::assertMatchesRegularExpression('/\.rb-time-picker \.rb-select\s*\{[^}]*flex:\s*1[^}]*min-width:\s*0/s', $css, 'les deux listes se partagent la largeur sans déborder');
+    }
+
+    #[Test]
+    public function testTheTwoPickersFitTheCardOnAPhoneAndLeaveRoomForTheDigits(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-booking-form-times\s*>\s*\.rb-field\s*\{[^}]*min-width:\s*0/s', $css, 'une colonne de grille ne doit pas dépasser la carte');
+        self::assertMatchesRegularExpression('/\.rb-time-picker \.rb-select\s*\{[^}]*padding:\s*0\s+1\.75rem\s+0\s+0\.75rem/s', $css, 'peu de marge : les chiffres doivent rester visibles dans une liste étroite');
+    }
+
+    #[Test]
+    public function testOnANarrowPhoneTheStartAndEndPickersAreStackedSoNoDigitIsClipped(): void
+    {
+        self::assertMatchesRegularExpression('/@media\s*\(max-width:\s*\d+px\)\s*\{[^@]*\.rb-booking-form-times\s*\{[^}]*grid-template-columns:\s*1fr\s*;/s', $this->css());
+    }
 }

@@ -50,11 +50,11 @@
                 <div class="rb-booking-form-times">
                     <div class="rb-field">
                         <label for="booking-start">De</label>
-                        <?php $id = 'booking-start'; $name = 'start'; $times = \App\Support\QuarterHour::range('00:00', '23:45'); require __DIR__ . '/_time-select.php'; ?>
+                        <?php $id = 'booking-start'; $name = 'start'; $label = 'Début'; $min = '00:00'; $max = '23:45'; require __DIR__ . '/_time-select.php'; ?>
                     </div>
                     <div class="rb-field">
                         <label for="booking-end">À</label>
-                        <?php $id = 'booking-end'; $name = 'end'; $times = \App\Support\QuarterHour::range('00:15', substr(\App\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5)); require __DIR__ . '/_time-select.php'; ?>
+                        <?php $id = 'booking-end'; $name = 'end'; $label = 'Fin'; $min = '00:15'; $max = substr(\App\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5); require __DIR__ . '/_time-select.php'; ?>
                     </div>
                 </div>
                 <div class="rb-field">

@@ -96,8 +96,11 @@ final class BookingPageControllerTest extends RepositoryTestCase
         }
         self::assertStringContainsString('type="date"', $html);
         self::assertStringNotContainsString('type="time"', $html, 'le sélecteur natif propose toutes les minutes et reste blanc');
-        self::assertMatchesRegularExpression('/<select[^>]*id="booking-start"[^>]*name="start"/', $html);
-        self::assertMatchesRegularExpression('/<select[^>]*id="booking-end"[^>]*name="end"/', $html);
+        self::assertSame(2, substr_count($html, '<rb-time-picker'), 'un sélecteur d\'horaire par champ');
+        self::assertStringContainsString('<input type="hidden" name="start" value="">', $html);
+        self::assertStringContainsString('<input type="hidden" name="end" value="">', $html);
+        self::assertMatchesRegularExpression('/<select[^>]*id="booking-start"[^>]*data-time-hours/', $html, 'le libellé « De » vise la liste des heures');
+        self::assertMatchesRegularExpression('/<select[^>]*id="booking-end"[^>]*data-time-hours/', $html);
         self::assertStringContainsString('maxlength="255"', $html);
         self::assertStringContainsString('data-booking-plan', $html);
         self::assertStringContainsString('aria-live="polite"', $html);
@@ -153,20 +156,33 @@ final class BookingPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testTheTimeListsOnlyOfferQuarterHoursWithinTheBookableRange(): void
+    public function testTheTimePickersChooseHoursThenQuarterHoursWithinTheBookableRange(): void
     {
         $this->login('alice');
 
         $html = $this->controller->index()->body();
 
-        preg_match('/<select[^>]*id="booking-start".*?<\/select>/s', $html, $start);
-        preg_match('/<select[^>]*id="booking-end".*?<\/select>/s', $html, $end);
-        self::assertSame(96, preg_match_all('/<option value="\d/', $start[0]), 'de 00:00 à 23:45, plus une ligne vide à part');
-        self::assertStringContainsString('<option value="">', $start[0]);
-        self::assertStringContainsString('<option value="18:15">', $start[0]);
-        self::assertStringNotContainsString('value="18:10"', $start[0]);
-        self::assertStringNotContainsString('value="23:45"', $end[0], 'la fin ne dépasse pas 23:30');
-        self::assertStringContainsString('<option value="23:30">', $end[0]);
-        self::assertStringNotContainsString('<option value="00:00">', $end[0], 'une fin à minuit n\'a pas de sens');
+        preg_match_all('/<rb-time-picker[^>]*>.*?<\/rb-time-picker>/s', $html, $pickers);
+        self::assertCount(2, $pickers[0]);
+        [$start, $end] = $pickers[0];
+        self::assertStringContainsString('data-min="00:00" data-max="23:45"', $start);
+        self::assertStringContainsString('data-min="00:15" data-max="23:30"', $end, 'la fin ne dépasse pas 23:30 et ne peut pas être minuit');
+        foreach ([$start, $end] as $picker) {
+            preg_match('/<select[^>]*data-time-hours.*?<\/select>/s', $picker, $hours);
+            preg_match('/<select[^>]*data-time-minutes.*?<\/select>/s', $picker, $minutes);
+            self::assertSame(24, preg_match_all('/<option value="\d\d"/', $hours[0]), 'de 00 à 23');
+            self::assertSame(["00", "15", "30", "45"], self::values($minutes[0]));
+            self::assertStringContainsString('<option value="">--</option>', $hours[0]);
+        }
+        self::assertStringContainsString('aria-label="Début : heures"', $start);
+        self::assertStringContainsString('aria-label="Fin : minutes"', $end);
+    }
+
+    /** @return list<string> les valeurs non vides des options */
+    private static function values(string $select): array
+    {
+        preg_match_all('/<option value="(\d\d)"/', $select, $found);
+
+        return $found[1];
     }
 }
