@@ -4,6 +4,8 @@ import { initAvailability } from './availability.js';
 import { initAdminSlots } from './admin-slots.js';
 import { initAdminGroups } from './admin-groups.js';
 import { initAdminUsers } from './admin-users.js';
+import { initAdminBookings } from './admin-bookings.js';
+import { initBookingsBadge } from './bookings-badge.js';
 import { initPlanningTabs } from './planning-tabs.js';
 import { initTornPaper } from './tornpaper-init.js';
 import { initPlanningSearch } from './planning-search.js';
@@ -26,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminSlots();
   initAdminGroups();
   initAdminUsers();
+  initAdminBookings();
+  initBookingsBadge();
   initPlanningTabs();
   initTornPaper();
   initPlanningSearch();
