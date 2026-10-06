@@ -56,4 +56,14 @@ final class ConversationPresenterTest extends TestCase
         self::assertSame('Dernier', $json['lastMessage']['body']);
         self::assertFalse($json['lastMessage']['mine']);
     }
+
+    #[Test]
+    public function testAHostileGroupColourIsNeverPassedToTheClient(): void
+    {
+        $presenter = new ConversationPresenter();
+        $group = new \App\Entity\Group(3, 'Alpha', null, ';top:0;', 'alpha@example.test');
+        $message = new \App\Entity\ConversationMessage(1, 1, 5, 'Alice', 'Salut', new \DateTimeImmutable('2026-10-04 10:00:00'), false);
+
+        self::assertNull($presenter->message($message, $group, 5)['groupColor']);
+    }
 }

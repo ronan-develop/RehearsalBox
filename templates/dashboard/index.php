@@ -131,7 +131,7 @@
             $visualDeckIndex = min($deckPosition, 2);
             ?>
             <article class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" data-exception-id="<?= e((string) $exception->id()) ?>"
-                     style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e($item->requestedByGroupColorHex() ?? 'var(--rb-accent)') ?>;">
+                     style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e(\App\Support\SafeColor::from($item->requestedByGroupColorHex()) ?? 'var(--rb-accent)') ?>;">
                 <div class="rb-exception-card-head">
                     <span class="rb-exception-card-avatar" aria-hidden="true"><?= e($initials) ?></span>
                     <div class="rb-exception-card-head-text">

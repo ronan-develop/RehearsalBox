@@ -8,6 +8,7 @@ use App\Entity\ConversationMessage;
 use App\Entity\ConversationSummary;
 use App\Entity\Group;
 use App\Support\Initials;
+use App\Support\SafeColor;
 
 /**
  * Objets de lecture JSON de la messagerie (liste pour la pastille « non lu » du dashboard). Le fil et la liste affichés
@@ -36,7 +37,7 @@ final class ConversationPresenter
             'authorName' => $message->authorName(),
             'initials' => Initials::from($message->authorName()),
             'groupName' => $authorGroup?->name(),
-            'groupColor' => $authorGroup?->colorHex(),
+            'groupColor' => SafeColor::from($authorGroup?->colorHex()),
             'body' => $message->body(),
             'system' => $message->isSystem(),
             'createdAt' => $message->createdAt()->format(\DATE_ATOM),
