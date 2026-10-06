@@ -12,9 +12,12 @@ import { isDesktopWidth } from './viewport.js';
 /** Hauteur visuelle du logo une fois posé dans la barre (px). */
 export const TOPBAR_LOGO_HEIGHT = 34;
 const TOPBAR_PADDING = 16;
-/** Centre du logo au repos sur téléphone : à gauche et à mi-hauteur de l'en-tête (le nom du groupe est en bas à droite). */
-const PHONE_START_X_RATIO = 0.28;
-const PHONE_START_Y_RATIO = 0.45;
+/** Part de la hauteur du logo située au-dessus de sa ligne de base (le reste : les coulures sous les lettres). */
+export const LOGO_BASELINE_RATIO = 0.74;
+/** Marge à gauche du logo dans l'en-tête sur téléphone (px). */
+const PHONE_LEFT_INSET = 8;
+/** Repli si la rangée du bas est absente : espace sous la ligne de base, assez pour les coulures (px). */
+const PHONE_ROW_FALLBACK_GAP = 24;
 const REST_ROTATION_PHONE = -3;
 const DOCKED_ROTATION = -3;
 /** Progression à partir de laquelle le néon s'allume sur bureau. */
@@ -33,13 +36,17 @@ export function computeDistance(headerBottom, topbarHeight, maxScroll) {
   return Math.min(Math.max(headerBottom - topbarHeight, 1), maxScroll);
 }
 
-/** Coin haut-gauche du logo au repos, en coordonnées de la PAGE (indépendantes du scroll). */
-export function computeStartPosition(headerRect, size, isPhone) {
+/**
+ * Coin haut-gauche du logo au repos, en coordonnées de la PAGE (indépendantes du scroll). Sur téléphone, il est à gauche de
+ * l'en-tête et sa ligne de base est celle de la rangée du bas (nom du groupe et avatar) : $rowBottom, le bas de cette rangée.
+ */
+export function computeStartPosition(headerRect, size, isPhone, rowBottom = null) {
   if (isPhone) {
+    const baseline = rowBottom ?? headerRect.top + headerRect.height - PHONE_ROW_FALLBACK_GAP;
+
     return {
-      // Jamais à gauche du cadre de l'en-tête, même sur un écran très étroit.
-      left: Math.max(headerRect.left, headerRect.left + headerRect.width * PHONE_START_X_RATIO - size.width / 2),
-      top: headerRect.top + headerRect.height * PHONE_START_Y_RATIO - size.height / 2,
+      left: headerRect.left + PHONE_LEFT_INSET,
+      top: baseline - size.height * LOGO_BASELINE_RATIO,
     };
   }
 
@@ -88,10 +95,12 @@ export function initLogoMigration(root = document, win = window) {
     const scrollY = win.scrollY;
     const headerRect = header.getBoundingClientRect();
     const size = { width: logo.offsetWidth, height: logo.offsetHeight };
+    const row = root.querySelector('.rb-dashboard-header-user');
     start = computeStartPosition(
       { top: headerRect.top + scrollY, left: headerRect.left, width: headerRect.width, height: headerRect.height },
       size,
       isPhone,
+      row ? row.getBoundingClientRect().bottom + scrollY : null,
     );
     const barRect = topbar.getBoundingClientRect();
     end = computeEndPosition(barRect, size.height);

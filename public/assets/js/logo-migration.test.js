@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   TOPBAR_LOGO_HEIGHT,
+  LOGO_BASELINE_RATIO,
   computeProgress,
   computeDistance,
   computeStartPosition,
@@ -39,17 +40,23 @@ test('on desktop the logo starts at the first third of the header, vertically ce
   assert.equal(start.top, 32 + 176 / 2 - 150 / 2);
 });
 
-test('on a phone the logo starts at the left and middle of the header, where there is room (the group name sits bottom right)', () => {
+test('on a phone the logo sits at the left of the header, its baseline on the bottom row (group name and avatar)', () => {
   const header = rect({ top: 32, left: 16, width: 358, height: 132 });
   const size = { width: 150, height: 72 };
+  const rowBottom = 32 + 132 - 16; // bas de la rangée nom du groupe / avatar
 
-  const start = computeStartPosition(header, size, true);
+  const start = computeStartPosition(header, size, true, rowBottom);
 
-  const center = { x: start.left + size.width / 2, y: start.top + size.height / 2 };
-  assert.ok(Math.abs(center.x - (16 + 358 * 0.28)) < 1, 'centre à ~28 % de la largeur de l\'en-tête');
-  assert.ok(Math.abs(center.y - (32 + 132 * 0.45)) < 1, 'centre à ~45 % de sa hauteur');
-  assert.ok(start.left >= 16, 'ne déborde pas à gauche de l\'en-tête');
-  assert.ok(start.left + size.width < 16 + 358 * 0.75, 'laisse la droite de l\'en-tête au nom du groupe');
+  assert.ok(Math.abs(start.top + size.height * LOGO_BASELINE_RATIO - rowBottom) < 0.001, 'la ligne de base du logo = le bas de la rangée');
+  assert.ok(start.left >= 16 && start.left <= 16 + 24, 'à gauche, là où se trouvait l\'icône');
+});
+
+test('on a phone without a bottom row the logo falls back on the bottom of the header', () => {
+  const header = rect({ top: 32, left: 16, width: 358, height: 132 });
+
+  const start = computeStartPosition(header, { width: 150, height: 72 }, true, null);
+
+  assert.ok(start.top + 72 <= 32 + 132, 'reste dans le cadre de l\'en-tête');
 });
 
 test('the logo ends at the left of the top bar, vertically centered at its small size', () => {
