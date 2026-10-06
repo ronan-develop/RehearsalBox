@@ -35,12 +35,19 @@ final class ConversationReader
     ) {
     }
 
-    /** Ouvre le fil complet et le marque lu pour cette personne seulement. @throws AccessDeniedException */
-    public function open(int $userId, int $conversationId): ConversationThread
+    /**
+     * Ouvre le fil complet et le marque lu pour cette personne seulement, sauf si la page est seulement préchargée par le
+     * navigateur ($markRead à faux).
+     *
+     * @throws AccessDeniedException
+     */
+    public function open(int $userId, int $conversationId, bool $markRead = true): ConversationThread
     {
         $conversation = $this->access->participant($userId, $conversationId);
         $lastRead = $this->presence->lastReadAt($conversationId, $userId);
-        $this->presence->markRead($conversationId, $userId, $this->clock->now());
+        if ($markRead) {
+            $this->presence->markRead($conversationId, $userId, $this->clock->now());
+        }
 
         return $this->threads->build($conversation, $userId, 0, $lastRead);
     }
