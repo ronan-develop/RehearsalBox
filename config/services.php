@@ -6,6 +6,7 @@ use App\Container\Container;
 use App\Controller\Api\AccountApiController;
 use App\Controller\Api\AuthApiController;
 use App\Controller\Api\AvailabilityApiController;
+use App\Controller\AdminBookingPageController;
 use App\Controller\AdminGroupPageController;
 use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
@@ -57,6 +58,7 @@ use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
 use App\Service\Contract\SlotServiceInterface;
+use App\Presenter\AdminBookingsView;
 use App\Presenter\ConversationFormatter;
 use App\Presenter\ConversationListView;
 use App\Presenter\ConversationPresenter;
@@ -357,6 +359,14 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupImpactRepositoryInterface::class),
+    ));
+
+    $container->set(AdminBookingPageController::class, fn ($c) => new AdminBookingPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(FreeSlotBookingService::class),
+        new AdminBookingsView($c->get(GroupRepositoryInterface::class)),
     ));
 
     $container->set(AdminUserPageController::class, fn ($c) => new AdminUserPageController(

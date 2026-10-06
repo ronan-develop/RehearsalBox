@@ -4,7 +4,7 @@
 <?php if ($currentUserRole === \App\Entity\Enum\UserRole::Admin): ?>
 <nav class="rb-bottom-nav">
     <a href="/" class="rb-bottom-nav-link">Disponibilités</a>
-    <a href="/admin/slots" class="rb-bottom-nav-link">Créneaux</a>
+    <a href="/admin/slots" class="rb-bottom-nav-link">Créneaux <span class="rb-badge rb-badge-warn rb-bottom-nav-badge" data-bookings-badge hidden>0</span></a>
     <a href="/admin/groups" class="rb-bottom-nav-link">Groupes</a>
     <a href="/account/password" class="rb-bottom-nav-link">Compte</a>
     <button type="button" class="rb-bottom-nav-link rb-bottom-nav-logout" data-logout>Déconnexion</button>
