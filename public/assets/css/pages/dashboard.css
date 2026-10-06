@@ -602,10 +602,19 @@ body {
 }
 
 @media (max-width: 767.98px) {
-  /* Le nom du groupe et l'avatar en bas de l'en-tête : le logo occupe sa partie haute (#201). */
+  /* Le nom du groupe et l'avatar restent en bas à droite ; le logo est à leur gauche, sur la même ligne de base (celle de
+     l'ancienne icône photo, #249). Le padding bas (16 px) est lu par logo-migration.js. */
   .rb-dashboard-header {
     align-items: flex-end;
     padding-bottom: var(--rb-space-3);
+  }
+
+  /* Un nom très long est tronqué : il ne doit jamais recouvrir le logo. */
+  .rb-dashboard-header-user > span:first-child {
+    max-width: 30vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   [data-planning-tabs-ready] .rb-planning-tabs {
