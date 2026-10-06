@@ -74,6 +74,9 @@ final class PasswordResetPagesTest extends RepositoryTestCase
         self::assertStringContainsString('data-endpoint="/api/auth/reset-password"', $response->body());
         self::assertStringContainsString('name="token" value="' . $token . '"', $response->body());
         self::assertStringContainsString('type="password"', $response->body());
+        // La règle (10 caractères) est annoncée au visiteur et vérifiée par le navigateur avant l'envoi (#223).
+        self::assertStringContainsString('minlength="10"', $response->body());
+        self::assertStringContainsString('10 caractères minimum', $response->body());
     }
 
     #[Test]

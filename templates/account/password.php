@@ -56,7 +56,7 @@
         </div>
         <div class="rb-auth-card rb-card">
             <h2 class="rb-account-section-title">Mot de passe</h2>
-            <p class="rb-auth-intro">Pour changer de mot de passe, saisissez l'actuel puis le nouveau (8 caractères minimum). Vos autres appareils seront déconnectés.</p>
+            <p class="rb-auth-intro">Pour changer de mot de passe, saisissez l'actuel puis le nouveau (10 caractères minimum). Vos autres appareils seront déconnectés.</p>
             <form data-async data-endpoint="/api/auth/change-password" data-method="POST">
                 <div class="rb-field">
                     <label for="currentPassword">Mot de passe actuel</label>
@@ -65,12 +65,12 @@
                 </div>
                 <div class="rb-field">
                     <label for="password">Nouveau mot de passe</label>
-                    <input type="password" id="password" name="password" class="rb-input" required minlength="8" autocomplete="new-password">
+                    <input type="password" id="password" name="password" class="rb-input" required minlength="10" autocomplete="new-password">
                     <span class="rb-field-error" data-field-error="password"></span>
                 </div>
                 <div class="rb-field">
                     <label for="passwordConfirmation">Confirmation</label>
-                    <input type="password" id="passwordConfirmation" name="passwordConfirmation" class="rb-input" required minlength="8" autocomplete="new-password">
+                    <input type="password" id="passwordConfirmation" name="passwordConfirmation" class="rb-input" required minlength="10" autocomplete="new-password">
                     <span class="rb-field-error" data-field-error="passwordConfirmation"></span>
                 </div>
                 <button type="submit" class="rb-btn-primary">Changer le mot de passe</button>
