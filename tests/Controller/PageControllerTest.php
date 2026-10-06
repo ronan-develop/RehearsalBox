@@ -176,7 +176,10 @@ final class PageControllerTest extends RepositoryTestCase
         [$controller, $groupRepository, , $userRepository, $authService] = $this->makeController();
         $user = $this->createLoggedInUser($userRepository, $authService);
 
-        self::assertStringNotContainsString('href="/bookings"', $controller->dashboard()->body(), 'sans groupe : rien à réserver');
+        $withoutGroup = $controller->dashboard()->body();
+        self::assertStringNotContainsString('href="/bookings"', $withoutGroup, 'sans groupe : rien à réserver');
+        self::assertStringContainsString('rb-dashboard-book-hint', $withoutGroup, 'on explique pourquoi le bouton est absent');
+        self::assertStringContainsString('au nom d\'un groupe', $withoutGroup);
 
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Membre);
@@ -184,6 +187,7 @@ final class PageControllerTest extends RepositoryTestCase
         $html = $controller->dashboard()->body();
         self::assertStringContainsString('href="/bookings"', $html);
         self::assertStringContainsString('Réserver le local', $html);
+        self::assertStringNotContainsString('rb-dashboard-book-hint', $html, 'le message ne s\'affiche pas à qui peut réserver');
     }
 
     #[Test]

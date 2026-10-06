@@ -23,6 +23,8 @@
 
         <?php if ($currentUserGroupRoles !== []): ?>
             <p class="rb-dashboard-book"><a href="/bookings" class="rb-btn">Réserver le local</a></p>
+        <?php else: ?>
+            <p class="rb-dashboard-book-hint">Une réservation du local se fait au nom d'un groupe : ce compte n'appartient à aucun groupe.</p>
         <?php endif; ?>
 
         <?php if ($planningDays !== []): ?>
