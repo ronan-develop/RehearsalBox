@@ -120,6 +120,55 @@ final class SlotServiceTest extends RepositoryTestCase
 
     #[Test]
 
+    public function testTheLocalIsExclusiveASlotCannotOverlapAnotherGroupsSlot(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'The Office', null, null, 'beta@example.test'));
+        $service->create($beta->id(), Weekday::Wednesday, '18:30:00', '22:45:00');
+
+        try {
+            $service->create($alpha->id(), Weekday::Wednesday, '18:00:00', '19:00:00');
+            self::fail('un chevauchement avec le créneau d\'un autre groupe doit être refusé');
+        } catch (OverlappingSlotException $e) {
+            self::assertStringNotContainsString('The Office', $e->getMessage(), 'le message ne nomme pas l\'autre groupe');
+        }
+    }
+
+    #[Test]
+
+    public function testSlotsOfDifferentGroupsMayTouchOrSitOnAnotherDayOrReplaceADeletedSlot(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
+        $first = $service->create($beta->id(), Weekday::Wednesday, '18:30:00', '22:45:00');
+
+        self::assertSame('18:30:00', $service->create($alpha->id(), Weekday::Wednesday, '14:00:00', '18:30:00')->endTime(), 'contigu : autorisé');
+        self::assertSame('Thursday', $service->create($alpha->id(), Weekday::Thursday, '18:30:00', '22:45:00')->weekday()->name, 'un autre jour : autorisé');
+
+        $service->delete($first->id());
+        self::assertSame('20:00:00', $service->create($alpha->id(), Weekday::Wednesday, '20:00:00', '22:00:00')->startTime(), 'un créneau supprimé ne bloque plus');
+    }
+
+    #[Test]
+
+    public function testUpdateCannotMakeASlotOverlapAnotherGroupsSlotButMayStayWithinItsOwnRange(): void
+    {
+        [$service, $groupRepository] = $this->makeService();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
+        $mine = $service->create($alpha->id(), Weekday::Wednesday, '14:00:00', '17:00:00');
+        $service->create($beta->id(), Weekday::Wednesday, '18:00:00', '22:00:00');
+
+        self::assertSame('17:30:00', $service->update($mine->id(), '14:00:00', '17:30:00')->endTime(), 'agrandir sans toucher un autre créneau : autorisé (et il ne se bloque pas lui-même)');
+
+        $this->expectException(OverlappingSlotException::class);
+        $service->update($mine->id(), '14:00:00', '19:00:00');
+    }
+
+    #[Test]
+
     public function testUpdateChangesSlotTimes(): void
     {
         [$service, $groupRepository] = $this->makeService();

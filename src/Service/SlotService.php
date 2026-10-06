@@ -35,15 +35,25 @@ final class SlotService implements SlotServiceInterface
         }
     }
 
+    /**
+     * Le local est EXCLUSIF (#263) : deux groupes ne se chevauchent jamais, les créneaux fixes sont prioritaires. Un créneau
+     * contigu reste permis ; le message ne nomme pas l'autre groupe. $ignoreSlotId : le créneau qu'on modifie ne se bloque pas lui-même.
+     *
+     * @throws OverlappingSlotException
+     */
+    private function assertLocalIsFree(Weekday $weekday, string $startTime, string $endTime, ?int $ignoreSlotId = null): void
+    {
+        foreach ($this->slotRepository->findAllActive() as $existing) {
+            if ($existing->id() !== $ignoreSlotId && $existing->weekday() === $weekday && $existing->overlaps($startTime, $endTime)) {
+                throw new OverlappingSlotException('Ce créneau chevauche un créneau fixe existant : le local ne peut être occupé que par un groupe à la fois.');
+            }
+        }
+    }
+
     public function create(int $groupId, Weekday $weekday, string $startTime, string $endTime): RecurringSlot
     {
         $this->assertValidTimes($startTime, $endTime);
-
-        foreach ($this->slotRepository->findByGroup($groupId) as $existing) {
-            if ($existing->isActive() && $existing->weekday() === $weekday && $existing->overlaps($startTime, $endTime)) {
-                throw new OverlappingSlotException('Ce créneau chevauche un créneau existant du groupe.');
-            }
-        }
+        $this->assertLocalIsFree($weekday, $startTime, $endTime);
 
         return $this->slotRepository->save(new RecurringSlot(0, $groupId, $weekday, $startTime, $endTime, true));
     }
@@ -56,6 +66,7 @@ final class SlotService implements SlotServiceInterface
         }
 
         $this->assertValidTimes($startTime, $endTime);
+        $this->assertLocalIsFree($slot->weekday(), $startTime, $endTime, $slot->id());
 
         return $this->slotRepository->save(new RecurringSlot(
             $slot->id(),

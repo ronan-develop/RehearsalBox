@@ -137,6 +137,29 @@ final class SlotApiControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testUpdateThatOverlapsAnotherGroupsSlotReturns422AndNeverCrashes(): void
+    {
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
+        $alpha = $groupRepository->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groupRepository->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
+        $this->createUser($userRepository, 'admin@rehearsalbox.test', UserRole::Admin);
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+        $mine = json_decode($controller->store(new Request('POST', '/api/admin/slots', [], [
+            'groupId' => $alpha->id(), 'weekday' => 2, 'startTime' => '14:00:00', 'endTime' => '17:00:00',
+        ], []))->body(), true);
+        $controller->store(new Request('POST', '/api/admin/slots', [], [
+            'groupId' => $beta->id(), 'weekday' => 2, 'startTime' => '18:00:00', 'endTime' => '22:00:00',
+        ], []));
+
+        $response = $controller->update(new Request('PATCH', '/api/admin/slots/' . $mine['id'], [], [
+            'startTime' => '14:00:00', 'endTime' => '19:00:00',
+        ], []), (string) $mine['id']);
+
+        self::assertSame(422, $response->statusCode());
+        self::assertStringNotContainsString('Beta', $response->body(), 'l\'autre groupe n\'est pas nommé');
+    }
+
+    #[Test]
     public function testStoreWithAnInvalidWeekdayReturns422InsteadOfCrashing(): void
     {
         [$controller, $groupRepository, $userRepository, $authService] = $this->makeController();
