@@ -25,7 +25,7 @@ foreach ($rows as $row):
         <?php if (!$row['mine'] && $row['startsRun']): ?><span class="rb-chat-author"><?= e($row['author']) ?></span><?php endif; ?>
         <div class="rb-chat-body" data-message-body><?php require __DIR__ . '/_message-body.php'; ?></div>
     </div>
-    <?php /* Citer et corriger : au survol ou au clavier sur ordinateur ; sur écran tactile, le composant cloné au tap (tap-actions.js, #257). */ ?>
+    <?php /* Citer et corriger : au survol ou au clavier sur ordinateur ; sur écran tactile, le composant cloné au tap (<rb-message-actions>, #257). */ ?>
     <?php $withEdit = !empty($row['editable']); require __DIR__ . '/_message-action-buttons.php'; ?>
 </li>
 <?php endif;

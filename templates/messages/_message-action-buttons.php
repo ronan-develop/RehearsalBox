@@ -2,7 +2,7 @@
 /**
  * Boutons d'action d'un message : citer (#214) et, s'il est encore modifiable, corriger (#200). UNE seule définition, deux
  * usages : dans chaque ligne du fil (survol ou clavier sur ordinateur) et dans le modèle <template data-message-actions> que
- * tap-actions.js clone au tap sur écran tactile (#257).
+ * <rb-message-actions> (rb-message-actions.js) clone au tap sur écran tactile (#257).
  *
  * @var bool $withEdit afficher aussi le crayon
  */

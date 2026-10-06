@@ -229,7 +229,7 @@ final class ChatCssTest extends TestCase
     #[Test]
     public function testHoverNeverRevealsTheMessageActionsOnTouchScreens(): void
     {
-        // iOS laisse un survol « collant » après un tap : le crayon apparaîtrait sans la classe posée par tap-actions.js, alors que
+        // iOS laisse un survol « collant » après un tap : le crayon apparaîtrait sans la classe posée par rb-message-actions.js, alors que
         // le bouton tactile est alors pointer-events: none, et iOS n'envoie pas toujours « click » quand le survol change l'affichage (#257).
         $always = $this->unconditionalRules();
 

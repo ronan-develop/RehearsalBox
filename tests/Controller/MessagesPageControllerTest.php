@@ -430,7 +430,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
 
         self::assertSame(1, substr_count($body, '<template data-message-actions>'), 'une seule définition des boutons');
         preg_match('#<template data-message-actions>(.*?)</template>#s', $body, $template);
-        self::assertStringContainsString('<rb-message-actions>', $template[1]);
+        self::assertStringNotContainsString('<rb-message-actions', $template[1], 'le modèle ne contient que les boutons : le composant, lui, s\'insère au tap');
         self::assertStringContainsString('data-quote-message', $template[1]);
         self::assertStringContainsString('data-edit-message', $template[1]);
     }
