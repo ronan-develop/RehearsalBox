@@ -9,6 +9,7 @@ use App\Repository\Exception\DuplicateOccurrenceException;
 use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
+use App\Service\Exception\FreeSlotBookingConflictException;
 use App\Service\Exception\GroupValidationException;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\InvalidResetTokenException;
@@ -41,6 +42,7 @@ final class ExceptionTranslator
             $e instanceof InvalidEmailChangeException,
             $e instanceof InvalidUploadException,
             $e instanceof UserAdminRuleException => new JsonResponse(['error' => $e->getMessage()], 422),
+            $e instanceof FreeSlotBookingConflictException,
             $e instanceof RequestAlreadyRespondedException,
             $e instanceof RequestChangedException,
             $e instanceof DuplicateOccurrenceException,

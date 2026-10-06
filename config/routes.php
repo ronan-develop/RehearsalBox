@@ -10,6 +10,7 @@ use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
 use App\Controller\Api\ConversationMuteApiController;
+use App\Controller\Api\FreeSlotBookingApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\MemberApiController;
 use App\Controller\Api\MessageApiController;
@@ -67,6 +68,12 @@ return [
         ['POST',   '/api/admin/groups', [GroupApiController::class, 'store']],
         ['PATCH',  '/api/admin/groups/{id}', [GroupApiController::class, 'update']],
         ['DELETE', '/api/admin/groups/{id}', [GroupApiController::class, 'destroy']],
+        ['GET',    '/api/bookings', [FreeSlotBookingApiController::class, 'index']],
+        ['POST',   '/api/bookings', [FreeSlotBookingApiController::class, 'store']],
+        ['DELETE', '/api/bookings/{id}', [FreeSlotBookingApiController::class, 'destroy']],
+        ['GET',    '/api/admin/bookings', [FreeSlotBookingApiController::class, 'pending']],
+        ['POST',   '/api/admin/bookings/{id}/approve', [FreeSlotBookingApiController::class, 'approve']],
+        ['POST',   '/api/admin/bookings/{id}/refuse', [FreeSlotBookingApiController::class, 'refuse']],
         ['GET',    '/api/admin/users', [UserAdminApiController::class, 'index']],
         ['POST',   '/api/admin/users', [UserAdminApiController::class, 'store']],
         ['PATCH',  '/api/admin/users/{id}', [UserAdminApiController::class, 'update']],

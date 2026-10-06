@@ -11,6 +11,7 @@ use App\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
 use App\Controller\Api\ConversationMuteApiController;
+use App\Controller\Api\FreeSlotBookingApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
@@ -73,6 +74,7 @@ use App\Repository\MysqlThrottleEventRepository;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
 use App\Repository\Contract\ConversationMuteRepositoryInterface;
+use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
 use App\Repository\MysqlMentionNoticeRepository;
@@ -87,10 +89,13 @@ use App\Repository\MysqlNotificationPreferenceRepository;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationMuteRepository;
+use App\Repository\MysqlFreeSlotBookingRepository;
 use App\Repository\MysqlMemberDirectory;
 use App\Service\ConversationAccess;
 use App\Service\ConversationGuestService;
 use App\Service\ConversationMuteService;
+use App\Service\FreeSlotBookingPolicy;
+use App\Service\FreeSlotBookingService;
 use App\Service\ConversationMentionService;
 use App\Service\ConversationNotifier;
 use App\Service\ConversationTrashService;
@@ -163,6 +168,21 @@ return static function (array $config): Container {
         $c->get(SlotExceptionRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(RecurringSlotRepositoryInterface::class),
+    ));
+
+    $container->set(FreeSlotBookingRepositoryInterface::class, fn ($c) => new MysqlFreeSlotBookingRepository($c->get(PDO::class)));
+
+    $container->set(FreeSlotBookingService::class, fn ($c) => new FreeSlotBookingService(
+        $c->get(FreeSlotBookingRepositoryInterface::class),
+        $c->get(RecurringSlotRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        new FreeSlotBookingPolicy(),
+        $c->get(ClockInterface::class),
+    ));
+
+    $container->set(FreeSlotBookingApiController::class, fn ($c) => new FreeSlotBookingApiController(
+        $c->get(FreeSlotBookingService::class),
+        $c->get(AuthGuard::class),
     ));
 
     $container->set(SlotServiceInterface::class, fn ($c) => new SlotService(

@@ -10,6 +10,7 @@ use App\Repository\Exception\DuplicateOccurrenceException;
 use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
+use App\Service\Exception\FreeSlotBookingConflictException;
 use App\Service\Exception\GroupValidationException;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\InvalidResetTokenException;
@@ -43,6 +44,7 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'demande modifiée entre-temps' => [new RequestChangedException(), 409, ['error' => (new RequestChangedException())->getMessage()]];
         yield 'nom de groupe déjà pris' => [new DuplicateGroupNameException(), 409, ['error' => (new DuplicateGroupNameException())->getMessage()]];
         yield 'date déjà demandée' => [new DuplicateOccurrenceException(), 409, ['error' => (new DuplicateOccurrenceException())->getMessage()]];
+        yield 'réservation en conflit' => [new FreeSlotBookingConflictException('Plage déjà réservée.'), 409, ['error' => 'Plage déjà réservée.']];
         yield 'quota dépassé' => [new StorageQuotaExceededException('Quota dépassé.'), 409, ['error' => 'Quota dépassé.']];
     }
 
