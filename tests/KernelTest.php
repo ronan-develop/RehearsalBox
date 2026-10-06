@@ -403,7 +403,7 @@ final class KernelTest extends TestCase
         [, $response, $logged] = $this->crash('GET', '/boom', new \PDOException('Access denied for user root@localhost password=secret'));
 
         self::assertSame(500, $response->statusCode());
-        self::assertSame('Erreur interne.', $response->body());
+        self::assertStringContainsString('<h1>Erreur interne</h1>', $response->body());
         self::assertStringNotContainsString('secret', $response->body() . $logged);
         self::assertStringContainsString('PDOException', $logged);
     }
@@ -460,5 +460,55 @@ final class KernelTest extends TestCase
             self::assertSame('', $logged, 'une erreur métier attendue n\'est pas une « erreur non gérée »');
             self::assertSame('DENY', $response->headers()['X-Frame-Options'], 'les en-têtes de sécurité restent posés');
         }
+    }
+
+    #[Test]
+    public function testAPageRouteThatIsUnknownGetsTheStyledErrorPageNotBarePlainText(): void
+    {
+        $response = $this->kernel(new Router(), new Container())->handle(new Request('GET', '/messages/3', [], [], []));
+
+        self::assertSame(404, $response->statusCode());
+        self::assertStringContainsString('text/html', $response->headers()['Content-Type']);
+        self::assertStringContainsString('<h1>Page introuvable</h1>', $response->body());
+    }
+
+    #[Test]
+    public function testADeniedPageGetsTheStyledErrorPageWithoutTheInternalMessage(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/messages/3', ['c', 'show']);
+        $container = new Container();
+        $container->set('c', fn () => new class () {
+            public function show(): Response
+            {
+                throw new AccessDeniedException('Conversation 3 : pas membre');
+            }
+        });
+
+        $response = $this->kernel($router, $container)->handle(new Request('GET', '/messages/3', [], [], []));
+
+        self::assertSame(403, $response->statusCode());
+        self::assertStringContainsString('<h1>Accès refusé</h1>', $response->body());
+        self::assertStringNotContainsString('pas membre', $response->body());
+    }
+
+    #[Test]
+    public function testAnUnexpectedErrorOnAPageGetsTheStyledFivehundredPage(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/boom', ['c', 'boom']);
+        $container = new Container();
+        $container->set('c', fn () => new class () {
+            public function boom(): Response
+            {
+                throw new \RuntimeException('secret SQL détail');
+            }
+        });
+
+        $response = @$this->kernel($router, $container)->handle(new Request('GET', '/boom', [], [], []));
+
+        self::assertSame(500, $response->statusCode());
+        self::assertStringContainsString('<h1>Erreur interne</h1>', $response->body());
+        self::assertStringNotContainsString('secret', $response->body());
     }
 }
