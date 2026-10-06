@@ -96,6 +96,8 @@ use App\Repository\MysqlMemberDirectory;
 use App\Service\ConversationAccess;
 use App\Service\ConversationGuestService;
 use App\Service\ConversationMuteService;
+use App\Service\BookingNotifier;
+use App\Service\Contract\BookingNotifierInterface;
 use App\Service\FreeSlotBookingPolicy;
 use App\Service\FreeSlotBookingService;
 use App\Service\ConversationMentionService;
@@ -176,6 +178,16 @@ return static function (array $config): Container {
 
     $container->set(BookingDateLockInterface::class, fn ($c) => new MysqlBookingDateLock($c->get(PDO::class)));
 
+    $container->set(BookingNotifierInterface::class, fn ($c) => new BookingNotifier(
+        $c->get(MailerInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(AfterResponseInterface::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
+    ));
+
     $container->set(FreeSlotBookingService::class, fn ($c) => new FreeSlotBookingService(
         $c->get(FreeSlotBookingRepositoryInterface::class),
         $c->get(BookingDateLockInterface::class),
@@ -183,6 +195,7 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         new FreeSlotBookingPolicy(),
         $c->get(ClockInterface::class),
+        $c->get(BookingNotifierInterface::class),
     ));
 
     $container->set(FreeSlotBookingApiController::class, fn ($c) => new FreeSlotBookingApiController(

@@ -13,6 +13,7 @@ use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
+use App\Service\Contract\BookingNotifierInterface;
 use App\Service\Exception\AvailabilityValidationException;
 use App\Service\Exception\FreeSlotBookingConflictException;
 use App\Service\Exception\RequestAlreadyRespondedException;
@@ -32,6 +33,7 @@ final class FreeSlotBookingService
         private readonly GroupRepositoryInterface $groups,
         private readonly FreeSlotBookingPolicy $policy,
         private readonly ClockInterface $clock,
+        private readonly BookingNotifierInterface $notifier = new NoBookingNotifier(),
         private readonly int $lockWaitSeconds = 5,
     ) {
     }
@@ -58,10 +60,14 @@ final class FreeSlotBookingService
         try {
             $this->assertFree($date, $range);
 
-            return $this->bookings->create(new Requester($groupId, $userId), $date, $range, $reason);
+            $booking = $this->bookings->create(new Requester($groupId, $userId), $date, $range, $reason);
         } finally {
             $this->dateLock->release($date);
         }
+        // Une fois la réservation créée et le verrou rendu : les administrateurs sont prévenus (après la réponse, sans jamais échouer).
+        $this->notifier->bookingRequested($booking);
+
+        return $booking;
     }
 
     /** @throws AccessDeniedException|RequestAlreadyRespondedException */
@@ -160,6 +166,7 @@ final class FreeSlotBookingService
         }
         $decided = $this->bookings->findById($booking->id());
         \assert($decided !== null);
+        $this->notifier->bookingDecided($decided);
 
         return $decided;
     }
