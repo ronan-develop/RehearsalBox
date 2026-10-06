@@ -296,13 +296,16 @@ final class PageControllerTest extends RepositoryTestCase
             lockedUntil: null,
         ));
         $groupRepository->addMember($requestingGroup->id(), $requester->id());
-        $exceptionRepository->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requestingGroup->id(), $requester->id(), 'Concert samedi');
+        $seen = new \DateTimeImmutable('+7 days');
+        $exceptionRepository->createRequest($slot->id(), $seen, $requestingGroup->id(), $requester->id(), 'Concert samedi');
 
         $response = $controller->dashboard();
 
         self::assertStringContainsString('data-exception-deck', $response->body());
         self::assertStringContainsString('Concert samedi', $response->body());
         self::assertStringContainsString('Groupe Demandeur', $response->body());
+        // La date que le titulaire a sous les yeux part avec sa réponse (#221) : sur « Accepter » comme sur « Refuser ».
+        self::assertSame(2, substr_count($response->body(), 'data-occurrence-date="' . $seen->format('Y-m-d') . '"'));
     }
 
     /**

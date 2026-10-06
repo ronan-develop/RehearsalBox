@@ -151,11 +151,11 @@
                 <?php if ($isRecue && $exception->isEnAttente()): ?>
                     <div class="rb-exception-card-actions">
                         <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
-                                data-exception-id="<?= e((string) $exception->id()) ?>">
+                                data-exception-id="<?= e((string) $exception->id()) ?>" data-occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>">
                             Refuser
                         </button>
                         <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
-                                data-exception-id="<?= e((string) $exception->id()) ?>">
+                                data-exception-id="<?= e((string) $exception->id()) ?>" data-occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>">
                             Accepter
                         </button>
                     </div>

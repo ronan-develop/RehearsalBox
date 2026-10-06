@@ -30,7 +30,12 @@ interface AvailabilityServiceInterface
      * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe titulaire du créneau
      * @throws \App\Service\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà répondue
      */
-    public function respond(int $exceptionId, bool $accepted, int $userId): SlotException;
+    /**
+     * @param \DateTimeImmutable $seenOccurrenceDate date que le titulaire a vue (#221) : l'acceptation ne vaut que pour elle
+     *
+     * @throws \App\Service\Exception\RequestChangedException le demandeur a changé la date entre-temps
+     */
+    public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate): SlotException;
 
     /**
      * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe demandeur de l'exception

@@ -146,7 +146,8 @@ final class IdorMatrixTest extends TestCase
             // Disponibilités
             ['GET', '/api/availability/pending/{groupA}', [], ['anon', 'stranger', 'outsiderB', 'admin']],
             ['GET', '/api/availability/requested/{groupA}', [], ['anon', 'stranger', 'outsiderB', 'admin']],
-            ['POST', '/api/availability/{excBA}/respond', ['accepted' => true], ['anon', 'stranger', 'outsiderB', 'admin', 'dual']],
+            // (#221) la réponse porte la date vue : un corps complet, pour que ce soit bien le contrôle d'accès qui refuse
+            ['POST', '/api/availability/{excBA}/respond', ['accepted' => true, 'occurrenceDate' => '2026-01-06'], ['anon', 'stranger', 'outsiderB', 'admin', 'dual']],
             ['PATCH', '/api/availability/{excBA}', ['occurrenceDate' => $future], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             ['DELETE', '/api/availability/{excBA}', [], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             // Admin : créneaux et groupes

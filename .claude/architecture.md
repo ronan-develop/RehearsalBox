@@ -103,6 +103,13 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - **Pas de fichier orphelin** : si le quota est atteint ou si l'enregistrement échoue, le fichier copié est retiré ; à la suppression d'un document, la ligne part d'abord puis le fichier ; à la suppression d'un **groupe**, ses fichiers sont listés avant (`GroupFilesPurgerInterface::filesOf`) puis retirés après (`remove`, au mieux) — `NoGroupFilesPurger` (Null Object) pour les scripts et tests.
 - **Nom d'origine borné** : sans chemin ni caractère de contrôle, 150 caractères au plus (extension conservée, jamais coupé au milieu d'un caractère), `document` s'il ne reste rien.
 
+## Demandes de créneau : intégrité (#221)
+
+- **Date épinglée à la réponse** : « Accepter » ou « Refuser » envoie la date que le titulaire a sous les yeux (`occurrenceDate`, portée par `data-occurrence-date` sur les boutons) et l'`UPDATE` atomique ne s'applique que si la demande la porte encore (`respond(..., $expectedOccurrenceDate)`). Si le groupe demandeur l'a changée entre-temps : `RequestChangedException` → **409**, la demande reste en attente et le titulaire la revoit avec sa nouvelle date. `AvailabilityService::respond` et l'API **exigent** cette date (le paramètre est optionnel seulement dans le dépôt, pour les données de test).
+- **Modification d'une demande** : la nouvelle date doit tomber le **même jour de semaine** que le créneau et **ne pas être dans le passé** ; le motif tient dans la colonne (255 caractères) ; sinon `AvailabilityValidationException` → 422 avec l'erreur par champ. Une date déjà demandée pour ce créneau (clé d'unicité) lève `DuplicateOccurrenceException` → **409**, jamais une erreur SQL.
+- **Booléen strict** : `accepted` n'accepte que `true/false`, `1/0`, `"1"/"0"`, `"true"/"false"` ; toute autre valeur est une erreur 422 (la chaîne `"false"` refuse, elle n'accepte jamais). Identifiants d'URL lus par `StrictId::orDenied`.
+- `createRequest` n'a aucun appelant HTTP (les demandes ne se créent pas encore depuis l'interface) : **décision de produit en attente du propriétaire**, le code n'est pas supprimé.
+
 ## Règle critique — pas d'ORM
 
 Aucune couche n'échappe le SQL à ta place : chaque repository écrit ses requêtes en PDO préparé (`PDO::ATTR_EMULATE_PREPARES => false`). Voir le point clé sur la concurrence ci-dessous et le plan de sécurité pour le détail des règles (injection, IDOR).
