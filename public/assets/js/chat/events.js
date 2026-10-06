@@ -9,6 +9,7 @@ export const EVT = Object.freeze({
   RENAME: 'header:rename', // { title } : nouveau titre ('' pour le retirer)
   EDIT_REQUEST: 'message:edit-request', // { id, text } : la personne veut corriger son message (appui long, bouton)
   EDIT: 'composer:edit', // { id, text, mentions } : le texte corrigé est validé
+  MUTE_REQUEST: 'conversation:mute-request', // { id, muted } : la personne met la conversation en sourdine (muted = true) ou la rétablit (cloche de la liste)
   QUOTE_REQUEST: 'message:quote-request', // { id, author, text } : la personne veut citer ce message (glissement vers la droite, bouton)
 });
 

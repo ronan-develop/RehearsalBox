@@ -3,6 +3,7 @@
  * rafraîchir en direct : un fragment HTML toutes les 30 s tant que l'onglet est visible, issu du même gabarit PHP. Sans
  * JS la liste reste lisible et les liens fonctionnent.
  */
+import './rb-mute-toggle.js';
 import { fetchListFragment } from './api.js';
 import { isAbort, sleep, whenVisible } from './async.js';
 import { createScrollMemory, sessionStorageOrNull } from './scroll-memory.js';

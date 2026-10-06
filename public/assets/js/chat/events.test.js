@@ -22,5 +22,6 @@ test('the event contract between components is namespaced and stable', () => {
     EDIT_REQUEST: 'message:edit-request',
     EDIT: 'composer:edit',
     QUOTE_REQUEST: 'message:quote-request',
+    MUTE_REQUEST: 'conversation:mute-request',
   });
 });
