@@ -292,3 +292,13 @@ La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.p
 - **Lecture** : `php bin/tail-log.php [app|cron] [lignes]`.
 - Volontairement pas de Monolog : un fichier, un format, 100 lignes, pas de dépendance de plus sur un mutualisé.
 
+## Mesures du tableau de bord : collecte (#195)
+
+`src/Metrics/` (un domaine). **Aucune donnée personnelle** : pas d'e-mail, de texte ni de titre, et l'adresse IP n'existe que sous forme d'empreinte `IpPseudonymizer` (HMAC-SHA256 avec `metrics.secret`, tronqué à 16 caractères ; **sans secret configuré, aucune empreinte** plutôt qu'une empreinte devinable).
+
+- **Trois tables** (migration 031) : `metric_events` (type, route, statut, empreinte, date ; **30 jours**), `metric_hourly` (une ligne par heure, **motif de route** et classe de statut `2xx`…`5xx` : requêtes, durée cumulée et maximale, pic mémoire ; UPSERT ; **90 jours**) et `health_snapshots` (disque libre, taille de la base, âge de la dernière sauvegarde, dernier passage du cron, release, version de PHP, charge ; **90 jours**).
+- **Le Kernel mesure chaque requête** (`MetricsRecorderInterface`, `NullMetrics` par défaut) : durée, pic mémoire, motif de route (`MatchedRoute::$pattern`, donc `/api/conversations/{id}` et jamais l'identifiant ; « (inconnue) » sans route). `EventClassifier` (table pure) décide s'il y a aussi un **évènement** : 5xx, 429, 403, 404 (le chemin demandé est gardé, utile contre les scanners), échec de connexion (401 sur `/api/auth/login`), jeton CSRF refusé. `Mailbox` compte chaque e-mail envoyé ou en échec (route « mail », rien d'autre).
+- **Hors du chemin critique** : `MetricsRecorder` agrège en mémoire par (heure, route, classe) et n'écrit qu'au `flush()`, appelé par `public/index.php` **une fois la réponse livrée**. Le polling de la messagerie produit donc une ligne par heure et par classe, jamais une par requête. Une panne d'écriture est journalisée (classe seulement) et absorbée.
+- **Collecte horaire** : `php bin/collect-metrics.php` (`MetricsMaintenance` : un instantané `HealthProbe`, puis purge). Chaque relevé indisponible chez l'hébergeur vaut `null` et n'empêche pas les autres. Une ligne par passage dans `storage/logs/cron.log`.
+- Réglages (`config.local.php`) : `metrics.secret`, `metrics.backup_dir`, `metrics.viewer_email` (seul compte autorisé à voir le tableau de bord, #194 ; vide = page inexistante pour tous).
+

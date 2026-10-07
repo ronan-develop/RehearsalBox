@@ -77,4 +77,25 @@ final class MailboxTest extends TestCase
         self::assertFalse($failing->sendSafely($build, 'Contexte test'));
         self::assertStringContainsString('Contexte test', $logger->text());
     }
+
+    #[Test]
+    public function testEachSendIsCountedAsSentOrFailedWithoutAnyAddress(): void
+    {
+        $metrics = new \App\Tests\Doubles\RecordingMetrics();
+        $build = static fn () => (new \Symfony\Component\Mime\Email())->from('a@b.test')->to('alice@rehearsalbox.test')->subject('S')->text('T');
+
+        $ok = new Mailbox($this->mailer, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example', metrics: $metrics);
+        $ok->send($build());
+        $ok->sendSafely($build, 'Contexte');
+        $failing = new Mailbox(new FailingMailer(), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example', metrics: $metrics);
+        $failing->sendSafely($build, 'Contexte');
+        try {
+            $failing->send($build());
+            self::fail('l\'erreur doit remonter');
+        } catch (\Throwable) {
+        }
+
+        self::assertSame(['mail_sent', 'mail_sent', 'mail_failed', 'mail_failed'], $metrics->eventTypes());
+        self::assertStringNotContainsString('alice', json_encode($metrics->events));
+    }
 }

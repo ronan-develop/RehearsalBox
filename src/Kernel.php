@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Metrics\EventClassifier;
+use App\Metrics\MetricsRecorderInterface;
+use App\Metrics\NullMetrics;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use App\Container\ContainerInterface;
@@ -25,6 +28,11 @@ final class Kernel
 {
     private const MUTATING_METHODS = ['POST', 'PATCH', 'DELETE', 'PUT'];
 
+    /** Motif de la route de la requête en cours (clé des mesures) ; « (inconnue) » tant qu'aucune route ne correspond. */
+    private string $routePattern = '(inconnue)';
+
+    private bool $csrfRefused = false;
+
     public function __construct(
         private readonly Router $router,
         private readonly ContainerInterface $container,
@@ -32,13 +40,30 @@ final class Kernel
         private readonly SecurityHeaders $securityHeaders,
         private readonly ExceptionTranslator $translator = new ExceptionTranslator(),
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly MetricsRecorderInterface $metrics = new NullMetrics(),
     ) {
     }
+
 
     /** Point de sortie unique : toute réponse (page, API, erreur, redirection) reçoit les en-têtes de sécurité. */
     public function handle(Request $request): Response
     {
-        return $this->securityHeaders->applyTo($this->dispatch($request));
+        $startedAt = hrtime(true);
+        $response = $this->securityHeaders->applyTo($this->dispatch($request));
+        $this->observe($request, $response->statusCode(), (int) round((hrtime(true) - $startedAt) / 1_000_000));
+
+        return $response;
+    }
+
+    /** Signale la requête aux mesures (#195) : en mémoire seulement, l'écriture se fait une fois la réponse livrée. */
+    private function observe(Request $request, int $status, int $durationMs): void
+    {
+        $this->metrics->request($this->routePattern, $status, $durationMs, intdiv(memory_get_peak_usage(true), 1024));
+        $event = EventClassifier::forResponse($request->method(), $request->path(), $status, $this->csrfRefused);
+        if ($event !== null) {
+            // Un 404 garde le chemin demandé (utile pour repérer les scanners), les autres le motif de route.
+            $this->metrics->event($event, $status === 404 ? $request->path() : $this->routePattern, $status, $request->clientIp());
+        }
     }
 
     private function dispatch(Request $request): Response
@@ -51,9 +76,13 @@ final class Kernel
             return $this->errorResponse($request, 405, 'Méthode non autorisée');
         }
 
+        $this->routePattern = $matched->pattern;
+
         // Vérifié en tout premier, avant toute logique métier (cf. plan §5/§10.3) —
         // le controller n'est jamais atteint sans token valide sur une mutation API.
         if ($this->isMutatingApiRequest($request) && !$this->csrfTokenManager->isValid((string) $request->header('X-CSRF-Token', ''))) {
+            $this->csrfRefused = true;
+
             return $this->errorResponse($request, 403, 'Token CSRF invalide ou manquant.');
         }
 

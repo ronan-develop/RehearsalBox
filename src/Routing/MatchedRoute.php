@@ -13,6 +13,8 @@ final class MatchedRoute
     public function __construct(
         public readonly array $handler,
         public readonly array $params,
+        /** Motif de la route (ex. « /api/conversations/{id} »), sans identifiant : la clé des mesures. */
+        public readonly string $pattern = '',
     ) {
     }
 }

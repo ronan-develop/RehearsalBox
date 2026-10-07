@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\View\PhpTemplateRenderer;
+use App\Metrics\MetricEventType;
+use App\Metrics\MetricsRecorderInterface;
+use App\Metrics\NullMetrics;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Mailer\MailerInterface;
@@ -26,6 +29,7 @@ final class Mailbox
         private readonly string $baseUrl,
         private readonly MailRenderer $renderer = new MailRenderer(new PhpTemplateRenderer(__DIR__ . '/../../templates')),
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly MetricsRecorderInterface $metrics = new NullMetrics(),
     ) {
     }
 
@@ -53,7 +57,14 @@ final class Mailbox
     /** Envoi qui laisse remonter l'erreur : l'appelant doit pouvoir annuler ce qu'il avait réservé (avis, jeton…). */
     public function send(RawMessage $message): void
     {
-        $this->mailer->send($message);
+        try {
+            $this->mailer->send($message);
+        } catch (\Throwable $e) {
+            $this->metrics->event(MetricEventType::MailFailed, 'mail');
+
+            throw $e;
+        }
+        $this->metrics->event(MetricEventType::MailSent, 'mail');
     }
 
     /**
@@ -63,6 +74,9 @@ final class Mailbox
      */
     public function sendSafely(callable $build, string $failureContext): bool
     {
-        return SafeMail::send($this->mailer, $build, $failureContext, $this->logger);
+        $sent = SafeMail::send($this->mailer, $build, $failureContext, $this->logger);
+        $this->metrics->event($sent ? MetricEventType::MailSent : MetricEventType::MailFailed, 'mail');
+
+        return $sent;
     }
 }

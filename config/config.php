@@ -30,6 +30,14 @@ $defaults = [
         'max_bytes' => 1_000_000,
         'keep' => 5,
     ],
+    'metrics' => [
+        // Secret du serveur pour l'empreinte des adresses IP (config.local.php). Vide : aucune adresse n'est conservée, même sous forme d'empreinte.
+        'secret' => '',
+        // Dossier des sauvegardes de la base (pour l'âge de la dernière), null si inconnu.
+        'backup_dir' => null,
+        // Seul compte autorisé à voir le tableau de bord (config.local.php). Vide : la page n'existe pour personne.
+        'viewer_email' => '',
+    ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',
     ],

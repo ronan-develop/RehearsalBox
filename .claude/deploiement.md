@@ -72,6 +72,16 @@ cd "$HOME/rehearsalbox/current" && [ -f bin/send-reminders.php ] && /usr/local/b
 - Aucun secret dans la commande : la configuration (transport e-mail, adresse d'expédition, fuseau) vient de `config.local.php`.
 - Un e-mail immédiat part aussi à la création d'une conversation (sans cron) ; si le cron n'est pas installé, seules les relances manquent. Les conversations **antérieures** au déploiement des e-mails n'en reçoivent aucun (migration 017).
 
+## Collecte des mesures (#195)
+
+`bin/collect-metrics.php` relève l'état du serveur et purge les anciennes mesures. À lancer **toutes les heures** par une seconde entrée cron, installée comme celle des relances (idempotente, ancienne table sauvegardée dans `shared/crontab.bak`, garde sur la présence du script) :
+
+```bash
+cd "$HOME/rehearsalbox/current" && [ -f bin/collect-metrics.php ] && /usr/local/bin/php bin/collect-metrics.php >> "$HOME/rehearsalbox/shared/reminders.log" 2>&1
+```
+
+Avant la première collecte en production, ajouter dans `shared/config.local.php` (0600, jamais dans le dépôt) : `metrics.secret` (chaîne aléatoire longue, **sans elle aucune adresse n'est conservée**), `metrics.backup_dir` (dossier des sauvegardes de la base) et `metrics.viewer_email` (le compte autorisé, #196). La migration 031 s'applique au déploiement. Rétention : évènements 30 jours, agrégats et instantanés 90 jours.
+
 ## Réinitialisation de mot de passe
 
 - Pages publiques `/forgot-password` et `/reset-password?token=…` ; API `POST /api/auth/forgot-password` et `/api/auth/reset-password`.
