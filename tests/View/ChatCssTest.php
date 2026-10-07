@@ -37,8 +37,7 @@ final class ChatCssTest extends TestCase
     {
         $css = $this->css();
 
-        self::assertMatchesRegularExpression('/\.rb-chat-archives \.rb-badge\[hidden\]/', $css);
-        self::assertMatchesRegularExpression('/\.rb-messages-link \.rb-badge\[hidden\]\s*\{[^}]*display:\s*none/', $css);
+        // Les badges masqués le sont par la règle globale `.rb-badge[hidden]` de base.css (#322), plus par une surcharge par page.
         self::assertMatchesRegularExpression('/\.rb-chat-thread\[hidden\]/', $css);
     }
 

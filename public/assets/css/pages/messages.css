@@ -121,8 +121,7 @@ rb-composer {
   cursor: pointer;
 }
 
-.rb-chat-archives[hidden],
-.rb-chat-archives .rb-badge[hidden] {
+.rb-chat-archives[hidden] {
   display: none;
 }
 
@@ -489,10 +488,6 @@ rb-composer {
 
 .rb-messages-link:hover {
   border-color: var(--rb-accent);
-}
-
-.rb-messages-link .rb-badge[hidden] {
-  display: none;
 }
 
 /* Corbeille et avis (#190) */

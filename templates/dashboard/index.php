@@ -103,30 +103,21 @@
                 <?php foreach ($receivedExceptions as $deckPosition => $item): ?>
                     <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
-                <div class="rb-exception-empty"<?= $receivedExceptions !== [] ? ' hidden' : '' ?>>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-                    <p>Aucune demande reçue en attente.</p>
-                </div>
+                <?php $emptyText = 'Aucune demande reçue en attente.'; $emptyHidden = $receivedExceptions !== []; require __DIR__ . '/../partials/empty-state.php'; ?>
             </div>
 
             <div class="rb-exception-deck" data-exception-deck data-deck="sent" hidden>
                 <?php foreach ($sentExceptions as $deckPosition => $item): ?>
                     <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
-                <div class="rb-exception-empty"<?= $sentExceptions !== [] ? ' hidden' : '' ?>>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-                    <p>Aucune demande envoyée en attente.</p>
-                </div>
+                <?php $emptyText = 'Aucune demande envoyée en attente.'; $emptyHidden = $sentExceptions !== []; require __DIR__ . '/../partials/empty-state.php'; ?>
             </div>
 
             <div class="rb-exception-deck" data-exception-deck data-deck="archived" hidden>
                 <?php foreach ($archivedExceptions as $deckPosition => $item): ?>
                     <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
-                <div class="rb-exception-empty"<?= $archivedExceptions !== [] ? ' hidden' : '' ?>>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-                    <p>Aucune demande archivée.</p>
-                </div>
+                <?php $emptyText = 'Aucune demande archivée.'; $emptyHidden = $archivedExceptions !== []; require __DIR__ . '/../partials/empty-state.php'; ?>
             </div>
         </section>
 

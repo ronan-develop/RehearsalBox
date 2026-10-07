@@ -266,3 +266,7 @@ Sur « Réserver le local », un horaire se choisit en deux listes natives, heur
 ### Cartes exceptionnelles rendues par le serveur (#243)
 
 Les cartes « créneau exceptionnel » sont dessinées par **un seul gabarit** : `templates/dashboard/_exceptional-cards.php`, inclus par le tableau de bord et rendu par `Presenter\ExceptionalPlanningFragment` pour `GET /api/planning/exceptional` (`PlanningFragmentApiController`, connexion requise) qui renvoie `{html, count}`. Après l'acceptation d'une demande, `exceptional-planning.js` insère ce HTML tel quel (plus de miroir `buildExceptionalCardMarkup`). `PageControllerTest` garde que la page et le fragment contiennent exactement les mêmes cartes. L'ancien `GET /api/planning` (JSON), sans plus aucun consommateur, a été supprimé.
+
+### Badge masqué et état vide (#322, issu de #182)
+
+`.rb-badge[hidden] { display: none }` est **globale** (`base.css`) : un badge portant l'attribut `hidden` est masqué quelle que soit sa règle `display` ; plus de surcharge par page. L'état vide « icône + phrase » est un gabarit partiel unique, `templates/partials/empty-state.php` (`$emptyText`, `$emptyHidden`), utilisé par les trois paquets du bloc « Demandes de créneau ».
