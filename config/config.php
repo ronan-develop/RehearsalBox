@@ -25,6 +25,8 @@ $defaults = [
         // Hors de la racine web (storage/ est un lien vers shared/storage en production). Jamais de donnée personnelle dedans.
         'path' => __DIR__ . '/../storage/logs/app.log',
         'cron_path' => __DIR__ . '/../storage/logs/cron.log',
+        // Journal de la collecte des mesures : distinct du précédent, dont la date de modification prouve que le cron des relances tourne.
+        'collect_path' => __DIR__ . '/../storage/logs/collect.log',
         // debug, info, notice, warning, error, critical, alert, emergency
         'level' => 'warning',
         'max_bytes' => 1_000_000,
@@ -41,6 +43,8 @@ $defaults = [
         'thresholds' => [],
         // Seuils de détection des anomalies (voir Report\Security\AnomalyDetector) : scanner_hits, burst_events, burst_minutes, stuffing_failures, stuffing_minutes.
         'anomalies' => [],
+        // Alertes par e-mail au propriétaire du tableau de bord (viewer_email) : un résumé, pas avant min_gap_hours entre deux alertes d'un même type.
+        'alerts' => ['enabled' => true, 'min_gap_hours' => 12],
     ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',

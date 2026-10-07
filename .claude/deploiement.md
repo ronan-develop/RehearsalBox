@@ -80,7 +80,7 @@ cd "$HOME/rehearsalbox/current" && [ -f bin/send-reminders.php ] && /usr/local/b
 cd "$HOME/rehearsalbox/current" && [ -f bin/collect-metrics.php ] && /usr/local/bin/php bin/collect-metrics.php >> "$HOME/rehearsalbox/shared/reminders.log" 2>&1
 ```
 
-Avant la première collecte en production, ajouter dans `shared/config.local.php` (0600, jamais dans le dépôt) : `metrics.secret` (chaîne aléatoire longue, **sans elle aucune adresse n'est conservée**), `metrics.backup_dir` (dossier des sauvegardes de la base) et `metrics.viewer_email` (le compte autorisé, #196). La migration 031 s'applique au déploiement. Rétention : évènements 30 jours, agrégats et instantanés 90 jours.
+Avant la première collecte en production, ajouter dans `shared/config.local.php` (0600, jamais dans le dépôt) : `metrics.secret` (chaîne aléatoire longue, **sans elle aucune adresse n'est conservée**), `metrics.backup_dir` (dossier des sauvegardes de la base) et `metrics.viewer_email` (le compte autorisé, #196). La migration 031 s'applique au déploiement. Rétention : évènements 30 jours, agrégats et instantanés 90 jours. Les alertes (#199) partent de la même tâche : un e-mail de synthèse au compte `metrics.viewer_email` quand un indicateur est rouge, au plus toutes les `metrics.alerts.min_gap_hours` heures par type (12 par défaut) ; `metrics.alerts.enabled = false` les coupe. Le journal de la collecte est `storage/logs/collect.log`.
 
 ## Réinitialisation de mot de passe
 
