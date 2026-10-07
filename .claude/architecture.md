@@ -310,3 +310,12 @@ La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.p
 - `Metrics/Chart/SvgChart` : barres et courbe en SVG rendus par PHP, **sans bibliothèque**. Une couleur par graphique (jetons du thème en classes CSS `.rb-chart-*`, rien en dur), barres ≤ 24 px à bout arrondi, courbe de 2 px, grille discrète, axe unique aux valeurs rondes (1, 2, 5 × 10ᵏ), au plus 5 étiquettes d'abscisse ; chaque graphique a un titre, un résumé lu par les lecteurs d'écran et un **tableau de valeurs** repliable ; une série vide ou à une seule valeur ne casse pas le dessin. Tout texte est échappé.
 - Pas encore : l'indicateur « adresses de contact invalides » (ces cas ne sont aujourd'hui que dans le journal, pas dans les mesures).
 
+## Tableau de bord des mesures : sécurité et anomalies (#197)
+
+`GET /admin/metrics/security?periode=…` (même contrôleur, même règle d'accès à **un seul compte**, onglets « Santé et e-mails » / « Sécurité » dans `templates/admin/metrics/_header.php`). **On rapporte, on ne bloque rien.**
+
+- **Compteurs et graphiques** par heure (24 h) ou par jour : échecs de connexion, accès refusés (403), jetons CSRF refusés, limites de débit, demandes de mot de passe oublié (évènement ajouté à `EventClassifier`), pages introuvables dont celles sur des chemins de balayage. `TimeBuckets` (extrait de la page santé, partagé) fabrique les points en heure locale.
+- **Détection** (`Report/Security/AnomalyDetector`, fonction pure, testée avec des séries simulées, seuils réglables dans `metrics.anomalies`) par **empreinte d'adresse** : *scanner* (≥ 3 pages introuvables sur des chemins de balayage, `ScannerPaths`), *rafale* (≥ 30 évènements de sécurité en 5 min), *échecs de connexion répétés* (≥ 10 en 60 min). Sans empreinte (secret non configuré) les évènements sont regroupés sous « — ». L'empreinte est affichée **tronquée à 8 caractères**, jamais une adresse.
+- La lecture des évènements est plafonnée à 5 000 lignes (coût borné).
+- Pas encore : comptes verrouillés, part de robots par catégorie d'agent, énumération d'identifiants consécutifs de conversation (il faudrait conserver l'identifiant demandé ou la catégorie d'agent dans les mesures : à décider avec l'audit #185).
+

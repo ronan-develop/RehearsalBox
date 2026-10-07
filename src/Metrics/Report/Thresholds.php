@@ -20,6 +20,10 @@ final class Thresholds
         'cron_minutes' => [90, 180],
         'backup_hours' => [30, 54],
         'disk_free_mb' => [1024, 256],
+        'login_failures' => [20, 100],
+        'access_denied' => [10, 50],
+        'csrf_failures' => [3, 20],
+        'rate_limited' => [1, 10],
     ];
 
     /** @var array<string, array{0: float|int, 1: float|int}> */

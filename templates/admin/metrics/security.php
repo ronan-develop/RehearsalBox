@@ -1,9 +1,9 @@
 <?php
 /**
- * Tableau de bord des mesures : santé et e-mails (#196). Rendu par le serveur, sans JavaScript : la période se choisit par un
- * lien, les graphiques sont des SVG déjà rendus (accessibles, avec leur tableau de valeurs).
+ * Tableau de bord des mesures : sécurité et anomalies (#197). Rendu par le serveur, sans JavaScript. On rapporte, on ne bloque
+ * rien : les adresses n'apparaissent jamais, seulement une empreinte tronquée.
  *
- * @var \App\Metrics\Report\HealthReport $report
+ * @var \App\Metrics\Report\Security\SecurityReport $report
  * @var list<\App\Metrics\Report\MetricsPeriod> $periods
  */
 ?>
@@ -13,17 +13,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>Mesures — RehearsalBox</title>
+    <title>Mesures : sécurité — RehearsalBox</title>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/pages/admin.css">
     <link rel="stylesheet" href="/assets/css/pages/metrics.css">
 </head>
 <body>
     <div class="rb-admin-page rb-metrics-page">
-        <?php $section = 'health'; $period = $report->period; require __DIR__ . '/_header.php'; ?>
+        <?php $section = 'security'; $period = $report->period; require __DIR__ . '/_header.php'; ?>
 
         <section aria-labelledby="metrics-cards-title">
-            <h2 id="metrics-cards-title" class="rb-metrics-section">État</h2>
+            <h2 id="metrics-cards-title" class="rb-metrics-section">Compteurs</h2>
             <div class="rb-metrics-cards">
                 <?php foreach ($report->cards as $card): ?>
                     <div class="rb-metrics-card"<?= $card->status === null ? '' : ' data-status="' . e($card->status->value) . '"' ?>>
@@ -38,6 +38,30 @@
                     </div>
                 <?php endforeach; ?>
             </div>
+        </section>
+
+        <section aria-labelledby="metrics-anomalies-title">
+            <h2 id="metrics-anomalies-title" class="rb-metrics-section">Anomalies récentes</h2>
+            <?php if ($report->anomalies === []): ?>
+                <p class="rb-admin-note">Aucune anomalie détectée sur la période.</p>
+            <?php else: ?>
+                <div class="rb-admin-table-wrapper">
+                    <table class="rb-metrics-anomalies">
+                        <thead><tr><th scope="col">Type</th><th scope="col">Empreinte</th><th scope="col">Évènements</th><th scope="col">Dernier</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($report->anomalies as $anomaly): ?>
+                            <tr>
+                                <td><?= e($anomaly->kind->label()) ?></td>
+                                <td><code><?= e($anomaly->fingerprint) ?></code></td>
+                                <td><?= e((string) $anomaly->count) ?></td>
+                                <td><?= e($anomaly->lastAt->setTimezone($localTimezone)->format('d/m H:i')) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="rb-metrics-card-hint">Rapport seulement : aucune adresse n'est bloquée automatiquement.</p>
+            <?php endif; ?>
         </section>
 
         <section aria-labelledby="metrics-charts-title">

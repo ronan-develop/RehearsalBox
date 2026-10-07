@@ -26,25 +26,25 @@ final class HealthReportBuilder
     public function build(MetricsPeriod $period): HealthReport
     {
         $now = $this->clock->now();
-        $buckets = $this->buckets($period, $now);
-        $since = $buckets['start']->setTimezone(new \DateTimeZone('UTC'));
+        $buckets = new TimeBuckets($period, $now, $this->localTimezone);
+        $since = $buckets->sinceUtc();
 
-        $requests = $this->emptySeries($buckets['labels']);
+        $requests = $buckets->emptySeries();
         $errors = $requests;
         $duration = $requests;
         foreach ($this->reader->requestsByHour($since) as $hour => $row) {
-            $key = $this->keyOf($hour, $period);
-            if (isset($requests[$key])) {
+            $key = $buckets->keyOf($hour);
+            if ($key !== null) {
                 $requests[$key] += $row['requests'];
                 $errors[$key] += $row['errors'];
                 $duration[$key] += $row['durationMs'];
             }
         }
-        $sent = $this->emptySeries($buckets['labels']);
+        $sent = $buckets->emptySeries();
         $failed = $sent;
         foreach ($this->reader->eventsByHour($since, [MetricEventType::MailSent, MetricEventType::MailFailed]) as $hour => $byType) {
-            $key = $this->keyOf($hour, $period);
-            if (isset($sent[$key])) {
+            $key = $buckets->keyOf($hour);
+            if ($key !== null) {
                 $sent[$key] += $byType[MetricEventType::MailSent->value] ?? 0;
                 $failed[$key] += $byType[MetricEventType::MailFailed->value] ?? 0;
             }
@@ -54,7 +54,7 @@ final class HealthReportBuilder
         foreach ($requests as $key => $count) {
             $average[] = $count === 0 ? 0 : (int) round($duration[$key] / $count);
         }
-        $labels = array_values($buckets['labels']);
+        $labels = $buckets->labels();
         $chart = new SvgChart();
 
         return new HealthReport(
@@ -96,50 +96,6 @@ final class HealthReportBuilder
             new StatusCard('Taille de la base', $database === null ? '—' : HumanSize::of($database), null, $taken),
             new StatusCard('Version servie', $release ?? '—', null, 'PHP ' . $php),
         ];
-    }
-
-    /** @return array{start: \DateTimeImmutable, labels: array<string, string>} clé du point => étiquette, dans l'ordre */
-    private function buckets(MetricsPeriod $period, \DateTimeImmutable $now): array
-    {
-        $local = $now->setTimezone($this->localTimezone);
-        $labels = [];
-
-        if (!$period->bucketsByDay()) {
-            $start = $local->setTime((int) $local->format('G'), 0)->modify('-23 hours');
-            for ($i = 0; $i < 24; ++$i) {
-                $at = $start->setTimestamp($start->getTimestamp() + $i * 3600);
-                $labels[$at->format('Y-m-d H')] = $at->format('G') . ' h';
-            }
-
-            return ['start' => $start, 'labels' => $labels];
-        }
-
-        $days = intdiv($period->hours(), 24);
-        $start = $local->setTime(0, 0)->modify('-' . ($days - 1) . ' days');
-        for ($i = 0; $i < $days; ++$i) {
-            $at = $start->modify('+' . $i . ' days');
-            $labels[$at->format('Y-m-d')] = $at->format('d/m');
-        }
-
-        return ['start' => $start, 'labels' => $labels];
-    }
-
-    /** Clé du point d'une heure UTC lue en base. */
-    private function keyOf(string $utcHour, MetricsPeriod $period): string
-    {
-        $local = (new \DateTimeImmutable($utcHour, new \DateTimeZone('UTC')))->setTimezone($this->localTimezone);
-
-        return $local->format($period->bucketsByDay() ? 'Y-m-d' : 'Y-m-d H');
-    }
-
-    /**
-     * @param array<string, string> $labels
-     *
-     * @return array<string, int>
-     */
-    private function emptySeries(array $labels): array
-    {
-        return array_fill_keys(array_keys($labels), 0);
     }
 
     private function duration(int $minutes): string

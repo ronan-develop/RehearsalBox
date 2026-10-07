@@ -10,6 +10,7 @@ use App\Metrics\MetricEventType;
 final class EventClassifier
 {
     private const LOGIN_PATH = '/api/auth/login';
+    private const FORGOT_PASSWORD_PATH = '/api/auth/forgot-password';
 
     public static function forResponse(string $method, string $path, int $status, bool $csrfRefused): ?MetricEventType
     {
@@ -20,6 +21,7 @@ final class EventClassifier
             $status === 403 => MetricEventType::AccessDenied,
             $status === 404 => MetricEventType::NotFound,
             $status === 401 && $method === 'POST' && $path === self::LOGIN_PATH => MetricEventType::LoginFailed,
+            $status < 400 && $method === 'POST' && $path === self::FORGOT_PASSWORD_PATH => MetricEventType::PasswordResetRequested,
             default => null,
         };
     }

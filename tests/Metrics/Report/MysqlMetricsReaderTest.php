@@ -69,4 +69,22 @@ final class MysqlMetricsReaderTest extends RepositoryTestCase
         self::assertSame('rel-1', $snapshot->releaseMarker);
         self::assertSame(0.5, $snapshot->load1m);
     }
+
+    #[Test]
+    public function testSecurityEventsKeepOnlySecurityTypesNewestFirstAndBounded(): void
+    {
+        $writer = new MysqlMetricsRepository($this->pdo);
+        $writer->addEvent(MetricEventType::NotFound, '/.env', 404, 'aaaaaaaaaaaaaaaa', $this->at('2026-10-07 10:00:00'));
+        $writer->addEvent(MetricEventType::LoginFailed, '/api/auth/login', 401, null, $this->at('2026-10-07 11:00:00'));
+        $writer->addEvent(MetricEventType::MailSent, 'mail', null, null, $this->at('2026-10-07 12:00:00'));
+        $writer->addEvent(MetricEventType::ServerError, '/x', 500, null, $this->at('2026-10-07 12:30:00'));
+
+        $reader = new MysqlMetricsReader($this->pdo);
+        $events = $reader->securityEvents($this->at('2026-10-07 00:00:00'));
+
+        self::assertSame(['login_failed', 'not_found'], array_map(static fn ($e): string => $e->type->value, $events));
+        self::assertSame('aaaaaaaaaaaaaaaa', $events[1]->ipHash);
+        self::assertNull($events[0]->ipHash);
+        self::assertCount(1, $reader->securityEvents($this->at('2026-10-07 00:00:00'), 1));
+    }
 }

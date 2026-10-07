@@ -24,6 +24,8 @@ final class EventClassifierTest extends TestCase
             'jeton CSRF' => ['POST', '/api/x', 403, true, MetricEventType::CsrfFailed],
             'introuvable' => ['GET', '/.env', 404, false, MetricEventType::NotFound],
             'connexion échouée' => ['POST', '/api/auth/login', 401, false, MetricEventType::LoginFailed],
+            'demande de mot de passe oublié' => ['POST', '/api/auth/forgot-password', 200, false, MetricEventType::PasswordResetRequested],
+            'mot de passe oublié limité' => ['POST', '/api/auth/forgot-password', 429, false, MetricEventType::RateLimited],
             '401 ailleurs (session expirée)' => ['GET', '/api/conversations', 401, false, null],
         ];
     }

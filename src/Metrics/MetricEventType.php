@@ -13,6 +13,7 @@ enum MetricEventType: string
     case NotFound = 'not_found';
     case RateLimited = 'rate_limited';
     case ServerError = 'server_error';
+    case PasswordResetRequested = 'password_reset_requested';
     case MailSent = 'mail_sent';
     case MailFailed = 'mail_failed';
 }

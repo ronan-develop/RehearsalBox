@@ -10,6 +10,7 @@ use App\Http\Response;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\MetricsPeriod;
+use App\Metrics\Report\Security\SecurityReportBuilder;
 use App\Security\AuthGuard;
 use App\View\TemplateRendererInterface;
 
@@ -24,20 +25,34 @@ final class MetricsPageController
         private readonly AuthGuard $authGuard,
         private readonly MetricsAccess $access,
         private readonly HealthReportBuilder $reports,
+        private readonly SecurityReportBuilder $securityReports,
+        private readonly \DateTimeZone $localTimezone,
     ) {
     }
 
     public function index(Request $request): Response
+    {
+        return $this->page($request, 'admin/metrics/index', fn (MetricsPeriod $period): array => ['report' => $this->reports->build($period)]);
+    }
+
+    /** Page « Sécurité et anomalies » (#197). */
+    public function security(Request $request): Response
+    {
+        return $this->page($request, 'admin/metrics/security', fn (MetricsPeriod $period): array => ['report' => $this->securityReports->build($period)]);
+    }
+
+    /** @param callable(MetricsPeriod): array<string, mixed> $data */
+    private function page(Request $request, string $template, callable $data): Response
     {
         $user = $this->authGuard->currentUserOrNull();
         if ($user === null || !$this->access->allows($user)) {
             return ErrorPage::response(404);
         }
 
-        return new Response($this->renderer->render('admin/metrics/index', [
-            'report' => $this->reports->build(MetricsPeriod::fromQuery($request->query('periode'))),
+        return new Response($this->renderer->render($template, $data(MetricsPeriod::fromQuery($request->query('periode'))) + [
             'periods' => MetricsPeriod::cases(),
             'currentUserRole' => $user->role(),
+            'localTimezone' => $this->localTimezone,
         ]));
     }
 }

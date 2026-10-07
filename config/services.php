@@ -10,6 +10,8 @@ use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\MetricsReaderInterface;
 use App\Metrics\Report\MysqlMetricsReader;
+use App\Metrics\Report\Security\AnomalyDetector;
+use App\Metrics\Report\Security\SecurityReportBuilder;
 use App\Metrics\Report\Thresholds;
 use App\Metrics\Collection\IpPseudonymizer;
 use App\Metrics\Collection\MetricsMaintenance;
@@ -192,17 +194,32 @@ return static function (array $config): Container {
         $c->get(LoggerInterface::class),
     ));
     $container->set(MetricsReaderInterface::class, fn ($c) => new MysqlMetricsReader($c->get(PDO::class)));
-    $container->set(MetricsPageController::class, fn ($c) => new MetricsPageController(
-        $c->get(TemplateRendererInterface::class),
-        $c->get(AuthGuard::class),
-        new MetricsAccess((string) $config['metrics']['viewer_email']),
-        new HealthReportBuilder(
-            $c->get(MetricsReaderInterface::class),
-            new Thresholds($config['metrics']['thresholds']),
-            $c->get(ClockInterface::class),
-            new \DateTimeZone($config['app']['timezone']),
-        ),
-    ));
+    $container->set(MetricsPageController::class, function ($c) use ($config) {
+        $timezone = new \DateTimeZone($config['app']['timezone']);
+        $thresholds = new Thresholds($config['metrics']['thresholds']);
+        $anomalies = $config['metrics']['anomalies'];
+
+        return new MetricsPageController(
+            $c->get(TemplateRendererInterface::class),
+            $c->get(AuthGuard::class),
+            new MetricsAccess((string) $config['metrics']['viewer_email']),
+            new HealthReportBuilder($c->get(MetricsReaderInterface::class), $thresholds, $c->get(ClockInterface::class), $timezone),
+            new SecurityReportBuilder(
+                $c->get(MetricsReaderInterface::class),
+                new AnomalyDetector(
+                    scannerHits: (int) ($anomalies['scanner_hits'] ?? 3),
+                    burstEvents: (int) ($anomalies['burst_events'] ?? 30),
+                    burstMinutes: (int) ($anomalies['burst_minutes'] ?? 5),
+                    stuffingFailures: (int) ($anomalies['stuffing_failures'] ?? 10),
+                    stuffingMinutes: (int) ($anomalies['stuffing_minutes'] ?? 60),
+                ),
+                $thresholds,
+                $c->get(ClockInterface::class),
+                $timezone,
+            ),
+            $timezone,
+        );
+    });
     $container->set(MetricsMaintenance::class, fn ($c) => new MetricsMaintenance(
         $c->get(MetricsRepositoryInterface::class),
         new HealthProbe(

@@ -6,6 +6,7 @@ namespace App\Metrics\Report;
 
 use App\Metrics\HealthSnapshot;
 use App\Metrics\MetricEventType;
+use App\Metrics\Report\Security\SecurityEvent;
 
 /** Lecture des mesures pour les rapports (séparée de l'écriture : la collecte n'a jamais besoin de relire). */
 interface MetricsReaderInterface
@@ -25,6 +26,14 @@ interface MetricsReaderInterface
      * @return array<string, array<string, int>> heure => type => nombre
      */
     public function eventsByHour(\DateTimeImmutable $since, array $types): array;
+
+    /**
+     * Évènements de sécurité (échecs de connexion, refus, CSRF, limites de débit, pages introuvables) depuis la date donnée, les
+     * plus récents d'abord, plafonnés pour borner le coût de la détection.
+     *
+     * @return list<SecurityEvent>
+     */
+    public function securityEvents(\DateTimeImmutable $since, int $limit = 5000): array;
 
     public function latestSnapshot(): ?HealthSnapshot;
 }

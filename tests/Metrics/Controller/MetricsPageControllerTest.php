@@ -11,6 +11,8 @@ use App\Http\Request;
 use App\Metrics\Controller\MetricsPageController;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
+use App\Metrics\Report\Security\AnomalyDetector;
+use App\Metrics\Report\Security\SecurityReportBuilder;
 use App\Metrics\Report\Thresholds;
 use App\Security\AuthGuard;
 use App\Tests\Doubles\FakeMetricsReader;
@@ -61,6 +63,8 @@ final class MetricsPageControllerTest extends TestCase
             new AuthGuard($auth),
             new MetricsAccess($viewerEmail),
             new HealthReportBuilder(new FakeMetricsReader(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
+            new SecurityReportBuilder(new FakeMetricsReader(), new AnomalyDetector(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
+            new \DateTimeZone('Europe/Paris'),
         );
     }
 
@@ -107,5 +111,21 @@ final class MetricsPageControllerTest extends TestCase
 
         self::assertStringContainsString('href="/admin/metrics?periode=7j" class="rb-metrics-period" aria-current="page"', $response->body());
         self::assertStringContainsString('Sur 7 jours', $response->body());
+    }
+
+    #[Test]
+    public function testTheSecurityPageFollowsTheSameSingleAccountRule(): void
+    {
+        $request = new Request('GET', '/admin/metrics/security', [], [], []);
+
+        $owner = $this->controller($this->user('owner@rehearsalbox.test'))->security($request);
+        self::assertSame(200, $owner->statusCode());
+        self::assertStringContainsString('Anomalies récentes', $owner->body());
+        self::assertStringContainsString('aria-current="page">Sécurité', $owner->body());
+        self::assertSame(4, substr_count($owner->body(), '<figure class="rb-chart">'));
+
+        foreach ([null, $this->user('other@rehearsalbox.test'), $this->user('owner@rehearsalbox.test', UserRole::Musicien)] as $who) {
+            self::assertSame(404, $this->controller($who)->security($request)->statusCode());
+        }
     }
 }
