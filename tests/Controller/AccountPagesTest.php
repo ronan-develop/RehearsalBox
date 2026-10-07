@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Controller\PageController;
-use App\Entity\Enum\UserRole;
-use App\Entity\User;
+use App\Account\Entity\UserRole;
+use App\Account\Entity\User;
 use App\Http\Request;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\UnauthenticatedException;
 use App\Tests\Support\FastPasswordHasher;
-use App\Service\AuthService;
+use App\Account\Service\AuthService;
 use App\Planning\Service\AvailabilityService;
 use App\Group\Service\GroupService;
 use App\Planning\Service\SlotService;
@@ -50,7 +50,7 @@ final class AccountPagesTest extends RepositoryTestCase
             new SlotService($slotRepository, $groupRepository, $exceptionRepository),
             new GroupService($groupRepository, $this->users),
             new MysqlGroupDocumentRepository($this->pdo),
-            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
+            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
     }
@@ -87,7 +87,7 @@ final class AccountPagesTest extends RepositoryTestCase
         self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="1"\\s+checked/', $on, 'activé par défaut');
         self::assertDoesNotMatchRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $on);
 
-        (new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->users->findByEmail('alice@rehearsalbox.test')->id(), false);
+        (new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->users->findByEmail('alice@rehearsalbox.test')->id(), false);
         $off = $controller->accountPassword()->body();
         self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $off, 'désinscrit');
     }

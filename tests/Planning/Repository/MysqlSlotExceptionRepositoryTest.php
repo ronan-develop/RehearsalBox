@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Planning\Repository;
 
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
 use App\Planning\Entity\RecurringSlot;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Repository\Exception\DuplicateOccurrenceException;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 

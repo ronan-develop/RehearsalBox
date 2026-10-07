@@ -1,10 +1,10 @@
 <?php
 /**
  * @var string $csrfToken
- * @var list<\App\Entity\AdminUserItem> $items
+ * @var list<\App\Account\Entity\AdminUserItem> $items
  * @var list<\App\Group\Entity\Group> $groups
  * @var int $currentUserId
- * @var \App\Entity\Enum\UserRole $currentUserRole
+ * @var \App\Account\Entity\UserRole $currentUserRole
  */
 ?>
 <!doctype html>
@@ -70,7 +70,7 @@
                         <h3><?= e($user->displayName()) ?></h3>
                         <p class="rb-user-email"><?= e($user->email()) ?></p>
                         <p class="rb-user-badges">
-                            <span class="rb-badge"><?= $user->role() === \App\Entity\Enum\UserRole::Admin ? 'Administrateur' : 'Musicien' ?></span>
+                            <span class="rb-badge"><?= $user->role() === \App\Account\Entity\UserRole::Admin ? 'Administrateur' : 'Musicien' ?></span>
                             <?php if (!$user->isActive()): ?><span class="rb-badge rb-badge-warn">Désactivé</span><?php endif; ?>
                             <?php if ($item->isLocked()): ?><span class="rb-badge rb-badge-warn">Verrouillé</span><?php endif; ?>
                         </p>

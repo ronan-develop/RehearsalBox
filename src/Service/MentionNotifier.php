@@ -9,8 +9,8 @@ use App\Entity\MentionNotice;
 use App\Mail\Mailbox;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
 use App\Repository\Contract\ConversationMuteRepositoryInterface;
-use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
-use App\Repository\Contract\UserRepositoryInterface;
+use App\Account\Repository\NotificationPreferenceRepositoryInterface;
+use App\Account\Repository\UserRepositoryInterface;
 use App\Support\HeaderText;
 use Symfony\Component\Mime\Email;
 

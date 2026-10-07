@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
-use App\Entity\Enum\UserRole;
-use App\Entity\User;
+use App\Account\Entity\UserRole;
+use App\Account\Entity\User;
 use App\Repository\MysqlConversationMessageRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Service\ConversationRateLimit;
 use App\Tests\RepositoryTestCase;
 use App\Tests\TestDatabase;

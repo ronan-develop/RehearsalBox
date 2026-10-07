@@ -7,22 +7,22 @@ namespace App\Tests\Controller;
 use App\Controller\PageController;
 use App\Planning\Entity\ExceptionDirection;
 use App\Group\Entity\GroupUserRole;
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Planning\Presenter\PlanningDays;
 use App\Planning\Presenter\PlanningView;
 use App\Security\AuthGuard;
 use Symfony\Component\Clock\MockClock;
 use App\Security\CsrfTokenManager;
 use App\Tests\Support\FastPasswordHasher;
-use App\Service\AuthService;
+use App\Account\Service\AuthService;
 use App\Planning\Service\AvailabilityService;
 use App\Group\Service\GroupService;
 use App\Planning\Service\SlotService;
@@ -58,7 +58,7 @@ final class PageControllerTest extends RepositoryTestCase
             $slotService,
             $groupService,
             $groupDocumentRepository,
-            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
+            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
 

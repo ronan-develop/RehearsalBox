@@ -10,11 +10,11 @@ use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Tests\Support\FastPasswordHasher;
-use App\Service\AuthService;
+use App\Account\Service\AuthService;
 use App\Planning\Service\AvailabilityService;
 use App\Group\Service\GroupService;
 use App\Planning\Service\SlotService;
@@ -44,7 +44,7 @@ final class PasswordResetPagesTest extends RepositoryTestCase
             new SlotService($slotRepository, $groupRepository, $exceptionRepository),
             new GroupService($groupRepository, $userRepository),
             new MysqlGroupDocumentRepository($this->pdo),
-            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
+            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
     }

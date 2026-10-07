@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Planning\Controller;
 
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Http\Response;
 use App\Planning\Presenter\AdminBookingsView;
 use App\Security\AuthGuard;

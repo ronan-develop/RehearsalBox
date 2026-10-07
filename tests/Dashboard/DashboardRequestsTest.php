@@ -6,10 +6,10 @@ namespace App\Tests\Dashboard;
 
 use App\Controller\PageController;
 use App\Planning\Entity\FreeSlotBookingStatus;
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Dashboard\DashboardBookings;
 use App\Planning\Presenter\PlanningDays;
 use App\Planning\Presenter\PlanningView;
@@ -19,10 +19,10 @@ use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
-use App\Service\AuthService;
+use App\Account\Service\AuthService;
 use App\Planning\Service\AvailabilityService;
 use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;
@@ -84,7 +84,7 @@ final class DashboardRequestsTest extends RepositoryTestCase
             $slotService,
             new GroupService($this->groups, $users),
             new MysqlGroupDocumentRepository($this->pdo),
-            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
+            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
     }

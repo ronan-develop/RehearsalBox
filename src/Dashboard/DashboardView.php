@@ -10,7 +10,7 @@ use App\Planning\Entity\ExceptionDirection;
 use App\Group\Entity\Group;
 use App\Planning\Entity\RecurringSlot;
 use App\Planning\Entity\SlotException;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Planning\Service\AvailabilityServiceInterface;
 use App\Planning\Service\SlotServiceInterface;

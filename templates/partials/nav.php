@@ -1,7 +1,7 @@
 <?php
-/** @var \App\Entity\Enum\UserRole|null $currentUserRole */
+/** @var \App\Account\Entity\UserRole|null $currentUserRole */
 ?>
-<?php if ($currentUserRole === \App\Entity\Enum\UserRole::Admin): ?>
+<?php if ($currentUserRole === \App\Account\Entity\UserRole::Admin): ?>
 <nav class="rb-bottom-nav">
     <a href="/" class="rb-bottom-nav-link">Disponibilités</a>
     <a href="/admin/slots" class="rb-bottom-nav-link">Créneaux <span class="rb-badge rb-badge-warn rb-bottom-nav-badge" data-bookings-badge hidden>0</span></a>

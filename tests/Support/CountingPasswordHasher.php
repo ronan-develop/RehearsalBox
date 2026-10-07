@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
-use App\Security\PasswordHasherInterface;
+use App\Account\Security\PasswordHasherInterface;
 
 /** Compte les opérations de hachage faites par le code testé (aucun mot de passe n'est conservé). */
 final class CountingPasswordHasher implements PasswordHasherInterface

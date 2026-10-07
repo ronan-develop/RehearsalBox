@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Dashboard;
 
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Dashboard\DashboardBookings;
 use App\Dashboard\DashboardView;
 use App\Planning\Presenter\PlanningDays;
@@ -18,7 +18,7 @@ use App\Planning\Repository\MysqlFreeSlotBookingRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Planning\Service\AvailabilityService;
 use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Controller\Api\AccountApiController;
-use App\Controller\Api\AuthApiController;
+use App\Account\Controller\AccountApiController;
+use App\Account\Controller\AuthApiController;
 use App\Planning\Controller\AvailabilityApiController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
-use App\Controller\AdminUserPageController;
+use App\Account\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
 use App\Controller\Api\ConversationMuteApiController;
@@ -17,10 +17,10 @@ use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\MemberApiController;
 use App\Controller\Api\MessageApiController;
 use App\Group\Controller\GroupApiController;
-use App\Controller\Api\UserAdminApiController;
+use App\Account\Controller\UserAdminApiController;
 use App\Group\Controller\GroupDocumentApiController;
 use App\Group\Controller\GroupSpaceApiController;
-use App\Controller\Api\PasswordResetApiController;
+use App\Account\Controller\PasswordResetApiController;
 use App\Planning\Controller\PlanningFragmentApiController;
 use App\Planning\Controller\SlotApiController;
 use App\Controller\MessagesPageController;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Group\Controller;
 
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
 use App\Http\JsonResponse;
 use App\Http\Request;

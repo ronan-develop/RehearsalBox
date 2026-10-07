@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Planning\Controller;
 
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Planning\Entity\RecurringSlot;
 use App\Http\JsonResponse;

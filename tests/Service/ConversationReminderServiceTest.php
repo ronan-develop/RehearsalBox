@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Service;
 
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlConversationPresenceRepository;
 use App\Repository\MysqlConversationMessageRepository;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Service\ConversationReminderService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\FailingMailer;

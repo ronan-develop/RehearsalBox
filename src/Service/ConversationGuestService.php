@@ -7,7 +7,7 @@ namespace App\Service;
 use App\Database\TransactionRunner;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMessageRepositoryInterface;
-use App\Repository\Contract\UserRepositoryInterface;
+use App\Account\Repository\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use Symfony\Component\Clock\ClockInterface;
 
