@@ -87,4 +87,49 @@ final class MysqlMetricsReaderTest extends RepositoryTestCase
         self::assertNull($events[0]->ipHash);
         self::assertCount(1, $reader->securityEvents($this->at('2026-10-07 00:00:00'), 1));
     }
+
+    #[Test]
+    public function testLoadByHourSumsRoutesAndKeepsTheMemoryPeakAndTheHistogram(): void
+    {
+        $writer = new MysqlMetricsRepository($this->pdo);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/a', '2xx', 10, 100, 20, 2048, [8, 2, 0, 0, 0, 0]);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/b', '2xx', 5, 50, 20, 4096, [1, 1, 1, 1, 1, 0]);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/b', '5xx', 2, 20, 20, 1024, [0, 0, 0, 0, 0, 2]);
+
+        $rows = (new MysqlMetricsReader($this->pdo))->loadByHour($this->at('2026-10-07 00:00:00'));
+
+        self::assertSame(
+            ['2026-10-07 10:00:00' => ['requests' => 17, 'errors' => 2, 'durationMs' => 170, 'memoryKb' => 4096, 'buckets' => [9, 3, 1, 1, 1, 2]]],
+            $rows,
+        );
+    }
+
+    #[Test]
+    public function testHistogramsAddUpAcrossFlushes(): void
+    {
+        $writer = new MysqlMetricsRepository($this->pdo);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/a', '2xx', 2, 10, 5, 1, [2, 0, 0, 0, 0, 0]);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/a', '2xx', 1, 600, 600, 1, [0, 0, 0, 1, 0, 0]);
+
+        $rows = (new MysqlMetricsReader($this->pdo))->loadByHour($this->at('2026-10-07 00:00:00'));
+
+        self::assertSame([2, 0, 0, 1, 0, 0], $rows['2026-10-07 10:00:00']['buckets']);
+    }
+
+    #[Test]
+    public function testRouteTotalsRankByRequestsAndAreBounded(): void
+    {
+        $writer = new MysqlMetricsRepository($this->pdo);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/rare', '2xx', 1, 10, 10, 1);
+        $writer->addHourly($this->at('2026-10-07 10:00:00'), '/chaude', '2xx', 50, 500, 40, 1);
+        $writer->addHourly($this->at('2026-10-07 11:00:00'), '/chaude', '5xx', 5, 100, 90, 1);
+
+        $reader = new MysqlMetricsReader($this->pdo);
+
+        self::assertSame(
+            [['route' => '/chaude', 'requests' => 55, 'durationMs' => 600, 'maxMs' => 90], ['route' => '/rare', 'requests' => 1, 'durationMs' => 10, 'maxMs' => 10]],
+            $reader->routeTotals($this->at('2026-10-07 00:00:00')),
+        );
+        self::assertCount(1, $reader->routeTotals($this->at('2026-10-07 00:00:00'), 1));
+    }
 }

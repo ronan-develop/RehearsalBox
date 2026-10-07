@@ -178,3 +178,9 @@
   text-align: left;
   border-bottom: 1px solid var(--rb-border);
 }
+
+.rb-metrics-verdict {
+  margin: var(--rb-space-3) 0 0;
+  padding-left: var(--rb-space-3);
+  color: var(--rb-text-2);
+}

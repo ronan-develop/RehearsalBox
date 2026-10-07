@@ -9,6 +9,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
+use App\Metrics\Report\Load\LoadReportBuilder;
 use App\Metrics\Report\MetricsPeriod;
 use App\Metrics\Report\Security\SecurityReportBuilder;
 use App\Security\AuthGuard;
@@ -26,6 +27,7 @@ final class MetricsPageController
         private readonly MetricsAccess $access,
         private readonly HealthReportBuilder $reports,
         private readonly SecurityReportBuilder $securityReports,
+        private readonly LoadReportBuilder $loadReports,
         private readonly \DateTimeZone $localTimezone,
     ) {
     }
@@ -39,6 +41,12 @@ final class MetricsPageController
     public function security(Request $request): Response
     {
         return $this->page($request, 'admin/metrics/security', fn (MetricsPeriod $period): array => ['report' => $this->securityReports->build($period)]);
+    }
+
+    /** Page « Charge et dégradation » (#198). */
+    public function load(Request $request): Response
+    {
+        return $this->page($request, 'admin/metrics/load', fn (MetricsPeriod $period): array => ['report' => $this->loadReports->build($period)]);
     }
 
     /** @param callable(MetricsPeriod): array<string, mixed> $data */

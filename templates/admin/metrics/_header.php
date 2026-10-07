@@ -2,11 +2,11 @@
 /**
  * En-tête commun des pages de mesures (#196, #197) : titre, onglets de section et choix de la période.
  *
- * @var string $section 'health' ou 'security'
+ * @var string $section 'health', 'load' ou 'security'
  * @var \App\Metrics\Report\MetricsPeriod $period
  * @var list<\App\Metrics\Report\MetricsPeriod> $periods
  */
-$sections = ['health' => ['/admin/metrics', 'Santé et e-mails'], 'security' => ['/admin/metrics/security', 'Sécurité']];
+$sections = ['health' => ['/admin/metrics', 'Santé et e-mails'], 'load' => ['/admin/metrics/load', 'Charge'], 'security' => ['/admin/metrics/security', 'Sécurité']];
 ?>
 <h1>Mesures</h1>
 <p class="rb-admin-subtitle">Aucune donnée personnelle n'est conservée dans ces mesures (adresses : empreintes tronquées seulement).</p>

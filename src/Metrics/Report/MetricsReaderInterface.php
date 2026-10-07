@@ -19,6 +19,20 @@ interface MetricsReaderInterface
     public function requestsByHour(\DateTimeImmutable $since): array;
 
     /**
+     * Charge par heure (UTC), toutes routes confondues : requêtes, 5xx, durée cumulée, pic de mémoire et répartition des durées.
+     *
+     * @return array<string, array{requests: int, errors: int, durationMs: int, memoryKb: int, buckets: list<int>}> clé « Y-m-d H:00:00 »
+     */
+    public function loadByHour(\DateTimeImmutable $since): array;
+
+    /**
+     * Les routes les plus sollicitées depuis la date donnée (motifs sans identifiant).
+     *
+     * @return list<array{route: string, requests: int, durationMs: int, maxMs: int}>
+     */
+    public function routeTotals(\DateTimeImmutable $since, int $limit = 10): array;
+
+    /**
      * Évènements par heure (UTC) et par type.
      *
      * @param list<MetricEventType> $types

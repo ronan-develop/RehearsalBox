@@ -34,6 +34,46 @@ final class MysqlMetricsReader implements MetricsReaderInterface
         return $rows;
     }
 
+    public function loadByHour(\DateTimeImmutable $since): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT hour_start, SUM(requests) AS requests,
+                    SUM(CASE WHEN status_class = '5xx' THEN requests ELSE 0 END) AS errors,
+                    SUM(duration_total_ms) AS duration_ms, MAX(memory_peak_kb) AS memory_kb,
+                    SUM(dur_le_50) AS b0, SUM(dur_le_100) AS b1, SUM(dur_le_250) AS b2,
+                    SUM(dur_le_500) AS b3, SUM(dur_le_1000) AS b4, SUM(dur_over_1000) AS b5
+             FROM metric_hourly WHERE hour_start >= :since GROUP BY hour_start ORDER BY hour_start"
+        );
+        $statement->execute(['since' => $since->format(self::DATE_FORMAT)]);
+
+        $rows = [];
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $rows[(string) $row['hour_start']] = [
+                'requests' => (int) $row['requests'],
+                'errors' => (int) $row['errors'],
+                'durationMs' => (int) $row['duration_ms'],
+                'memoryKb' => (int) $row['memory_kb'],
+                'buckets' => [(int) $row['b0'], (int) $row['b1'], (int) $row['b2'], (int) $row['b3'], (int) $row['b4'], (int) $row['b5']],
+            ];
+        }
+
+        return $rows;
+    }
+
+    public function routeTotals(\DateTimeImmutable $since, int $limit = 10): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT route, SUM(requests) AS requests, SUM(duration_total_ms) AS duration_ms, MAX(duration_max_ms) AS max_ms
+             FROM metric_hourly WHERE hour_start >= :since GROUP BY route ORDER BY requests DESC, route LIMIT ' . max(1, $limit)
+        );
+        $statement->execute(['since' => $since->format(self::DATE_FORMAT)]);
+
+        return array_map(
+            static fn (array $row): array => ['route' => (string) $row['route'], 'requests' => (int) $row['requests'], 'durationMs' => (int) $row['duration_ms'], 'maxMs' => (int) $row['max_ms']],
+            $statement->fetchAll(\PDO::FETCH_ASSOC),
+        );
+    }
+
     public function eventsByHour(\DateTimeImmutable $since, array $types): array
     {
         if ($types === []) {
