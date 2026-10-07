@@ -4,7 +4,7 @@
 
 |Job|Déclencheur|Détail|
 |-|-|-|
-|PHPUnit + MariaDB|push / PR sur `main`|PHP 8.4, MariaDB 10.11 ; avant les tests : `composer audit`, PHPStan (niveau 6), style PSR-12 (PHP-CS-Fixer), budget de taille des classes (`bin/check-size.php`)|
+|PHPUnit + MariaDB|push / PR sur `main`|PHP 8.4, MariaDB 10.11 ; avant les tests : `composer audit`, PHPStan (niveau 6), style PSR-12 (PHP-CS-Fixer), budget de taille des classes (`bin/check-size.php`), plafond de classes par dossier (`bin/check-folders.php`, #287)|
 |Tests JS|push / PR sur `main`|Node.js 22, `npm audit`, `node --test` sur `assets/js/*`|
 
 Défini dans [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).

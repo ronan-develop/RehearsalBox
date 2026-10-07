@@ -11,6 +11,7 @@ Sommaire de référence. Lire avant toute intervention — suivre les liens pour
 | Sujet                                   | Fichier                                                  |
 |-----------------------------------------|----------------------------------------------------------|
 | Architecture `src/`                     | [.claude/architecture.md](.claude/architecture.md)       |
+| Audit : classes par dossier, cible par domaine | [.claude/audit-architecture.md](.claude/audit-architecture.md) |
 | Commits, branches, `/git`               | [.claude/git-conventions.md](.claude/git-conventions.md) |
 | Commandes (dev, tests, DB)              | [.claude/commands.md](.claude/commands.md)               |
 | Méthodologie TDD                        | [.claude/tdd.md](.claude/tdd.md)                         |
