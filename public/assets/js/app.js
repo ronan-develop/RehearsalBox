@@ -1,3 +1,4 @@
+import './core/rb-async-form.js';
 import { initLogoMigration } from './ui/logo-migration.js';
 import { initAuth } from './account/auth.js';
 import { initAvailability } from './planning/availability.js';

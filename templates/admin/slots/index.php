@@ -13,7 +13,7 @@
         <h1>Créneaux récurrents</h1>
         <p class="rb-admin-subtitle">Attribution hebdomadaire fixe du local par groupe.</p>
 
-        <form data-async data-endpoint="/api/admin/slots" data-method="POST" class="rb-admin-form rb-card">
+        <rb-async-form endpoint="/api/admin/slots" method="POST"><form class="rb-admin-form rb-card">
             <div class="rb-field">
                 <label for="groupId">Groupe</label>
                 <select id="groupId" name="groupId" class="rb-input" required>
@@ -44,7 +44,7 @@
             </div>
             <span class="rb-field-error" data-field-error="startTime"></span>
             <button type="submit" class="rb-btn-primary">Ajouter le créneau</button>
-        </form>
+        </form></rb-async-form>
 
         <div class="rb-admin-table-wrapper">
             <table class="rb-admin-table">

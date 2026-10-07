@@ -21,10 +21,10 @@
                 <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
             <?php else: ?>
                 <p class="rb-auth-intro">Vous n'êtes pas à l'origine du changement de mot de passe ? En confirmant, votre compte sera verrouillé, toutes les sessions seront fermées et un lien vous sera envoyé par e-mail pour choisir un nouveau mot de passe.</p>
-                <form data-async data-endpoint="/api/auth/secure-account" data-method="POST">
+                <rb-async-form endpoint="/api/auth/secure-account" method="POST"><form>
                     <input type="hidden" name="token" value="<?= e($token) ?>">
                     <button type="submit" class="rb-btn-primary">Ce n'est pas moi : sécuriser mon compte</button>
-                </form>
+                </form></rb-async-form>
                 <p class="rb-auth-confirmation" data-confirmation hidden>Compte sécurisé. Un e-mail vous a été envoyé avec un lien pour choisir un nouveau mot de passe.</p>
                 <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
             <?php endif; ?>

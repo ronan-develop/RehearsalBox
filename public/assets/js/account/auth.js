@@ -1,5 +1,4 @@
 /** Login/Logout en XHR — cf. plan §5bis. */
-import { initAsyncForms } from '../core/forms.js';
 import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
 import { clearAllDrafts } from '../messaging/chat/composer/drafts.js';
@@ -44,33 +43,31 @@ export function isPasswordResetAnnouncement(search) {
 }
 
 export function initAuth() {
-  initAsyncForms();
-
   if (isPasswordResetAnnouncement(window.location.search)) {
     showToast('Mot de passe modifié. Vous pouvez vous connecter.', 'success');
   }
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/auth/forgot-password"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint*="/auth/forgot-password"]').forEach((form) => {
     form.addEventListener('async-success', () => revealConfirmation(form));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/account/profile"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint*="/account/profile"]').forEach((form) => {
     form.addEventListener('async-success', (event) => showToast(applyProfileResult(form, event.detail), 'success'));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint$="/api/account/email"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint$="/api/account/email"]').forEach((form) => {
     form.addEventListener('async-success', () => showToast(applyEmailChangeRequested(form), 'success'));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/account/email/confirm"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint*="/account/email/confirm"]').forEach((form) => {
     form.addEventListener('async-success', () => revealConfirmation(form));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/auth/change-password"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint*="/auth/change-password"]').forEach((form) => {
     form.addEventListener('async-success', () => {
       form.reset();
       showToast('Mot de passe modifié. Vos autres appareils ont été déconnectés.', 'success');
@@ -78,19 +75,19 @@ export function initAuth() {
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/auth/secure-account"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint*="/auth/secure-account"]').forEach((form) => {
     form.addEventListener('async-success', () => revealConfirmation(form));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/auth/reset-password"]').forEach((form) => {
+  document.querySelectorAll('rb-async-form[endpoint*="/auth/reset-password"]').forEach((form) => {
     form.addEventListener('async-success', () => {
       window.location.href = '/login?reset=1';
     });
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
-  document.querySelectorAll('form[data-async][data-endpoint*="/auth/login"]')
+  document.querySelectorAll('rb-async-form[endpoint*="/auth/login"]')
     .forEach((form) => {
       form.addEventListener('async-success', () => {
         window.location.href = postLoginDestination(form.dataset.next);

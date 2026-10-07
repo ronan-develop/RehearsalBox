@@ -3,7 +3,6 @@
  * XHR, jamais de rechargement de page ni de reload de liste complète
  * (cf. plan §5bis). Confirmation avant suppression via la modale maison.
  */
-import { initAsyncForms } from '../core/forms.js';
 import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
 import { confirmAction } from '../ui/rb-confirm-dialog.js';
@@ -78,9 +77,7 @@ async function handleDelete(button, root) {
 }
 
 export function initAdminSlots(root = document) {
-  initAsyncForms(root);
-
-  const slotForm = root.querySelector('form[data-async][data-endpoint="/api/admin/slots"]');
+  const slotForm = root.querySelector('rb-async-form[endpoint="/api/admin/slots"]');
   slotForm?.addEventListener('async-success', (event) => {
     root.querySelector('[data-slot-list-body]')?.insertAdjacentHTML('beforeend', renderSlotRow(event.detail));
     root.querySelector('[data-slot-list-cards]')?.insertAdjacentHTML('beforeend', renderSlotCard(event.detail));

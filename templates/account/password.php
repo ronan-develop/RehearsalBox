@@ -15,19 +15,19 @@
             <h1 class="rb-auth-title">Mon compte</h1>
             <h2 class="rb-account-section-title">Mes informations</h2>
             <p class="rb-auth-intro">Votre adresse e-mail est votre identifiant de connexion : <strong><?= e($email) ?></strong>.</p>
-            <form data-async data-endpoint="/api/account/profile" data-method="PATCH">
+            <rb-async-form endpoint="/api/account/profile" method="PATCH"><form>
                 <div class="rb-field">
                     <label for="displayName">Nom affiché</label>
                     <input type="text" id="displayName" name="displayName" class="rb-input" value="<?= e($displayName) ?>" required maxlength="100" autocomplete="name">
                     <span class="rb-field-error" data-field-error="displayName"></span>
                 </div>
                 <button type="submit" class="rb-btn-primary">Enregistrer mon nom</button>
-            </form>
+            </form></rb-async-form>
         </div>
         <div class="rb-auth-card rb-card">
             <h2 class="rb-account-section-title">Notifications par e-mail</h2>
             <p class="rb-auth-intro">Quand quelqu'un vous <strong>mentionne</strong> dans une conversation, un e-mail vous prévient (jamais le contenu du message), au plus un toutes les 24 heures par conversation. Vous pouvez vous en désinscrire à tout moment.</p>
-            <form data-async data-endpoint="/api/account/notifications" data-method="PATCH">
+            <rb-async-form endpoint="/api/account/notifications" method="PATCH"><form>
                 <fieldset class="rb-field rb-radio-group">
                     <legend>Recevoir un e-mail quand on me mentionne</legend>
                     <label class="rb-radio"><input type="radio" name="emailNotifications" value="1"<?= ($emailNotifications ?? true) ? ' checked' : '' ?>> Oui</label>
@@ -35,12 +35,12 @@
                     <span class="rb-field-error" data-field-error="emailNotifications"></span>
                 </fieldset>
                 <button type="submit" class="rb-btn-primary">Enregistrer</button>
-            </form>
+            </form></rb-async-form>
         </div>
         <div class="rb-auth-card rb-card">
             <h2 class="rb-account-section-title">Adresse e-mail</h2>
             <p class="rb-auth-intro">Un lien de confirmation (valable 1 heure) sera envoyé à la <strong>nouvelle</strong> adresse, et l'ancienne sera prévenue. Vous serez ensuite déconnecté de vos appareils et vous vous reconnecterez avec la nouvelle adresse.</p>
-            <form data-async data-endpoint="/api/account/email" data-method="PATCH">
+            <rb-async-form endpoint="/api/account/email" method="PATCH"><form>
                 <div class="rb-field">
                     <label for="newEmail">Nouvelle adresse e-mail</label>
                     <input type="email" id="newEmail" name="email" class="rb-input" required maxlength="190" autocomplete="email">
@@ -52,12 +52,12 @@
                     <span class="rb-field-error" data-field-error="currentPassword"></span>
                 </div>
                 <button type="submit" class="rb-btn-primary">Envoyer le lien de confirmation</button>
-            </form>
+            </form></rb-async-form>
         </div>
         <div class="rb-auth-card rb-card">
             <h2 class="rb-account-section-title">Mot de passe</h2>
             <p class="rb-auth-intro">Pour changer de mot de passe, saisissez l'actuel puis le nouveau (10 caractères minimum). Vos autres appareils seront déconnectés.</p>
-            <form data-async data-endpoint="/api/auth/change-password" data-method="POST">
+            <rb-async-form endpoint="/api/auth/change-password" method="POST"><form>
                 <div class="rb-field">
                     <label for="currentPassword">Mot de passe actuel</label>
                     <input type="password" id="currentPassword" name="currentPassword" class="rb-input" required autocomplete="current-password">
@@ -74,7 +74,7 @@
                     <span class="rb-field-error" data-field-error="passwordConfirmation"></span>
                 </div>
                 <button type="submit" class="rb-btn-primary">Changer le mot de passe</button>
-            </form>
+            </form></rb-async-form>
         </div>
         </div>
     </div>

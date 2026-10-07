@@ -650,6 +650,20 @@ button:active::after, .rb-btn:active::after {
     linear-gradient(170deg, rgba(19,17,16,.45) 0%, rgba(16,15,13,.45) 50%, rgba(20,18,16,.45) 100%);
 }
 
+/* <rb-async-form> (#327) : simple enveloppe de comportement, sans effet sur la mise en page (le formulaire reste l'enfant du bloc). */
+rb-async-form {
+  display: contents;
+}
+
+rb-async-form[hidden] {
+  display: none;
+}
+
+/* Envoi en cours : le formulaire est atténué, ses boutons sont désactivés par le composant. */
+rb-async-form form[aria-busy] {
+  opacity: 0.7;
+}
+
 /* Fenêtre de confirmation <rb-confirm-dialog> (#202, #326) sur l'élément natif <dialog> : partagée par toutes les pages qui la posent
    (admin, messagerie). Le navigateur gère le fond (::backdrop), le focus et Échap. */
 dialog.rb-modal {

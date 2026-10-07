@@ -51,6 +51,10 @@ La messagerie est construite en **éléments personnalisés natifs** (standard d
 - **Sécurité** : le texte d'un utilisateur est échappé par `e()` dans les gabarits PHP ; le JS n'insère que le HTML reçu du serveur (fragments issus de ces gabarits), jamais du texte brut converti en HTML ; une couleur n'est émise que si elle valide `#rrggbb` (`SafeColor`).
 - **Tests** : `node --test` pour la logique pure et le contrat d'événements ; les éléments eux-mêmes se vérifient dans un vrai navigateur (Chromium, mobile ET bureau). Le motif de `npm test` est entre guillemets : sans cela le shell n'exécute que les tests des sous-dossiers.
 
+## Formulaires asynchrones : `<rb-async-form>` (#327)
+
+Tout formulaire qui modifie des données est enveloppé : `<rb-async-form endpoint="/api/…" method="POST"><form>…champs…</form></rb-async-form>` (14 formulaires). Le composant (`core/rb-async-form.js`, logique pure dans `core/async-form.js`) intercepte le submit, envoie le JSON par `apiFetch` (jamais de rechargement, `preventDefault` même mal configuré), écrit les erreurs par champ dans `[data-field-error="nom"]` et pose `aria-invalid` sur le champ, met `aria-busy` sur le formulaire et désactive ses boutons pendant l'envoi, et ignore un second envoi en vol (jeton CSRF unique, session régénérée à la connexion). **Contrat d'évènements inchangé**, émis sur le composant : `async-success` (détail : la réponse) et `async-error` (détail : `{ message, fields, status }`). `form` et `reset()` sont exposés ; `display: contents` : la mise en page ne change pas. Il n'y a **rien à initialiser** : une balise insérée plus tard (carte de groupe créée en JS) s'active seule. Les consommateurs sélectionnent `rb-async-form[endpoint="…"]`. Une page de retour (`data-next` de la connexion) vit sur le composant. Pas de `<form is="…">` : Safari ne gère pas les éléments natifs personnalisés. Le garde-fou `tests/View/AsyncFormMarkupTest.php` interdit le retour de `data-async`.
+
 ## Confort de la messagerie (#187) — sans SPA
 
 Améliorations d'usage qui respectent « serveur d'abord » (aucun routage ni rendu côté client, aucune dépendance) :
