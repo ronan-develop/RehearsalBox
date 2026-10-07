@@ -56,7 +56,7 @@ final class MetricsRecorderTest extends TestCase
 
         self::assertCount(2, $this->repository->hourly, 'une ligne par route et classe de statut, jamais une par requête');
         self::assertSame(
-            ['hour' => '2026-10-07 10:00:00', 'route' => '/api/conversations/feed', 'class' => '2xx', 'requests' => 4, 'total' => 65, 'max' => 30, 'memory' => 4096],
+            ['hour' => '2026-10-07 10:00:00', 'route' => '/api/conversations/feed', 'class' => '2xx', 'requests' => 4, 'total' => 65, 'max' => 30, 'memory' => 4096, 'buckets' => [4, 0, 0, 0, 0, 0]],
             $this->repository->hourly[0],
         );
         self::assertSame('5xx', $this->repository->hourly[1]['class']);

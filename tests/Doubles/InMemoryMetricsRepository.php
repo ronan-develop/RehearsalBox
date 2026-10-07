@@ -13,7 +13,7 @@ final class InMemoryMetricsRepository implements MetricsRepositoryInterface
     /** @var list<array{type: string, route: string, status: ?int, ip: ?string, at: string}> */
     public array $events = [];
 
-    /** @var list<array{hour: string, route: string, class: string, requests: int, total: int, max: int, memory: int}> */
+    /** @var list<array{hour: string, route: string, class: string, requests: int, total: int, max: int, memory: int, buckets: list<int>}> */
     public array $hourly = [];
 
     /** @var list<HealthSnapshot> */
@@ -30,10 +30,10 @@ final class InMemoryMetricsRepository implements MetricsRepositoryInterface
         $this->events[] = ['type' => $type->value, 'route' => $route, 'status' => $status, 'ip' => $ipHash, 'at' => $at->format('Y-m-d H:i:s')];
     }
 
-    public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb): void
+    public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb, array $durationBuckets = [0, 0, 0, 0, 0, 0]): void
     {
         $this->failIfAsked();
-        $this->hourly[] = ['hour' => $hourStart->format('Y-m-d H:i:s'), 'route' => $route, 'class' => $statusClass, 'requests' => $requests, 'total' => $durationTotalMs, 'max' => $durationMaxMs, 'memory' => $memoryPeakKb];
+        $this->hourly[] = ['hour' => $hourStart->format('Y-m-d H:i:s'), 'route' => $route, 'class' => $statusClass, 'requests' => $requests, 'total' => $durationTotalMs, 'max' => $durationMaxMs, 'memory' => $memoryPeakKb, 'buckets' => $durationBuckets];
     }
 
     public function saveSnapshot(HealthSnapshot $snapshot): void
