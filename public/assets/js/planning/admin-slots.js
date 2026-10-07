@@ -6,7 +6,7 @@
 import { initAsyncForms } from '../core/forms.js';
 import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
-import { confirmAction } from '../ui/rb-confirm-modal.js';
+import { confirmAction } from '../ui/rb-confirm-dialog.js';
 import { escapeHtml } from '../core/html.js';
 import { WEEKDAY_LABELS } from '../core/weekdays.js';
 

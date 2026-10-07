@@ -1,9 +1,9 @@
 /**
  * Corbeille de la messagerie (#190) : un seul écouteur délégué pour les boutons `data-trash-action` (supprimer une
  * conversation, la restaurer, la supprimer pour de bon, fermer un avis). Le serveur rend les pages ; ici seulement l'appel
- * XHR, la confirmation (<rb-confirm-modal>) et la mise à jour minimale de la page.
+ * XHR, la confirmation (<rb-confirm-dialog>) et la mise à jour minimale de la page.
  */
-import { confirmAction } from '../ui/rb-confirm-modal.js';
+import { confirmAction } from '../ui/rb-confirm-dialog.js';
 import { dismissAlert, purgeConversation, restoreConversation, trashConversation } from './chat/api.js';
 
 // Un seul texte pour tous les points d'entrée (bouton de l'en-tête, colonne de la liste, glissement).
