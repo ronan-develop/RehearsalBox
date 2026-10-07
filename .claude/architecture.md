@@ -270,3 +270,7 @@ Les cartes « créneau exceptionnel » sont dessinées par **un seul gabarit** :
 ### Badge masqué et état vide (#322, issu de #182)
 
 `.rb-badge[hidden] { display: none }` est **globale** (`base.css`) : un badge portant l'attribut `hidden` est masqué quelle que soit sa règle `display` ; plus de surcharge par page. L'état vide « icône + phrase » est un gabarit partiel unique, `templates/partials/empty-state.php` (`$emptyText`, `$emptyHidden`), utilisé par les trois paquets du bloc « Demandes de créneau ».
+
+### Avatar unique (#324, issu de #182)
+
+La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.php` : `$avatarInitials`, `$avatarClass`, `$avatarColor`, `$avatarTitle`) et une classe `.rb-avatar` (`base.css`) : taille et fond par variables CSS (`--avatar-size`, `--avatar-bg`, `--avatar-font`), `.rb-avatar--sm` pour 32 px, couleur du groupe par `--group-color` (repli neutre). Utilisé par les cartes de demande, l'en-tête du tableau de bord et la messagerie. Pas de composant JavaScript : un avatar n'a aucun comportement (les composants servent à ce qui réagit).

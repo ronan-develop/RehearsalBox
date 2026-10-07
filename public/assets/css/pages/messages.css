@@ -368,23 +368,10 @@ rb-composer {
 }
 
 /* Pastille de l'émetteur : même langage que l'avatar des cartes de demande (cercle, couleur du groupe). */
-.rb-chat-avatar,
 .rb-chat-avatar-spacer {
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-}
-
-.rb-chat-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--rb-stone-1);
-  border: 1px solid var(--group-color, var(--rb-accent-2));
-  color: var(--group-color, var(--rb-accent-2));
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 .rb-chat-bubble {

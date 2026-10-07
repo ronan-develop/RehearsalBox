@@ -16,7 +16,7 @@ foreach ($rows as $row):
 <li id="message-<?= e((string) $row['id']) ?>" class="rb-chat-message<?= $row['mine'] ? ' rb-chat-message--mine' : '' ?><?= !empty($row['mentionsMe']) ? ' rb-chat-message--mentioned' : '' ?>" data-message-id="<?= e((string) $row['id']) ?>" data-author="<?= e($row['author']) ?>"<?= !empty($row['editable']) ? ' data-editable' : '' ?>>
     <?php if (!$row['mine']): ?>
         <?php if ($row['startsRun']): ?>
-            <span class="rb-chat-avatar" aria-hidden="true"<?= $row['color'] !== null ? ' style="--group-color: ' . e($row['color']) . '"' : '' ?><?= $row['groupName'] !== null ? ' title="' . e($row['groupName']) . '"' : '' ?>><?= e($row['initials']) ?></span>
+            <?php $avatarInitials = $row['initials']; $avatarClass = 'rb-avatar--sm rb-chat-avatar'; $avatarColor = $row['color']; $avatarTitle = $row['groupName']; require __DIR__ . '/../partials/avatar.php'; ?>
         <?php else: ?>
             <span class="rb-chat-avatar-spacer"></span>
         <?php endif; ?>

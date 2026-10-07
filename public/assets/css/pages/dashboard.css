@@ -157,17 +157,8 @@ body {
 }
 
 .rb-dashboard-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--rb-surface-strong);
-  border: 1px solid var(--rb-accent);
-  color: var(--rb-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.75rem;
+  --group-color: var(--rb-accent);
+  --avatar-bg: var(--rb-surface-strong);
 }
 
 .rb-visually-hidden {
@@ -435,21 +426,6 @@ body {
   align-items: center;
   gap: var(--rb-space-2);
   margin-bottom: var(--rb-space-3);
-}
-
-.rb-exception-card-avatar {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--rb-stone-1);
-  border: 1px solid var(--group-color);
-  color: var(--group-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9375rem;
 }
 
 .rb-exception-card-head-text {

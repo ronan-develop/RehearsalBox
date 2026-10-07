@@ -297,6 +297,26 @@ button:active::after, .rb-btn:active::after {
   color: var(--rb-text);
 }
 
+.rb-avatar {
+  flex-shrink: 0;
+  width: var(--avatar-size, 40px);
+  height: var(--avatar-size, 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--avatar-bg, var(--rb-stone-1));
+  border: 1px solid var(--group-color, var(--rb-accent-2));
+  color: var(--group-color, var(--rb-accent-2));
+  font-weight: 700;
+  font-size: var(--avatar-font, 0.9375rem);
+}
+
+.rb-avatar--sm {
+  --avatar-size: 32px;
+  --avatar-font: 0.75rem;
+}
+
 .rb-badge[hidden] {
   display: none; /* l'attribut hidden l'emporte sur toute règle display du badge (#322) */
 }
