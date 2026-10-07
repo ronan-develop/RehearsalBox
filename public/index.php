@@ -19,7 +19,7 @@ use App\Routing\Router;
 use App\Security\AppUrl;
 use App\Security\CsrfTokenManager;
 use App\Security\SecurityHeaders;
-use App\Metrics\MetricsRecorderInterface;
+use App\Metrics\Collection\MetricsRecorderInterface;
 use Psr\Log\LoggerInterface;
 
 $config = require __DIR__ . '/../config/config.php';

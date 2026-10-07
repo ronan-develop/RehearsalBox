@@ -6,8 +6,8 @@ namespace App\Mail;
 
 use App\View\PhpTemplateRenderer;
 use App\Metrics\MetricEventType;
-use App\Metrics\MetricsRecorderInterface;
-use App\Metrics\NullMetrics;
+use App\Metrics\Collection\MetricsRecorderInterface;
+use App\Metrics\Collection\NullMetrics;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Mailer\MailerInterface;

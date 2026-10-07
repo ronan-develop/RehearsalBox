@@ -6,7 +6,7 @@ namespace App\Tests\Doubles;
 
 use App\Metrics\HealthSnapshot;
 use App\Metrics\MetricEventType;
-use App\Metrics\MetricsRepositoryInterface;
+use App\Metrics\Collection\MetricsRepositoryInterface;
 
 final class InMemoryMetricsRepository implements MetricsRepositoryInterface
 {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Metrics;
+namespace App\Tests\Metrics\Collection;
 
-use App\Metrics\IpPseudonymizer;
+use App\Metrics\Collection\IpPseudonymizer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

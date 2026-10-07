@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Metrics;
+namespace App\Metrics\Collection;
+
+use App\Metrics\MetricEventType;
 
 /** Collecte désactivée (valeur par défaut des classes qui signalent, et des tests). */
 final class NullMetrics implements MetricsRecorderInterface

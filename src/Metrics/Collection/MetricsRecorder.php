@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Metrics;
+namespace App\Metrics\Collection;
 
+use App\Metrics\MetricEventType;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;

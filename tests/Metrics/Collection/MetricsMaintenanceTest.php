@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Metrics;
+namespace App\Tests\Metrics\Collection;
 
-use App\Metrics\HealthProbe;
-use App\Metrics\MetricsMaintenance;
+use App\Metrics\Collection\HealthProbe;
+use App\Metrics\Collection\MetricsMaintenance;
 use App\Tests\Doubles\InMemoryMetricsRepository;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Metrics;
+namespace App\Tests\Metrics\Collection;
 
-use App\Metrics\IpPseudonymizer;
+use App\Metrics\Collection\IpPseudonymizer;
 use App\Metrics\MetricEventType;
-use App\Metrics\MetricsRecorder;
+use App\Metrics\Collection\MetricsRecorder;
 use App\Tests\Doubles\InMemoryMetricsRepository;
 use App\Tests\Doubles\RecordingLogger;
 use PHPUnit\Framework\Attributes\Test;

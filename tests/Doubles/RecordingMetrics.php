@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Doubles;
 
 use App\Metrics\MetricEventType;
-use App\Metrics\MetricsRecorderInterface;
+use App\Metrics\Collection\MetricsRecorderInterface;
 
 final class RecordingMetrics implements MetricsRecorderInterface
 {

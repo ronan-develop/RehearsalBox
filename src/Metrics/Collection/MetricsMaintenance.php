@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Metrics;
+namespace App\Metrics\Collection;
 
 use Psr\Clock\ClockInterface;
 
