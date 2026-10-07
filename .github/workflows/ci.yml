@@ -47,6 +47,9 @@ jobs:
       - name: Class size budget
         run: php bin/check-size.php
 
+      - name: Classes per folder budget
+        run: php bin/check-folders.php
+
       - name: Run PHPUnit
         env:
           DB_TEST_HOST: 127.0.0.1
