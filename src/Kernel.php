@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Container\ContainerInterface;
 use App\Http\ErrorPage;
 use App\Http\ExceptionTranslator;
@@ -29,6 +31,7 @@ final class Kernel
         private readonly CsrfTokenManager $csrfTokenManager,
         private readonly SecurityHeaders $securityHeaders,
         private readonly ExceptionTranslator $translator = new ExceptionTranslator(),
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -78,7 +81,7 @@ final class Kernel
 
             // Filet de sécurité (#220) : une erreur inattendue (base, bogue, service introuvable…) ne montre JAMAIS sa trace ni son
             // message au visiteur. Journal : classe, point d'origine (fichier:ligne) et route, sans donnée personnelle ni jeton.
-            error_log(sprintf('Erreur non gérée : %s (%s:%d) sur %s %s', $e::class, basename($e->getFile()), $e->getLine(), $request->method(), $request->path()));
+            $this->logger->error('Erreur non gérée', ['exception' => $e::class, 'file' => basename($e->getFile()), 'line' => $e->getLine(), 'method' => $request->method(), 'path' => $request->path()]);
 
             return $this->errorResponse($request, 500, 'Erreur interne.');
         }

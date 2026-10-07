@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\RawMessage;
 
@@ -19,14 +21,14 @@ final class SafeMail
      * @param callable(): RawMessage $build construit le message (le gabarit peut échouer, d'où l'appel à l'intérieur du try)
      * @param string                 $failureContext ce qui est journalisé en cas d'échec, sans donnée personnelle (ex. « … (utilisateur #3) »)
      */
-    public static function send(MailerInterface $mailer, callable $build, string $failureContext): bool
+    public static function send(MailerInterface $mailer, callable $build, string $failureContext, LoggerInterface $logger = new NullLogger()): bool
     {
         try {
             $mailer->send($build());
 
             return true;
         } catch (\Throwable $e) {
-            error_log(sprintf('%s [%s].', $failureContext, $e::class));
+            $logger->error($failureContext, ['exception' => $e::class]);
 
             return false;
         }

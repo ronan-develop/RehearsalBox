@@ -70,3 +70,7 @@ php bin/check-size.php                             # budget de taille : 250 lign
 ```
 
 Le budget de taille a un **cliquet** : les classes déjà trop grosses sont listées dans `config/size-budget-exceptions.php` à leur taille actuelle, elles ne peuvent plus grossir et leur entrée doit être retirée dès qu'elles repassent sous le budget (le contrôle l'exige). PHPUnit échoue aussi sur un test risqué, un avertissement, une dépréciation ou une notice.
+
+```bash
+php bin/tail-log.php app 50    # 50 dernières lignes du journal applicatif (idem : cron)
+```

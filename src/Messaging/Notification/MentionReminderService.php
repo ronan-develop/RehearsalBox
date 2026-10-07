@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Messaging\Notification;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Messaging\Entity\DueMentionReminder;
 use App\Mail\Mailbox;
 use App\Messaging\Repository\Notice\MentionNoticeRepositoryInterface;
@@ -24,6 +26,7 @@ final class MentionReminderService
         private readonly Mailbox $mailbox,
         private readonly ClockInterface $clock,
         private readonly \DateTimeZone $localTimezone,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -37,7 +40,7 @@ final class MentionReminderService
         $now = $run->now();
         foreach ($this->notices->findDueReminders($run->notBefore(), $run->notAfter()) as $reminder) {
             if (filter_var($reminder->email(), FILTER_VALIDATE_EMAIL) === false) {
-                error_log(sprintf('Relance de mention : adresse invalide (personne #%d).', $reminder->userId()));
+                $this->logger->warning('Relance de mention : adresse invalide', ['user' => $reminder->userId()]);
                 $run->markSkipped();
                 continue;
             }
@@ -51,7 +54,7 @@ final class MentionReminderService
                 $run->markSent();
             } catch (\Throwable $e) {
                 $this->notices->restoreReminder($reminder->conversationId(), $reminder->userId());
-                error_log(sprintf('Relance de mention : échec (%s, conversation #%d, personne #%d).', $e::class, $reminder->conversationId(), $reminder->userId()));
+                $this->logger->error('Relance de mention : échec', ['exception' => $e::class, 'conversation' => $reminder->conversationId(), 'user' => $reminder->userId()]);
                 $run->markFailed();
             }
         }

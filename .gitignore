@@ -14,3 +14,4 @@
 *.zip
 /.phpstan.cache/
 /.php-cs-fixer.cache
+/storage/logs/

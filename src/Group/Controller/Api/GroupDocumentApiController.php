@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Group\Controller\Api;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Group\Entity\GroupDocument;
 use App\Http\FileResponse;
 use App\Http\JsonResponse;
@@ -18,6 +20,7 @@ final class GroupDocumentApiController
     public function __construct(
         private readonly GroupDocumentService $documentService,
         private readonly AuthGuard $authGuard,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -63,7 +66,7 @@ final class GroupDocumentApiController
         $document = $this->documentService->resolveDownload(StrictId::orDenied($id), $user->id());
         $path = $this->documentService->pathOf($document);
         if (!is_file($path)) {
-            error_log(sprintf('Document #%d : fichier absent du stockage.', $document->id()));
+            $this->logger->error('Document : fichier absent du stockage', ['document' => $document->id()]);
 
             return new JsonResponse(['error' => 'Document introuvable.'], 404);
         }

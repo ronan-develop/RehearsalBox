@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Container\Container;
+use App\Logging\FileLogger;
+use Psr\Log\LoggerInterface;
 use App\Account\Controller\Api\AccountApiController;
 use App\Account\Controller\Api\AuthApiController;
 use App\Planning\Controller\Api\AvailabilityApiController;
@@ -151,6 +153,23 @@ use Symfony\Component\Mailer\Transport;
 return static function (array $config): Container {
     $container = new Container();
 
+    // Journal applicatif (#193) : un fichier hors de la racine web, rotation par taille, niveau réglable dans config.local.php.
+    $container->set(LoggerInterface::class, fn ($c) => new FileLogger(
+        $config['logging']['path'],
+        $c->get(ClockInterface::class),
+        $config['logging']['level'],
+        $config['logging']['max_bytes'],
+        $config['logging']['keep'],
+    ));
+    // Journal du cron : niveau « info » pour prouver, à chaque passage, que la tâche a tourné.
+    $container->set('logger.cron', fn ($c) => new FileLogger(
+        $config['logging']['cron_path'],
+        $c->get(ClockInterface::class),
+        'info',
+        $config['logging']['max_bytes'],
+        $config['logging']['keep'],
+    ));
+
     $container->set(PDO::class, fn () => (new ConnectionFactory($config['db']))->create());
 
     $container->set(UserRepositoryInterface::class, fn ($c) => new MysqlUserRepository($c->get(PDO::class)));
@@ -193,6 +212,7 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(AfterResponseInterface::class),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(FreeSlotBookingService::class, fn ($c) => new FreeSlotBookingService(
@@ -238,6 +258,7 @@ return static function (array $config): Container {
         $config['mailer']['from'],
         $config['app']['base_url'],
         $c->get(MailRenderer::class),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(
@@ -349,7 +370,7 @@ return static function (array $config): Container {
     $container->set('throttle.password-reset', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
 
     // Travail fait APRÈS l'envoi de la réponse (le front controller appelle run()) : sa durée ne dépend plus du compte (#219).
-    $container->set(AfterResponseInterface::class, static fn () => new DeferredAfterResponse(DeferredAfterResponse::finishRequest(...)));
+    $container->set(AfterResponseInterface::class, static fn ($c) => new DeferredAfterResponse(DeferredAfterResponse::finishRequest(...), $c->get(LoggerInterface::class)));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
         $c->get(AuthServiceInterface::class),
@@ -430,6 +451,7 @@ return static function (array $config): Container {
     $container->set(ConversationNotifier::class, fn ($c) => new ConversationNotifier(
         $c->get(Mailbox::class),
         $c->get(ConversationNoticeRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(ConversationReminderService::class, fn ($c) => new ConversationReminderService(
@@ -437,6 +459,7 @@ return static function (array $config): Container {
         $c->get(Mailbox::class),
         $c->get(ClockInterface::class),
         new \DateTimeZone($config['app']['timezone']),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(ConversationGuestRepositoryInterface::class, fn ($c) => new MysqlConversationGuestRepository($c->get(PDO::class)));
@@ -460,6 +483,7 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
         $c->get(NotificationPreferenceRepositoryInterface::class),
         $c->get(ConversationMuteRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(ConversationMentionService::class, fn ($c) => new ConversationMentionService(
@@ -476,6 +500,7 @@ return static function (array $config): Container {
         $c->get(Mailbox::class),
         $c->get(ClockInterface::class),
         new \DateTimeZone($config['app']['timezone']),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(MessageVersionPurge::class, fn ($c) => new MessageVersionPurge(
@@ -645,6 +670,7 @@ return static function (array $config): Container {
     $container->set(GroupDocumentApiController::class, fn ($c) => new GroupDocumentApiController(
         $c->get(GroupDocumentService::class),
         $c->get(AuthGuard::class),
+        $c->get(LoggerInterface::class),
     ));
 
     return $container;

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+
 /**
  * Collecte les tâches pendant la requête ; `run()` (appelé par le front controller une fois la réponse envoyée) libère
  * d'abord le client (`$finishResponse`) puis exécute les tâches dans l'ordre. Une exception est absorbée et seule sa CLASSE
@@ -15,8 +18,10 @@ final class DeferredAfterResponse implements AfterResponseInterface
     private array $tasks = [];
 
     /** @param callable(): void $finishResponse ferme la connexion avec le client sans arrêter le script (voir finishRequest()) */
-    public function __construct(private readonly mixed $finishResponse)
-    {
+    public function __construct(
+        private readonly mixed $finishResponse,
+        private readonly LoggerInterface $logger = new NullLogger(),
+    ) {
     }
 
     /**
@@ -50,7 +55,7 @@ final class DeferredAfterResponse implements AfterResponseInterface
             try {
                 $task();
             } catch (\Throwable $e) {
-                error_log(sprintf('Tâche après réponse : échec (%s).', $e::class));
+                $this->logger->error('Tâche après réponse : échec', ['exception' => $e::class]);
             }
         }
     }

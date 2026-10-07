@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Planning\Service;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Planning\Entity\FreeSlotBookingStatus;
 use App\Account\Entity\UserRole;
 use App\Planning\Entity\FreeSlotBooking;
@@ -29,6 +31,7 @@ final class BookingNotifier implements BookingNotifierInterface
         private readonly UserRepositoryInterface $users,
         private readonly GroupRepositoryInterface $groups,
         private readonly AfterResponseInterface $afterResponse,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -68,7 +71,7 @@ final class BookingNotifier implements BookingNotifierInterface
     private function send(FreeSlotBooking $booking, string $to, string $template, string $subject, array $extra, string $path): void
     {
         if (filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
-            error_log(sprintf('Notification de réservation : adresse invalide (réservation #%d).', $booking->id()));
+            $this->logger->warning('Notification de réservation : adresse invalide', ['booking' => $booking->id()]);
 
             return;
         }
@@ -90,7 +93,7 @@ final class BookingNotifier implements BookingNotifierInterface
             ));
         } catch (\Throwable $e) {
             // Ni adresse ni contenu dans le journal : seulement des identifiants.
-            error_log(sprintf('Notification de réservation : échec (%s, réservation #%d).', $e::class, $booking->id()));
+            $this->logger->error('Notification de réservation : échec', ['exception' => $e::class, 'booking' => $booking->id()]);
         }
     }
 }

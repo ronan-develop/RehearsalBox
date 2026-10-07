@@ -20,9 +20,9 @@ use PHPUnit\Framework\Attributes\Test;
 
 final class KernelTest extends TestCase
 {
-    private function kernel(Router $router, Container $container): Kernel
+    private function kernel(Router $router, Container $container, ?\Psr\Log\LoggerInterface $logger = null): Kernel
     {
-        return new Kernel($router, $container, new CsrfTokenManager(new InMemorySession()), new SecurityHeaders());
+        return new Kernel($router, $container, new CsrfTokenManager(new InMemorySession()), new SecurityHeaders(), logger: $logger ?? new \Psr\Log\NullLogger());
     }
 
     #[Test]
@@ -369,17 +369,10 @@ final class KernelTest extends TestCase
         });
         $request = new Request($method, $path, [], [], []);
 
-        $file = tempnam(sys_get_temp_dir(), 'errlog');
-        $previous = ini_set('error_log', $file);
-        try {
-            $response = $this->kernel($router, $container)->handle($request);
-        } finally {
-            ini_set('error_log', (string) $previous);
-        }
-        $logged = (string) file_get_contents($file);
-        unlink($file);
+        $logger = new \App\Tests\Doubles\RecordingLogger();
+        $response = $this->kernel($router, $container, $logger)->handle($request);
 
-        return [$request, $response, $logged];
+        return [$request, $response, $logger->text()];
     }
 
     #[Test]
@@ -394,7 +387,7 @@ final class KernelTest extends TestCase
         self::assertStringNotContainsString('jeton-secret', $response->body() . $logged);
         self::assertStringNotContainsString('SQLSTATE', $response->body() . $logged);
         self::assertStringContainsString('RuntimeException', $logged, 'la classe de l’erreur suffit au diagnostic');
-        self::assertStringContainsString('GET /api/boom', $logged);
+        self::assertStringContainsString('"method":"GET","path":"\/api\/boom"', $logged);
     }
 
     #[Test]
@@ -432,14 +425,7 @@ final class KernelTest extends TestCase
         $router = new Router();
         $router->add('GET', '/boom', ['inconnu', 'run']);
 
-        $file = tempnam(sys_get_temp_dir(), 'errlog');
-        $previous = ini_set('error_log', $file);
-        try {
-            $response = $this->kernel($router, new Container())->handle(new Request('GET', '/boom', [], [], []));
-        } finally {
-            ini_set('error_log', (string) $previous);
-            unlink($file);
-        }
+        $response = $this->kernel($router, new Container())->handle(new Request('GET', '/boom', [], [], []));
 
         self::assertSame(500, $response->statusCode());
     }
