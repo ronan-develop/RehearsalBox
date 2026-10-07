@@ -19,6 +19,7 @@ use App\Controller\Api\GroupApiController;
 use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
+use App\Controller\Api\PlanningFragmentApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\MessagesPageController;
 use App\Controller\PageController;
@@ -71,6 +72,7 @@ use App\Presenter\MessagesPageView;
 use App\Presenter\PlanningDays;
 use App\Presenter\DashboardBookings;
 use App\Presenter\DashboardView;
+use App\Presenter\ExceptionalPlanningFragment;
 use App\Presenter\PlanningView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
@@ -260,6 +262,11 @@ return static function (array $config): Container {
             $c->get(PlanningView::class),
             new DashboardBookings($c->get(FreeSlotBookingService::class)),
         ),
+    ));
+
+    $container->set(PlanningFragmentApiController::class, fn ($c) => new PlanningFragmentApiController(
+        $c->get(AuthGuard::class),
+        new ExceptionalPlanningFragment($c->get(SlotServiceInterface::class), $c->get(TemplateRendererInterface::class)),
     ));
 
     $container->set(PlanningView::class, fn ($c) => new PlanningView(

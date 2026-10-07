@@ -65,8 +65,8 @@ function fakeRootWithCard() {
 
 test('handleRespond posts accepted=true and removes the card on success', async () => {
   globalThis.fetch = async (url, options) => {
-    if (url === '/api/planning') {
-      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+    if (url === '/api/planning/exceptional') {
+      return { ok: true, json: async () => ({ html: '', count: 0 }) };
     }
     assert.equal(url, '/api/availability/7/respond');
     assert.equal(JSON.parse(options.body).accepted, true);
@@ -83,9 +83,9 @@ test('handleRespond posts accepted=true and removes the card on success', async 
 test('handleRespond refreshes the exceptional planning slider after a successful acceptance', async () => {
   let planningFetched = false;
   globalThis.fetch = async (url) => {
-    if (url === '/api/planning') {
+    if (url === '/api/planning/exceptional') {
       planningFetched = true;
-      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+      return { ok: true, json: async () => ({ html: '', count: 0 }) };
     }
     return { ok: true, json: async () => ({ id: 7, status: 'acceptee' }) };
   };
@@ -100,9 +100,9 @@ test('handleRespond refreshes the exceptional planning slider after a successful
 test('handleRespond does not refresh the exceptional planning slider on refusal', async () => {
   let planningFetched = false;
   globalThis.fetch = async (url) => {
-    if (url === '/api/planning') {
+    if (url === '/api/planning/exceptional') {
       planningFetched = true;
-      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+      return { ok: true, json: async () => ({ html: '', count: 0 }) };
     }
     return { ok: true, json: async () => ({ id: 7, status: 'refusee' }) };
   };
@@ -228,8 +228,8 @@ test('handleUpdateSubmit prevents native submit and PATCHes the form as JSON', a
 test('handleRespond sends the date the holder saw, so a date changed in the meantime cannot be accepted by mistake (#221)', async () => {
   let body = null;
   globalThis.fetch = async (url, options) => {
-    if (url === '/api/planning') {
-      return { ok: true, json: async () => ({ fixedSlots: [], occasionalSlots: [] }) };
+    if (url === '/api/planning/exceptional') {
+      return { ok: true, json: async () => ({ html: '', count: 0 }) };
     }
     body = JSON.parse(options.body);
     return { ok: true, json: async () => ({ id: 7, status: 'acceptee' }) };

@@ -289,6 +289,11 @@ final class PageControllerTest extends RepositoryTestCase
         $cardStart = strpos($exceptionalSection, 'Groupe Demandeur');
         $cardOpenTag = substr($exceptionalSection, 0, $cardStart);
         self::assertStringNotContainsString('role="button"', $cardOpenTag);
+
+        // #243 : la page et le fragment de rechargement affichent EXACTEMENT les mêmes cartes (un seul gabarit, plus de miroir JavaScript).
+        $fragment = (new \App\Presenter\ExceptionalPlanningFragment($slotService, new PhpTemplateRenderer(__DIR__ . '/../../templates')))->render();
+        self::assertSame(1, $fragment['count']);
+        self::assertStringContainsString($fragment['html'], $response->body());
     }
 
     #[Test]

@@ -7,7 +7,6 @@ namespace App\Controller\Api;
 use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
 use App\Entity\RecurringSlot;
-use App\Entity\RequestableSlot;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
@@ -27,16 +26,6 @@ final class SlotApiController
         $this->authGuard->requireRole(UserRole::Admin);
 
         return new JsonResponse(['slots' => array_map(self::toArray(...), $this->slotService->findAllActive())]);
-    }
-
-    public function planning(Request $request): JsonResponse
-    {
-        $this->authGuard->requireLogin();
-
-        return new JsonResponse([
-            'fixedSlots' => array_map(self::planningSlotToArray(...), $this->slotService->findFixedPlanningSlots()),
-            'occasionalSlots' => array_map(self::planningSlotToArray(...), $this->slotService->findOccasionalPlanningSlots()),
-        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -110,18 +99,4 @@ final class SlotApiController
     }
 
     /** @return array<string, mixed> */
-    private static function planningSlotToArray(RequestableSlot $requestableSlot): array
-    {
-        $slot = $requestableSlot->slot();
-
-        return [
-            'groupId' => $requestableSlot->groupId(),
-            'groupName' => $requestableSlot->groupName(),
-            'isRecurring' => $requestableSlot->isRecurring(),
-            'weekday' => $slot->weekday()->value,
-            'startTime' => $slot->startTime(),
-            'endTime' => $slot->endTime(),
-            'occurrenceDate' => $requestableSlot->occurrenceDate()?->format('Y-m-d'),
-        ];
-    }
 }
