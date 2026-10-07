@@ -33,7 +33,7 @@ Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/as
 - Toute surface (modale, card, toolbar) utilise `var(--rb-surface)` / `var(--rb-border)` / `var(--rb-shadow-lg)` — jamais de couleur en dur
 - Toujours une transition sur les éléments cliquables/survolables
 - Toasts non bloquants pour tout retour d'action async (succès/erreur) — jamais `alert()`/`confirm()` natifs (mauvaise UX mobile)
-- Confirmation d'action destructive : modale HTML/CSS maison pilotée en JS, jamais `confirm()` natif
+- Confirmation d'action destructive : `<rb-confirm-dialog>` (#326), jamais `confirm()` natif. Le gabarit `templates/partials/confirm-dialog.php` (posé une fois par page) contient l'élément **natif `<dialog>`** : le composant `ui/rb-confirm-dialog.js` y met le texte (`textContent`), ouvre en modal (focus piégé, Échap, restitution du focus : le navigateur) et répond par une promesse (`confirmAction(message, {title, confirmLabel, cancelLabel})`). Focus initial sur « Annuler ». La logique pure (paragraphes, clic hors de la fenêtre = « Annuler ») est dans `ui/confirm-dialog.js`, testée.
 - Zones tactiles suffisamment grandes (mobile-first) sur les boutons d'action (claim, libérer, supprimer)
 
 ## Principe : serveur d'abord, JS quand c'est nécessaire (règle du propriétaire)

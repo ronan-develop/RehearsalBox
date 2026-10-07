@@ -8,22 +8,22 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * #202 : toute page qui contient <rb-confirm-modal> doit charger le style de la fenêtre. Il n'était défini que dans la
+ * #202 : toute page qui contient <rb-confirm-dialog> doit charger le style de la fenêtre. Il n'était défini que dans la
  * feuille de l'administration : sur la page des messages, la confirmation s'insérait sans mise en forme et la
  * suppression paraissait ne rien faire.
  */
-final class ConfirmModalCssTest extends TestCase
+final class ConfirmDialogCssTest extends TestCase
 {
     private const TEMPLATES = __DIR__ . '/../../../templates';
     private const PUBLIC = __DIR__ . '/../../../public';
 
-    /** @return list<string> chemins des gabarits qui posent la balise <rb-confirm-modal> */
+    /** @return list<string> chemins des gabarits qui posent la fenêtre (partials/confirm-dialog.php, qui contient <rb-confirm-dialog>) */
     private function pagesWithTheModal(): array
     {
         $pages = [];
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(self::TEMPLATES, \FilesystemIterator::SKIP_DOTS));
         foreach ($iterator as $file) {
-            if ($file->getExtension() === 'php' && str_contains((string) file_get_contents($file->getPathname()), '<rb-confirm-modal>')) {
+            if ($file->getExtension() === 'php' && str_contains((string) file_get_contents($file->getPathname()), 'partials/confirm-dialog.php')) {
                 $pages[] = $file->getPathname();
             }
         }
@@ -48,9 +48,9 @@ final class ConfirmModalCssTest extends TestCase
             preg_match_all('#<link rel="stylesheet" href="(/assets/css/[^"]+)"#', (string) file_get_contents($page), $matches);
             $styled = false;
             foreach ($matches[1] as $href) {
-                $styled = $styled || str_contains((string) file_get_contents(self::PUBLIC . $href), '.rb-modal-backdrop');
+                $styled = $styled || str_contains((string) file_get_contents(self::PUBLIC . $href), 'dialog.rb-modal');
             }
-            self::assertTrue($styled, basename(dirname($page)) . '/' . basename($page) . " contient <rb-confirm-modal> mais aucune de ses feuilles de style ne définit .rb-modal-backdrop");
+            self::assertTrue($styled, basename(dirname($page)) . '/' . basename($page) . " pose la fenêtre de confirmation mais aucune de ses feuilles de style ne définit dialog.rb-modal");
         }
     }
 
@@ -60,8 +60,8 @@ final class ConfirmModalCssTest extends TestCase
         $base = (string) file_get_contents(self::PUBLIC . '/assets/css/base.css');
         $admin = (string) file_get_contents(self::PUBLIC . '/assets/css/pages/admin.css');
 
-        self::assertSame(1, substr_count($base, '.rb-modal-backdrop {'));
-        self::assertStringNotContainsString('.rb-modal-backdrop {', $admin, 'pas de copie dans la feuille admin');
+        self::assertSame(1, substr_count($base, 'dialog.rb-modal {'));
+        self::assertStringNotContainsString('dialog.rb-modal {', $admin, 'pas de copie dans la feuille admin');
     }
 
     #[Test]
@@ -71,5 +71,20 @@ final class ConfirmModalCssTest extends TestCase
 
         self::assertMatchesRegularExpression('/\.rb-modal-title\s*\{/', $base);
         self::assertMatchesRegularExpression('/\.rb-modal-text\s*\{[^}]*overflow-wrap:\s*anywhere/s', $base);
+    }
+
+    #[Test]
+    public function testThePartialIsANativeDialogWithItsTwoButtonsAndNoLeftoverOfTheOldModal(): void
+    {
+        $partial = (string) file_get_contents(self::TEMPLATES . '/partials/confirm-dialog.php');
+
+        self::assertStringContainsString('<rb-confirm-dialog>', $partial);
+        self::assertStringContainsString('<dialog ', $partial);
+        self::assertStringContainsString('<form method="dialog"', $partial, 'fermeture native, aucune donnée envoyée');
+        self::assertMatchesRegularExpression('/<button[^>]*value="cancel"[^>]*autofocus/', $partial, 'le focus initial est sur « Annuler »');
+        self::assertStringContainsString('value="confirm"', $partial);
+        foreach ($this->pagesWithTheModal() as $page) {
+            self::assertStringNotContainsString('<rb-confirm-modal>', (string) file_get_contents($page));
+        }
     }
 }

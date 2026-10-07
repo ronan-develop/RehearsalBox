@@ -249,33 +249,6 @@ button:active::after, .rb-btn:active::after {
   padding: var(--rb-space-4);
 }
 
-.rb-modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  padding: var(--rb-space-4);
-  z-index: 1000;
-}
-
-.rb-modal-overlay[hidden] {
-  display: none;
-}
-
-.rb-modal {
-  width: 100%;
-  max-width: 420px;
-}
-
-.rb-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--rb-space-2);
-  margin-top: var(--rb-space-3);
-}
-
 /* Champ de formulaire générique — label + input, cohérent sur tous les écrans. */
 .rb-field {
   margin-bottom: var(--rb-space-3);
@@ -677,21 +650,17 @@ button:active::after, .rb-btn:active::after {
     linear-gradient(170deg, rgba(19,17,16,.45) 0%, rgba(16,15,13,.45) 50%, rgba(20,18,16,.45) 100%);
 }
 
-/* Fenêtre de confirmation <rb-confirm-modal> (#202) : partagée par toutes les pages qui la posent (admin, messagerie). */
-.rb-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--rb-space-4);
-  z-index: 1000;
+/* Fenêtre de confirmation <rb-confirm-dialog> (#202, #326) sur l'élément natif <dialog> : partagée par toutes les pages qui la posent
+   (admin, messagerie). Le navigateur gère le fond (::backdrop), le focus et Échap. */
+dialog.rb-modal {
+  max-width: 320px;
+  width: calc(100% - 2 * var(--rb-space-4));
+  margin: auto;
+  color: var(--rb-text);
 }
 
-.rb-modal {
-  max-width: 320px;
-  width: 100%;
+dialog.rb-modal::backdrop {
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .rb-modal-actions {

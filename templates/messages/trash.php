@@ -41,7 +41,7 @@
         <p class="rb-chat-empty" data-trash-empty<?= $items === [] ? '' : ' hidden' ?>>La corbeille est vide.</p>
         <p class="rb-chat-notice" role="alert" data-trash-error hidden></p>
     </main>
-    <rb-confirm-modal></rb-confirm-modal>
+    <?php require __DIR__ . '/../partials/confirm-dialog.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>

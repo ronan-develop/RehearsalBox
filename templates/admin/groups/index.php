@@ -83,7 +83,7 @@
         </div>
     </div>
     <?php require __DIR__ . '/../../partials/nav.php'; ?>
-    <rb-confirm-modal></rb-confirm-modal>
+    <?php require __DIR__ . '/../../partials/confirm-dialog.php'; ?>
     <script type="module" src="/assets/js/app.js"></script>
 </body>
 </html>
