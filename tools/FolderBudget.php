@@ -59,8 +59,8 @@ final class FolderBudget
             if ($entry->isDir()) {
                 $counts[substr($entry->getPathname(), strlen($root) + 1)] ??= 0;
             } elseif ($entry->getExtension() === 'php') {
-                $folder = substr($entry->getPath(), strlen($root) + 1);
-                $counts[$folder === false ? '' : $folder] = ($counts[$folder === false ? '' : $folder] ?? 0) + 1;
+                $folder = substr($entry->getPath(), strlen($root) + 1); // « » pour la racine
+                $counts[$folder] = ($counts[$folder] ?? 0) + 1;
             }
         }
         $counts[''] ??= 0;
