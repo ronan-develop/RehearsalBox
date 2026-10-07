@@ -22,10 +22,6 @@ final class MailRenderer
     {
     }
 
-    public static function withDefaultTemplates(): self
-    {
-        return new self(new PhpTemplateRenderer(__DIR__ . '/../../templates'));
-    }
 
     /**
      * Complète un e-mail (expéditeur, destinataire, sujet déjà posés) avec ses deux versions

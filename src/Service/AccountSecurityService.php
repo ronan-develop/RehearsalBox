@@ -10,9 +10,7 @@ use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
-use App\Mail\MailRenderer;
-use App\Mail\SafeMail;
-use Symfony\Component\Mailer\MailerInterface;
+use App\Mail\Mailbox;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -30,12 +28,9 @@ final class AccountSecurityService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordResetRepositoryInterface $resetRepository,
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly TransactionRunner $transactions,
         private readonly PasswordResetService $passwordReset,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -54,7 +49,7 @@ final class AccountSecurityService
             PasswordResetRepositoryInterface::PURPOSE_ALERT,
         );
 
-        if (!SafeMail::send($this->mailer, fn () => $this->buildAlertMail($user->email(), $token), sprintf('Alerte de changement de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
+        if (!$this->mailbox->sendSafely(fn () => $this->buildAlertMail($user->email(), $token), sprintf('Alerte de changement de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
             $this->resetRepository->invalidateAllForUser($user->id(), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
         }
     }
@@ -82,16 +77,12 @@ final class AccountSecurityService
 
     private function buildAlertMail(string $to, string $token): Email
     {
-        $link = rtrim($this->baseUrl, '/') . '/account/secure?token=' . $token;
-
-        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($to)
-                ->subject('RehearsalBox — votre mot de passe a été modifié'),
+        return $this->mailbox->compose(
+            $to,
+            'votre mot de passe a été modifié',
             'account-alert',
             [
-                'link' => $link,
+                'link' => $this->mailbox->url('/account/secure?token=' . $token),
                 'preheader' => 'Votre mot de passe vient d\'être modifié. Si ce n\'est pas vous, sécurisez votre compte.',
             ],
         );

@@ -20,6 +20,7 @@ use App\Tests\Support\KernelTranslation;
 use App\Tests\Support\RecordingMailer;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetApiControllerTest extends RepositoryTestCase
@@ -44,10 +45,8 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
             new PasswordPolicy(),
-            $this->mailer,
+            TestMailbox::of($this->mailer),
             new TransactionRunner($this->pdo),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
         ), new IpThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour')));
     }
 

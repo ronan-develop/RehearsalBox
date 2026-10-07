@@ -23,6 +23,7 @@ use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Tests\Support\TestMailbox;
 
 /** #178 : une seule relance, 24 h après l'e-mail de mention, si la mention n'est toujours pas lue (plage de jour, cron horaire). */
 #[\PHPUnit\Framework\Attributes\Group('db')]
@@ -70,11 +71,9 @@ final class MentionReminderServiceTest extends RepositoryTestCase
     {
         return new MentionReminderService(
             $this->notices,
-            $mailer,
+            TestMailbox::of($mailer),
             new MockClock($now),
             new \DateTimeZone('Europe/Paris'),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
         );
     }
 

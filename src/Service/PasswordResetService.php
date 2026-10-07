@@ -14,9 +14,7 @@ use App\Security\PasswordPolicy;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidResetTokenException;
 use App\Service\Exception\UserValidationException;
-use App\Mail\MailRenderer;
-use App\Mail\SafeMail;
-use Symfony\Component\Mailer\MailerInterface;
+use App\Mail\Mailbox;
 use Symfony\Component\Mime\Email;
 
 final class PasswordResetService
@@ -30,11 +28,8 @@ final class PasswordResetService
         private readonly PasswordResetRepositoryInterface $resetRepository,
         private readonly PasswordHasherInterface $passwordHasher,
         private readonly PasswordPolicy $passwordPolicy,
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly TransactionRunner $transactions,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
         private readonly AfterResponseInterface $afterResponse = new ImmediateAfterResponse(),
     ) {
     }
@@ -71,7 +66,7 @@ final class PasswordResetService
         });
 
         // Le jeton n'a pas pu être remis (serveur SMTP, gabarit, bogue…) : on l'annule, sans rien révéler à l'appelant.
-        if (!SafeMail::send($this->mailer, fn () => $this->buildMail($user->email(), $token), sprintf('Réinitialisation de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
+        if (!$this->mailbox->sendSafely(fn () => $this->buildMail($user->email(), $token), sprintf('Réinitialisation de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
             $this->resetRepository->invalidateAllForUser($user->id(), $now);
         }
     }
@@ -107,16 +102,12 @@ final class PasswordResetService
 
     private function buildMail(string $to, string $token): Email
     {
-        $link = rtrim($this->baseUrl, '/') . '/reset-password?token=' . $token;
-
-        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($to)
-                ->subject('RehearsalBox — réinitialisation de votre mot de passe'),
+        return $this->mailbox->compose(
+            $to,
+            'réinitialisation de votre mot de passe',
             'password-reset',
             [
-                'link' => $link,
+                'link' => $this->mailbox->url('/reset-password?token=' . $token),
                 'preheader' => 'Choisissez un nouveau mot de passe (lien valable 1 heure).',
             ],
         );

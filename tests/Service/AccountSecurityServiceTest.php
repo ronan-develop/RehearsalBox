@@ -17,6 +17,7 @@ use App\Service\PasswordResetService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class AccountSecurityServiceTest extends RepositoryTestCase
@@ -36,8 +37,8 @@ final class AccountSecurityServiceTest extends RepositoryTestCase
         $this->mailer = new RecordingMailer();
         $this->now = new \DateTimeImmutable('2026-10-04 12:00:00');
         $transactions = new TransactionRunner($this->pdo);
-        $this->resetService = new PasswordResetService($this->users, $this->resets, new FastPasswordHasher(), new PasswordPolicy(), $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
-        $this->service = new AccountSecurityService($this->users, $this->resets, $this->mailer, $transactions, $this->resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        $this->resetService = new PasswordResetService($this->users, $this->resets, new FastPasswordHasher(), new PasswordPolicy(), TestMailbox::of($this->mailer), $transactions);
+        $this->service = new AccountSecurityService($this->users, $this->resets, TestMailbox::of($this->mailer), $transactions, $this->resetService);
     }
 
     private function insertUser(): User

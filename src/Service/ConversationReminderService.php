@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\DueReminder;
-use App\Mail\MailRenderer;
+use App\Mail\Mailbox;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Support\DaytimeWindow;
 use App\Support\HeaderText;
 use Symfony\Component\Clock\ClockInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -27,12 +26,9 @@ final class ConversationReminderService
 
     public function __construct(
         private readonly ConversationNoticeRepositoryInterface $notices,
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly ClockInterface $clock,
         private readonly \DateTimeZone $localTimezone,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -58,7 +54,7 @@ final class ConversationReminderService
             }
 
             try {
-                $this->mailer->send($this->buildMail($reminder));
+                $this->mailbox->send($this->buildMail($reminder));
                 ++$sent;
             } catch (\Throwable $e) {
                 // Rien n'est resté « relancé » : un nouvel essai reste possible. Ni adresse ni contenu dans le journal.
@@ -73,15 +69,13 @@ final class ConversationReminderService
 
     private function buildMail(DueReminder $reminder): Email
     {
-        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($reminder->contactEmail())
-                ->subject('RehearsalBox — rappel : un message de ' . HeaderText::oneLine($reminder->counterpartName()) . ' attend une réponse'),
+        return $this->mailbox->compose(
+            $reminder->contactEmail(),
+            'rappel : un message de ' . HeaderText::oneLine($reminder->counterpartName()) . ' attend une réponse',
             'conversation-reminder',
             [
                 'counterpartName' => $reminder->counterpartName(),
-                'link' => rtrim($this->baseUrl, '/') . '/messages/' . $reminder->conversationId(),
+                'link' => $this->mailbox->url('/messages/' . $reminder->conversationId()),
                 'preheader' => 'Un message de ' . $reminder->counterpartName() . ' n\'a pas encore été lu.',
             ],
         );

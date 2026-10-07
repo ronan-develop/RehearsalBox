@@ -15,7 +15,7 @@ final class MailRendererTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->renderer = MailRenderer::withDefaultTemplates();
+        $this->renderer = new MailRenderer(new \App\View\PhpTemplateRenderer(__DIR__ . "/../../templates"));
     }
 
     private const LINK = 'https://rehearsalbox.example/reset-password?token=abc123&x=1';

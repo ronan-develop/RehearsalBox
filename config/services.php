@@ -55,6 +55,7 @@ use App\Service\Contract\AvailabilityServiceInterface;
 use App\Service\Contract\GroupServiceInterface;
 use App\Http\AfterResponseInterface;
 use App\Http\DeferredAfterResponse;
+use App\Mail\Mailbox;
 use App\Mail\MailRenderer;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\UserAdminService;
@@ -185,13 +186,10 @@ return static function (array $config): Container {
     $container->set(BookingDateLockInterface::class, fn ($c) => new MysqlBookingDateLock($c->get(PDO::class)));
 
     $container->set(BookingNotifierInterface::class, fn ($c) => new BookingNotifier(
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(UserRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(AfterResponseInterface::class),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(FreeSlotBookingService::class, fn ($c) => new FreeSlotBookingService(
@@ -232,6 +230,12 @@ return static function (array $config): Container {
     ));
 
     $container->set(MailRenderer::class, fn ($c) => new MailRenderer($c->get(TemplateRendererInterface::class)));
+    $container->set(Mailbox::class, fn ($c) => new Mailbox(
+        $c->get(MailerInterface::class),
+        $config['mailer']['from'],
+        $config['app']['base_url'],
+        $c->get(MailRenderer::class),
+    ));
 
     $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(
         Transport::fromDsn($config['mailer']['dsn']),
@@ -279,23 +283,17 @@ return static function (array $config): Container {
         $c->get(PasswordResetRepositoryInterface::class),
         $c->get(PasswordHasherInterface::class),
         $c->get(PasswordPolicy::class),
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(TransactionRunner::class),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
         $c->get(AfterResponseInterface::class),
     ));
 
     $container->set(AccountSecurityService::class, fn ($c) => new AccountSecurityService(
         $c->get(UserRepositoryInterface::class),
         $c->get(PasswordResetRepositoryInterface::class),
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(TransactionRunner::class),
         $c->get(PasswordResetService::class),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(PasswordChangeService::class, fn ($c) => new PasswordChangeService(
@@ -321,11 +319,8 @@ return static function (array $config): Container {
         $c->get(EmailChangeRepositoryInterface::class),
         $c->get(PasswordResetRepositoryInterface::class),
         $c->get(PasswordHasherInterface::class),
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(TransactionRunner::class),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(NotificationPreferenceRepositoryInterface::class, fn ($c) => new MysqlNotificationPreferenceRepository($c->get(PDO::class)));
@@ -421,21 +416,15 @@ return static function (array $config): Container {
     $container->set(ConversationAlertRepositoryInterface::class, fn ($c) => new MysqlConversationAlertRepository($c->get(PDO::class)));
 
     $container->set(ConversationNotifier::class, fn ($c) => new ConversationNotifier(
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(ConversationNoticeRepositoryInterface::class),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(ConversationReminderService::class, fn ($c) => new ConversationReminderService(
         $c->get(ConversationNoticeRepositoryInterface::class),
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(ClockInterface::class),
         new \DateTimeZone($config['app']['timezone']),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(ConversationGuestRepositoryInterface::class, fn ($c) => new MysqlConversationGuestRepository($c->get(PDO::class)));
@@ -454,14 +443,11 @@ return static function (array $config): Container {
     $container->set(MentionNoticeRepositoryInterface::class, fn ($c) => new MysqlMentionNoticeRepository($c->get(PDO::class)));
 
     $container->set(MentionNotifier::class, fn ($c) => new MentionNotifier(
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(MentionNoticeRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),
         $c->get(NotificationPreferenceRepositoryInterface::class),
         $c->get(ConversationMuteRepositoryInterface::class),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(ConversationMentionService::class, fn ($c) => new ConversationMentionService(
@@ -475,12 +461,9 @@ return static function (array $config): Container {
 
     $container->set(MentionReminderService::class, fn ($c) => new MentionReminderService(
         $c->get(MentionNoticeRepositoryInterface::class),
-        $c->get(MailerInterface::class),
+        $c->get(Mailbox::class),
         $c->get(ClockInterface::class),
         new \DateTimeZone($config['app']['timezone']),
-        $config['mailer']['from'],
-        $config['app']['base_url'],
-        $c->get(MailRenderer::class),
     ));
 
     $container->set(MessageVersionPurge::class, fn ($c) => new MessageVersionPurge(

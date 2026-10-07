@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\DueMentionReminder;
-use App\Mail\MailRenderer;
+use App\Mail\Mailbox;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
 use App\Support\DaytimeWindow;
 use App\Support\HeaderText;
 use Symfony\Component\Clock\ClockInterface;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -26,12 +25,9 @@ final class MentionReminderService
 
     public function __construct(
         private readonly MentionNoticeRepositoryInterface $notices,
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly ClockInterface $clock,
         private readonly \DateTimeZone $localTimezone,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -55,7 +51,7 @@ final class MentionReminderService
             }
 
             try {
-                $this->mailer->send($this->buildMail($reminder));
+                $this->mailbox->send($this->buildMail($reminder));
                 ++$sent;
             } catch (\Throwable $e) {
                 $this->notices->restoreReminder($reminder->conversationId(), $reminder->userId());
@@ -69,19 +65,16 @@ final class MentionReminderService
 
     private function buildMail(DueMentionReminder $reminder): Email
     {
-        $base = rtrim($this->baseUrl, '/');
         $name = $reminder->mentionerName() !== '' ? $reminder->mentionerName() : 'Quelqu\'un';
 
-        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($reminder->email())
-                ->subject('RehearsalBox — rappel : ' . HeaderText::oneLine($name) . ' vous a mentionné(e)'),
+        return $this->mailbox->compose(
+            $reminder->email(),
+            'rappel : ' . HeaderText::oneLine($name) . ' vous a mentionné(e)',
             'mention-reminder',
             [
                 'mentionerName' => $name,
-                'link' => $base . '/messages/' . $reminder->conversationId(),
-                'accountLink' => $base . '/account/password',
+                'link' => $this->mailbox->url('/messages/' . $reminder->conversationId()),
+                'accountLink' => $this->mailbox->url('/account/password'),
                 'preheader' => 'Vous avez été mentionné(e) et le message n\'a pas encore été lu.',
             ],
         );

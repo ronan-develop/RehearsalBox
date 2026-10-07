@@ -20,6 +20,7 @@ use App\Tests\Support\FailingMailer;
 use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordChangeServiceTest extends RepositoryTestCase
@@ -45,8 +46,8 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
         $hasher = new FastPasswordHasher();
         $policy = new PasswordPolicy();
         $transactions = new TransactionRunner($this->pdo);
-        $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, $mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
-        $security = new AccountSecurityService($this->users, $resets, $mailer, $transactions, $resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, TestMailbox::of($mailer), $transactions);
+        $security = new AccountSecurityService($this->users, $resets, TestMailbox::of($mailer), $transactions, $resetService);
 
         return new PasswordChangeService($this->users, $hasher, $policy, $security);
     }
