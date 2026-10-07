@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Messaging\Notification;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Messaging\Entity\DueReminder;
 use App\Mail\Mailbox;
 use App\Messaging\Repository\Notice\ConversationNoticeRepositoryInterface;
@@ -25,6 +27,7 @@ final class ConversationReminderService
         private readonly Mailbox $mailbox,
         private readonly ClockInterface $clock,
         private readonly \DateTimeZone $localTimezone,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -38,7 +41,7 @@ final class ConversationReminderService
         $now = $run->now();
         foreach ($this->notices->findDueReminders($run->notBefore(), $run->notAfter()) as $reminder) {
             if (filter_var($reminder->contactEmail(), FILTER_VALIDATE_EMAIL) === false) {
-                error_log(sprintf('Relance de conversation : adresse de contact invalide (groupe #%d).', $reminder->groupId()));
+                $this->logger->warning('Relance de conversation : adresse de contact invalide', ['group' => $reminder->groupId()]);
                 $run->markSkipped();
                 continue;
             }
@@ -55,7 +58,7 @@ final class ConversationReminderService
             } catch (\Throwable $e) {
                 // Rien n'est resté « relancé » : un nouvel essai reste possible. Ni adresse ni contenu dans le journal.
                 $this->notices->restoreReminder($reminder->conversationId(), $reminder->groupId(), $previous);
-                error_log(sprintf('Relance de conversation : échec (%s, conversation #%d, groupe #%d).', $e::class, $reminder->conversationId(), $reminder->groupId()));
+                $this->logger->error('Relance de conversation : échec', ['exception' => $e::class, 'conversation' => $reminder->conversationId(), 'group' => $reminder->groupId()]);
                 $run->markFailed();
             }
         }

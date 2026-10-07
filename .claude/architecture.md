@@ -280,3 +280,15 @@ Les cartes « créneau exceptionnel » sont dessinées par **un seul gabarit** :
 ### Avatar unique (#324, issu de #182)
 
 La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.php` : `$avatarInitials`, `$avatarClass`, `$avatarColor`, `$avatarTitle`) et une classe `.rb-avatar` (`base.css`) : taille et fond par variables CSS (`--avatar-size`, `--avatar-bg`, `--avatar-font`), `.rb-avatar--sm` pour 32 px, couleur du groupe par `--group-color` (repli neutre). Utilisé par les cartes de demande, l'en-tête du tableau de bord et la messagerie. Pas de composant JavaScript : un avatar n'a aucun comportement (les composants servent à ce qui réagit).
+
+## Journalisation (#193)
+
+`App\Logging\FileLogger` implémente `Psr\Log\LoggerInterface` (psr/log, la même interface que Symfony et API Platform si on y vient un jour). **Aucun `error_log()` dans `src/`** (garde : `tests/Tools/NoDirectErrorLogTest.php`) : les classes qui ont quelque chose à signaler reçoivent un `LoggerInterface` en **dernier paramètre du constructeur**, `NullLogger` par défaut (comme les autres Null Objects), et le conteneur injecte le vrai.
+
+- **Format** : `date ISO 8601 NIVEAU message {"contexte":"json"}`, une ligne par évènement. Le contexte ne garde que des **scalaires** (un objet est réduit à sa classe, un tableau est ignoré) et aucun retour à la ligne ne peut forger une fausse ligne : la règle « jamais d'adresse ni de texte » est appliquée **dans** le logger, pas seulement par les appelants, qui ne passent que des identifiants numériques et des classes d'exceptions.
+- **Fichiers** (hors webroot : `storage/` est un lien vers `shared/storage` en production) : `storage/logs/app.log` (niveau `warning` par défaut) et `storage/logs/cron.log` (niveau `info` : le cron écrit un bilan à **chaque** passage, même à vide, pour prouver qu'il tourne).
+- **Rotation** par taille (`logging.max_bytes`, 1 Mo) avec `logging.keep` archives (`app.log.1` … `.5`) : le disque ne se remplit pas, sans tâche de purge. Réglages dans `config.local.php` (`logging.level`, `max_bytes`, `keep`).
+- **Une panne d'écriture ne fait jamais échouer la requête** (le journal est un auxiliaire).
+- **Lecture** : `php bin/tail-log.php [app|cron] [lignes]`.
+- Volontairement pas de Monolog : un fichier, un format, 100 lignes, pas de dépendance de plus sur un mutualisé.
+

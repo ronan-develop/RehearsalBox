@@ -72,16 +72,9 @@ final class MailboxTest extends TestCase
         self::assertTrue($box->sendSafely($build, 'Contexte'));
         self::assertCount(1, $this->mailer->sent);
 
-        $failing = new Mailbox(new FailingMailer(), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
-        $logged = '';
-        $previous = ini_set('error_log', $file = tempnam(sys_get_temp_dir(), 'mbx'));
-        try {
-            self::assertFalse($failing->sendSafely($build, 'Contexte test'));
-            $logged = (string) file_get_contents($file);
-        } finally {
-            ini_set('error_log', (string) $previous);
-            @unlink($file);
-        }
-        self::assertStringContainsString('Contexte test', $logged);
+        $logger = new \App\Tests\Doubles\RecordingLogger();
+        $failing = new Mailbox(new FailingMailer(), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example', logger: $logger);
+        self::assertFalse($failing->sendSafely($build, 'Contexte test'));
+        self::assertStringContainsString('Contexte test', $logger->text());
     }
 }

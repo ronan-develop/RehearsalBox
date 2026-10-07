@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\View\PhpTemplateRenderer;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
@@ -23,6 +25,7 @@ final class Mailbox
         private readonly string $fromAddress,
         private readonly string $baseUrl,
         private readonly MailRenderer $renderer = new MailRenderer(new PhpTemplateRenderer(__DIR__ . '/../../templates')),
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -60,6 +63,6 @@ final class Mailbox
      */
     public function sendSafely(callable $build, string $failureContext): bool
     {
-        return SafeMail::send($this->mailer, $build, $failureContext);
+        return SafeMail::send($this->mailer, $build, $failureContext, $this->logger);
     }
 }

@@ -19,6 +19,7 @@ use App\Routing\Router;
 use App\Security\AppUrl;
 use App\Security\CsrfTokenManager;
 use App\Security\SecurityHeaders;
+use Psr\Log\LoggerInterface;
 
 $config = require __DIR__ . '/../config/config.php';
 
@@ -41,7 +42,7 @@ foreach ([...$routeGroups['pages'], ...$routeGroups['api']] as [$method, $patter
 // HSTS seulement si l'application est servie en HTTPS (jamais en développement local).
 $hsts = AppUrl::isHttps((string) ($config['app']['base_url'] ?? ''));
 
-$kernel = new Kernel($router, $container, $container->get(CsrfTokenManager::class), new SecurityHeaders(hsts: $hsts));
+$kernel = new Kernel($router, $container, $container->get(CsrfTokenManager::class), new SecurityHeaders(hsts: $hsts), logger: $container->get(LoggerInterface::class));
 $request = Request::fromGlobals();
 
 // Marqueur opaque de la release (écrit par bin/deploy.sh) : permet de vérifier

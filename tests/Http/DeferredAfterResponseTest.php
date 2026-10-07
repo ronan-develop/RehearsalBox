@@ -6,6 +6,7 @@ namespace App\Tests\Http;
 
 use App\Http\AfterResponseInterface;
 use App\Http\DeferredAfterResponse;
+use App\Tests\Doubles\RecordingLogger;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -50,15 +51,17 @@ final class DeferredAfterResponseTest extends TestCase
     public function testAFailingTaskNeverBreaksTheOthersNorTheRequestAndLeavesNoDataInTheLog(): void
     {
         $ran = [];
+        $logger = new RecordingLogger();
         $after = new DeferredAfterResponse(static function (): void {
-        });
+        }, $logger);
         $after->defer(static function (): void {
             throw new \RuntimeException('alice@rehearsalbox.test jeton-secret');
         });
         $after->defer(static function () use (&$ran): void {
             $ran[] = 'suivant';
         });
-        $logged = $this->captureErrorLog(static fn () => $after->run());
+        $after->run();
+        $logged = $logger->text();
 
         self::assertSame(['suivant'], $ran);
         self::assertStringContainsString('RuntimeException', $logged, 'la classe de l’erreur suffit au diagnostic');
@@ -80,21 +83,5 @@ final class DeferredAfterResponseTest extends TestCase
         $after->run();
 
         self::assertSame(1, $count);
-    }
-
-    /** @param callable(): void $action */
-    private function captureErrorLog(callable $action): string
-    {
-        $file = tempnam(sys_get_temp_dir(), 'errlog');
-        $previous = ini_set('error_log', $file);
-        try {
-            $action();
-        } finally {
-            ini_set('error_log', (string) $previous);
-        }
-        $content = (string) file_get_contents($file);
-        unlink($file);
-
-        return $content;
     }
 }

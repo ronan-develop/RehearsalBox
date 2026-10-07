@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Messaging\Notification;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Messaging\Entity\Conversation;
 use App\Messaging\Entity\MentionNotice;
 use App\Mail\Mailbox;
@@ -33,6 +35,7 @@ final class MentionNotifier
         private readonly UserRepositoryInterface $users,
         private readonly NotificationPreferenceRepositoryInterface $preferences,
         private readonly ConversationMuteRepositoryInterface $mutes,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -47,7 +50,7 @@ final class MentionNotifier
                 $this->notify($conversation, $authorId, $authorName, $userId, $now);
             } catch (\Throwable $e) {
                 // Ni adresse ni contenu dans le journal : seulement des identifiants.
-                error_log(sprintf('E-mail de mention : échec (%s, conversation #%d, personne #%d).', $e::class, $conversation->id(), $userId));
+                $this->logger->error('E-mail de mention : échec', ['exception' => $e::class, 'conversation' => $conversation->id(), 'user' => $userId]);
             }
         }
     }
@@ -63,12 +66,12 @@ final class MentionNotifier
             return;
         }
         if (filter_var($user->email(), FILTER_VALIDATE_EMAIL) === false) {
-            error_log(sprintf('E-mail de mention : adresse invalide (personne #%d).', $userId));
+            $this->logger->warning('E-mail de mention : adresse invalide', ['user' => $userId]);
 
             return;
         }
         if ($this->notices->countSentBy($authorId, $now->modify('-1 hour')) >= self::MAX_PER_AUTHOR_PER_HOUR) {
-            error_log(sprintf('E-mail de mention : plafond horaire atteint (auteur #%d).', $authorId));
+            $this->logger->warning('E-mail de mention : plafond horaire atteint', ['author' => $authorId]);
 
             return;
         }

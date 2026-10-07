@@ -6,6 +6,7 @@ namespace App\Tests\Mail;
 
 use App\Mail\SafeMail;
 use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingLogger;
 use App\Tests\Doubles\RecordingMailer;
 use App\Tests\Doubles\ThrowingMailer;
 use PHPUnit\Framework\Attributes\Test;
@@ -33,13 +34,13 @@ final class SafeMailTest extends TestCase
     #[Test]
     public function testEveryKindOfFailureIsAbsorbedAndReportedAsNotSent(): void
     {
-        $log = $this->captureErrorLog(function (): void {
-            self::assertFalse(SafeMail::send(new FailingMailer(), fn (): Email => $this->email(), 'Transport'));
-            self::assertFalse(SafeMail::send(new ThrowingMailer(), fn (): Email => $this->email(), 'Bogue'));
-            self::assertFalse(SafeMail::send(new RecordingMailer(), static function (): never {
-                throw new \RuntimeException('gabarit cassé');
-            }, 'Gabarit'));
-        });
+        $logger = new RecordingLogger();
+        self::assertFalse(SafeMail::send(new FailingMailer(), fn (): Email => $this->email(), 'Transport', $logger));
+        self::assertFalse(SafeMail::send(new ThrowingMailer(), fn (): Email => $this->email(), 'Bogue', $logger));
+        self::assertFalse(SafeMail::send(new RecordingMailer(), static function (): never {
+            throw new \RuntimeException('gabarit cassé');
+        }, 'Gabarit', $logger));
+        $log = $logger->text();
 
         self::assertStringContainsString('Transport', $log);
         self::assertStringContainsString('TransportException', $log);
@@ -50,30 +51,14 @@ final class SafeMailTest extends TestCase
     #[Test]
     public function testTheLogNeverCarriesTheMessageOfTheErrorNorAnAddress(): void
     {
-        $log = $this->captureErrorLog(function (): void {
-            SafeMail::send(new RecordingMailer(), static function (): never {
-                throw new \RuntimeException('alice@rehearsalbox.test jeton-secret');
-            }, 'Contexte (utilisateur #3)');
-        });
+        $logger = new RecordingLogger();
+        SafeMail::send(new RecordingMailer(), static function (): never {
+            throw new \RuntimeException('alice@rehearsalbox.test jeton-secret');
+        }, 'Contexte (utilisateur #3)', $logger);
+        $log = $logger->text();
 
         self::assertStringContainsString('Contexte (utilisateur #3)', $log);
         self::assertStringNotContainsString('alice', $log);
         self::assertStringNotContainsString('jeton-secret', $log);
-    }
-
-    /** @param callable(): void $action */
-    private function captureErrorLog(callable $action): string
-    {
-        $file = tempnam(sys_get_temp_dir(), 'errlog');
-        $previous = ini_set('error_log', $file);
-        try {
-            $action();
-        } finally {
-            ini_set('error_log', (string) $previous);
-        }
-        $content = (string) file_get_contents($file);
-        unlink($file);
-
-        return $content;
     }
 }

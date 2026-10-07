@@ -35,6 +35,7 @@ final class BookingNotifierTest extends RepositoryTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->logger = new \App\Tests\Doubles\RecordingLogger();
         $this->setUpScenario();
         $this->bookings = new MysqlFreeSlotBookingRepository($this->pdo);
         $this->later = new RecordingAfterResponse();
@@ -48,9 +49,11 @@ final class BookingNotifierTest extends RepositoryTestCase
         return $this->users->save(new User(0, strtolower($name) . '.admin@rehearsalbox.test', 'hash', $name, UserRole::Admin, $active, 0, null));
     }
 
+    private \App\Tests\Doubles\RecordingLogger $logger;
+
     private function notifier(MailerInterface $mailer): BookingNotifier
     {
-        return new BookingNotifier(TestMailbox::of($mailer), $this->users, $this->groups, $this->later);
+        return new BookingNotifier(TestMailbox::of($mailer), $this->users, $this->groups, $this->later, $this->logger);
     }
 
     private function booking(?string $reason = 'Enregistrement secret'): \App\Planning\Entity\FreeSlotBooking
@@ -155,17 +158,9 @@ final class BookingNotifierTest extends RepositoryTestCase
 
     private function captureLog(callable $action): string
     {
-        $log = tempnam(sys_get_temp_dir(), 'errlog');
-        $previous = ini_set('error_log', $log);
-        try {
-            $action();
-        } finally {
-            ini_set('error_log', (string) $previous);
-        }
-        $logged = (string) file_get_contents($log);
-        unlink($log);
+        $action();
 
-        return $logged;
+        return $this->logger->text();
     }
 
     #[Test]

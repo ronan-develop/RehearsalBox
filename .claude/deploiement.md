@@ -68,7 +68,7 @@ cd "$HOME/rehearsalbox/current" && [ -f bin/send-reminders.php ] && /usr/local/b
 - L'installation est **idempotente** (relancer remplace l'entrée, jamais de doublon) ; l'ancienne table cron est sauvegardée dans `shared/crontab.bak`. Vérification : `crontab -l | grep -c send-reminders` doit valoir 1.
 - La commande passe par le lien `current` : elle suit toujours la release active, sans rien changer à chaque déploiement.
 - Sortie : une ligne de bilan (`n envoyée(s), n échec(s), n ignorée(s)`), **sans adresse ni contenu** ; code de sortie non nul en cas d'échec d'envoi (réessayé à l'exécution suivante).
-- Le journal `reminders.log` est dans `shared/` (hors webroot) ; le purger ou le faire tourner de temps en temps.
+- Journaux (#193) : le script écrit lui-même son bilan dans `storage/logs/cron.log` (donc `shared/storage/logs/`, hors webroot, **avec rotation automatique** par taille) et le site écrit ses incidents dans `storage/logs/app.log`. Lecture : `php bin/tail-log.php cron` / `app`. La redirection `reminders.log` de la commande ci-dessus ne reçoit plus que les erreurs fatales de PHP (à purger de temps en temps, elle n'a pas de rotation). Le niveau se règle dans `config.local.php` (`logging.level`).
 - Aucun secret dans la commande : la configuration (transport e-mail, adresse d'expédition, fuseau) vient de `config.local.php`.
 - Un e-mail immédiat part aussi à la création d'une conversation (sans cron) ; si le cron n'est pas installé, seules les relances manquent. Les conversations **antérieures** au déploiement des e-mails n'en reçoivent aucun (migration 017).
 

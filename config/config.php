@@ -21,6 +21,15 @@ $defaults = [
         // Fuseau d'affichage des heures et des jours (les dates sont stockées en UTC).
         'timezone' => 'Europe/Paris',
     ],
+    'logging' => [
+        // Hors de la racine web (storage/ est un lien vers shared/storage en production). Jamais de donnée personnelle dedans.
+        'path' => __DIR__ . '/../storage/logs/app.log',
+        'cron_path' => __DIR__ . '/../storage/logs/cron.log',
+        // debug, info, notice, warning, error, critical, alert, emergency
+        'level' => 'warning',
+        'max_bytes' => 1_000_000,
+        'keep' => 5,
+    ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',
     ],

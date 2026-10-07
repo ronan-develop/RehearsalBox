@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Messaging\Notification;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use App\Messaging\Entity\Conversation;
 use App\Group\Entity\Group;
 use App\Mail\Mailbox;
@@ -26,6 +28,7 @@ final class ConversationNotifier implements NewConversationNotifierInterface
     public function __construct(
         private readonly Mailbox $mailbox,
         private readonly ConversationNoticeRepositoryInterface $notices,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -36,14 +39,14 @@ final class ConversationNotifier implements NewConversationNotifierInterface
         } catch (\Throwable $e) {
             // Le message est déjà envoyé : AUCUNE panne de notification (base, gabarit, transport) ne doit l'annuler ni
             // remonter à l'utilisateur. Ni adresse ni contenu dans le journal.
-            error_log(sprintf('Notification de conversation : échec (%s, conversation #%d, groupe #%d).', $e::class, $conversation->id(), $targetGroup->id()));
+            $this->logger->error('Notification de conversation : échec', ['exception' => $e::class, 'conversation' => $conversation->id(), 'group' => $targetGroup->id()]);
         }
     }
 
     private function notify(Conversation $conversation, string $authorName, string $authorGroupName, Group $targetGroup, \DateTimeImmutable $now): void
     {
         if (filter_var($targetGroup->contactEmail(), FILTER_VALIDATE_EMAIL) === false) {
-            error_log(sprintf('Notification de conversation : adresse de contact invalide (groupe #%d).', $targetGroup->id()));
+            $this->logger->warning('Notification de conversation : adresse de contact invalide', ['group' => $targetGroup->id()]);
 
             return;
         }
@@ -53,7 +56,7 @@ final class ConversationNotifier implements NewConversationNotifierInterface
         if ($this->notices->countInitialSince($targetGroup->id(), $now->modify('-24 hours')) > self::MAX_NEW_CONVERSATIONS_PER_DAY) {
             // Le groupe a déjà reçu son quota : la conversation existe, seul l'e-mail est retenu (sans réessai).
             $this->notices->releaseInitial($conversation->id(), $targetGroup->id());
-            error_log(sprintf('Notification de conversation : plafond quotidien atteint (groupe #%d).', $targetGroup->id()));
+            $this->logger->warning('Notification de conversation : plafond quotidien atteint', ['group' => $targetGroup->id()]);
 
             return;
         }
