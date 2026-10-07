@@ -297,6 +297,10 @@ button:active::after, .rb-btn:active::after {
   color: var(--rb-text);
 }
 
+.rb-badge[hidden] {
+  display: none; /* l'attribut hidden l'emporte sur toute règle display du badge (#322) */
+}
+
 .rb-input[type="date"],
 .rb-input[type="time"] {
   min-height: 2.5rem;
@@ -726,8 +730,4 @@ button:active::after, .rb-btn:active::after {
   font-weight: 700;
   line-height: 18px;
   text-align: center;
-}
-
-.rb-bottom-nav-badge[hidden] {
-  display: none;
 }

@@ -39,6 +39,6 @@ final class AdminBookingsCssTest extends TestCase
         $css = $this->css();
 
         self::assertMatchesRegularExpression('/\.rb-bottom-nav-badge\s*\{[^}]*margin-left:/s', $css);
-        self::assertMatchesRegularExpression('/\.rb-bottom-nav-badge\[hidden\]\s*\{[^}]*display:\s*none/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-badge\[hidden\]\s*\{[^}]*display:\s*none/s', $css, 'règle globale du badge masqué (#322)');
     }
 }
