@@ -258,3 +258,7 @@ Sur « Réserver le local », un horaire se choisit en deux listes natives, heur
 ### Relances (#238)
 
 `ConversationReminderService` (groupes, #180) et `MentionReminderService` (personnes mentionnées, #178) partagent un petit `ReminderRun` : l'instant de l'exécution, la fenêtre d'âge (`MIN_AGE` 24 h, `MAX_AGE` 7 jours : `notBefore()` / `notAfter()`), la plage de jour locale (`inDaytime()`) et les compteurs du bilan (`markSent/Failed/Skipped`, `report()`). Volontairement pas de « template method » générique : la réservation, l'envoi et la restauration diffèrent (clé groupe ou personne, `$previous` d'un seul côté).
+
+### Données du tableau de bord (#239)
+
+`Presenter\DashboardView::for(User)` construit toutes les variables du gabarit `dashboard/index` (planning, créneaux exceptionnels, blocs reçues / envoyées / archivées mêlant échanges et réservations, groupe et initiales de l'en-tête) ; `PageController::dashboard()` ne fait plus que l'appeler. Chaque groupe demandeur ou titulaire n'est lu qu'**une fois** (les groupes de l'utilisateur sont déjà connus ; `DashboardViewTest` le garde avec `CountingGroupRepository`). `roleOf` reste appelé une fois par groupe de l'utilisateur (borné par ses groupes ; `GroupRepositoryInterface` est à son plafond de méthodes). `NotificationPreferenceRepositoryInterface` est une dépendance obligatoire de `PageController`.

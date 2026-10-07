@@ -34,6 +34,7 @@ use App\Tests\Support\FastPasswordHasher;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
+use App\Tests\Support\TestDashboard;
 
 /** #292 : le bloc « Demandes de créneau » suit à la fois les échanges entre groupes et les réservations libres, et les distingue d'un coup d'œil. */
 #[\PHPUnit\Framework\Attributes\Group('db')]
@@ -79,14 +80,12 @@ final class DashboardRequestsTest extends RepositoryTestCase
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
             new CsrfTokenManager($session),
             new AuthGuard($this->auth),
-            new AvailabilityService($this->exceptions, $this->groups, $this->slots),
             $this->groups,
             $slotService,
             new GroupService($this->groups, $users),
             new MysqlGroupDocumentRepository($this->pdo),
-            new PlanningView($slotService, new PlanningDays(), new MockClock('2026-10-06 12:00:00'), new \DateTimeZone('Europe/Paris')),
-            null,
-            new DashboardBookings($this->service),
+            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
+            TestDashboard::view($this->pdo),
         );
     }
 

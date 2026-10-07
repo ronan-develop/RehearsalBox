@@ -70,6 +70,7 @@ use App\Presenter\ConversationUpdates;
 use App\Presenter\MessagesPageView;
 use App\Presenter\PlanningDays;
 use App\Presenter\DashboardBookings;
+use App\Presenter\DashboardView;
 use App\Presenter\PlanningView;
 use App\Repository\Contract\ConversationAlertRepositoryInterface;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
@@ -247,14 +248,18 @@ return static function (array $config): Container {
         $c->get(TemplateRendererInterface::class),
         $c->get(CsrfTokenManager::class),
         $c->get(AuthGuard::class),
-        $c->get(AvailabilityServiceInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(SlotServiceInterface::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupDocumentRepositoryInterface::class),
-        $c->get(PlanningView::class),
         $c->get(NotificationPreferenceRepositoryInterface::class),
-        new DashboardBookings($c->get(FreeSlotBookingService::class)),
+        new DashboardView(
+            $c->get(AvailabilityServiceInterface::class),
+            $c->get(GroupRepositoryInterface::class),
+            $c->get(SlotServiceInterface::class),
+            $c->get(PlanningView::class),
+            new DashboardBookings($c->get(FreeSlotBookingService::class)),
+        ),
     ));
 
     $container->set(PlanningView::class, fn ($c) => new PlanningView(

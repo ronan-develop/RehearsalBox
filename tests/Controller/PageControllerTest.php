@@ -30,6 +30,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
+use App\Tests\Support\TestDashboard;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class PageControllerTest extends RepositoryTestCase
@@ -53,12 +54,12 @@ final class PageControllerTest extends RepositoryTestCase
             new PhpTemplateRenderer(__DIR__ . '/../../templates'),
             new CsrfTokenManager($session),
             $authGuard,
-            $availabilityService,
             $groupRepository,
             $slotService,
             $groupService,
             $groupDocumentRepository,
-            new PlanningView($slotService, new PlanningDays(), new MockClock('2026-10-06 12:00:00'), new \DateTimeZone('Europe/Paris')),
+            new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo),
+            TestDashboard::view($this->pdo),
         );
 
         return [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository, $slotRepository];
