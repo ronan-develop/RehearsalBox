@@ -10,14 +10,14 @@ use App\Group\Entity\Group;
 use App\Group\Entity\GroupDocument;
 use App\Planning\Entity\RecurringSlot;
 use App\Account\Entity\User;
-use App\Repository\MysqlConversationRepository;
+use App\Messaging\Repository\MysqlConversationRepository;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupImpactRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Repository\MysqlConversationTrashRepository;
+use App\Messaging\Repository\Participation\MysqlConversationTrashRepository;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 

@@ -9,7 +9,7 @@ use App\Planning\Entity\Requester;
 use App\Planning\Entity\SlotException;
 use App\Planning\Entity\TimeRange;
 use App\Planning\Repository\SlotExceptionRepositoryInterface;
-use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Planning\Exception\DuplicateOccurrenceException;
 
 final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInterface
 {

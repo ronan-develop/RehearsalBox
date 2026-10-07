@@ -14,7 +14,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Planning\Service\AvailabilityServiceInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
-use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
 use App\Planning\Exception\RequestAlreadyRespondedException;
 use App\Planning\Exception\RequestChangedException;

@@ -46,7 +46,7 @@ interface AvailabilityServiceInterface
      *
      * @throws \App\Security\Exception\AccessDeniedException créneau inconnu ou supprimé, son propre créneau, ou $userId hors du groupe demandeur
      * @throws \App\Planning\Exception\AvailabilityValidationException date, motif ou plage invalides (erreurs par champ)
-     * @throws \App\Repository\Exception\DuplicateOccurrenceException cette date est déjà demandée sur ce créneau
+     * @throws \App\Planning\Exception\DuplicateOccurrenceException cette date est déjà demandée sur ce créneau
      */
     public function createRequest(
         int $recurringSlotId,

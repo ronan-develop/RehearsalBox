@@ -9,7 +9,7 @@ use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
 use App\Planning\Entity\RecurringSlot;
 use App\Account\Entity\User;
-use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;

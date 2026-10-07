@@ -9,7 +9,7 @@ use App\Group\Entity\Group;
 use App\Group\Entity\LineupMember;
 use App\Group\Entity\UpcomingShow;
 use App\Group\Repository\GroupRepositoryInterface;
-use App\Repository\Exception\DuplicateGroupNameException;
+use App\Group\Exception\DuplicateGroupNameException;
 use App\Support\Slug;
 
 final class MysqlGroupRepository implements GroupRepositoryInterface
