@@ -9,13 +9,13 @@ use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
 use App\Account\Controller\AdminUserPageController;
-use App\Controller\Api\ConversationApiController;
-use App\Controller\Api\ConversationFeedApiController;
-use App\Controller\Api\ConversationMuteApiController;
+use App\Messaging\Controller\Api\ConversationApiController;
+use App\Messaging\Controller\Api\ConversationFeedApiController;
+use App\Messaging\Controller\Api\ConversationMuteApiController;
 use App\Planning\Controller\Api\FreeSlotBookingApiController;
-use App\Controller\Api\ConversationTrashApiController;
-use App\Controller\Api\MemberApiController;
-use App\Controller\Api\MessageApiController;
+use App\Messaging\Controller\Api\ConversationTrashApiController;
+use App\Messaging\Controller\Api\MemberApiController;
+use App\Messaging\Controller\Api\MessageApiController;
 use App\Group\Controller\Api\GroupApiController;
 use App\Account\Controller\Api\UserAdminApiController;
 use App\Group\Controller\Api\GroupDocumentApiController;
@@ -23,7 +23,7 @@ use App\Group\Controller\Api\GroupSpaceApiController;
 use App\Account\Controller\Api\PasswordResetApiController;
 use App\Planning\Controller\Api\PlanningFragmentApiController;
 use App\Planning\Controller\Api\SlotApiController;
-use App\Controller\MessagesPageController;
+use App\Messaging\Controller\MessagesPageController;
 use App\Controller\PageController;
 
 return [

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Container;
 
-use App\Service\ConversationNotifier;
-use App\Service\ConversationReminderService;
-use App\Service\ConversationService;
-use App\Service\MentionNotifier;
-use App\Service\MentionReminderService;
+use App\Messaging\Notification\ConversationNotifier;
+use App\Messaging\Notification\ConversationReminderService;
+use App\Messaging\Service\ConversationService;
+use App\Messaging\Notification\MentionNotifier;
+use App\Messaging\Notification\MentionReminderService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

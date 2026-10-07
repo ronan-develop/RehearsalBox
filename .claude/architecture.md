@@ -6,20 +6,26 @@ Pas de framework : PHP pur + JS vanilla + PDO. Garde-fou permanent : pas d'usine
 
 ```txt
 src/
-├── Http/           ← Request/Response/JsonResponse/RedirectResponse
-├── Routing/        ← Router, Route, RouteCollection (routes "pages" vs "api" séparées)
+├── Account/         ← comptes : connexion, mots de passe, e-mail, profil, administration des utilisateurs, limitation de débit
+├── Group/           ← groupes, documents, gestionnaires, effectif
+├── Planning/        ← occupation du local : créneaux fixes, demandes d'échange, réservations libres (+ plan, notifications)
+├── Messaging/       ← messagerie : conversations, mentions, sourdine, invités, relances (Repository/, Notification/, Service/Mention/…)
+├── Dashboard/       ← composition du tableau de bord (DashboardView, éléments du bloc « Demandes de créneau »)
+│     chaque domaine : Entity/ · Repository/ (interfaces À CÔTÉ des implémentations) · Service/ · Exception/ ·
+│                      Controller/ (pages) + Controller/Api/ (JSON, toute action d'écriture) · Presenter/ · Security/ (politiques)
+├── Controller/      ← PageController (pages transverses : connexion, compte, espace groupe, admin des créneaux)
+├── Http/            ← Request/Response/JsonResponse/RedirectResponse, ExceptionTranslator
+├── Routing/         ← Router, Route, RouteCollection (routes "pages" vs "api" séparées)
 ├── Container/       ← DI container maison, définitions explicites, pas d'auto-wiring
-├── Controller/
-│   ├── PageController.php   ← rend du HTML, GET only (navigation)
-│   └── Api/                 ← rend du JSON uniquement, porte toute action d'écriture
-├── Service/         ← logique métier (AuthService, AvailabilityService, SlotService, GroupService)
-├── Repository/      ← accès PDO, implémentent les interfaces de Repository/Contract
-├── Entity/          ← entités simples, sans comportement DB (pas de Doctrine)
-├── Security/        ← PasswordHasher, Session, CsrfTokenManager, AuthGuard
+├── Security/        ← socle : AuthGuard, CsrfTokenManager, Session, SecurityHeaders, SafeRedirect, AppUrl
+├── Validation/      ← FieldValidationException (socle des erreurs par champ)
 ├── View/            ← TemplateRendererInterface / PhpTemplateRenderer (include PHP natif)
-├── Mail/            ← Mailbox (transport + expéditeur + URL de base + rendu : tout ce qui voyage ensemble, #237), MailRenderer : e-mail en HTML + texte (templates/mail/, gabarit commun layout.php), SafeMail
-└── Database/        ← ConnectionFactory (PDO), TransactionRunner
+├── Mail/            ← Mailbox (transport + expéditeur + URL de base + rendu : tout ce qui voyage ensemble, #237), MailRenderer, SafeMail
+├── Support/         ← petits utilitaires purs (FrenchDate, QuarterHour, Slug, Initials…)
+└── Database/ · Migration/ · Deploy/   ← connexion PDO et transactions, migrations, outils de déploiement
 ```
+
+Règle d'organisation (audit #287, voir `.claude/audit-architecture.md`) : **par domaine d'abord, par type ensuite**, au plus **12 classes par dossier** (`bin/check-folders.php`, en CI). Les tests suivent le même rangement (`tests/<Domaine>/…`).
 
 ## E-mails (#157)
 

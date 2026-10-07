@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Planning\Repository;
 
 use App\Planning\Entity\SlotException;
-use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Planning\Exception\DuplicateOccurrenceException;
 
 interface SlotExceptionRepositoryInterface
 {

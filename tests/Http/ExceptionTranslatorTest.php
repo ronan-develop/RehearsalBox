@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Http;
 
 use App\Http\ExceptionTranslator;
-use App\Repository\Exception\DuplicateGroupNameException;
-use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Group\Exception\DuplicateGroupNameException;
+use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
-use App\Service\Exception\ConversationRateLimitException;
-use App\Service\Exception\ConversationValidationException;
+use App\Messaging\Exception\ConversationRateLimitException;
+use App\Messaging\Exception\ConversationValidationException;
 use App\Planning\Exception\FreeSlotBookingConflictException;
 use App\Group\Exception\GroupValidationException;
 use App\Account\Exception\InvalidEmailChangeException;

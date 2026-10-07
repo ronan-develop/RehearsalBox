@@ -15,7 +15,7 @@ use App\Planning\Repository\MysqlSlotExceptionRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Planning\Service\AvailabilityService;
-use App\Repository\Exception\DuplicateOccurrenceException;
+use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
 use App\Planning\Exception\RequestAlreadyRespondedException;
 use App\Planning\Exception\RequestChangedException;

@@ -78,7 +78,7 @@ Un **domaine par PR**, **déplacement pur** (`git mv`, changement de `namespace`
 | 1 | #317 | **Groupes** (`src/Group`) ✅ | 27 | allège Repository, Contract, Entity |
 | 2 | #316 | **Planning** (créneaux, échanges **et réservations libres**) + **Tableau de bord** ✅ | 47 | allège Entity, Presenter, Service |
 | 3 | #318 | **Comptes** ✅ | 41 | allège Security, Service, Exception |
-| 4 | #319 | **Messagerie** | 78 | vide Service, Repository, Contract, Entity |
+| 4 | #319 | **Messagerie** ✅ | 78 | vide Service, Repository, Contract, Entity |
 | 5 | #320 | nettoyage | classes mortes (GroupManager, RedirectResponse) | 4 | décision du propriétaire |
 
 Coût mesuré : **182 fichiers** importent `App\Repository\…` et **126** `App\Service\…` ; un domaine entier touche donc 30 à 90 fichiers (surtout des `use`). Outils : `git mv` + substitution des `namespace`/`use` par script, puis PHPStan et la suite complète comme filet.
@@ -94,7 +94,7 @@ Risques et parades :
 ## 5. Garde-fou (déjà livré)
 
 - `tools/FolderBudget.php` (testé : `tests/Tools/FolderBudgetTest.php`), lancé par `bin/check-folders.php` **en CI** (étape « Classes per folder budget »), à côté de `bin/check-size.php`.
-- Exceptions figées dans `config/folder-budget-exceptions.php` (8 dossiers, à leur effectif actuel) : un dossier ne peut plus grossir, une exception devenue inutile **fait échouer** le contrôle jusqu'à ce qu'on la retire.
+- Exceptions figées dans `config/folder-budget-exceptions.php` (**liste vide depuis la migration de la messagerie** : plus aucun dossier au-dessus du plafond) : un dossier ne peut plus grossir, une exception devenue inutile **fait échouer** le contrôle jusqu'à ce qu'on la retire.
 
 ## 6. Mode d'emploi pour un déplacement
 

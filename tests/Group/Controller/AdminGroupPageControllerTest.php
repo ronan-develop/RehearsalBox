@@ -8,7 +8,7 @@ use App\Group\Controller\AdminGroupPageController;
 use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
 use App\Account\Entity\User;
-use App\Repository\MysqlConversationRepository;
+use App\Messaging\Repository\MysqlConversationRepository;
 use App\Group\Repository\MysqlGroupImpactRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;

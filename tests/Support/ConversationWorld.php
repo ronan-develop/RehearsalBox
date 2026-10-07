@@ -8,14 +8,14 @@ use App\Database\TransactionRunner;
 use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
 use App\Account\Entity\User;
-use App\Repository\MysqlConversationMessageRepository;
-use App\Repository\MysqlConversationPresenceRepository;
-use App\Repository\MysqlConversationRepository;
+use App\Messaging\Repository\MysqlConversationMessageRepository;
+use App\Messaging\Repository\MysqlConversationPresenceRepository;
+use App\Messaging\Repository\MysqlConversationRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Service\ConversationReader;
-use App\Service\ConversationService;
-use App\Service\ConversationThreadBuilder;
+use App\Messaging\Service\ConversationReader;
+use App\Messaging\Service\ConversationService;
+use App\Messaging\Service\ConversationThreadBuilder;
 use Symfony\Component\Clock\MockClock;
 
 /**
@@ -44,7 +44,7 @@ trait ConversationWorld
 
     private function readerFor(MysqlConversationRepository $conversations, MysqlConversationMessageRepository $messages, MysqlConversationPresenceRepository $presence): ConversationReader
     {
-        $access = new \App\Service\ConversationAccess($conversations, $this->groups);
+        $access = new \App\Messaging\Service\ConversationAccess($conversations, $this->groups);
 
         return new ConversationReader(
             $access,
@@ -80,8 +80,8 @@ trait ConversationWorld
         return [$alice, $bob, $this->group('Alpha', '#aa0000', $alice), $this->group('Beta', '#0000aa', $bob)];
     }
 
-    /** @param list<\App\Entity\ConversationMessage> $messages */
-    private function lastOf(array $messages): \App\Entity\ConversationMessage
+    /** @param list<\App\Messaging\Entity\ConversationMessage> $messages */
+    private function lastOf(array $messages): \App\Messaging\Entity\ConversationMessage
     {
         return $messages[array_key_last($messages)];
     }
