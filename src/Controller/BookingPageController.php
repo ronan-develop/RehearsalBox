@@ -6,7 +6,7 @@ namespace App\Controller;
 
 use App\Http\Response;
 use App\Presenter\MemberBookingsView;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Service\FreeSlotBookingPolicy;

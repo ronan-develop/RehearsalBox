@@ -7,7 +7,7 @@ namespace App\Tests\Presenter;
 use App\Entity\Conversation;
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationSummary;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Presenter\ConversationPresenter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -61,7 +61,7 @@ final class ConversationPresenterTest extends TestCase
     public function testAHostileGroupColourIsNeverPassedToTheClient(): void
     {
         $presenter = new ConversationPresenter();
-        $group = new \App\Entity\Group(3, 'Alpha', null, ';top:0;', 'alpha@example.test');
+        $group = new \App\Group\Entity\Group(3, 'Alpha', null, ';top:0;', 'alpha@example.test');
         $message = new \App\Entity\ConversationMessage(1, 1, 5, 'Alice', 'Salut', new \DateTimeImmutable('2026-10-04 10:00:00'), false);
 
         self::assertNull($presenter->message($message, $group, 5)['groupColor']);

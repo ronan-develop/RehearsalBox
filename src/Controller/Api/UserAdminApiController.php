@@ -6,7 +6,7 @@ namespace App\Controller\Api;
 
 use App\Entity\AdminUserItem;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Http\JsonResponse;
 use App\Http\Request;

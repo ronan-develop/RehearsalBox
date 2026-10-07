@@ -6,12 +6,12 @@ namespace App\Tests\Controller\Api;
 
 use App\Controller\Api\MemberApiController;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Http\Request;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMemberDirectory;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;

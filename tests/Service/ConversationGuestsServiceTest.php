@@ -6,7 +6,7 @@ namespace App\Tests\Service;
 
 use App\Database\TransactionRunner;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Repository\Contract\ConversationRepositoryInterface as Box;
 use App\Repository\MysqlConversationAlertRepository;
@@ -15,7 +15,7 @@ use App\Repository\MysqlConversationMentionRepository;
 use App\Repository\MysqlConversationRepository;
 use App\Repository\MysqlConversationPresenceRepository;
 use App\Repository\MysqlConversationMessageRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\ConversationAccess;

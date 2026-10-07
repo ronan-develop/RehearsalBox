@@ -10,7 +10,7 @@ use App\Entity\ConversationMessage;
 use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Security\ConversationInputPolicy;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\ConversationMentionsInterface;

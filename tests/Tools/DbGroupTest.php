@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * #301 : `composer test:quick` exclut le groupe « db » pour la boucle de travail. PHPUnit n'hérite pas d'un groupe posé sur la classe
- * parente : chaque classe de test qui touche la base doit donc porter #[\PHPUnit\Framework\Attributes\Group('db')] elle-même (nom complet : certains tests importent déjà App\Entity\Group), sinon elle fausserait le test rapide.
+ * parente : chaque classe de test qui touche la base doit donc porter #[\PHPUnit\Framework\Attributes\Group('db')] elle-même (nom complet : certains tests importent déjà App\Group\Entity\Group), sinon elle fausserait le test rapide.
  */
 final class DbGroupTest extends TestCase
 {

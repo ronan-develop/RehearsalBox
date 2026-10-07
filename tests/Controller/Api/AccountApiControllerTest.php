@@ -9,7 +9,7 @@ use App\Database\TransactionRunner;
 use App\Entity\Enum\UserRole;
 use App\Entity\User;
 use App\Http\Request;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlPasswordResetRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;

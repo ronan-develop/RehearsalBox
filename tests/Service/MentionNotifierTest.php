@@ -6,12 +6,12 @@ namespace App\Tests\Service;
 
 use App\Entity\Conversation;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationGuestRepository;
 use App\Repository\MysqlConversationMuteRepository;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMentionNoticeRepository;
 use App\Repository\MysqlNotificationPreferenceRepository;
 use App\Repository\MysqlUserRepository;

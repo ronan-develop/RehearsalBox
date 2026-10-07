@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Contract;
 
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 
 interface AuthServiceInterface

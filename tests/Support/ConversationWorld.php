@@ -6,12 +6,12 @@ namespace App\Tests\Support;
 
 use App\Database\TransactionRunner;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationPresenceRepository;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Service\ConversationReader;
 use App\Service\ConversationService;

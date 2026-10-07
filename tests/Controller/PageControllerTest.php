@@ -6,13 +6,13 @@ namespace App\Tests\Controller;
 
 use App\Controller\PageController;
 use App\Entity\Enum\ExceptionDirection;
-use App\Entity\Enum\GroupUserRole;
+use App\Group\Entity\GroupUserRole;
 use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
-use App\Repository\MysqlGroupDocumentRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupDocumentRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
@@ -24,7 +24,7 @@ use App\Security\CsrfTokenManager;
 use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
 use App\Service\AvailabilityService;
-use App\Service\GroupService;
+use App\Group\Service\GroupService;
 use App\Service\SlotService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
@@ -515,8 +515,8 @@ final class PageControllerTest extends RepositoryTestCase
         $user = $this->createLoggedInUser($userRepository, $authService);
         $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
         $groupRepository->addMember($group->id(), $user->id(), GroupUserRole::Gestionnaire);
-        $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
-        $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'fiche technique.pdf', 'abc123.pdf', 'application/pdf', 100, $user->id()));
+        $documentRepository = new \App\Group\Repository\MysqlGroupDocumentRepository($this->pdo);
+        $documentRepository->save(new \App\Group\Entity\GroupDocument(0, $group->id(), 'fiche technique.pdf', 'abc123.pdf', 'application/pdf', 100, $user->id()));
 
         $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-test/space', [], [], []), 'groupe-test');
 
@@ -556,8 +556,8 @@ final class PageControllerTest extends RepositoryTestCase
         $manager = $this->createLoggedInUser($userRepository, $authService);
         $group = $groupRepository->save(new Group(0, 'Groupe Tiers', null, null, 'contact@example.test'));
         $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
-        $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'confidentiel.pdf', 'abc123.pdf', 'application/pdf', 100, $manager->id()));
+        $documentRepository = new \App\Group\Repository\MysqlGroupDocumentRepository($this->pdo);
+        $documentRepository->save(new \App\Group\Entity\GroupDocument(0, $group->id(), 'confidentiel.pdf', 'abc123.pdf', 'application/pdf', 100, $manager->id()));
 
         $stranger = $this->createUser($userRepository, 'stranger@rehearsalbox.test');
         $authService->attempt('stranger@rehearsalbox.test', 'password');
@@ -575,8 +575,8 @@ final class PageControllerTest extends RepositoryTestCase
         $group = $groupRepository->save(new Group(0, 'Groupe Public', null, null, 'contact@example.test'));
         $manager = $this->createUser($userRepository, 'manager@rehearsalbox.test');
         $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
-        $documentRepository = new \App\Repository\MysqlGroupDocumentRepository($this->pdo);
-        $documentRepository->save(new \App\Entity\GroupDocument(0, $group->id(), 'confidentiel.pdf', 'abc123.pdf', 'application/pdf', 100, $manager->id()));
+        $documentRepository = new \App\Group\Repository\MysqlGroupDocumentRepository($this->pdo);
+        $documentRepository->save(new \App\Group\Entity\GroupDocument(0, $group->id(), 'confidentiel.pdf', 'abc123.pdf', 'application/pdf', 100, $manager->id()));
 
         $response = $controller->groupSpace(new \App\Http\Request('GET', '/groups/groupe-public/space', [], [], []), 'groupe-public');
 

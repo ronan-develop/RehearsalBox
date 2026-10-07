@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Support\StrictId;

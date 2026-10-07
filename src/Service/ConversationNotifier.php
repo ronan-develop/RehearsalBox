@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Conversation;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Mail\Mailbox;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Support\HeaderText;

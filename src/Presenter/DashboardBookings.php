@@ -6,7 +6,7 @@ namespace App\Presenter;
 
 use App\Entity\DashboardBookingItem;
 use App\Entity\Enum\FreeSlotBookingStatus;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Service\FreeSlotBookingService;
 
 /**

@@ -8,7 +8,7 @@ use App\Entity\Enum\Weekday;
 use App\Entity\RecurringSlot;
 use App\Entity\RequestableSlot;
 use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Service\Contract\SlotServiceInterface;

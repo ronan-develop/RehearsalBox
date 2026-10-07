@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Group\Entity\Group;
+
 /** Une ligne de la page admin des utilisateurs : le compte, ses groupes, et son état de verrouillage. */
 final class AdminUserItem
 {

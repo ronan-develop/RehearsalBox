@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Entity\Conversation;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Service\Contract\NewConversationNotifierInterface;
 use App\Service\NoNewConversationNotice;
 use PHPUnit\Framework\Attributes\Test;

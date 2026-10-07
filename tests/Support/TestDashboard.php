@@ -10,7 +10,7 @@ use App\Presenter\PlanningDays;
 use App\Presenter\PlanningView;
 use App\Repository\MysqlBookingDateLock;
 use App\Repository\MysqlFreeSlotBookingRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
 use App\Service\AvailabilityService;
