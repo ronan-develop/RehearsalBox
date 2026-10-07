@@ -328,3 +328,15 @@ La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.p
 - **Indicateur de dégradation** (`Report/Load/DegradationDetector`, fonction pure, testée avec des séries simulées) : les 3 dernières heures sont comparées aux heures des 7 derniers jours **de volume comparable** (±50 %) : temps de réponse orange à ×1,5 et rouge à ×2 (et au moins +20 ms), erreurs 5xx rouges dès 3 erreurs récentes dont le taux dépasse trois fois celui de la base (et 1 %) sans hausse de trafic. Pas assez d'historique comparable (moins de 6 heures) : **inconnu**, jamais « normal » par défaut.
 - Pas encore : nombre et durée des requêtes SQL (il faudrait instrumenter PDO) et erreurs 503/508 de l'hébergeur (elles sont renvoyées avant PHP : le site ne peut pas les compter ; seul un contrôle externe les verrait).
 
+## Tableau de bord des mesures : alertes par e-mail (#199)
+
+Dernière étape : `bin/collect-metrics.php` (cron horaire) appelle `MetricsAlerter` après l'instantané de santé.
+
+- **Destinataire : le propriétaire du tableau de bord** (`metrics.viewer_email`), pas tous les administrateurs (décision du propriétaire, #194). Pas d'adresse configurée, ou `metrics.alerts.enabled = false` : aucune alerte. Il n'y a donc pas de désabonnement dans « Mon compte » : le réglage est dans `config.local.php`.
+- **Une alerte n'existe que si l'indicateur est ROUGE** selon les seuils des pages (`AlertEvaluator`) : cron des relances muet, sauvegarde trop ancienne, disque presque plein, pic d'erreurs 5xx sur la dernière heure, dégradation de la charge, rafale ou échecs de connexion répétés (un scanner seul n'en est pas une). Un orange se lit sur la page et ne réveille personne.
+- **Anti-bruit** : `metric_alerts` (migration 033) garde la date du dernier envoi par type ; un type n'est pas renvoyé avant `metrics.alerts.min_gap_hours` (12 h par défaut), et toutes les alertes dues partent dans **un seul e-mail de synthèse**.
+- **Aucun contenu sensible** : les phrases ne contiennent que des chiffres, jamais d'adresse ni d'empreinte ; l'e-mail renvoie au tableau de bord.
+- **Un échec d'envoi n'a aucun effet** : `Mailbox::sendSafely`, rien n'est marqué envoyé, la collecte suivante réessaie.
+- Correction découverte en route : la collecte écrit dans son propre journal `storage/logs/collect.log` (`logging.collect_path`). Elle écrivait dans `cron.log`, dont la date de modification sert justement à prouver que le cron des relances tourne : une collecte active aurait masqué un cron muet.
+- Export CSV des rapports : évalué, **non fait** (aucun besoin exprimé, les pages ont déjà leur tableau de valeurs ; à reprendre si le besoin se précise).
+

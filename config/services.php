@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Container\Container;
 use App\Logging\FileLogger;
+use App\Metrics\Alert\AlertEvaluator;
+use App\Metrics\Alert\MetricsAlerter;
+use App\Metrics\Alert\MysqlAlertRepository;
 use App\Metrics\Collection\HealthProbe;
 use App\Metrics\Controller\MetricsPageController;
 use App\Metrics\MetricsAccess;
@@ -179,6 +182,13 @@ return static function (array $config): Container {
         $config['logging']['keep'],
     ));
     // Journal du cron : niveau « info » pour prouver, à chaque passage, que la tâche a tourné.
+    $container->set('logger.collect', fn ($c) => new FileLogger(
+        $config['logging']['collect_path'],
+        $c->get(ClockInterface::class),
+        'info',
+        $config['logging']['max_bytes'],
+        $config['logging']['keep'],
+    ));
     $container->set('logger.cron', fn ($c) => new FileLogger(
         $config['logging']['cron_path'],
         $c->get(ClockInterface::class),
@@ -221,6 +231,31 @@ return static function (array $config): Container {
             ),
             new LoadReportBuilder($c->get(MetricsReaderInterface::class), new DegradationDetector(), $thresholds, $c->get(ClockInterface::class), $timezone),
             $timezone,
+        );
+    });
+    $container->set(MetricsAlerter::class, function ($c) use ($config) {
+        $anomalies = $config['metrics']['anomalies'];
+        $alerts = $config['metrics']['alerts'];
+
+        return new MetricsAlerter(
+            new AlertEvaluator(
+                $c->get(MetricsReaderInterface::class),
+                new Thresholds($config['metrics']['thresholds']),
+                new DegradationDetector(),
+                new AnomalyDetector(
+                    scannerHits: (int) ($anomalies['scanner_hits'] ?? 3),
+                    burstEvents: (int) ($anomalies['burst_events'] ?? 30),
+                    burstMinutes: (int) ($anomalies['burst_minutes'] ?? 5),
+                    stuffingFailures: (int) ($anomalies['stuffing_failures'] ?? 10),
+                    stuffingMinutes: (int) ($anomalies['stuffing_minutes'] ?? 60),
+                ),
+                $c->get(ClockInterface::class),
+            ),
+            new MysqlAlertRepository($c->get(PDO::class)),
+            $c->get(Mailbox::class),
+            $c->get(ClockInterface::class),
+            ($alerts['enabled'] ?? true) ? (string) $config['metrics']['viewer_email'] : '',
+            max(1, (int) ($alerts['min_gap_hours'] ?? 12)),
         );
     });
     $container->set(MetricsMaintenance::class, fn ($c) => new MetricsMaintenance(
