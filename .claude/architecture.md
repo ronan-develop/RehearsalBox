@@ -262,3 +262,7 @@ Sur « Réserver le local », un horaire se choisit en deux listes natives, heur
 ### Données du tableau de bord (#239)
 
 `Presenter\DashboardView::for(User)` construit toutes les variables du gabarit `dashboard/index` (planning, créneaux exceptionnels, blocs reçues / envoyées / archivées mêlant échanges et réservations, groupe et initiales de l'en-tête) ; `PageController::dashboard()` ne fait plus que l'appeler. Chaque groupe demandeur ou titulaire n'est lu qu'**une fois** (les groupes de l'utilisateur sont déjà connus ; `DashboardViewTest` le garde avec `CountingGroupRepository`). `roleOf` reste appelé une fois par groupe de l'utilisateur (borné par ses groupes ; `GroupRepositoryInterface` est à son plafond de méthodes). `NotificationPreferenceRepositoryInterface` est une dépendance obligatoire de `PageController`.
+
+### Cartes exceptionnelles rendues par le serveur (#243)
+
+Les cartes « créneau exceptionnel » sont dessinées par **un seul gabarit** : `templates/dashboard/_exceptional-cards.php`, inclus par le tableau de bord et rendu par `Presenter\ExceptionalPlanningFragment` pour `GET /api/planning/exceptional` (`PlanningFragmentApiController`, connexion requise) qui renvoie `{html, count}`. Après l'acceptation d'une demande, `exceptional-planning.js` insère ce HTML tel quel (plus de miroir `buildExceptionalCardMarkup`). `PageControllerTest` garde que la page et le fragment contiennent exactement les mêmes cartes. `GET /api/planning` (JSON) reste disponible mais le navigateur ne s'en sert plus.

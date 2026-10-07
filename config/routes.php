@@ -21,6 +21,7 @@ use App\Controller\Api\UserAdminApiController;
 use App\Controller\Api\GroupDocumentApiController;
 use App\Controller\Api\GroupSpaceApiController;
 use App\Controller\Api\PasswordResetApiController;
+use App\Controller\Api\PlanningFragmentApiController;
 use App\Controller\Api\SlotApiController;
 use App\Controller\MessagesPageController;
 use App\Controller\PageController;
@@ -65,6 +66,7 @@ return [
         ['PATCH', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'update']],
         ['DELETE', '/api/availability/{exceptionId}', [AvailabilityApiController::class, 'destroy']],
         ['GET',    '/api/planning', [SlotApiController::class, 'planning']],
+        ['GET',    '/api/planning/exceptional', [PlanningFragmentApiController::class, 'exceptional']],
         ['GET',    '/api/admin/slots', [SlotApiController::class, 'index']],
         ['POST',   '/api/admin/slots', [SlotApiController::class, 'store']],
         ['PATCH',  '/api/admin/slots/{id}', [SlotApiController::class, 'update']],
