@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Account\Controller;
+namespace App\Account\Controller\Api;
 
 use App\Http\JsonResponse;
 use App\Http\Request;

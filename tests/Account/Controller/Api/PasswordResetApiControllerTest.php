@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Account\Controller;
+namespace App\Tests\Account\Controller\Api;
 
-use App\Account\Controller\PasswordResetApiController;
+use App\Account\Controller\Api\PasswordResetApiController;
 use App\Database\TransactionRunner;
 use App\Account\Entity\UserRole;
 use App\Account\Entity\User;

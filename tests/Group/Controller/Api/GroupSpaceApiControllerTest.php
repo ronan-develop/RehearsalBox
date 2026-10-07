@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Group\Controller;
+namespace App\Tests\Group\Controller\Api;
 
-use App\Group\Controller\GroupSpaceApiController;
+use App\Group\Controller\Api\GroupSpaceApiController;
 use App\Group\Entity\GroupUserRole;
 use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;

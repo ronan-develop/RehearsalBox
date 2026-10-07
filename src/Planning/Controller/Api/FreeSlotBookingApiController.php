@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Planning\Controller;
+namespace App\Planning\Controller\Api;
 
 use App\Account\Entity\UserRole;
 use App\Planning\Entity\FreeSlotBooking;

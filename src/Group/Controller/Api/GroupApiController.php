@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Group\Controller;
+namespace App\Group\Controller\Api;
 
 use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;

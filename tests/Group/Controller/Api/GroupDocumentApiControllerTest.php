@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Group\Controller;
+namespace App\Tests\Group\Controller\Api;
 
-use App\Group\Controller\GroupDocumentApiController;
+use App\Group\Controller\Api\GroupDocumentApiController;
 use App\Database\TransactionRunner;
 use App\Group\Entity\GroupUserRole;
 use App\Account\Entity\UserRole;

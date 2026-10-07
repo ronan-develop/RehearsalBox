@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Group\Controller;
+namespace App\Group\Controller\Api;
 
 use App\Group\Entity\GroupDocument;
 use App\Http\FileResponse;

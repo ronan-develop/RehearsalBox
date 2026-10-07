@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Planning\Controller;
+namespace App\Tests\Planning\Controller\Api;
 
-use App\Planning\Controller\PlanningFragmentApiController;
+use App\Planning\Controller\Api\PlanningFragmentApiController;
 use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
@@ -48,7 +48,7 @@ final class PlanningFragmentApiControllerTest extends RepositoryTestCase
         $this->slotService = new SlotService(new MysqlRecurringSlotRepository($this->pdo), $this->groups, $this->exceptions);
         $this->controller = new PlanningFragmentApiController(
             new AuthGuard($this->auth),
-            new ExceptionalPlanningFragment($this->slotService, new PhpTemplateRenderer(__DIR__ . '/../../../templates')),
+            new ExceptionalPlanningFragment($this->slotService, new PhpTemplateRenderer(__DIR__ . '/../../../../templates')),
         );
     }
 

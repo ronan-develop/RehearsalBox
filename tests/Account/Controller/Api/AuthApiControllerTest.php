@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Account\Controller;
+namespace App\Tests\Account\Controller\Api;
 
-use App\Account\Controller\AuthApiController;
+use App\Account\Controller\Api\AuthApiController;
 use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
 use App\Account\Entity\User;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Account\Controller\AccountApiController;
-use App\Account\Controller\AuthApiController;
-use App\Planning\Controller\AvailabilityApiController;
+use App\Account\Controller\Api\AccountApiController;
+use App\Account\Controller\Api\AuthApiController;
+use App\Planning\Controller\Api\AvailabilityApiController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
@@ -12,17 +12,17 @@ use App\Account\Controller\AdminUserPageController;
 use App\Controller\Api\ConversationApiController;
 use App\Controller\Api\ConversationFeedApiController;
 use App\Controller\Api\ConversationMuteApiController;
-use App\Planning\Controller\FreeSlotBookingApiController;
+use App\Planning\Controller\Api\FreeSlotBookingApiController;
 use App\Controller\Api\ConversationTrashApiController;
 use App\Controller\Api\MemberApiController;
 use App\Controller\Api\MessageApiController;
-use App\Group\Controller\GroupApiController;
-use App\Account\Controller\UserAdminApiController;
-use App\Group\Controller\GroupDocumentApiController;
-use App\Group\Controller\GroupSpaceApiController;
-use App\Account\Controller\PasswordResetApiController;
-use App\Planning\Controller\PlanningFragmentApiController;
-use App\Planning\Controller\SlotApiController;
+use App\Group\Controller\Api\GroupApiController;
+use App\Account\Controller\Api\UserAdminApiController;
+use App\Group\Controller\Api\GroupDocumentApiController;
+use App\Group\Controller\Api\GroupSpaceApiController;
+use App\Account\Controller\Api\PasswordResetApiController;
+use App\Planning\Controller\Api\PlanningFragmentApiController;
+use App\Planning\Controller\Api\SlotApiController;
 use App\Controller\MessagesPageController;
 use App\Controller\PageController;
 

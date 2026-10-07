@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Planning\Controller;
+namespace App\Tests\Planning\Controller\Api;
 
-use App\Planning\Controller\AvailabilityApiController;
+use App\Planning\Controller\Api\AvailabilityApiController;
 use App\Account\Entity\UserRole;
 use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
