@@ -37,6 +37,8 @@ $defaults = [
         'backup_dir' => null,
         // Seul compte autorisé à voir le tableau de bord (config.local.php). Vide : la page n'existe pour personne.
         'viewer_email' => '',
+        // Surcharge des seuils vert / orange / rouge des cartes d'état : [orange, rouge] par mesure (voir Report\Thresholds::DEFAULTS).
+        'thresholds' => [],
     ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',
