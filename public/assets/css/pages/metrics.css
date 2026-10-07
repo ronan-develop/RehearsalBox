@@ -164,3 +164,17 @@
 .rb-chart-table td {
   text-align: right;
 }
+
+.rb-metrics-anomalies {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rb-metrics-anomalies th,
+.rb-metrics-anomalies td {
+  padding: var(--rb-space-2) var(--rb-space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--rb-border);
+}

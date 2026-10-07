@@ -39,6 +39,8 @@ $defaults = [
         'viewer_email' => '',
         // Surcharge des seuils vert / orange / rouge des cartes d'état : [orange, rouge] par mesure (voir Report\Thresholds::DEFAULTS).
         'thresholds' => [],
+        // Seuils de détection des anomalies (voir Report\Security\AnomalyDetector) : scanner_hits, burst_events, burst_minutes, stuffing_failures, stuffing_minutes.
+        'anomalies' => [],
     ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',

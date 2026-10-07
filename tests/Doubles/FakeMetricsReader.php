@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Doubles;
 
 use App\Metrics\HealthSnapshot;
+use App\Metrics\Report\Security\SecurityEvent;
 use App\Metrics\Report\MetricsReaderInterface;
 
 final class FakeMetricsReader implements MetricsReaderInterface
@@ -14,6 +15,9 @@ final class FakeMetricsReader implements MetricsReaderInterface
 
     /** @var array<string, array<string, int>> */
     public array $events = [];
+
+    /** @var list<SecurityEvent> */
+    public array $securityEvents = [];
 
     public ?HealthSnapshot $snapshot = null;
 
@@ -29,6 +33,11 @@ final class FakeMetricsReader implements MetricsReaderInterface
     public function eventsByHour(\DateTimeImmutable $since, array $types): array
     {
         return $this->events;
+    }
+
+    public function securityEvents(\DateTimeImmutable $since, int $limit = 5000): array
+    {
+        return $this->securityEvents;
     }
 
     public function latestSnapshot(): ?HealthSnapshot

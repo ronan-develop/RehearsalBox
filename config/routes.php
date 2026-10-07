@@ -41,6 +41,7 @@ return [
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
         ['GET', '/admin/metrics', [MetricsPageController::class, 'index']],
+        ['GET', '/admin/metrics/security', [MetricsPageController::class, 'security']],
         ['GET', '/bookings', [BookingPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],

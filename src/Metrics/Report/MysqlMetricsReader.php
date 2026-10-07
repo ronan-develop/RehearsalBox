@@ -6,6 +6,7 @@ namespace App\Metrics\Report;
 
 use App\Metrics\HealthSnapshot;
 use App\Metrics\MetricEventType;
+use App\Metrics\Report\Security\SecurityEvent;
 
 final class MysqlMetricsReader implements MetricsReaderInterface
 {
@@ -51,6 +52,28 @@ final class MysqlMetricsReader implements MetricsReaderInterface
         }
 
         return $rows;
+    }
+
+    public function securityEvents(\DateTimeImmutable $since, int $limit = 5000): array
+    {
+        $types = [MetricEventType::LoginFailed, MetricEventType::AccessDenied, MetricEventType::CsrfFailed, MetricEventType::RateLimited, MetricEventType::NotFound];
+        $marks = implode(',', array_fill(0, count($types), '?'));
+        $statement = $this->pdo->prepare(
+            "SELECT type, route, ip_hash, created_at FROM metric_events WHERE created_at >= ? AND type IN ({$marks}) ORDER BY created_at DESC, id DESC LIMIT " . max(1, $limit)
+        );
+        $statement->execute([$since->format(self::DATE_FORMAT), ...array_map(static fn (MetricEventType $t): string => $t->value, $types)]);
+
+        $utc = new \DateTimeZone('UTC');
+
+        return array_map(
+            static fn (array $row): SecurityEvent => new SecurityEvent(
+                MetricEventType::from((string) $row['type']),
+                (string) $row['route'],
+                $row['ip_hash'] === null ? null : (string) $row['ip_hash'],
+                new \DateTimeImmutable((string) $row['created_at'], $utc),
+            ),
+            $statement->fetchAll(\PDO::FETCH_ASSOC),
+        );
     }
 
     public function latestSnapshot(): ?HealthSnapshot
