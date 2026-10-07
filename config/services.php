@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 use App\Container\Container;
 use App\Logging\FileLogger;
-use App\Metrics\HealthProbe;
-use App\Metrics\IpPseudonymizer;
-use App\Metrics\MetricsMaintenance;
-use App\Metrics\MetricsRecorder;
-use App\Metrics\MetricsRecorderInterface;
-use App\Metrics\MetricsRepositoryInterface;
-use App\Metrics\MysqlMetricsRepository;
+use App\Metrics\Collection\HealthProbe;
+use App\Metrics\Controller\MetricsPageController;
+use App\Metrics\MetricsAccess;
+use App\Metrics\Report\HealthReportBuilder;
+use App\Metrics\Report\MetricsReaderInterface;
+use App\Metrics\Report\MysqlMetricsReader;
+use App\Metrics\Report\Thresholds;
+use App\Metrics\Collection\IpPseudonymizer;
+use App\Metrics\Collection\MetricsMaintenance;
+use App\Metrics\Collection\MetricsRecorder;
+use App\Metrics\Collection\MetricsRecorderInterface;
+use App\Metrics\Collection\MetricsRepositoryInterface;
+use App\Metrics\Collection\MysqlMetricsRepository;
 use Psr\Log\LoggerInterface;
 use App\Account\Controller\Api\AccountApiController;
 use App\Account\Controller\Api\AuthApiController;
@@ -184,6 +190,18 @@ return static function (array $config): Container {
         new IpPseudonymizer($config['metrics']['secret']),
         $c->get(ClockInterface::class),
         $c->get(LoggerInterface::class),
+    ));
+    $container->set(MetricsReaderInterface::class, fn ($c) => new MysqlMetricsReader($c->get(PDO::class)));
+    $container->set(MetricsPageController::class, fn ($c) => new MetricsPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(AuthGuard::class),
+        new MetricsAccess((string) $config['metrics']['viewer_email']),
+        new HealthReportBuilder(
+            $c->get(MetricsReaderInterface::class),
+            new Thresholds($config['metrics']['thresholds']),
+            $c->get(ClockInterface::class),
+            new \DateTimeZone($config['app']['timezone']),
+        ),
     ));
     $container->set(MetricsMaintenance::class, fn ($c) => new MetricsMaintenance(
         $c->get(MetricsRepositoryInterface::class),

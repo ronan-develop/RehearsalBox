@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Doubles;
+
+use App\Metrics\HealthSnapshot;
+use App\Metrics\Report\MetricsReaderInterface;
+
+final class FakeMetricsReader implements MetricsReaderInterface
+{
+    /** @var array<string, array{requests: int, errors: int, durationMs: int}> */
+    public array $requests = [];
+
+    /** @var array<string, array<string, int>> */
+    public array $events = [];
+
+    public ?HealthSnapshot $snapshot = null;
+
+    public ?\DateTimeImmutable $requestedSince = null;
+
+    public function requestsByHour(\DateTimeImmutable $since): array
+    {
+        $this->requestedSince = $since;
+
+        return $this->requests;
+    }
+
+    public function eventsByHour(\DateTimeImmutable $since, array $types): array
+    {
+        return $this->events;
+    }
+
+    public function latestSnapshot(): ?HealthSnapshot
+    {
+        return $this->snapshot;
+    }
+}

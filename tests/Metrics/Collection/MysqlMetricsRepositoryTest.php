@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Metrics;
+namespace App\Tests\Metrics\Collection;
 
 use App\Metrics\HealthSnapshot;
 use App\Metrics\MetricEventType;
-use App\Metrics\MysqlMetricsRepository;
+use App\Metrics\Collection\MysqlMetricsRepository;
 use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 

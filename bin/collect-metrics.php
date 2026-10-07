@@ -15,7 +15,7 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use App\Metrics\MetricsMaintenance;
+use App\Metrics\Collection\MetricsMaintenance;
 
 $config = require __DIR__ . '/../config/config.php';
 $container = (require __DIR__ . '/../config/services.php')($config);

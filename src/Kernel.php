@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App;
 
-use App\Metrics\EventClassifier;
-use App\Metrics\MetricsRecorderInterface;
-use App\Metrics\NullMetrics;
+use App\Metrics\Collection\EventClassifier;
+use App\Metrics\Collection\MetricsRecorderInterface;
+use App\Metrics\Collection\NullMetrics;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use App\Container\ContainerInterface;

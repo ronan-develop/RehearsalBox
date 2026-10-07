@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Metrics;
+namespace App\Tests\Metrics\Collection;
 
 use App\Container\Container;
 use App\Http\JsonResponse;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Account\Controller\Api\AccountApiController;
 use App\Account\Controller\Api\AuthApiController;
 use App\Planning\Controller\Api\AvailabilityApiController;
+use App\Metrics\Controller\MetricsPageController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
@@ -39,6 +40,7 @@ return [
         ['GET', '/admin/groups', [AdminGroupPageController::class, 'index']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
+        ['GET', '/admin/metrics', [MetricsPageController::class, 'index']],
         ['GET', '/bookings', [BookingPageController::class, 'index']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],

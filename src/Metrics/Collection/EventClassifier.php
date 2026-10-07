@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Metrics;
+namespace App\Metrics\Collection;
+
+use App\Metrics\MetricEventType;
 
 /** Quel évènement ponctuel (s'il y en a un) correspond à une réponse : table unique, pure, testée. */
 final class EventClassifier

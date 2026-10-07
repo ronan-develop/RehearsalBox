@@ -302,3 +302,11 @@ La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.p
 - **Collecte horaire** : `php bin/collect-metrics.php` (`MetricsMaintenance` : un instantané `HealthProbe`, puis purge). Chaque relevé indisponible chez l'hébergeur vaut `null` et n'empêche pas les autres. Une ligne par passage dans `storage/logs/cron.log`.
 - Réglages (`config.local.php`) : `metrics.secret`, `metrics.backup_dir`, `metrics.viewer_email` (seul compte autorisé à voir le tableau de bord, #194 ; vide = page inexistante pour tous).
 
+## Tableau de bord des mesures : page « Santé et e-mails » (#196)
+
+`GET /admin/metrics?periode=24h|7j|30j` (`Metrics/Controller/MetricsPageController`), page rendue par le serveur, **sans JavaScript** : la période se choisit par un lien. **Réservée à un seul compte** (`MetricsAccess`, adresse `metrics.viewer_email` de `config.local.php`, qui doit aussi être un administrateur actif) : pour tous les autres (visiteur, musicien, **autre administrateur**, ou adresse non configurée) la réponse est le même **404** qu'une route inexistante, sans indice.
+
+- `Metrics/Report/` : `MysqlMetricsReader` (lecture, séparée de l'écriture de la collecte), `HealthReportBuilder` (regroupe en points locaux : une heure sur 24 h, un jour sur 7 et 30 jours ; calcule disponibilité, 5xx, temps moyen, e-mails, cron, sauvegarde, disque, base, version), `Thresholds` (seuils orange / rouge par mesure, surchargeables dans `metrics.thresholds`), `HealthStatus` (toujours icône **et** libellé : jamais la couleur seule), `StatusCard`.
+- `Metrics/Chart/SvgChart` : barres et courbe en SVG rendus par PHP, **sans bibliothèque**. Une couleur par graphique (jetons du thème en classes CSS `.rb-chart-*`, rien en dur), barres ≤ 24 px à bout arrondi, courbe de 2 px, grille discrète, axe unique aux valeurs rondes (1, 2, 5 × 10ᵏ), au plus 5 étiquettes d'abscisse ; chaque graphique a un titre, un résumé lu par les lecteurs d'écran et un **tableau de valeurs** repliable ; une série vide ou à une seule valeur ne casse pas le dessin. Tout texte est échappé.
+- Pas encore : l'indicateur « adresses de contact invalides » (ces cas ne sont aujourd'hui que dans le journal, pas dans les mesures).
+

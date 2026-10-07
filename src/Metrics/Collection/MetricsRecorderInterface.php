@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Metrics;
+namespace App\Metrics\Collection;
+
+use App\Metrics\MetricEventType;
 
 /**
  * Ce que le site signale pour les rapports (#195). Les écritures sont mises de côté en mémoire et envoyées par `flush()`, une

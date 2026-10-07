@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Metrics;
+namespace App\Tests\Metrics\Collection;
 
-use App\Metrics\EventClassifier;
+use App\Metrics\Collection\EventClassifier;
 use App\Metrics\MetricEventType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

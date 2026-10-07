@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Metrics;
+namespace App\Metrics\Collection;
 
 /**
  * Empreinte d'une adresse IP pour les rapports : HMAC-SHA256 avec un secret du serveur (`metrics.secret`), tronqué à 16
