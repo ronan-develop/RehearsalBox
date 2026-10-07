@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 use App\Container\Container;
 use App\Logging\FileLogger;
+use App\Metrics\HealthProbe;
+use App\Metrics\IpPseudonymizer;
+use App\Metrics\MetricsMaintenance;
+use App\Metrics\MetricsRecorder;
+use App\Metrics\MetricsRecorderInterface;
+use App\Metrics\MetricsRepositoryInterface;
+use App\Metrics\MysqlMetricsRepository;
 use Psr\Log\LoggerInterface;
 use App\Account\Controller\Api\AccountApiController;
 use App\Account\Controller\Api\AuthApiController;
@@ -170,6 +177,27 @@ return static function (array $config): Container {
         $config['logging']['keep'],
     ));
 
+    // Mesures (#195) : un enregistreur par requête (tampon en mémoire), vidé une fois la réponse livrée (public/index.php).
+    $container->set(MetricsRepositoryInterface::class, fn ($c) => new MysqlMetricsRepository($c->get(PDO::class)));
+    $container->set(MetricsRecorderInterface::class, fn ($c) => new MetricsRecorder(
+        $c->get(MetricsRepositoryInterface::class),
+        new IpPseudonymizer($config['metrics']['secret']),
+        $c->get(ClockInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+    $container->set(MetricsMaintenance::class, fn ($c) => new MetricsMaintenance(
+        $c->get(MetricsRepositoryInterface::class),
+        new HealthProbe(
+            $c->get(MetricsRepositoryInterface::class),
+            $c->get(ClockInterface::class),
+            __DIR__ . '/../storage',
+            $config['metrics']['backup_dir'],
+            $config['logging']['cron_path'],
+            __DIR__ . '/../RELEASE',
+        ),
+        $c->get(ClockInterface::class),
+    ));
+
     $container->set(PDO::class, fn () => (new ConnectionFactory($config['db']))->create());
 
     $container->set(UserRepositoryInterface::class, fn ($c) => new MysqlUserRepository($c->get(PDO::class)));
@@ -259,6 +287,7 @@ return static function (array $config): Container {
         $config['app']['base_url'],
         $c->get(MailRenderer::class),
         $c->get(LoggerInterface::class),
+        $c->get(MetricsRecorderInterface::class),
     ));
 
     $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(

@@ -34,7 +34,7 @@ final class Router
                 continue;
             }
 
-            return new MatchedRoute($route->handler, $params);
+            return new MatchedRoute($route->handler, $params, $route->pattern);
         }
 
         if ($pathMatchedByOtherMethod) {
