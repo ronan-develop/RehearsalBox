@@ -23,7 +23,7 @@
         <h1>Utilisateurs</h1>
         <p class="rb-admin-subtitle">Comptes, accès et déblocage.</p>
 
-        <form data-async data-endpoint="/api/admin/users" data-method="POST" class="rb-admin-form rb-card" data-user-create-form>
+        <rb-async-form endpoint="/api/admin/users" method="POST"><form class="rb-admin-form rb-card" data-user-create-form>
             <p class="rb-admin-note">
                 Aucun mot de passe n'est choisi ici : l'utilisateur utilise « Mot de passe oublié »
                 sur la page de connexion pour définir le sien lors de sa première connexion.
@@ -57,7 +57,7 @@
                 <span class="rb-field-error" data-field-error="groupId"></span>
             </div>
             <button type="submit" class="rb-btn-primary">Créer le compte</button>
-        </form>
+        </form></rb-async-form>
 
         <div class="rb-user-list" data-user-list data-current-user-id="<?= e((string) $currentUserId) ?>">
             <?php foreach ($items as $item): ?>

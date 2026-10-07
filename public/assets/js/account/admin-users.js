@@ -4,7 +4,6 @@
  * Après chaque action réussie, la liste est rechargée depuis l'API (une seule
  * source de vérité : l'état affiché est celui du serveur).
  */
-import { initAsyncForms } from '../core/forms.js';
 import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
 import { confirmAction } from '../ui/rb-confirm-dialog.js';
@@ -71,9 +70,7 @@ export function initAdminUsers(root = document) {
     return;
   }
 
-  initAsyncForms(root);
-
-  const form = root.querySelector('[data-user-create-form]');
+  const form = root.querySelector('rb-async-form[endpoint="/api/admin/users"]');
   form?.addEventListener('async-success', async () => {
     form.reset();
     try {

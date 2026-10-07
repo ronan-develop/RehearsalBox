@@ -90,7 +90,7 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
 
         $body = $this->controller->index()->body();
 
-        self::assertStringContainsString('data-endpoint="/api/admin/users"', $body);
+        self::assertStringContainsString('endpoint="/api/admin/users"', $body);
         self::assertStringContainsString('name="email"', $body);
         self::assertStringContainsString('name="displayName"', $body);
         self::assertStringContainsString('name="role"', $body);

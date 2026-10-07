@@ -21,10 +21,10 @@
                 <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
             <?php else: ?>
                 <p class="rb-auth-intro">Vous avez demandé à utiliser cette adresse e-mail comme identifiant de connexion. En confirmant, vous serez déconnecté de vos appareils et devrez vous reconnecter avec cette nouvelle adresse.</p>
-                <form data-async data-endpoint="/api/account/email/confirm" data-method="POST">
+                <rb-async-form endpoint="/api/account/email/confirm" method="POST"><form>
                     <input type="hidden" name="token" value="<?= e($token) ?>">
                     <button type="submit" class="rb-btn-primary">Confirmer ma nouvelle adresse</button>
-                </form>
+                </form></rb-async-form>
                 <p class="rb-auth-confirmation" data-confirmation hidden>Adresse modifiée. Vous pouvez maintenant vous connecter avec votre nouvelle adresse e-mail.</p>
                 <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
             <?php endif; ?>

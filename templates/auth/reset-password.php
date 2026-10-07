@@ -21,7 +21,7 @@
                 <p class="rb-auth-link"><a href="/forgot-password">Demander un nouveau lien</a></p>
             <?php else: ?>
                 <p class="rb-auth-intro">Choisissez un nouveau mot de passe (10 caractères minimum).</p>
-                <form data-async data-endpoint="/api/auth/reset-password" data-method="POST">
+                <rb-async-form endpoint="/api/auth/reset-password" method="POST"><form>
                     <input type="hidden" name="token" value="<?= e($token) ?>">
                     <div class="rb-field">
                         <label for="password">Nouveau mot de passe</label>
@@ -29,7 +29,7 @@
                         <span class="rb-field-error" data-field-error="password"></span>
                     </div>
                     <button type="submit" class="rb-btn-primary">Enregistrer</button>
-                </form>
+                </form></rb-async-form>
                 <p class="rb-auth-link"><a href="/forgot-password">Demander un nouveau lien</a></p>
             <?php endif; ?>
         </div>

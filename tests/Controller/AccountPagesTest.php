@@ -83,7 +83,7 @@ final class AccountPagesTest extends RepositoryTestCase
         $this->logIn(UserRole::Musicien);
 
         $on = $controller->accountPassword()->body();
-        self::assertStringContainsString('data-endpoint="/api/account/notifications"', $on);
+        self::assertStringContainsString('endpoint="/api/account/notifications"', $on);
         self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="1"\\s+checked/', $on, 'activé par défaut');
         self::assertDoesNotMatchRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $on);
 
@@ -102,7 +102,7 @@ final class AccountPagesTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
         $body = $response->body();
-        self::assertStringContainsString('data-endpoint="/api/auth/change-password"', $body);
+        self::assertStringContainsString('endpoint="/api/auth/change-password"', $body);
         self::assertStringContainsString('name="csrf-token"', $body);
         self::assertStringContainsString('name="currentPassword"', $body);
         self::assertStringContainsString('autocomplete="current-password"', $body);
@@ -124,14 +124,14 @@ final class AccountPagesTest extends RepositoryTestCase
         self::assertStringContainsString('<title>Mon compte', $body);
         self::assertStringContainsString('Mes informations', $body);
         // Formulaire du nom affiché : PATCH async, prérempli avec le nom actuel, 100 caractères max.
-        self::assertStringContainsString('data-endpoint="/api/account/profile"', $body);
-        self::assertStringContainsString('data-method="PATCH"', $body);
+        self::assertStringContainsString('endpoint="/api/account/profile"', $body);
+        self::assertStringContainsString('method="PATCH"', $body);
         self::assertMatchesRegularExpression('/<input[^>]*name="displayName"[^>]*value="' . preg_quote('Alice', '/') . '"[^>]*maxlength="100"|<input[^>]*name="displayName"[^>]*maxlength="100"[^>]*value="' . preg_quote('Alice', '/') . '"/', $body);
         self::assertStringContainsString('data-field-error="displayName"', $body);
         // L'adresse e-mail actuelle s'affiche ; son changement est un formulaire à part (mot de passe actuel requis).
         self::assertStringContainsString('alice@rehearsalbox.test', $body);
         // Le formulaire du mot de passe est toujours là.
-        self::assertStringContainsString('data-endpoint="/api/auth/change-password"', $body);
+        self::assertStringContainsString('endpoint="/api/auth/change-password"', $body);
     }
 
     #[Test]
@@ -155,7 +155,7 @@ final class AccountPagesTest extends RepositoryTestCase
         $response = $this->controller()->secureAccount($this->secureRequest($token));
 
         self::assertSame(200, $response->statusCode());
-        self::assertStringContainsString('data-endpoint="/api/auth/secure-account"', $response->body());
+        self::assertStringContainsString('endpoint="/api/auth/secure-account"', $response->body());
         self::assertStringContainsString('name="token" value="' . $token . '"', $response->body());
         self::assertStringContainsString('type="submit"', $response->body());
     }
@@ -175,7 +175,7 @@ final class AccountPagesTest extends RepositoryTestCase
     {
         $response = $this->controller()->secureAccount($this->secureRequest(null));
 
-        self::assertStringNotContainsString('data-endpoint="/api/auth/secure-account"', $response->body());
+        self::assertStringNotContainsString('endpoint="/api/auth/secure-account"', $response->body());
         self::assertStringContainsString('href="/login"', $response->body());
     }
 
@@ -207,13 +207,13 @@ final class AccountPagesTest extends RepositoryTestCase
 
         $body = $controller->accountPassword()->body();
 
-        self::assertStringContainsString('data-endpoint="/api/account/email"', $body);
-        self::assertMatchesRegularExpression('/<form[^>]*data-endpoint="\/api\/account\/email"[^>]*data-method="PATCH"/', $body);
+        self::assertStringContainsString('endpoint="/api/account/email"', $body);
+        self::assertMatchesRegularExpression('/<rb-async-form[^>]*endpoint="\/api\/account\/email"[^>]*method="PATCH"/', $body);
         self::assertMatchesRegularExpression('/<input type="email"[^>]*name="email"/', $body);
         self::assertStringContainsString('data-field-error="email"', $body);
-        self::assertSame(1, preg_match_all('/data-endpoint="\/api\/account\/email"/', $body), 'un seul formulaire e-mail');
+        self::assertSame(1, preg_match_all('/endpoint="\/api\/account\/email"/', $body), 'un seul formulaire e-mail');
         // Le mot de passe actuel est demandé, jamais prérempli.
-        self::assertMatchesRegularExpression('/<form[^>]*\/api\/account\/email".*?name="currentPassword"[^>]*autocomplete="current-password"/s', $body);
+        self::assertMatchesRegularExpression('/<rb-async-form[^>]*\/api\/account\/email".*?name="currentPassword"[^>]*autocomplete="current-password"/s', $body);
         self::assertStringNotContainsString('value="ancien', $body);
         self::assertStringContainsString('lien de confirmation', $body, "la consigne explique le lien envoyé à la nouvelle adresse");
     }
@@ -234,8 +234,8 @@ final class AccountPagesTest extends RepositoryTestCase
 
         self::assertSame(200, $response->statusCode());
         $body = $response->body();
-        self::assertStringContainsString('data-endpoint="/api/account/email/confirm"', $body);
-        self::assertStringContainsString('data-method="POST"', $body);
+        self::assertStringContainsString('endpoint="/api/account/email/confirm"', $body);
+        self::assertStringContainsString('method="POST"', $body);
         self::assertStringContainsString('<input type="hidden" name="token" value="' . $token . '">', $body);
         self::assertStringContainsString('Confirmer ma nouvelle adresse', $body);
         self::assertStringContainsString('data-confirmation', $body);

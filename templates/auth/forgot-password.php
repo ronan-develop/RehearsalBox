@@ -16,14 +16,14 @@
                 <p class="rb-auth-tagline">Local</p>
             </div>
             <p class="rb-auth-intro">Saisissez l'adresse e-mail de votre compte : nous vous enverrons un lien pour choisir un nouveau mot de passe.</p>
-            <form data-async data-endpoint="/api/auth/forgot-password" data-method="POST">
+            <rb-async-form endpoint="/api/auth/forgot-password" method="POST"><form>
                 <div class="rb-field">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" class="rb-input" required autocomplete="email">
                     <span class="rb-field-error" data-field-error="email"></span>
                 </div>
                 <button type="submit" class="rb-btn-primary">Envoyer le lien</button>
-            </form>
+            </form></rb-async-form>
             <p class="rb-auth-confirmation" data-confirmation hidden>Si un compte existe avec cette adresse, un e-mail vient d'être envoyé. Le lien est valable 1 heure.</p>
             <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
         </div>

@@ -24,8 +24,9 @@ test('renderGroupCard uses the shared rb-card class for visual consistency', () 
 test('renderGroupCard includes an edit form targeting the PATCH endpoint', () => {
   const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: 'metal', colorHex: '#e63946' });
 
-  assert.ok(html.includes('data-endpoint="/api/admin/groups/7"'));
-  assert.ok(html.includes('data-method="PATCH"'));
+  assert.ok(html.includes('<rb-async-form endpoint="/api/admin/groups/7" method="PATCH">'));
+  assert.ok(html.includes('<rb-async-form endpoint="/api/admin/groups/7/members" method="POST">'), 'et le formulaire d\'ajout d\'un membre');
+  assert.ok(!html.includes('data-async'), 'plus de contrat par attributs data-*');
 });
 
 test('renderGroupCard includes a delete button carrying the group id', () => {

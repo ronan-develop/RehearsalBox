@@ -2,7 +2,6 @@
  * CRUD groupes + gestion des membres (admin) — création et ajout/retrait de
  * membre en XHR, jamais de rechargement de page (cf. plan §5bis).
  */
-import { initAsyncForms } from '../core/forms.js';
 import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
 import { confirmAction } from '../ui/rb-confirm-dialog.js';
@@ -13,13 +12,13 @@ export function renderGroupCard(group) {
     <article class="rb-group-card rb-card" data-group-id="${group.id}">
       <h3>${escapeHtml(group.name)}</h3>
       ${group.genre ? `<p class="rb-group-genre">${escapeHtml(group.genre)}</p>` : ''}
-      <form data-async data-endpoint="/api/admin/groups/${group.id}" data-method="PATCH" class="rb-edit-group-form" hidden>
+      <rb-async-form endpoint="/api/admin/groups/${group.id}" method="PATCH"><form class="rb-edit-group-form" hidden>
         <input type="text" name="name" class="rb-input" value="${escapeHtml(group.name)}" required maxlength="120">
         <input type="text" name="genre" class="rb-input" value="${escapeHtml(group.genre)}" maxlength="60">
         <input type="color" name="colorHex" value="${escapeHtml(group.colorHex || '#b5654a')}">
         <input type="email" name="contactEmail" class="rb-input" value="${escapeHtml(group.contactEmail ?? '')}" required maxlength="190">
         <button type="submit" class="rb-btn">Enregistrer</button>
-      </form>
+      </form></rb-async-form>
       <div class="rb-group-actions">
         <button type="button" class="rb-btn rb-btn-icon" data-edit-group-button data-group-id="${group.id}" aria-label="Modifier">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -34,14 +33,14 @@ export function renderGroupCard(group) {
           </svg>
         </button>
       </div>
-      <form data-async data-endpoint="/api/admin/groups/${group.id}/members" data-method="POST" class="rb-add-member-form">
+      <rb-async-form endpoint="/api/admin/groups/${group.id}/members" method="POST"><form class="rb-add-member-form">
         <input type="email" name="email" class="rb-input" placeholder="Email du musicien" required>
         <button type="submit" class="rb-btn rb-btn-icon" aria-label="Ajouter">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M12 5v14M5 12h14"/>
           </svg>
         </button>
-      </form>
+      </form></rb-async-form>
     </article>
   `;
 }
@@ -70,10 +69,9 @@ function applyGroupUpdate(card, group) {
 }
 
 function initGroupCard(card) {
-  initAsyncForms(card);
-  card.querySelector('.rb-add-member-form')
+  card.querySelector('rb-async-form[method="POST"]')
     ?.addEventListener('async-success', () => showToast('Membre ajouté.', 'success'));
-  card.querySelector('.rb-edit-group-form')
+  card.querySelector('rb-async-form[method="PATCH"]')
     ?.addEventListener('async-success', (event) => {
       applyGroupUpdate(card, event.detail);
       showToast('Groupe modifié.', 'success');
@@ -151,9 +149,7 @@ async function handleRemoveMember(button, root) {
 }
 
 export function initAdminGroups(root = document) {
-  initAsyncForms(root);
-
-  root.querySelector('form[data-async][data-endpoint="/api/admin/groups"]')
+  root.querySelector('rb-async-form[endpoint="/api/admin/groups"]')
     ?.addEventListener('async-success', (event) => {
       const list = root.querySelector('[data-group-list]');
       if (list) {

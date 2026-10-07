@@ -14,7 +14,7 @@
         <h1>Groupes</h1>
         <p class="rb-admin-subtitle">Création et gestion des membres.</p>
 
-        <form data-async data-endpoint="/api/admin/groups" data-method="POST" class="rb-admin-form rb-card">
+        <rb-async-form endpoint="/api/admin/groups" method="POST"><form class="rb-admin-form rb-card">
             <div class="rb-field">
                 <label for="name">Nom du groupe</label>
                 <input type="text" id="name" name="name" class="rb-input" required maxlength="120">
@@ -32,7 +32,7 @@
                 <input type="email" id="contactEmail" name="contactEmail" class="rb-input" required maxlength="190">
             </div>
             <button type="submit" class="rb-btn-primary">Créer le groupe</button>
-        </form>
+        </form></rb-async-form>
 
         <div class="rb-group-list" data-group-list>
             <?php foreach ($groups as $group): ?>
@@ -41,14 +41,13 @@
                     <?php if ($group->genre() !== null): ?>
                         <p class="rb-group-genre"><?= e($group->genre()) ?></p>
                     <?php endif; ?>
-                    <form data-async data-endpoint="/api/admin/groups/<?= e((string) $group->id()) ?>"
-                          data-method="PATCH" class="rb-edit-group-form" hidden>
+                    <rb-async-form endpoint="/api/admin/groups/<?= e((string) $group->id()) ?>" method="PATCH"><form class="rb-edit-group-form" hidden>
                         <input type="text" name="name" class="rb-input" value="<?= e($group->name()) ?>" required maxlength="120">
                         <input type="text" name="genre" class="rb-input" value="<?= e($group->genre() ?? '') ?>" maxlength="60">
                         <input type="color" name="colorHex" value="<?= e(\App\Support\SafeColor::from($group->colorHex()) ?? '#b5654a') ?>">
                         <input type="email" name="contactEmail" class="rb-input" value="<?= e($group->contactEmail()) ?>" required maxlength="190">
                         <button type="submit" class="rb-btn">Enregistrer</button>
-                    </form>
+                    </form></rb-async-form>
                     <div class="rb-group-actions">
                         <button type="button" class="rb-btn rb-btn-icon" data-edit-group-button
                                 data-group-id="<?= e((string) $group->id()) ?>" aria-label="Modifier">
@@ -69,15 +68,14 @@
                             </svg>
                         </button>
                     </div>
-                    <form data-async data-endpoint="/api/admin/groups/<?= e((string) $group->id()) ?>/members"
-                          data-method="POST" class="rb-add-member-form">
+                    <rb-async-form endpoint="/api/admin/groups/<?= e((string) $group->id()) ?>/members" method="POST"><form class="rb-add-member-form">
                         <input type="email" name="email" class="rb-input" placeholder="Email du musicien" required>
                         <button type="submit" class="rb-btn rb-btn-icon" aria-label="Ajouter">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M12 5v14M5 12h14"/>
                             </svg>
                         </button>
-                    </form>
+                    </form></rb-async-form>
                 </article>
             <?php endforeach; ?>
         </div>

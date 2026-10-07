@@ -15,7 +15,7 @@
                 <span class="rb-auth-logo">#B<span>27</span></span>
                 <p class="rb-auth-tagline">Local</p>
             </div>
-            <form data-async data-endpoint="/api/auth/login" data-method="POST"<?= !empty($next) ? ' data-next="' . e($next) . '"' : '' ?>>
+            <rb-async-form endpoint="/api/auth/login" method="POST"<?= !empty($next) ? ' data-next="' . e($next) . '"' : '' ?>><form>
                 <div class="rb-field">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" class="rb-input" required autocomplete="email">
@@ -27,7 +27,7 @@
                     <span class="rb-field-error" data-field-error="password"></span>
                 </div>
                 <button type="submit" class="rb-btn-primary">Se connecter</button>
-            </form>
+            </form></rb-async-form>
             <p class="rb-auth-link"><a href="/forgot-password">Mot de passe oublié ?</a></p>
         </div>
     </div>
