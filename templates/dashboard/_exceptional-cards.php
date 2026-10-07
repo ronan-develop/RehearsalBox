@@ -4,7 +4,7 @@
  * après l'acceptation d'une demande (le navigateur n'a plus de copie du balisage). Cartes non cliquables (#81) : contrairement au
  * planning fixe, un créneau occasionnel n'ouvre pas de conversation — ni role="button", ni tabindex, ni data-contact-group-*.
  *
- * @var list<\App\Entity\RequestableSlot> $exceptionalPlanningSlots
+ * @var list<\App\Planning\Entity\RequestableSlot> $exceptionalPlanningSlots
  */
 foreach ($exceptionalPlanningSlots as $requestableSlot):
     $slot = $requestableSlot->slot(); ?>

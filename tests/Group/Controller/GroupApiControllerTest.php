@@ -325,8 +325,8 @@ final class GroupApiControllerTest extends RepositoryTestCase
         $holder = $groupRepository->save(new \App\Group\Entity\Group(0, 'Titulaire', null, null, 'titulaire@example.test'));
         $requester = $groupRepository->save(new \App\Group\Entity\Group(0, 'Demandeur', null, null, 'demandeur@example.test'));
         $user = $this->createUser($userRepository, 'bob@rehearsalbox.test', UserRole::Musicien);
-        $slot = (new \App\Repository\MysqlRecurringSlotRepository($this->pdo))->save(new \App\Entity\RecurringSlot(0, $holder->id(), \App\Entity\Enum\Weekday::Tuesday, '18:00:00', '20:00:00', true));
-        (new \App\Repository\MysqlSlotExceptionRepository($this->pdo))->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $user->id(), null);
+        $slot = (new \App\Planning\Repository\MysqlRecurringSlotRepository($this->pdo))->save(new \App\Planning\Entity\RecurringSlot(0, $holder->id(), \App\Planning\Entity\Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        (new \App\Planning\Repository\MysqlSlotExceptionRepository($this->pdo))->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $user->id(), null);
 
         $response = $controller->destroy(new Request('DELETE', '/x', [], [], []), (string) $requester->id());
 

@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Controller\PageController;
-use App\Entity\Enum\ExceptionDirection;
+use App\Planning\Entity\ExceptionDirection;
 use App\Group\Entity\GroupUserRole;
 use App\Entity\Enum\UserRole;
-use App\Entity\Enum\Weekday;
+use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlRecurringSlotRepository;
-use App\Repository\MysqlSlotExceptionRepository;
+use App\Planning\Repository\MysqlRecurringSlotRepository;
+use App\Planning\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
-use App\Presenter\PlanningDays;
-use App\Presenter\PlanningView;
+use App\Planning\Presenter\PlanningDays;
+use App\Planning\Presenter\PlanningView;
 use App\Security\AuthGuard;
 use Symfony\Component\Clock\MockClock;
 use App\Security\CsrfTokenManager;
 use App\Tests\Support\FastPasswordHasher;
 use App\Service\AuthService;
-use App\Service\AvailabilityService;
+use App\Planning\Service\AvailabilityService;
 use App\Group\Service\GroupService;
-use App\Service\SlotService;
+use App\Planning\Service\SlotService;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Security\InMemorySession;
 use App\View\PhpTemplateRenderer;
@@ -291,7 +291,7 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('role="button"', $cardOpenTag);
 
         // #243 : la page et le fragment de rechargement affichent EXACTEMENT les mêmes cartes (un seul gabarit, plus de miroir JavaScript).
-        $fragment = (new \App\Presenter\ExceptionalPlanningFragment($slotService, new PhpTemplateRenderer(__DIR__ . '/../../templates')))->render();
+        $fragment = (new \App\Planning\Presenter\ExceptionalPlanningFragment($slotService, new PhpTemplateRenderer(__DIR__ . '/../../templates')))->render();
         self::assertSame(1, $fragment['count']);
         self::assertStringContainsString($fragment['html'], $response->body());
     }
@@ -692,7 +692,7 @@ final class PageControllerTest extends RepositoryTestCase
         $groupRepository->addMember($requester->id(), $bob->id());
         // La validation à l'écriture (#224) l'interdirait : on l'écrit directement, comme le ferait un ancien enregistrement ou un accès à la base.
         $this->pdo->prepare('UPDATE `groups` SET color_hex = ? WHERE id = ?')->execute([';top:0;', $requester->id()]);
-        (new \App\Repository\MysqlSlotExceptionRepository($this->pdo))->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $bob->id(), 'Concert');
+        (new \App\Planning\Repository\MysqlSlotExceptionRepository($this->pdo))->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $bob->id(), 'Concert');
 
         $body = $controller->dashboard()->body();
 

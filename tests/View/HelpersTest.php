@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\View;
 
-use App\Entity\Enum\Weekday;
+use App\Planning\Entity\Weekday;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 

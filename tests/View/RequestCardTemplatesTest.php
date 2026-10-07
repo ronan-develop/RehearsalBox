@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\View;
 
-use App\Entity\Enum\RequestKind;
+use App\Dashboard\RequestKind;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

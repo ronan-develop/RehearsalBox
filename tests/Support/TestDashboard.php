@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
-use App\Presenter\DashboardBookings;
-use App\Presenter\DashboardView;
-use App\Presenter\PlanningDays;
-use App\Presenter\PlanningView;
-use App\Repository\MysqlBookingDateLock;
-use App\Repository\MysqlFreeSlotBookingRepository;
+use App\Dashboard\DashboardBookings;
+use App\Dashboard\DashboardView;
+use App\Planning\Presenter\PlanningDays;
+use App\Planning\Presenter\PlanningView;
+use App\Planning\Repository\MysqlBookingDateLock;
+use App\Planning\Repository\MysqlFreeSlotBookingRepository;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlRecurringSlotRepository;
-use App\Repository\MysqlSlotExceptionRepository;
-use App\Service\AvailabilityService;
-use App\Service\FreeSlotBookingPolicy;
-use App\Service\FreeSlotBookingService;
-use App\Service\SlotService;
+use App\Planning\Repository\MysqlRecurringSlotRepository;
+use App\Planning\Repository\MysqlSlotExceptionRepository;
+use App\Planning\Service\AvailabilityService;
+use App\Planning\Service\FreeSlotBookingPolicy;
+use App\Planning\Service\FreeSlotBookingService;
+use App\Planning\Service\SlotService;
 use Symfony\Component\Clock\MockClock;
 
 /** Données du tableau de bord câblées sur la base de test (#239), à une date fixe. */

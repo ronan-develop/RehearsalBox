@@ -449,7 +449,7 @@ final class KernelTest extends TestCase
     {
         foreach ([
             [new \App\Service\Exception\UserValidationException(['email' => 'Invalide.']), 422, '{"error":"Validation échouée","fields":{"email":"Invalide."}}'],
-            [new \App\Service\Exception\RequestAlreadyRespondedException('Déjà traitée.'), 409, '{"error":"Déjà traitée."}'],
+            [new \App\Planning\Exception\RequestAlreadyRespondedException('Déjà traitée.'), 409, '{"error":"Déjà traitée."}'],
             [new \App\Service\Exception\ConversationRateLimitException('Trop de messages.'), 429, '{"error":"Trop de messages."}'],
             [new \App\Service\Exception\UserNotFoundException('Utilisateur 42 introuvable.'), 404, '{"error":"Utilisateur introuvable."}'],
         ] as [$error, $status, $body]) {

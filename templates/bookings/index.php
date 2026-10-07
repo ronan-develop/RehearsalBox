@@ -54,7 +54,7 @@
                     </div>
                     <div class="rb-field">
                         <label for="booking-end">À</label>
-                        <?php $id = 'booking-end'; $name = 'end'; $label = 'Fin'; $min = '00:15'; $max = substr(\App\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5); require __DIR__ . '/_time-select.php'; ?>
+                        <?php $id = 'booking-end'; $name = 'end'; $label = 'Fin'; $min = '00:15'; $max = substr(\App\Planning\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5); require __DIR__ . '/_time-select.php'; ?>
                     </div>
                 </div>
                 <div class="rb-field">
