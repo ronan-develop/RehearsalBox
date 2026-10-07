@@ -15,8 +15,7 @@ use App\Http\Response;
 use App\Repository\Contract\GroupDocumentRepositoryInterface;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\GroupRepositoryInterface;
-use App\Presenter\DashboardBookings;
-use App\Presenter\PlanningView;
+use App\Presenter\DashboardView;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
@@ -29,18 +28,19 @@ use App\View\TemplateRendererInterface;
 
 final class PageController
 {
+    /** Pages dont l'adresse porte un jeton : pas de Referer sortant, pas de mise en cache. */
+    private const NO_REFERRER_NO_STORE = ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'];
+
     public function __construct(
         private readonly TemplateRendererInterface $renderer,
         private readonly CsrfTokenManager $csrfTokenManager,
         private readonly AuthGuard $authGuard,
-        private readonly AvailabilityServiceInterface $availabilityService,
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly SlotServiceInterface $slotService,
         private readonly GroupServiceInterface $groupService,
         private readonly GroupDocumentRepositoryInterface $groupDocumentRepository,
-        private readonly PlanningView $planning,
-        private readonly ?NotificationPreferenceRepositoryInterface $preferences = null,
-        private readonly ?DashboardBookings $dashboardBookings = null,
+        private readonly NotificationPreferenceRepositoryInterface $preferences,
+        private readonly DashboardView $dashboard,
     ) {
     }
 
@@ -71,7 +71,7 @@ final class PageController
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'token' => $token,
             ]),
-            headers: ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'],
+            headers: self::NO_REFERRER_NO_STORE,
         );
     }
 
@@ -85,7 +85,7 @@ final class PageController
             'currentUserRole' => $user->role(),
             'displayName' => $user->displayName(),
             'email' => $user->email(),
-            'emailNotifications' => $this->preferences?->emailEnabled($user->id()) ?? true,
+            'emailNotifications' => $this->preferences->emailEnabled($user->id()),
         ]));
     }
 
@@ -101,7 +101,7 @@ final class PageController
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'token' => (string) $request->query('token', ''),
             ]),
-            headers: ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'],
+            headers: self::NO_REFERRER_NO_STORE,
         );
     }
 
@@ -117,94 +117,15 @@ final class PageController
                 'csrfToken' => $this->csrfTokenManager->getToken(),
                 'token' => (string) $request->query('token', ''),
             ]),
-            headers: ['Referrer-Policy' => 'no-referrer', 'Cache-Control' => 'no-store'],
+            headers: self::NO_REFERRER_NO_STORE,
         );
     }
 
     public function dashboard(): Response
     {
         $user = $this->authGuard->requireLogin();
-        $groups = $this->groupRepository->findByMember($user->id());
 
-        $groupRoles = [];
-        foreach ($groups as $group) {
-            $groupRoles[$group->id()] = $this->groupRepository->roleOf($group->id(), $user->id());
-        }
-
-        $slotsById = [];
-        foreach ($this->slotService->findAllActive() as $slot) {
-            $slotsById[$slot->id()] = $slot;
-        }
-
-        // Indexés par id d'exception : une demande visible depuis plusieurs groupes
-        // de l'utilisateur n'apparaît qu'une fois (et n'est construite qu'une fois).
-        $receivedItems = [];
-        $sentItems = [];
-        $archivedItems = [];
-        foreach ($groups as $group) {
-            foreach ($this->availabilityService->findPendingForHolderGroup($group->id(), $user->id()) as $exception) {
-                $receivedItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Recue, $slotsById);
-            }
-            foreach ($this->availabilityService->findByRequestingGroup($group->id(), $user->id()) as $exception) {
-                $sentItems[$exception->id()] ??= $this->toDashboardItem($exception, ExceptionDirection::Envoyee, $slotsById);
-            }
-            foreach ($this->availabilityService->findArchivedForGroup($group->id(), $user->id()) as $exception) {
-                $direction = $exception->requester()->groupId() === $group->id() ? ExceptionDirection::Envoyee : ExceptionDirection::Recue;
-                $archivedItems[$exception->id()] ??= $this->toDashboardItem($exception, $direction, $slotsById);
-            }
-        }
-
-        // Réservations libres (#292) : « envoyées » ou « archivées », jamais « reçues » (seuls les admins les valident).
-        $bookingItems = $this->dashboardBookings?->forGroups($groups, $user->id()) ?? ['sent' => [], 'archived' => []];
-        $sentItems = [...$sentItems, ...$bookingItems['sent']];
-        $archivedItems = [...$archivedItems, ...$bookingItems['archived']];
-
-        // Plus récent d'abord ; à created_at égal (même seconde), l'id le plus grand
-        // (créé en dernier) passe en premier, pour un ordre déterministe.
-        $sortByCreatedAtDescending = static fn (DashboardRequestItem $a, DashboardRequestItem $b): int =>
-            [$b->createdAt(), $b->kind()->value, $b->requestId()] <=> [$a->createdAt(), $a->kind()->value, $a->requestId()];
-        usort($receivedItems, $sortByCreatedAtDescending);
-        usort($sentItems, $sortByCreatedAtDescending);
-        usort($archivedItems, $sortByCreatedAtDescending);
-
-        // Limite connue : si l'utilisateur appartient à plusieurs groupes, le premier
-        // (par ordre alphabétique de nom, cf. GroupRepository::findByMember) est affiché
-        // arbitrairement dans le header. Pas de concept de "groupe principal" en base —
-        // cf. issue à ouvrir si ce cas devient fréquent en usage réel.
-        $primaryGroup = $groups[0] ?? null;
-
-        return new Response($this->renderer->render('dashboard/index', [
-            'csrfToken' => $this->csrfTokenManager->getToken(),
-            'planningDays' => $this->planning->fixedDays(),
-            'exceptionalPlanningSlots' => $this->slotService->findOccasionalPlanningSlots(),
-            'receivedExceptions' => $receivedItems,
-            'sentExceptions' => $sentItems,
-            'archivedExceptions' => $archivedItems,
-            'currentUserRole' => $user->role(),
-            'currentUserGroupRoles' => $groupRoles,
-            'currentUserGroupName' => $primaryGroup?->name(),
-            'currentUserInitials' => Initials::from($user->displayName()),
-        ]));
-    }
-
-    /** @param array<int, RecurringSlot> $slotsById */
-    private function toDashboardItem(SlotException $exception, ExceptionDirection $direction, array $slotsById): DashboardExceptionItem
-    {
-        $requestingGroup = $this->groupRepository->findById($exception->requester()->groupId());
-        \assert($requestingGroup !== null);
-
-        $holderSlot = $slotsById[$exception->recurringSlotId()] ?? null;
-        $holderGroup = $holderSlot === null ? null : $this->groupRepository->findById($holderSlot->groupId());
-
-        return new DashboardExceptionItem(
-            $exception,
-            $direction,
-            $requestingGroup->name(),
-            $requestingGroup->colorHex(),
-            // Plage demandée (#263) : la carte montre ce que le titulaire accorde, pas tout son créneau.
-            $holderSlot?->within($exception->range()),
-            $holderGroup?->name(),
-        );
+        return new Response($this->renderer->render('dashboard/index', ['csrfToken' => $this->csrfTokenManager->getToken()] + $this->dashboard->for($user)));
     }
 
     public function adminSlots(): Response
