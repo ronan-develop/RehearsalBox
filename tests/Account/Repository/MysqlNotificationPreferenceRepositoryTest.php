@@ -8,7 +8,7 @@ use App\Account\Entity\UserRole;
 use App\Account\Entity\User;
 use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

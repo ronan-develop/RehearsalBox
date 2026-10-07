@@ -11,16 +11,16 @@ use App\Account\Entity\User;
 use App\Http\Request;
 use App\Account\Repository\MysqlPasswordResetRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Repository\MysqlThrottleEventRepository;
 use App\Account\Service\IpThrottle;
 use App\Account\Service\PasswordResetService;
-use App\Tests\Support\KernelTranslation;
-use App\Tests\Support\RecordingMailer;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Scenarios\KernelTranslation;
+use App\Tests\Doubles\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetApiControllerTest extends RepositoryTestCase

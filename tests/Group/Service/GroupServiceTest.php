@@ -15,7 +15,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Group\Service\GroupFilesPurgerInterface;
 use App\Group\Exception\GroupValidationException;
 use App\Group\Service\GroupService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

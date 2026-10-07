@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support;
+namespace App\Tests\Scenarios;
 
 use App\Dashboard\DashboardBookings;
 use App\Dashboard\DashboardView;

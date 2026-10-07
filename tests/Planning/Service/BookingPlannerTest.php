@@ -12,8 +12,8 @@ use App\Planning\Entity\TimeRange;
 use App\Planning\Repository\MysqlFreeSlotBookingRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Service\BookingPlanner;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #263 partie 3b-1 : ce qui est libre et ce qui chevauche un autre groupe, pour une plage voulue. */

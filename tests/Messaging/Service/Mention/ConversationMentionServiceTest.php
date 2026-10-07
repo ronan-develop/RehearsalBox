@@ -16,7 +16,7 @@ use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Service\Mention\ConversationMentionService;
 use App\Messaging\Exception\ConversationValidationException;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #178 : valider les personnes mentionnées, séparer participants et extérieurs, inviter les extérieurs. */

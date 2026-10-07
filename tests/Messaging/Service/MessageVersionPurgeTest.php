@@ -13,7 +13,7 @@ use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\MysqlMessageVersionRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Service\MessageVersionPurge;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 

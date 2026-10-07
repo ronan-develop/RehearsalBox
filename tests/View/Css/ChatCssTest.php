@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View;
+namespace App\Tests\View\Css;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +12,7 @@ final class ChatCssTest extends TestCase
 {
     private function css(): string
     {
-        return (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/messages.css');
+        return (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/messages.css');
     }
 
     #[Test]
@@ -100,7 +100,7 @@ final class ChatCssTest extends TestCase
     #[Test]
     public function testTheSwipeWidthMatchesBetweenTheScriptAndTheStylesheet(): void
     {
-        $script = (string) file_get_contents(__DIR__ . '/../../public/assets/js/chat/swipe.js');
+        $script = (string) file_get_contents(__DIR__ . '/../../../public/assets/js/chat/swipe.js');
 
         self::assertMatchesRegularExpression('/ACTION_WIDTH = 88;/', $script);
         self::assertStringContainsString('--swipe-x: -88px', $this->css());
@@ -176,7 +176,7 @@ final class ChatCssTest extends TestCase
     public function testTheSenderBadgeUsesTheGroupColourWithAFallback(): void
     {
         // La pastille est la classe partagée `.rb-avatar` (base.css, #324) : couleur du groupe, repli neutre.
-        $base = (string) file_get_contents(__DIR__ . '/../../public/assets/css/base.css');
+        $base = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/base.css');
         self::assertMatchesRegularExpression('/\.rb-avatar\s*\{[^}]*var\(--group-color, var\(--rb-accent-2\)\)/s', $base);
     }
 

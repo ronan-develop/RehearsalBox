@@ -8,8 +8,8 @@ use App\Planning\Entity\FreeSlotBookingStatus;
 use App\Planning\Entity\Requester;
 use App\Planning\Entity\TimeRange;
 use App\Planning\Repository\MysqlFreeSlotBookingRepository;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #263 partie 2 : réservations libres du local. */

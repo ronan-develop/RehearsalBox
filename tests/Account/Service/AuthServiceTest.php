@@ -11,11 +11,11 @@ use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
-use App\Tests\Support\CountingPasswordHasher;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\CountingPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Service\AuthService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

@@ -9,8 +9,8 @@ use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Messaging\Repository\MysqlConversationPresenceRepository;
 use App\Messaging\Repository\MysqlConversationRepository;
 use App\Messaging\Repository\Participation\MysqlConversationTrashRepository;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Messages d'une conversation : écriture, lecture incrémentale, correction (#200) et comptages de la limite de débit. */

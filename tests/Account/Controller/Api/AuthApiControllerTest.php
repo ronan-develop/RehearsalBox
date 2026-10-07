@@ -11,13 +11,13 @@ use App\Account\Entity\User;
 use App\Http\Request;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Repository\MysqlThrottleEventRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Account\Service\AuthService;
 use App\Account\Service\IpThrottle;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

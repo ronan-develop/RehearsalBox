@@ -27,12 +27,13 @@ use App\Security\CsrfTokenManager;
 use App\Security\SecurityHeaders;
 use App\Security\SessionInterface;
 use App\Account\Service\AuthServiceInterface;
-use App\Tests\Support\RecordingMailer;
-use App\Tests\TestDatabase;
+use App\Tests\Doubles\RecordingMailer;
+use App\Tests\Database\TestDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Tests\Doubles\InMemorySession;
 
 /**
  * Audit IDOR (#118) : chaque route qui prend un identifiant est jouée de bout en

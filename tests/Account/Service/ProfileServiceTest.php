@@ -10,7 +10,7 @@ use App\Account\Repository\MysqlUserRepository;
 use App\Account\Exception\UserNotFoundException;
 use App\Account\Exception\UserValidationException;
 use App\Account\Service\ProfileService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

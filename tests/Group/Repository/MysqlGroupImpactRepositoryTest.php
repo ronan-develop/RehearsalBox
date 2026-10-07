@@ -18,7 +18,7 @@ use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Repository\Participation\MysqlConversationTrashRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Ce que la suppression d'un groupe emporterait avec lui (#224) : de quoi afficher une confirmation chiffrée. */

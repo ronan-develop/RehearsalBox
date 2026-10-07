@@ -17,13 +17,13 @@ use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
 use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Notification\MentionReminderService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\MailerInterface;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 /** #178 : une seule relance, 24 h après l'e-mail de mention, si la mention n'est toujours pas lue (plage de jour, cron horaire). */
 #[\PHPUnit\Framework\Attributes\Group('db')]

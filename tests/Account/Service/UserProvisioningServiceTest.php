@@ -6,11 +6,11 @@ namespace App\Tests\Account\Service;
 
 use App\Account\Entity\UserRole;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Exception\UserValidationException;
 use App\Account\Service\UserProvisioningService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

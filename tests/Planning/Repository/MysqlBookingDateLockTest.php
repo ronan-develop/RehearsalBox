@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Planning\Repository;
 
 use App\Planning\Repository\MysqlBookingDateLock;
-use App\Tests\TestDatabase;
+use App\Tests\Database\TestDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

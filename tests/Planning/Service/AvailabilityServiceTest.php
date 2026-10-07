@@ -19,7 +19,7 @@ use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
 use App\Planning\Exception\RequestAlreadyRespondedException;
 use App\Planning\Exception\RequestChangedException;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

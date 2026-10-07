@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Account\Security;
 
 use App\Account\Security\NativePasswordHasher;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

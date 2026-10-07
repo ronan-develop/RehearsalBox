@@ -16,7 +16,7 @@ use App\Account\Repository\MysqlUserRepository;
 use App\Planning\Service\AvailabilityService;
 use App\Planning\Exception\OverlappingSlotException;
 use App\Planning\Service\SlotService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

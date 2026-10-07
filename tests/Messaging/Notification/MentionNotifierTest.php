@@ -16,12 +16,12 @@ use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
 use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Notification\MentionNotifier;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 /** #178 : l'e-mail « vous avez été mentionné » — un par conversation et par personne toutes les 24 h, désinscription respectée. */
 #[\PHPUnit\Framework\Attributes\Group('db')]

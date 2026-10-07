@@ -13,16 +13,16 @@ use App\Planning\Repository\MysqlSlotExceptionRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Service\AuthService;
 use App\Planning\Service\AvailabilityService;
 use App\Group\Service\GroupService;
 use App\Planning\Service\SlotService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
-use App\Tests\Support\TestDashboard;
+use App\Tests\Scenarios\TestDashboard;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetPagesTest extends RepositoryTestCase

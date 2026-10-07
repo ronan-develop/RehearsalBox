@@ -18,16 +18,16 @@ use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Repository\Notice\MysqlConversationNoticeRepository;
 use App\Messaging\Notification\ConversationNotifier;
 use App\Messaging\Service\ConversationService;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use Symfony\Component\Mailer\MailerInterface;
 use App\Messaging\Exception\ConversationRateLimitException;
 use App\Messaging\Exception\ConversationValidationException;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\ConversationWorld;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\ConversationWorld;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationServiceTest extends RepositoryTestCase

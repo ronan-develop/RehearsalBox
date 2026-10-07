@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Mail;
 
 use App\Mail\Mailbox;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Mail;
 
 use App\Mail\SafeMail;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
-use App\Tests\Support\ThrowingMailer;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
+use App\Tests\Doubles\ThrowingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mime\Email;

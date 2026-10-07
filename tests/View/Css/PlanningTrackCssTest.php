@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View;
+namespace App\Tests\View\Css;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +12,7 @@ final class PlanningTrackCssTest extends TestCase
 {
     private function css(): string
     {
-        return (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+        return (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/dashboard.css');
     }
 
     #[Test]

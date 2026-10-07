@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests;
+namespace App\Tests\Database;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class TestDatabaseTest extends TestCase
 {
-    private const MIGRATIONS = __DIR__ . '/../database/migrations';
+    private const MIGRATIONS = __DIR__ . '/../../database/migrations';
 
     private \PDO $pdo;
 

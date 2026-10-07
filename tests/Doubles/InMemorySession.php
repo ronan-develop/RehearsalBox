@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Security;
+namespace App\Tests\Doubles;
 
 use App\Security\SessionInterface;
 

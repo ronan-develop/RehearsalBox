@@ -28,13 +28,13 @@ use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;
 use App\Group\Service\GroupService;
 use App\Planning\Service\SlotService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
-use App\Tests\Support\TestDashboard;
+use App\Tests\Scenarios\TestDashboard;
 
 /** #292 : le bloc « Demandes de créneau » suit à la fois les échanges entre groupes et les réservations libres, et les distingue d'un coup d'œil. */
 #[\PHPUnit\Framework\Attributes\Group('db')]

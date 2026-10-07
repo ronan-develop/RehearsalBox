@@ -10,14 +10,14 @@ use App\Group\Entity\Group;
 use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Exception\UserAdminRuleException;
 use App\Account\Exception\UserNotFoundException;
 use App\Account\Exception\UserValidationException;
 use App\Account\Service\UserAdminService;
 use App\Account\Service\UserProvisioningService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

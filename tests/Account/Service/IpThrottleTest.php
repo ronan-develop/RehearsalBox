@@ -6,7 +6,7 @@ namespace App\Tests\Account\Service;
 
 use App\Account\Repository\MysqlThrottleEventRepository;
 use App\Account\Service\IpThrottle;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

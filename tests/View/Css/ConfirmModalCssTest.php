@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View;
+namespace App\Tests\View\Css;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -14,8 +14,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class ConfirmModalCssTest extends TestCase
 {
-    private const TEMPLATES = __DIR__ . '/../../templates';
-    private const PUBLIC = __DIR__ . '/../../public';
+    private const TEMPLATES = __DIR__ . '/../../../templates';
+    private const PUBLIC = __DIR__ . '/../../../public';
 
     /** @return list<string> chemins des gabarits qui posent la balise <rb-confirm-modal> */
     private function pagesWithTheModal(): array

@@ -10,17 +10,17 @@ use App\Account\Entity\User;
 use App\Account\Repository\MysqlEmailChangeRepository;
 use App\Account\Repository\MysqlPasswordResetRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Service\EmailChangeService;
 use App\Account\Exception\InvalidEmailChangeException;
 use App\Account\Exception\UserValidationException;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class EmailChangeServiceTest extends RepositoryTestCase

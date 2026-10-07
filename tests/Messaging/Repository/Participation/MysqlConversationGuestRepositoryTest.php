@@ -14,7 +14,7 @@ use App\Messaging\Repository\MysqlConversationPresenceRepository;
 use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #178 : un invité (membre du site extérieur aux deux groupes) accède à cette conversation seulement. */

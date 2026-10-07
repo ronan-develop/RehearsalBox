@@ -7,6 +7,7 @@ namespace App\Tests\Security;
 use App\Security\CsrfTokenManager;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use App\Tests\Doubles\InMemorySession;
 
 final class CsrfTokenManagerTest extends TestCase
 {
