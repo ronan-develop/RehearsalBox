@@ -48,10 +48,8 @@ final class EmailChangeServiceTest extends RepositoryTestCase
             new MysqlEmailChangeRepository($this->pdo),
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
-            $mailer,
+            \App\Tests\Support\TestMailbox::of($mailer),
             new TransactionRunner($this->pdo),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
         );
     }
 

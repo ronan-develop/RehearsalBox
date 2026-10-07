@@ -49,15 +49,15 @@ final class AccountApiControllerTest extends RepositoryTestCase
         $transactions = new TransactionRunner($this->pdo);
         $hasher = new FastPasswordHasher();
         $policy = new PasswordPolicy();
-        $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
-        $this->security = new AccountSecurityService($this->users, $resets, $this->mailer, $transactions, $resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, \App\Tests\Support\TestMailbox::of($this->mailer), $transactions);
+        $this->security = new AccountSecurityService($this->users, $resets, \App\Tests\Support\TestMailbox::of($this->mailer), $transactions, $resetService);
         $this->controller = new KernelTranslation(new AccountApiController(
             new AuthGuard($this->auth),
             $this->auth,
             new PasswordChangeService($this->users, $hasher, $policy, $this->security),
             $this->security,
             new ProfileService($this->users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo)),
-            new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $resets, $hasher, $this->mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+            new EmailChangeService($this->users, new MysqlEmailChangeRepository($this->pdo), $resets, $hasher, \App\Tests\Support\TestMailbox::of($this->mailer), $transactions),
         ));
     }
 

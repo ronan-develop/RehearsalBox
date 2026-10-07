@@ -63,7 +63,7 @@ final class MentionNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): MentionNotifier
     {
-        return new MentionNotifier($mailer, $this->notices, $this->users, $this->preferences, $this->mutes, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        return new MentionNotifier(\App\Tests\Support\TestMailbox::of($mailer), $this->notices, $this->users, $this->preferences, $this->mutes);
     }
 
     private function mention(MentionNotifier $notifier, array $ids, ?\DateTimeImmutable $at = null): void

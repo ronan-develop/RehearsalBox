@@ -45,8 +45,8 @@ final class PasswordChangeServiceTest extends RepositoryTestCase
         $hasher = new FastPasswordHasher();
         $policy = new PasswordPolicy();
         $transactions = new TransactionRunner($this->pdo);
-        $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, $mailer, $transactions, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
-        $security = new AccountSecurityService($this->users, $resets, $mailer, $transactions, $resetService, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        $resetService = new PasswordResetService($this->users, $resets, $hasher, $policy, \App\Tests\Support\TestMailbox::of($mailer), $transactions);
+        $security = new AccountSecurityService($this->users, $resets, \App\Tests\Support\TestMailbox::of($mailer), $transactions, $resetService);
 
         return new PasswordChangeService($this->users, $hasher, $policy, $security);
     }

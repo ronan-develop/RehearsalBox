@@ -70,11 +70,9 @@ final class MentionReminderServiceTest extends RepositoryTestCase
     {
         return new MentionReminderService(
             $this->notices,
-            $mailer,
+            \App\Tests\Support\TestMailbox::of($mailer),
             new MockClock($now),
             new \DateTimeZone('Europe/Paris'),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
         );
     }
 

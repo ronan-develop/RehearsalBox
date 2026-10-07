@@ -6,8 +6,7 @@ namespace App\Service;
 
 use App\Database\TransactionRunner;
 use App\Entity\User;
-use App\Mail\MailRenderer;
-use App\Mail\SafeMail;
+use App\Mail\Mailbox;
 use App\Repository\Contract\EmailChangeRepositoryInterface;
 use App\Repository\Contract\PasswordResetRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
@@ -15,8 +14,6 @@ use App\Security\PasswordHasherInterface;
 use App\Security\ResetToken;
 use App\Service\Exception\InvalidEmailChangeException;
 use App\Service\Exception\UserValidationException;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
 
 /**
  * Changement de sa propre adresse e-mail (#164), en deux temps : la demande (connecté, mot de passe actuel)
@@ -35,11 +32,8 @@ final class EmailChangeService
         private readonly EmailChangeRepositoryInterface $changeRepository,
         private readonly PasswordResetRepositoryInterface $resetRepository,
         private readonly PasswordHasherInterface $passwordHasher,
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly TransactionRunner $transactions,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -81,15 +75,11 @@ final class EmailChangeService
             $this->changeRepository->create($user->id(), $newEmail, ResetToken::hash($token), $now->modify(self::TOKEN_TTL), $now);
         });
 
-        $link = rtrim($this->baseUrl, '/') . '/account/email/confirm?token=' . $token;
-
-        $sent = SafeMail::send($this->mailer, fn () => $this->renderer()->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($newEmail)
-                ->subject('RehearsalBox — confirmez votre nouvelle adresse e-mail'),
+        $sent = $this->mailbox->sendSafely(fn () => $this->mailbox->compose(
+            $newEmail,
+            'confirmez votre nouvelle adresse e-mail',
             'email-change',
-            ['link' => $link, 'preheader' => 'Confirmez votre nouvelle adresse (lien valable 1 heure).'],
+            ['link' => $this->mailbox->url('/account/email/confirm?token=' . $token), 'preheader' => 'Confirmez votre nouvelle adresse (lien valable 1 heure).'],
         ), sprintf("Changement d'adresse e-mail : envoi du mail impossible (utilisateur #%d)", $user->id()));
         if (!$sent) {
             // Le jeton n'a pas pu être remis : on l'annule, sans rien révéler.
@@ -151,11 +141,9 @@ final class EmailChangeService
     /** L'alerte part à l'ANCIENNE adresse ; la nouvelle y est masquée. Un échec d'envoi n'annule pas le changement. */
     private function sendChangedAlert(string $oldEmail, string $newEmail): void
     {
-        SafeMail::send($this->mailer, fn () => $this->renderer()->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($oldEmail)
-                ->subject('RehearsalBox — votre adresse e-mail a été modifiée'),
+        $this->mailbox->sendSafely(fn () => $this->mailbox->compose(
+            $oldEmail,
+            'votre adresse e-mail a été modifiée',
             'email-changed',
             [
                 'newEmailMasked' => self::mask($newEmail),
@@ -170,10 +158,5 @@ final class EmailChangeService
         [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
 
         return mb_substr($local, 0, 1) . '***@' . $domain;
-    }
-
-    private function renderer(): MailRenderer
-    {
-        return $this->mailRenderer ?? MailRenderer::withDefaultTemplates();
     }
 }

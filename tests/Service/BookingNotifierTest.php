@@ -49,7 +49,7 @@ final class BookingNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): BookingNotifier
     {
-        return new BookingNotifier($mailer, $this->users, $this->groups, $this->later, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        return new BookingNotifier(\App\Tests\Support\TestMailbox::of($mailer), $this->users, $this->groups, $this->later);
     }
 
     private function booking(?string $reason = 'Enregistrement secret'): \App\Entity\FreeSlotBooking

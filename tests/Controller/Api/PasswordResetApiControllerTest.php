@@ -44,10 +44,8 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
             new PasswordPolicy(),
-            $this->mailer,
+            \App\Tests\Support\TestMailbox::of($this->mailer),
             new TransactionRunner($this->pdo),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
         ), new IpThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour')));
     }
 

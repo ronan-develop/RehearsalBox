@@ -8,13 +8,12 @@ use App\Entity\Enum\FreeSlotBookingStatus;
 use App\Entity\Enum\UserRole;
 use App\Entity\FreeSlotBooking;
 use App\Http\AfterResponseInterface;
-use App\Mail\MailRenderer;
+use App\Mail\Mailbox;
 use App\Repository\Contract\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Contract\BookingNotifierInterface;
 use App\Support\FrenchDate;
 use App\Support\HeaderText;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -26,13 +25,10 @@ use Symfony\Component\Mime\Email;
 final class BookingNotifier implements BookingNotifierInterface
 {
     public function __construct(
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly UserRepositoryInterface $users,
         private readonly GroupRepositoryInterface $groups,
         private readonly AfterResponseInterface $afterResponse,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -80,14 +76,15 @@ final class BookingNotifier implements BookingNotifierInterface
             $group = $this->groups->findById($booking->requester()->groupId());
             $when = FrenchDate::long($booking->date());
             $range = substr($booking->range()->start(), 0, 5) . ' – ' . substr($booking->range()->end(), 0, 5);
-            $this->mailer->send(($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-                (new Email())->from($this->fromAddress)->to($to)->subject('RehearsalBox — ' . HeaderText::oneLine($subject)),
+            $this->mailbox->send($this->mailbox->compose(
+                $to,
+                HeaderText::oneLine($subject),
                 $template,
                 $extra + [
                     'groupName' => $group?->name() ?? '',
                     'when' => $when,
                     'range' => $range,
-                    'link' => rtrim($this->baseUrl, '/') . $path,
+                    'link' => $this->mailbox->url($path),
                     'preheader' => $subject . ' : ' . $when . ', ' . $range,
                 ],
             ));

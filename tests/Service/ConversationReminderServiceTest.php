@@ -56,11 +56,9 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
     {
         return new ConversationReminderService(
             $this->notices,
-            $mailer,
+            \App\Tests\Support\TestMailbox::of($mailer),
             new MockClock($now),
             new \DateTimeZone('Europe/Paris'),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
         );
     }
 

@@ -39,7 +39,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): ConversationNotifier
     {
-        return new ConversationNotifier($mailer, $this->notices, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example');
+        return new ConversationNotifier(\App\Tests\Support\TestMailbox::of($mailer), $this->notices);
     }
 
     /** @return list<string> */
@@ -149,7 +149,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
         };
         $mailer = new RecordingMailer();
 
-        (new ConversationNotifier($mailer, $brokenNotices, 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'))
+        (new ConversationNotifier(\App\Tests\Support\TestMailbox::of($mailer), $brokenNotices))
             ->newConversation($this->conversation, 'Alice', 'Alpha', $this->target, $this->now);
 
         self::assertSame([], $mailer->sent);

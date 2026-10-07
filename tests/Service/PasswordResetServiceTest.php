@@ -69,10 +69,8 @@ final class PasswordResetServiceTest extends RepositoryTestCase
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
             new PasswordPolicy(),
-            $mailer,
+            \App\Tests\Support\TestMailbox::of($mailer),
             new TransactionRunner($this->pdo),
-            'no-reply@rehearsalbox.example',
-            'https://rehearsalbox.example',
             afterResponse: $afterResponse ?? new ImmediateAfterResponse(),
         );
     }

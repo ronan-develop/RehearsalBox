@@ -17,13 +17,13 @@ src/
 ├── Entity/          ← entités simples, sans comportement DB (pas de Doctrine)
 ├── Security/        ← PasswordHasher, Session, CsrfTokenManager, AuthGuard
 ├── View/            ← TemplateRendererInterface / PhpTemplateRenderer (include PHP natif)
-├── Mail/            ← MailRenderer : e-mail en HTML + texte (templates/mail/, gabarit commun layout.php)
+├── Mail/            ← Mailbox (transport + expéditeur + URL de base + rendu : tout ce qui voyage ensemble, #237), MailRenderer : e-mail en HTML + texte (templates/mail/, gabarit commun layout.php), SafeMail
 └── Database/        ← ConnectionFactory (PDO), TransactionRunner
 ```
 
 ## E-mails (#157)
 
-Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, inséré dans `layout.php`) et `<nom>.txt.php` (version texte). `MailRenderer::render('<nom>', $data)` retourne `['html' => …, 'text' => …]`. Règles : tables et **styles en ligne** (clients de messagerie), aucune police web ni image distante, **tout contenu dynamique échappé** avec `e()` (le contenu d'un e-mail peut venir d'un utilisateur), liens construits depuis `app.base_url`. Ajouter un e-mail = deux gabarits + un test dans `tests/Mail/MailRendererTest.php`.
+Chaque e-mail est **multipart** : `templates/mail/<nom>.html.php` (corps, inséré dans `layout.php`) et `<nom>.txt.php` (version texte). `MailRenderer::render('<nom>', $data)` retourne `['html' => …, 'text' => …]`. Règles : tables et **styles en ligne** (clients de messagerie), aucune police web ni image distante, **tout contenu dynamique échappé** avec `e()` (le contenu d'un e-mail peut venir d'un utilisateur), liens construits depuis `app.base_url`. Ajouter un e-mail = deux gabarits + un test dans `tests/Mail/MailRendererTest.php`. Un service qui envoie reçoit une **`Mail\Mailbox`** (jamais mailer + expéditeur + URL de base + renderer séparément) : `compose($to, $sujet, $gabarit, $data)` (expéditeur du site, sujet préfixé « RehearsalBox — », HTML + texte + logo), `url('/chemin')` (lien absolu sans double barre), `send()` (l'erreur remonte : l'appelant annule ce qu'il avait réservé) et `sendSafely()` (ne fait jamais échouer l'appelant, cf. `SafeMail`). Classe concrète, sans interface ni `MailFactory` : un seul cas d'usage. Dans les tests : `Tests\Support\TestMailbox::of($mailer)`.
 
 ## Principes appliqués
 

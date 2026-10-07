@@ -6,10 +6,9 @@ namespace App\Service;
 
 use App\Entity\Conversation;
 use App\Entity\Group;
-use App\Mail\MailRenderer;
+use App\Mail\Mailbox;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Support\HeaderText;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use App\Service\Contract\NewConversationNotifierInterface;
 
@@ -25,11 +24,8 @@ final class ConversationNotifier implements NewConversationNotifierInterface
     public const MAX_NEW_CONVERSATIONS_PER_DAY = 5;
 
     public function __construct(
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly ConversationNoticeRepositoryInterface $notices,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -63,7 +59,7 @@ final class ConversationNotifier implements NewConversationNotifierInterface
         }
 
         try {
-            $this->mailer->send($this->buildMail($conversation, $authorName, $authorGroupName, $targetGroup->contactEmail()));
+            $this->mailbox->send($this->buildMail($conversation, $authorName, $authorGroupName, $targetGroup->contactEmail()));
         } catch (\Throwable $e) {
             // Rien n'est resté « envoyé » : un nouvel essai reste possible.
             $this->notices->releaseInitial($conversation->id(), $targetGroup->id());
@@ -73,16 +69,14 @@ final class ConversationNotifier implements NewConversationNotifierInterface
 
     private function buildMail(Conversation $conversation, string $authorName, string $authorGroupName, string $to): Email
     {
-        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($to)
-                ->subject('RehearsalBox — nouvelle conversation de ' . HeaderText::oneLine($authorGroupName)),
+        return $this->mailbox->compose(
+            $to,
+            'nouvelle conversation de ' . HeaderText::oneLine($authorGroupName),
             'conversation-new',
             [
                 'authorName' => $authorName,
                 'groupName' => $authorGroupName,
-                'link' => rtrim($this->baseUrl, '/') . '/messages/' . $conversation->id(),
+                'link' => $this->mailbox->url('/messages/' . $conversation->id()),
                 'preheader' => $authorName . ' vous a écrit.',
             ],
         );

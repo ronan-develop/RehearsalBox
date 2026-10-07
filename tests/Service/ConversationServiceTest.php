@@ -129,7 +129,7 @@ final class ConversationServiceTest extends RepositoryTestCase
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,
-            notifier: new ConversationNotifier($mailer, new MysqlConversationNoticeRepository($this->pdo), 'no-reply@rehearsalbox.example', 'https://rehearsalbox.example'),
+            notifier: new ConversationNotifier(\App\Tests\Support\TestMailbox::of($mailer), new MysqlConversationNoticeRepository($this->pdo)),
         );
     }
 

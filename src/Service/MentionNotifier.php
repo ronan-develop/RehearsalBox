@@ -6,13 +6,12 @@ namespace App\Service;
 
 use App\Entity\Conversation;
 use App\Entity\MentionNotice;
-use App\Mail\MailRenderer;
+use App\Mail\Mailbox;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
 use App\Repository\Contract\ConversationMuteRepositoryInterface;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Support\HeaderText;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -28,14 +27,11 @@ final class MentionNotifier
     public const MAX_PER_AUTHOR_PER_HOUR = 10;
 
     public function __construct(
-        private readonly MailerInterface $mailer,
+        private readonly Mailbox $mailbox,
         private readonly MentionNoticeRepositoryInterface $notices,
         private readonly UserRepositoryInterface $users,
         private readonly NotificationPreferenceRepositoryInterface $preferences,
         private readonly ConversationMuteRepositoryInterface $mutes,
-        private readonly string $fromAddress,
-        private readonly string $baseUrl,
-        private readonly ?MailRenderer $mailRenderer = null,
     ) {
     }
 
@@ -82,7 +78,7 @@ final class MentionNotifier
         }
 
         try {
-            $this->mailer->send($this->buildMail($conversation, $authorName, $user->email()));
+            $this->mailbox->send($this->buildMail($conversation, $authorName, $user->email()));
         } catch (\Throwable $e) {
             $this->notices->restoreNotice($conversation->id(), $userId, $previous);
             throw $e;
@@ -91,18 +87,14 @@ final class MentionNotifier
 
     private function buildMail(Conversation $conversation, string $authorName, string $to): Email
     {
-        $base = rtrim($this->baseUrl, '/');
-
-        return ($this->mailRenderer ?? MailRenderer::withDefaultTemplates())->compose(
-            (new Email())
-                ->from($this->fromAddress)
-                ->to($to)
-                ->subject('RehearsalBox — ' . HeaderText::oneLine($authorName) . ' vous a mentionné(e)'),
+        return $this->mailbox->compose(
+            $to,
+            HeaderText::oneLine($authorName) . ' vous a mentionné(e)',
             'mention-new',
             [
                 'mentionerName' => $authorName,
-                'link' => $base . '/messages/' . $conversation->id(),
-                'accountLink' => $base . '/account/password',
+                'link' => $this->mailbox->url('/messages/' . $conversation->id()),
+                'accountLink' => $this->mailbox->url('/account/password'),
                 'preheader' => $authorName . ' vous a mentionné(e) dans une conversation.',
             ],
         );
