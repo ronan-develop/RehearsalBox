@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Service;
 
 use App\Entity\Conversation;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
 use App\Repository\MysqlConversationNoticeRepository;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Service\ConversationNotifier;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\FailingMailer;

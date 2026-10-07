@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Presenter;
 
 use App\Entity\ConversationMessage;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\MessageQuote;
 use App\Presenter\ConversationFormatter;
 use App\Presenter\ConversationTimeline;

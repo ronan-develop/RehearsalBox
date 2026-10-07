@@ -6,11 +6,11 @@ namespace App\Tests\Repository;
 
 use App\Entity\Enum\UserRole;
 use App\Entity\Enum\Weekday;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\RecurringSlot;
 use App\Entity\User;
 use App\Repository\Exception\DuplicateOccurrenceException;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;

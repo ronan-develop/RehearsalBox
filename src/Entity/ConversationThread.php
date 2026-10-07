@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Group\Entity\Group;
+
 /**
  * Fil tel que le voit une personne : conversation, label des deux groupes, messages (tous, ou seulement les nouveaux
  * lors d'une lecture incrémentale), qui écrit en ce moment, « vu par » et groupe de chaque auteur (pastille).

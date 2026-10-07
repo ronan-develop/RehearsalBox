@@ -10,7 +10,7 @@ use App\Entity\Requester;
 use App\Entity\TimeRange;
 use App\Repository\Contract\BookingDateLockInterface;
 use App\Repository\Contract\FreeSlotBookingRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use App\Service\Contract\BookingNotifierInterface;

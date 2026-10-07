@@ -6,7 +6,7 @@ namespace App\Presenter;
 
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationSummary;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Support\Initials;
 use App\Support\SafeColor;
 

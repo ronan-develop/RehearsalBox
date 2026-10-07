@@ -14,7 +14,7 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Service\SlotOverlapAudit;
 

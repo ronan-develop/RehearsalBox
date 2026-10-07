@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\User;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\PasswordHasherInterface;

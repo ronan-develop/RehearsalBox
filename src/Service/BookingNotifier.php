@@ -9,7 +9,7 @@ use App\Entity\Enum\UserRole;
 use App\Entity\FreeSlotBooking;
 use App\Http\AfterResponseInterface;
 use App\Mail\Mailbox;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Contract\BookingNotifierInterface;
 use App\Support\FrenchDate;

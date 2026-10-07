@@ -8,7 +8,7 @@ use App\Entity\Enum\UserRole;
 use App\Http\Response;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
-use App\Service\Contract\GroupServiceInterface;
+use App\Group\Service\GroupServiceInterface;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\View\TemplateRendererInterface;
 

@@ -8,7 +8,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Presenter\MessagesPageView;
 use App\Repository\Contract\ConversationRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;

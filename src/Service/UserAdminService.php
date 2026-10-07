@@ -6,9 +6,9 @@ namespace App\Service;
 
 use App\Entity\AdminUserItem;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Contract\UserAdminServiceInterface;
 use App\Service\Exception\UserAdminRuleException;

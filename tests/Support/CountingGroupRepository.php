@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
-use App\Entity\Enum\GroupUserRole;
-use App\Entity\Group;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Entity\GroupUserRole;
+use App\Group\Entity\Group;
+use App\Group\Repository\GroupRepositoryInterface;
 
 /** Dépôt de groupes de test : délègue et compte les lectures par identifiant (garde-fou contre les requêtes en boucle, #239). */
 final class CountingGroupRepository implements GroupRepositoryInterface

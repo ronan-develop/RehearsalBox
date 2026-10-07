@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Presenter;
 
 use App\Entity\FreeSlotBooking;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Support\FrenchDate;
 
 /** Réservations à valider, prêtes à afficher (#263) : nom du groupe, jour et plage lisibles ; aucun texte n'est échappé ici (le gabarit le fait). */

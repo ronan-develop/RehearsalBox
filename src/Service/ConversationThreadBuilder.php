@@ -7,12 +7,12 @@ namespace App\Service;
 use App\Entity\Conversation;
 use App\Entity\ConversationMessage;
 use App\Entity\ConversationThread;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\SeenReceipt;
 use App\Repository\Contract\ConversationMessageRepositoryInterface;
 use App\Repository\Contract\ConversationPresenceRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Service\Contract\ConversationMentionsInterface;
 use Symfony\Component\Clock\ClockInterface;
 

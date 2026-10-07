@@ -10,7 +10,7 @@ use App\Entity\MentionPlan;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationMentionRepositoryInterface;
 use App\Repository\Contract\ConversationMessageRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\UserRepositoryInterface;
 use App\Service\Exception\ConversationValidationException;
 use App\Support\StrictId;

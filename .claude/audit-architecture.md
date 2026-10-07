@@ -75,12 +75,11 @@ Un **domaine par PR**, **déplacement pur** (`git mv`, changement de `namespace`
 
 | Ordre | Ticket | Domaine | Classes | Dossier(s) vidé(s) ou allégé(s) |
 |---:|---|---|---:|---|
-| 1 | migration | **Réservations** (`Booking`) | 22 | allège Service, Entity |
-| 2 | migration | **Planning** + **Tableau de bord** | 28 | allège Entity, Presenter |
-| 3 | migration | **Groupes** | 24 | allège Repository, Contract |
-| 4 | migration | **Comptes** | 41 | allège Security, Service, Exception |
-| 5 | migration | **Messagerie** | 78 | vide Service, Repository, Contract, Entity |
-| 6 | nettoyage | classes mortes (GroupManager, RedirectResponse) | 4 | décision du propriétaire |
+| 1 | #317 | **Groupes** (`src/Group`) ✅ | 27 | allège Repository, Contract, Entity |
+| 2 | #316 | **Planning** (créneaux, échanges **et réservations libres**) + **Tableau de bord** | 47 | allège Entity, Presenter, Service |
+| 3 | #318 | **Comptes** | 41 | allège Security, Service, Exception |
+| 4 | #319 | **Messagerie** | 78 | vide Service, Repository, Contract, Entity |
+| 5 | #320 | nettoyage | classes mortes (GroupManager, RedirectResponse) | 4 | décision du propriétaire |
 
 Coût mesuré : **182 fichiers** importent `App\Repository\…` et **126** `App\Service\…` ; un domaine entier touche donc 30 à 90 fichiers (surtout des `use`). Outils : `git mv` + substitution des `namespace`/`use` par script, puis PHPStan et la suite complète comme filet.
 
@@ -89,6 +88,8 @@ Risques et parades :
 - **`config/services.php`**, **`config/routes.php`**, **`phpstan.neon.dist`**, **`config/size-budget-exceptions.php`**, **`config/folder-budget-exceptions.php`** : chemins et `use` à mettre à jour dans la même PR (le garde-fou de dossier signale une exception devenue obsolète).
 - **Tests miroirs** : `tests/Service` (36), `tests/Repository` (26) suivent les domaines dans la même PR ; le plafond ne s'applique pas encore aux tests (à étendre quand les domaines sont migrés).
 - **Déploiement** : aucun risque de comportement ; vérifier `composer dump-autoload -o` (le déploiement le fait) et l'amorçage de `public/index.php`.
+
+**Ajustement décidé à la première migration** : les réservations libres ne forment pas un domaine à part. `SlotService` fusionne les réservations validées dans le planning (dépendance Planning vers Réservations) : deux domaines auraient créé un cycle. Elles rejoignent donc `src/Planning` (« occupation du local »). Les interfaces de dépôt et de service se rangent **à côté de leurs implémentations** dans le domaine (plus de dossiers `Contract/`), les enums dans `Entity/`, les exceptions dans `<Domaine>/Exception/`. `FieldValidationException`, socle de toutes les erreurs par champ, devient `src/Validation/`.
 
 ## 5. Garde-fou (déjà livré)
 

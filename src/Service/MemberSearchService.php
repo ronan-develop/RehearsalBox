@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\MemberDirectoryInterface;
 use App\Security\Exception\AccessDeniedException;
 

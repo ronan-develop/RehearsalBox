@@ -7,7 +7,7 @@ namespace App\Service;
 use App\Entity\Conversation;
 use App\Repository\Contract\ConversationGuestRepositoryInterface;
 use App\Repository\Contract\ConversationRepositoryInterface;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 
 /**

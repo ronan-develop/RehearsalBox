@@ -7,7 +7,7 @@ namespace App\Service;
 use App\Entity\RecurringSlot;
 use App\Entity\SlotException;
 use App\Entity\TimeRange;
-use App\Repository\Contract\GroupRepositoryInterface;
+use App\Group\Repository\GroupRepositoryInterface;
 use App\Repository\Contract\RecurringSlotRepositoryInterface;
 use App\Repository\Contract\SlotExceptionRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;

@@ -6,10 +6,10 @@ namespace App\Tests\Controller\Api;
 
 use App\Controller\Api\UserAdminApiController;
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Http\Request;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;

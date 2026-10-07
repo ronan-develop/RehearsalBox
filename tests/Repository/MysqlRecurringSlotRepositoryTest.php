@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Repository;
 
 use App\Entity\Enum\Weekday;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\RecurringSlot;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlRecurringSlotRepository;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;

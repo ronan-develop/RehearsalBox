@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Repository;
 
 use App\Entity\Enum\UserRole;
-use App\Entity\Group;
+use App\Group\Entity\Group;
 use App\Entity\User;
 use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlGroupRepository;
+use App\Group\Repository\MysqlGroupRepository;
 use App\Repository\MysqlMessageVersionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;

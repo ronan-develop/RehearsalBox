@@ -2,7 +2,7 @@
 /**
  * @var string $csrfToken
  * @var list<\App\Entity\AdminUserItem> $items
- * @var list<\App\Entity\Group> $groups
+ * @var list<\App\Group\Entity\Group> $groups
  * @var int $currentUserId
  * @var \App\Entity\Enum\UserRole $currentUserRole
  */
