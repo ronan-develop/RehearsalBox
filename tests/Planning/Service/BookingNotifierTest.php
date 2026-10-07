@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Planning\Service;
 
 use App\Planning\Entity\FreeSlotBookingStatus;
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\Requester;
 use App\Planning\Entity\TimeRange;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Planning\Repository\MysqlFreeSlotBookingRepository;
-use App\Repository\MysqlNotificationPreferenceRepository;
+use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Planning\Service\BookingNotifier;
 use App\Tests\RepositoryTestCase;
 use App\Tests\Support\MessagingScenario;

@@ -5,7 +5,7 @@
  *
  * @var string $csrfToken
  * @var list<array{id: int, groupName: string, when: string, range: string, reason: ?string}> $items
- * @var \App\Entity\Enum\UserRole $currentUserRole
+ * @var \App\Account\Entity\UserRole $currentUserRole
  */
 ?>
 <!doctype html>

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Routing;
 
-use App\Controller\Api\AccountApiController;
-use App\Controller\Api\PasswordResetApiController;
+use App\Account\Controller\Api\AccountApiController;
+use App\Account\Controller\Api\PasswordResetApiController;
 use App\Controller\PageController;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -51,11 +51,11 @@ final class PasswordResetRoutesTest extends TestCase
     #[Test]
     public function testAdminUsersRoutesAreRegistered(): void
     {
-        self::assertContains(['GET', '/admin/users', [\App\Controller\AdminUserPageController::class, 'index']], $this->allRoutes());
-        self::assertContains(['GET', '/api/admin/users', [\App\Controller\Api\UserAdminApiController::class, 'index']], $this->allRoutes());
-        self::assertContains(['POST', '/api/admin/users', [\App\Controller\Api\UserAdminApiController::class, 'store']], $this->allRoutes());
-        self::assertContains(['PATCH', '/api/admin/users/{id}', [\App\Controller\Api\UserAdminApiController::class, 'update']], $this->allRoutes());
-        self::assertContains(['POST', '/api/admin/users/{id}/unlock', [\App\Controller\Api\UserAdminApiController::class, 'unlock']], $this->allRoutes());
+        self::assertContains(['GET', '/admin/users', [\App\Account\Controller\AdminUserPageController::class, 'index']], $this->allRoutes());
+        self::assertContains(['GET', '/api/admin/users', [\App\Account\Controller\Api\UserAdminApiController::class, 'index']], $this->allRoutes());
+        self::assertContains(['POST', '/api/admin/users', [\App\Account\Controller\Api\UserAdminApiController::class, 'store']], $this->allRoutes());
+        self::assertContains(['PATCH', '/api/admin/users/{id}', [\App\Account\Controller\Api\UserAdminApiController::class, 'update']], $this->allRoutes());
+        self::assertContains(['POST', '/api/admin/users/{id}/unlock', [\App\Account\Controller\Api\UserAdminApiController::class, 'unlock']], $this->allRoutes());
     }
 
     #[Test]

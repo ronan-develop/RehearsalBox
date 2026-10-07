@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
-use App\Security\PasswordHasherInterface;
+use App\Account\Security\PasswordHasherInterface;
 
 /**
  * Hacheur RÉSERVÉ AUX TESTS (#207) : bcrypt au coût minimal (≈ 2 ms au lieu de ≈ 90 ms avec le coût de production). Les

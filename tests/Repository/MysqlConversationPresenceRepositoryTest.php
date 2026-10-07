@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Repository;
 
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Repository\MysqlConversationMessageRepository;
 use App\Repository\MysqlConversationPresenceRepository;
 use App\Repository\MysqlConversationRepository;

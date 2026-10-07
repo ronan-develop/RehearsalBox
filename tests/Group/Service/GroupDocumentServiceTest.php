@@ -6,14 +6,14 @@ namespace App\Tests\Group\Service;
 
 use App\Database\TransactionRunner;
 use App\Group\Entity\GroupUserRole;
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Group\Entity\GroupDocument;
 use App\Group\Repository\GroupDocumentRepositoryInterface;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Group\Exception\InvalidUploadException;
 use App\Group\Exception\StorageQuotaExceededException;

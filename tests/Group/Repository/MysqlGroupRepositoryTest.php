@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Tests\Group\Repository;
 
 use App\Group\Entity\GroupUserRole;
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
 use App\Group\Entity\LineupMember;
 use App\Group\Entity\UpcomingShow;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 

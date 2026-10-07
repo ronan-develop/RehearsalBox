@@ -7,7 +7,7 @@
  * @var list<array{id: int, name: string, bookings: list<array<string, mixed>>}> $groups
  * @var string $minDate
  * @var string $maxDate
- * @var \App\Entity\Enum\UserRole $currentUserRole
+ * @var \App\Account\Entity\UserRole $currentUserRole
  */
 ?>
 <!doctype html>

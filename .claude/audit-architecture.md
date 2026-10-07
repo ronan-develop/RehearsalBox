@@ -76,8 +76,8 @@ Un **domaine par PR**, **déplacement pur** (`git mv`, changement de `namespace`
 | Ordre | Ticket | Domaine | Classes | Dossier(s) vidé(s) ou allégé(s) |
 |---:|---|---|---:|---|
 | 1 | #317 | **Groupes** (`src/Group`) ✅ | 27 | allège Repository, Contract, Entity |
-| 2 | #316 | **Planning** (créneaux, échanges **et réservations libres**) + **Tableau de bord** | 47 | allège Entity, Presenter, Service |
-| 3 | #318 | **Comptes** | 41 | allège Security, Service, Exception |
+| 2 | #316 | **Planning** (créneaux, échanges **et réservations libres**) + **Tableau de bord** ✅ | 47 | allège Entity, Presenter, Service |
+| 3 | #318 | **Comptes** ✅ | 41 | allège Security, Service, Exception |
 | 4 | #319 | **Messagerie** | 78 | vide Service, Repository, Contract, Entity |
 | 5 | #320 | nettoyage | classes mortes (GroupManager, RedirectResponse) | 4 | décision du propriétaire |
 
@@ -89,7 +89,7 @@ Risques et parades :
 - **Tests miroirs** : `tests/Service` (36), `tests/Repository` (26) suivent les domaines dans la même PR ; le plafond ne s'applique pas encore aux tests (à étendre quand les domaines sont migrés).
 - **Déploiement** : aucun risque de comportement ; vérifier `composer dump-autoload -o` (le déploiement le fait) et l'amorçage de `public/index.php`.
 
-**Ajustement décidé à la première migration** : les réservations libres ne forment pas un domaine à part. `SlotService` fusionne les réservations validées dans le planning (dépendance Planning vers Réservations) : deux domaines auraient créé un cycle. Elles rejoignent donc `src/Planning` (« occupation du local »). Les interfaces de dépôt et de service se rangent **à côté de leurs implémentations** dans le domaine (plus de dossiers `Contract/`), les enums dans `Entity/`, les exceptions dans `<Domaine>/Exception/`. `FieldValidationException`, socle de toutes les erreurs par champ, devient `src/Validation/`.
+**Ajustement décidé à la première migration** : les réservations libres ne forment pas un domaine à part. `SlotService` fusionne les réservations validées dans le planning (dépendance Planning vers Réservations) : deux domaines auraient créé un cycle. Elles rejoignent donc `src/Planning` (« occupation du local »). Les interfaces de dépôt et de service se rangent **à côté de leurs implémentations** dans le domaine (plus de dossiers `Contract/`), les enums dans `Entity/`, les exceptions dans `<Domaine>/Exception/`. `FieldValidationException`, socle de toutes les erreurs par champ, devient `src/Validation/`. Dans chaque domaine, les contrôleurs JSON sont dans `Controller/Api/` et les contrôleurs de pages dans `Controller/` (choix du propriétaire) ; les tests suivent le même rangement.
 
 ## 5. Garde-fou (déjà livré)
 

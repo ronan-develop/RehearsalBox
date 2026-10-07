@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Group\Service;
 
 use App\Group\Entity\GroupUserRole;
-use App\Entity\Enum\UserRole;
+use App\Account\Entity\UserRole;
 use App\Group\Entity\Group;
-use App\Entity\User;
+use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupManagerRepository;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlUserRepository;
+use App\Account\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Group\Service\GroupManagerService;
 use App\Tests\RepositoryTestCase;

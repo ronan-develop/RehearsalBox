@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Security;
 
-use App\Entity\Enum\UserRole;
-use App\Entity\User;
+use App\Account\Entity\UserRole;
+use App\Account\Entity\User;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Service\Contract\AuthServiceInterface;
+use App\Account\Service\AuthServiceInterface;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 

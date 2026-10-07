@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Account\Service;
+
+use App\Database\TransactionRunner;
+use App\Account\Entity\User;
+use App\Account\Repository\PasswordResetRepositoryInterface;
+use App\Account\Repository\UserRepositoryInterface;
+use App\Account\Security\ResetToken;
+use App\Account\Exception\InvalidResetTokenException;
+use App\Mail\Mailbox;
+use Symfony\Component\Mime\Email;
+
+/**
+ * Alerte envoyée après un changement de mot de passe, et bouton « Ce n'est pas moi ».
+ *
+ * « Ce n'est pas moi » ne restaure PAS l'ancien mot de passe (l'auteur du changement le connaît
+ * forcément) : il verrouille le compte, ferme toutes les sessions et envoie un lien de
+ * réinitialisation à l'adresse du compte, que seul son propriétaire contrôle.
+ */
+final class AccountSecurityService
+{
+    private const ALERT_TTL = '+24 hours';
+    private const LOCK_DURATION = '+7 days';
+
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly PasswordResetRepositoryInterface $resetRepository,
+        private readonly Mailbox $mailbox,
+        private readonly TransactionRunner $transactions,
+        private readonly PasswordResetService $passwordReset,
+    ) {
+    }
+
+    /** Un échec d'envoi n'est pas remonté (le changement de mot de passe a déjà réussi) : le jeton est annulé. */
+    public function sendPasswordChangedAlert(User $user, ?\DateTimeImmutable $now = null): void
+    {
+        $now ??= new \DateTimeImmutable();
+
+        $token = ResetToken::generate();
+        $this->resetRepository->invalidateAllForUser($user->id(), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
+        $this->resetRepository->create(
+            $user->id(),
+            ResetToken::hash($token),
+            $now->modify(self::ALERT_TTL),
+            $now,
+            PasswordResetRepositoryInterface::PURPOSE_ALERT,
+        );
+
+        if (!$this->mailbox->sendSafely(fn () => $this->buildAlertMail($user->email(), $token), sprintf('Alerte de changement de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
+            $this->resetRepository->invalidateAllForUser($user->id(), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
+        }
+    }
+
+    /** @throws InvalidResetTokenException jeton inconnu, expiré, déjà utilisé ou d'une autre finalité */
+    public function secureAccount(string $token, ?\DateTimeImmutable $now = null): void
+    {
+        $now ??= new \DateTimeImmutable();
+
+        $email = $this->transactions->run(function () use ($token, $now): string {
+            $userId = $this->resetRepository->consume(ResetToken::hash($token), $now, PasswordResetRepositoryInterface::PURPOSE_ALERT);
+            $user = $userId === null ? null : $this->userRepository->findById($userId);
+            if ($user === null) {
+                throw new InvalidResetTokenException();
+            }
+
+            $this->userRepository->save($user->withSessionsRevoked()->withLockedUntil($now->modify(self::LOCK_DURATION)));
+
+            return $user->email();
+        });
+
+        // Le propriétaire reprend la main par sa boîte mail : lien de réinitialisation envoyé.
+        $this->passwordReset->requestReset($email, $now);
+    }
+
+    private function buildAlertMail(string $to, string $token): Email
+    {
+        return $this->mailbox->compose(
+            $to,
+            'votre mot de passe a été modifié',
+            'account-alert',
+            [
+                'link' => $this->mailbox->url('/account/secure?token=' . $token),
+                'preheader' => 'Votre mot de passe vient d\'être modifié. Si ce n\'est pas vous, sécurisez votre compte.',
+            ],
+        );
+    }
+}

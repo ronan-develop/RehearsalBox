@@ -11,15 +11,15 @@ use App\Service\Exception\ConversationRateLimitException;
 use App\Service\Exception\ConversationValidationException;
 use App\Planning\Exception\FreeSlotBookingConflictException;
 use App\Group\Exception\GroupValidationException;
-use App\Service\Exception\InvalidEmailChangeException;
-use App\Service\Exception\InvalidResetTokenException;
+use App\Account\Exception\InvalidEmailChangeException;
+use App\Account\Exception\InvalidResetTokenException;
 use App\Group\Exception\InvalidUploadException;
 use App\Planning\Exception\RequestAlreadyRespondedException;
 use App\Planning\Exception\RequestChangedException;
 use App\Group\Exception\StorageQuotaExceededException;
-use App\Service\Exception\UserAdminRuleException;
-use App\Service\Exception\UserNotFoundException;
-use App\Service\Exception\UserValidationException;
+use App\Account\Exception\UserAdminRuleException;
+use App\Account\Exception\UserNotFoundException;
+use App\Account\Exception\UserValidationException;
 
 /**
  * La table unique « exception métier → réponse HTTP » (#220), utilisée par le Kernel : les contrôleurs n'ont plus qu'à laisser

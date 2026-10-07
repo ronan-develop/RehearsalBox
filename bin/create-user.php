@@ -11,11 +11,11 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Database\ConnectionFactory;
-use App\Entity\Enum\UserRole;
-use App\Repository\MysqlUserRepository;
-use App\Security\NativePasswordHasher;
-use App\Security\PasswordPolicy;
-use App\Service\UserProvisioningService;
+use App\Account\Entity\UserRole;
+use App\Account\Repository\MysqlUserRepository;
+use App\Account\Security\NativePasswordHasher;
+use App\Account\Security\PasswordPolicy;
+use App\Account\Service\UserProvisioningService;
 
 $config = require __DIR__ . '/../config/config.php';
 

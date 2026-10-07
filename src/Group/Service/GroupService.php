@@ -9,7 +9,7 @@ use App\Group\Entity\Group;
 use App\Group\Entity\LineupMember;
 use App\Group\Entity\UpcomingShow;
 use App\Group\Repository\GroupRepositoryInterface;
-use App\Repository\Contract\UserRepositoryInterface;
+use App\Account\Repository\UserRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
 use App\Group\Service\GroupInputPolicy;
 use App\Support\Slug;
