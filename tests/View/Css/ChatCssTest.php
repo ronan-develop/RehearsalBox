@@ -100,7 +100,7 @@ final class ChatCssTest extends TestCase
     #[Test]
     public function testTheSwipeWidthMatchesBetweenTheScriptAndTheStylesheet(): void
     {
-        $script = (string) file_get_contents(__DIR__ . '/../../../public/assets/js/chat/swipe.js');
+        $script = (string) file_get_contents(__DIR__ . '/../../../public/assets/js/messaging/chat/thread/swipe.js');
 
         self::assertMatchesRegularExpression('/ACTION_WIDTH = 88;/', $script);
         self::assertStringContainsString('--swipe-x: -88px', $this->css());

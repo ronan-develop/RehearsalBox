@@ -1,24 +1,24 @@
-import { initLogoMigration } from './logo-migration.js';
-import { initAuth } from './auth.js';
-import { initAvailability } from './availability.js';
-import { initAdminSlots } from './admin-slots.js';
-import { initAdminGroups } from './admin-groups.js';
-import { initAdminUsers } from './admin-users.js';
-import { initAdminBookings } from './admin-bookings.js';
-import { initBookingsBadge } from './bookings-badge.js';
-import { initBookings } from './bookings.js';
-import { initPlanningTabs } from './planning-tabs.js';
-import { initTornPaper } from './tornpaper-init.js';
-import { initPlanningSearch } from './planning-search.js';
-import { initScrollHint } from './scroll-hint.js';
-import { initExceptionDeck, initExceptionTabs } from './exception-deck.js';
-import { initContact } from './contact.js';
-import './chat/rb-chat.js';
-import { initMessagesBadge } from './messages-badge.js';
-import { initMessagesTrash } from './messages-trash.js';
-import { initSwipeDelete } from './chat/swipe-delete.js';
-import { initGroupDocuments } from './group-documents.js';
-import { initGroupSpaceEditor } from './group-space.js';
+import { initLogoMigration } from './ui/logo-migration.js';
+import { initAuth } from './account/auth.js';
+import { initAvailability } from './planning/availability.js';
+import { initAdminSlots } from './planning/admin-slots.js';
+import { initAdminGroups } from './group/admin-groups.js';
+import { initAdminUsers } from './account/admin-users.js';
+import { initAdminBookings } from './planning/booking/admin-bookings.js';
+import { initBookingsBadge } from './planning/booking/bookings-badge.js';
+import { initBookings } from './planning/booking/bookings.js';
+import { initPlanningTabs } from './planning/dashboard/planning-tabs.js';
+import { initTornPaper } from './ui/tornpaper-init.js';
+import { initPlanningSearch } from './planning/dashboard/planning-search.js';
+import { initScrollHint } from './ui/scroll-hint.js';
+import { initExceptionDeck, initExceptionTabs } from './planning/dashboard/exception-deck.js';
+import { initContact } from './planning/contact.js';
+import './messaging/chat/components/rb-chat.js';
+import { initMessagesBadge } from './messaging/messages-badge.js';
+import { initMessagesTrash } from './messaging/messages-trash.js';
+import { initSwipeDelete } from './messaging/chat/thread/swipe-delete.js';
+import { initGroupDocuments } from './group/group-documents.js';
+import { initGroupSpaceEditor } from './group/group-space.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Après le chargement de la police du watermark : la position de repos
