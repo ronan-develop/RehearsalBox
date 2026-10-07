@@ -5,6 +5,7 @@
     "license": "proprietary",
     "require": {
         "php": ">=8.4",
+        "psr/log": "^3",
         "symfony/clock": "^8.1",
         "symfony/mailer": "^8.1"
     },
