@@ -19,6 +19,7 @@ use App\Tests\Support\RecordingMailer;
 use App\Tests\Support\ThrowingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Tests\Support\TestMailbox;
 
 /** #263 partie 3a : l'e-mail « à valider » des administrateurs et l'e-mail d'issue du demandeur. */
 #[\PHPUnit\Framework\Attributes\Group('db')]
@@ -49,7 +50,7 @@ final class BookingNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): BookingNotifier
     {
-        return new BookingNotifier(\App\Tests\Support\TestMailbox::of($mailer), $this->users, $this->groups, $this->later);
+        return new BookingNotifier(TestMailbox::of($mailer), $this->users, $this->groups, $this->later);
     }
 
     private function booking(?string $reason = 'Enregistrement secret'): \App\Entity\FreeSlotBooking

@@ -30,6 +30,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
+use App\Tests\Support\TestMailbox;
 
 /** #200 : seul l'auteur modifie son message, pendant 15 minutes ; l'ancienne version est gardée, les mentions suivent. */
 #[\PHPUnit\Framework\Attributes\Group('db')]
@@ -79,7 +80,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
             $this->guests,
             $this->mentions,
             $this->messages,
-            new MentionNotifier(\App\Tests\Support\TestMailbox::of($this->mailer), new MysqlMentionNoticeRepository($this->pdo), $users, new MysqlNotificationPreferenceRepository($this->pdo), new \App\Repository\MysqlConversationMuteRepository($this->pdo)),
+            new MentionNotifier(TestMailbox::of($this->mailer), new MysqlMentionNoticeRepository($this->pdo), $users, new MysqlNotificationPreferenceRepository($this->pdo), new \App\Repository\MysqlConversationMuteRepository($this->pdo)),
         );
         $this->service = new ConversationService($this->conversations, $this->messages, $this->presence, $groups, $transactions, $this->clock, mentions: $mentionService, access: $access);
         $this->editor = new MessageEditService($access, $this->messages, $mentionService, $transactions, $this->clock);

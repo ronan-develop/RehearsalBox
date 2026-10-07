@@ -20,6 +20,7 @@ use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationReminderServiceTest extends RepositoryTestCase
@@ -56,7 +57,7 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
     {
         return new ConversationReminderService(
             $this->notices,
-            \App\Tests\Support\TestMailbox::of($mailer),
+            TestMailbox::of($mailer),
             new MockClock($now),
             new \DateTimeZone('Europe/Paris'),
         );

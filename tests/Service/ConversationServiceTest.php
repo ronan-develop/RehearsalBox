@@ -27,6 +27,7 @@ use App\Tests\RepositoryTestCase;
 use App\Tests\Support\ConversationWorld;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationServiceTest extends RepositoryTestCase
@@ -129,7 +130,7 @@ final class ConversationServiceTest extends RepositoryTestCase
             $this->groups,
             new TransactionRunner($this->pdo),
             $this->clock,
-            notifier: new ConversationNotifier(\App\Tests\Support\TestMailbox::of($mailer), new MysqlConversationNoticeRepository($this->pdo)),
+            notifier: new ConversationNotifier(TestMailbox::of($mailer), new MysqlConversationNoticeRepository($this->pdo)),
         );
     }
 

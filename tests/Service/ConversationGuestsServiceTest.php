@@ -29,6 +29,7 @@ use App\Service\Exception\ConversationValidationException;
 use App\Tests\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
+use App\Tests\Support\TestMailbox;
 
 /** #178 : taguer un membre du site lui ouvre CETTE conversation ; les invités y participent comme les autres. */
 #[\PHPUnit\Framework\Attributes\Group('db')]
@@ -80,7 +81,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $this->guests,
             $this->mentions,
             $this->messages,
-            new MentionNotifier(\App\Tests\Support\TestMailbox::of($this->mailer), new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), new \App\Repository\MysqlConversationMuteRepository($this->pdo)),
+            new MentionNotifier(TestMailbox::of($this->mailer), new \App\Repository\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Repository\MysqlNotificationPreferenceRepository($this->pdo), new \App\Repository\MysqlConversationMuteRepository($this->pdo)),
         );
         $this->service = new ConversationService(
             $this->conversations,

@@ -20,6 +20,7 @@ use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class EmailChangeServiceTest extends RepositoryTestCase
@@ -48,7 +49,7 @@ final class EmailChangeServiceTest extends RepositoryTestCase
             new MysqlEmailChangeRepository($this->pdo),
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
-            \App\Tests\Support\TestMailbox::of($mailer),
+            TestMailbox::of($mailer),
             new TransactionRunner($this->pdo),
         );
     }

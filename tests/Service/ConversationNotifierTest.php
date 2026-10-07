@@ -16,6 +16,7 @@ use App\Tests\Support\FailingMailer;
 use App\Tests\Support\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationNotifierTest extends RepositoryTestCase
@@ -39,7 +40,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): ConversationNotifier
     {
-        return new ConversationNotifier(\App\Tests\Support\TestMailbox::of($mailer), $this->notices);
+        return new ConversationNotifier(TestMailbox::of($mailer), $this->notices);
     }
 
     /** @return list<string> */
@@ -149,7 +150,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
         };
         $mailer = new RecordingMailer();
 
-        (new ConversationNotifier(\App\Tests\Support\TestMailbox::of($mailer), $brokenNotices))
+        (new ConversationNotifier(TestMailbox::of($mailer), $brokenNotices))
             ->newConversation($this->conversation, 'Alice', 'Alpha', $this->target, $this->now);
 
         self::assertSame([], $mailer->sent);

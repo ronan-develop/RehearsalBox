@@ -24,6 +24,7 @@ use App\Tests\Support\ThrowingMailer;
 use App\Tests\Support\RecordingMailer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use App\Tests\Support\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class PasswordResetServiceTest extends RepositoryTestCase
@@ -69,7 +70,7 @@ final class PasswordResetServiceTest extends RepositoryTestCase
             new MysqlPasswordResetRepository($this->pdo),
             new FastPasswordHasher(),
             new PasswordPolicy(),
-            \App\Tests\Support\TestMailbox::of($mailer),
+            TestMailbox::of($mailer),
             new TransactionRunner($this->pdo),
             afterResponse: $afterResponse ?? new ImmediateAfterResponse(),
         );
