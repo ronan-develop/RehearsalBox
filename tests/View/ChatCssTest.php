@@ -175,7 +175,9 @@ final class ChatCssTest extends TestCase
     #[Test]
     public function testTheSenderBadgeUsesTheGroupColourWithAFallback(): void
     {
-        self::assertMatchesRegularExpression('/\.rb-chat-avatar\s*\{[^}]*var\(--group-color, var\(--rb-accent-2\)\)/s', $this->css());
+        // La pastille est la classe partagée `.rb-avatar` (base.css, #324) : couleur du groupe, repli neutre.
+        $base = (string) file_get_contents(__DIR__ . '/../../public/assets/css/base.css');
+        self::assertMatchesRegularExpression('/\.rb-avatar\s*\{[^}]*var\(--group-color, var\(--rb-accent-2\)\)/s', $base);
     }
 
     #[Test]

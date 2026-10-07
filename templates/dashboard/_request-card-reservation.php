@@ -22,7 +22,7 @@
     <article class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" data-booking-id="<?= e((string) $booking->id()) ?>"
              style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e(\App\Support\SafeColor::from($item->groupColorHex()) ?? 'var(--rb-accent)') ?>;">
         <div class="rb-exception-card-head">
-            <span class="rb-exception-card-avatar" aria-hidden="true"><?= e(\App\Support\Initials::from($item->groupName())) ?></span>
+            <?php $avatarInitials = \App\Support\Initials::from($item->groupName()); $avatarClass = ''; $avatarColor = null; $avatarTitle = null; require __DIR__ . '/../partials/avatar.php'; ?>
             <div class="rb-exception-card-head-text">
                 <h3><?= e($item->groupName()) ?></h3>
                 <span class="rb-badge rb-badge-kind rb-badge-kind--reservation"><?= e($item->kind()->label()) ?></span>

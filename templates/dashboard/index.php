@@ -17,7 +17,7 @@
         <header class="rb-dashboard-header rb-stone-panel rb-stone-panel--ember">
             <div class="rb-dashboard-header-user">
                 <span><?= e($currentUserGroupName ?? 'Admin local') ?></span>
-                <span class="rb-dashboard-avatar" aria-hidden="true"><?= e($currentUserInitials) ?></span>
+                <?php $avatarInitials = $currentUserInitials; $avatarClass = 'rb-avatar--sm rb-dashboard-avatar'; $avatarColor = null; $avatarTitle = null; require __DIR__ . '/../partials/avatar.php'; ?>
             </div>
         </header>
 

@@ -18,7 +18,7 @@
     <article class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" data-exception-id="<?= e((string) $exception->id()) ?>"
              style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e(\App\Support\SafeColor::from($item->requestedByGroupColorHex()) ?? 'var(--rb-accent)') ?>;">
         <div class="rb-exception-card-head">
-            <span class="rb-exception-card-avatar" aria-hidden="true"><?= e($initials) ?></span>
+            <?php $avatarInitials = $initials; $avatarClass = ''; $avatarColor = null; $avatarTitle = null; require __DIR__ . '/../partials/avatar.php'; ?>
             <div class="rb-exception-card-head-text">
                 <h3><?= e($item->requestedByGroupName()) ?></h3>
                 <span class="rb-badge rb-badge-kind rb-badge-kind--echange"><?= e($item->kind()->label()) ?></span>
