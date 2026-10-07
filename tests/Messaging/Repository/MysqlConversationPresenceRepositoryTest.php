@@ -8,8 +8,8 @@ use App\Account\Entity\User;
 use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Messaging\Repository\MysqlConversationPresenceRepository;
 use App\Messaging\Repository\MysqlConversationRepository;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Présence : dernière lecture, « en train d'écrire » et « vu par ». */

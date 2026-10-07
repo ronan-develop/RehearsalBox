@@ -25,7 +25,7 @@ src/
 └── Database/ · Migration/ · Deploy/   ← connexion PDO et transactions, migrations, outils de déploiement
 ```
 
-Règle d'organisation (audit #287, voir `.claude/audit-architecture.md`) : **par domaine d'abord, par type ensuite**, au plus **12 classes par dossier** (`bin/check-folders.php`, en CI). Les tests suivent le même rangement (`tests/<Domaine>/…`).
+Règle d'organisation (audit #287, voir `.claude/audit-architecture.md`) : **par domaine d'abord, par type ensuite**, au plus **12 classes par dossier** (`bin/check-folders.php`, en CI). Les tests suivent le même rangement (`tests/<Domaine>/…`), avec `tests/Doubles/` (faux mailers, hacheurs, session), `tests/Scenarios/` (mondes et scénarios de test), `tests/Database/` (base de test) et `tests/View/Css/`; le plafond de 12 vaut aussi pour `tests/`.
 
 ## E-mails (#157)
 

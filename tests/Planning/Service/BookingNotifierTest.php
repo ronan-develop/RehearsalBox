@@ -12,14 +12,14 @@ use App\Account\Entity\User;
 use App\Planning\Repository\MysqlFreeSlotBookingRepository;
 use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Planning\Service\BookingNotifier;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
-use App\Tests\Support\RecordingAfterResponse;
-use App\Tests\Support\RecordingMailer;
-use App\Tests\Support\ThrowingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
+use App\Tests\Doubles\RecordingAfterResponse;
+use App\Tests\Doubles\RecordingMailer;
+use App\Tests\Doubles\ThrowingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 /** #263 partie 3a : l'e-mail « à valider » des administrateurs et l'e-mail d'issue du demandeur. */
 #[\PHPUnit\Framework\Attributes\Group('db')]

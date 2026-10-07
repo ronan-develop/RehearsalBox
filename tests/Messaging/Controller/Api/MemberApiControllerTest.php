@@ -17,12 +17,12 @@ use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Tests\Security\InMemorySession;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\InMemorySession;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Service\AuthService;
 use App\Messaging\Service\ConversationAccess;
 use App\Messaging\Service\Mention\MemberSearchService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

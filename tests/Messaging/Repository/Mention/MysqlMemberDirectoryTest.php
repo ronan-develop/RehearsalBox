@@ -10,7 +10,7 @@ use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\Mention\MysqlMemberDirectory;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Annuaire des membres pour la liste après « @ » : noms et groupes, jamais d'adresse e-mail. */

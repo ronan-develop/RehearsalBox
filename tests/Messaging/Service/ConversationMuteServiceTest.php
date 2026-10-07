@@ -9,8 +9,8 @@ use App\Messaging\Repository\MysqlConversationRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\ConversationAccess;
 use App\Messaging\Service\ConversationMuteService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #210 : un participant met une conversation en sourdine ou la rétablit ; personne d'autre, aucun effet sur les autres. */

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View;
+namespace App\Tests\View\Css;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +12,7 @@ final class BookingsCssTest extends TestCase
 {
     private function css(): string
     {
-        return (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/bookings.css');
+        return (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/bookings.css');
     }
 
     #[Test]
@@ -53,7 +53,7 @@ final class BookingsCssTest extends TestCase
     #[Test]
     public function testNothingIsConveyedByColourAloneTheStateIsAlwaysWritten(): void
     {
-        $template = (string) file_get_contents(__DIR__ . '/../../templates/bookings/index.php');
+        $template = (string) file_get_contents(__DIR__ . '/../../../templates/bookings/index.php');
 
         self::assertStringContainsString('statusLabel', $template, 'l\'état est un texte, la couleur ne fait que le souligner');
         self::assertMatchesRegularExpression('/\.rb-booking-plan-line--request\s*\{[^}]*border-left:/s', $this->css(), 'un trait en plus de la couleur');

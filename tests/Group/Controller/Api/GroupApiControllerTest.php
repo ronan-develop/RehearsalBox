@@ -12,12 +12,12 @@ use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
-use App\Tests\Support\FastPasswordHasher;
-use App\Tests\Support\KernelTranslation;
+use App\Tests\Doubles\FastPasswordHasher;
+use App\Tests\Scenarios\KernelTranslation;
 use App\Account\Service\AuthService;
 use App\Group\Service\GroupService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

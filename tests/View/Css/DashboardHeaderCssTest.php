@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View;
+namespace App\Tests\View\Css;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +13,7 @@ final class DashboardHeaderCssTest extends TestCase
     #[Test]
     public function testAVeryLongGroupNameIsTruncatedAndStaysReadableOverTheLogoOnPhones(): void
     {
-        $css = (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+        $css = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/dashboard.css');
         $start = strpos($css, '.rb-dashboard-header-user > span:first-child');
         self::assertNotFalse($start, 'règle du nom de groupe dans l\'en-tête');
         $rule = substr($css, $start, strpos($css, '}', $start) - $start);
@@ -38,7 +38,7 @@ final class DashboardHeaderCssTest extends TestCase
     #[Test]
     public function testTheGroupNameAndAvatarAreDrawnInFrontOfTheLogo(): void
     {
-        $css = (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+        $css = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/dashboard.css');
 
         preg_match('/z-index:\s*(\d+)/', $this->rule($css, '.rb-page-bg-text'), $logo);
         preg_match('/z-index:\s*(\d+)/', $this->rule($css, '.rb-dashboard-header-user'), $user);
@@ -52,7 +52,7 @@ final class DashboardHeaderCssTest extends TestCase
     #[Test]
     public function testTheHeaderDoesNotIsolateItsStackingContextOtherwiseNothingInsideCouldOvertakeTheLogo(): void
     {
-        $css = (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+        $css = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/dashboard.css');
 
         self::assertStringContainsString('isolation: auto', $this->rule($css, '.rb-dashboard-header'));
     }
@@ -60,7 +60,7 @@ final class DashboardHeaderCssTest extends TestCase
     #[Test]
     public function testTheAvatarDoesNotTouchTheRightEdgeOfTheHeader(): void
     {
-        $css = (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+        $css = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/dashboard.css');
 
         self::assertMatchesRegularExpression(
             '/margin-right:\s*var\(--rb-space-[1-9]\)/',

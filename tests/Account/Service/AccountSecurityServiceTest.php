@@ -9,15 +9,15 @@ use App\Account\Entity\UserRole;
 use App\Account\Entity\User;
 use App\Account\Repository\MysqlPasswordResetRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Service\AccountSecurityService;
 use App\Account\Exception\InvalidResetTokenException;
 use App\Account\Service\PasswordResetService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class AccountSecurityServiceTest extends RepositoryTestCase

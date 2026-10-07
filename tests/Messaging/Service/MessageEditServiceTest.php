@@ -26,11 +26,11 @@ use App\Messaging\Exception\ConversationRateLimitException;
 use App\Messaging\Exception\ConversationValidationException;
 use App\Messaging\Notification\MentionNotifier;
 use App\Messaging\Service\MessageEditService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 /** #200 : seul l'auteur modifie son message, pendant 15 minutes ; l'ancienne version est gardée, les mentions suivent. */
 #[\PHPUnit\Framework\Attributes\Group('db')]

@@ -23,8 +23,8 @@ use App\Planning\Service\AvailabilityService;
 use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;
 use App\Planning\Service\SlotService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\CountingGroupRepository;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\CountingGroupRepository;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 

@@ -21,7 +21,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\ConversationAccess;
 use App\Messaging\Service\ConversationService;
 use App\Messaging\Service\ConversationTrashService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 

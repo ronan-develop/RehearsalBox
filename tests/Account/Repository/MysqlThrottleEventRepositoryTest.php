@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Account\Repository;
 
 use App\Account\Repository\MysqlThrottleEventRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

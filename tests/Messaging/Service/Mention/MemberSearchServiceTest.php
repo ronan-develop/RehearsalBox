@@ -15,7 +15,7 @@ use App\Account\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\ConversationAccess;
 use App\Messaging\Service\Mention\MemberSearchService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /** #178 : la liste proposée après « @ » — tous les membres actifs, par nom, avec leur groupe ; jamais d'adresse. */

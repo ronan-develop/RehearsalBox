@@ -18,7 +18,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Group\Exception\InvalidUploadException;
 use App\Group\Exception\StorageQuotaExceededException;
 use App\Group\Service\GroupDocumentService;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

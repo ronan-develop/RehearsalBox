@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Bin;
 
 use App\Migration\Migrator;
-use App\Tests\TestDatabase;
+use App\Tests\Database\TestDatabase;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 

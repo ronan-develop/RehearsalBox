@@ -24,12 +24,12 @@ use App\Messaging\Service\Mention\ConversationMentionService;
 use App\Messaging\Service\ConversationService;
 use App\Messaging\Service\ConversationTrashService;
 use App\Messaging\Notification\MentionNotifier;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use App\Messaging\Exception\ConversationValidationException;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 /** #178 : taguer un membre du site lui ouvre CETTE conversation ; les invités y participent comme les autres. */
 #[\PHPUnit\Framework\Attributes\Group('db')]

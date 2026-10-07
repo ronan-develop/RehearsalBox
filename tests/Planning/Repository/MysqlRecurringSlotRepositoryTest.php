@@ -9,7 +9,7 @@ use App\Group\Entity\Group;
 use App\Planning\Entity\RecurringSlot;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

@@ -11,7 +11,7 @@ use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupManagerRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

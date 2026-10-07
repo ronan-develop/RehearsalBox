@@ -14,7 +14,7 @@ use App\Account\Repository\MysqlPasswordResetRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\AuthGuard;
 use App\Security\Exception\UnauthenticatedException;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Service\AccountSecurityService;
 use App\Account\Service\EmailChangeService;
@@ -23,12 +23,12 @@ use App\Account\Repository\MysqlEmailChangeRepository;
 use App\Account\Service\AuthService;
 use App\Account\Service\PasswordChangeService;
 use App\Account\Service\PasswordResetService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
-use App\Tests\Support\RecordingMailer;
-use App\Tests\Support\KernelTranslation;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
+use App\Tests\Doubles\RecordingMailer;
+use App\Tests\Scenarios\KernelTranslation;
 use PHPUnit\Framework\Attributes\Test;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class AccountApiControllerTest extends RepositoryTestCase

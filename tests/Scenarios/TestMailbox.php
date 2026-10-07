@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support;
+namespace App\Tests\Scenarios;
 
 use App\Mail\Mailbox;
 use Symfony\Component\Mailer\MailerInterface;

@@ -17,7 +17,7 @@ use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
 use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

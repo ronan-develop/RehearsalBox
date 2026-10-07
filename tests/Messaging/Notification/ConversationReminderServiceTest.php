@@ -14,13 +14,13 @@ use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Notification\ConversationReminderService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\FailingMailer;
-use App\Tests\Support\RecordingMailer;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\FailingMailer;
+use App\Tests\Doubles\RecordingMailer;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\MailerInterface;
-use App\Tests\Support\TestMailbox;
+use App\Tests\Scenarios\TestMailbox;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class ConversationReminderServiceTest extends RepositoryTestCase

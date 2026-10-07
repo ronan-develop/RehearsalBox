@@ -8,8 +8,8 @@ use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Messaging\Repository\Participation\MysqlConversationMuteRepository;
 use App\Messaging\Repository\MysqlConversationPresenceRepository;
 use App\Messaging\Repository\MysqlConversationRepository;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Sourdine (#210) : un interrupteur personnel par conversation, stocké dans conversation_states. */

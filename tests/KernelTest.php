@@ -14,7 +14,7 @@ use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
 use App\Security\SecurityHeaders;
-use App\Tests\Security\InMemorySession;
+use App\Tests\Doubles\InMemorySession;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 

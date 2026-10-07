@@ -14,14 +14,14 @@ use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Service\AuthService;
 use App\Group\Service\GroupService;
 use App\Account\Service\UserAdminService;
 use App\Account\Service\UserProvisioningService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Messaging\Service;
 
 use App\Messaging\Repository\ConversationRepositoryInterface as Box;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\ConversationWorld;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\ConversationWorld;
 use PHPUnit\Framework\Attributes\Test;
 
 /** Lecture de la messagerie : ouverture d'un fil, pastilles, archivage dérivé, polling, « vu par » et « écrit… ». */

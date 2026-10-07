@@ -7,10 +7,10 @@ namespace App\Tests\Account\Service;
 use App\Account\Entity\UserRole;
 use App\Account\Entity\User;
 use App\Account\Repository\MysqlUserRepository;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Service\CurrentPasswordVerifier;
 use App\Account\Exception\UserValidationException;
-use App\Tests\RepositoryTestCase;
+use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]

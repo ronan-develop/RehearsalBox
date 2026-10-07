@@ -16,9 +16,9 @@ use App\Planning\Exception\FreeSlotBookingConflictException;
 use App\Planning\Exception\RequestAlreadyRespondedException;
 use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Support\MessagingScenario;
-use App\Tests\TestDatabase;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Scenarios\MessagingScenario;
+use App\Tests\Database\TestDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Clock\MockClock;
 

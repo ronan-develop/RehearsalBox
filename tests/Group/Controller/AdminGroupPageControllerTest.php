@@ -18,9 +18,9 @@ use App\Security\Exception\AccessDeniedException;
 use App\Security\Exception\UnauthenticatedException;
 use App\Account\Service\AuthService;
 use App\Group\Service\GroupService;
-use App\Tests\RepositoryTestCase;
-use App\Tests\Security\InMemorySession;
-use App\Tests\Support\FastPasswordHasher;
+use App\Tests\Database\RepositoryTestCase;
+use App\Tests\Doubles\InMemorySession;
+use App\Tests\Doubles\FastPasswordHasher;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 

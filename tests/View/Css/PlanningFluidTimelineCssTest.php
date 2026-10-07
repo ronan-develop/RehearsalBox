@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View;
+namespace App\Tests\View\Css;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +19,7 @@ final class PlanningFluidTimelineCssTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->css = (string) file_get_contents(__DIR__ . '/../../public/assets/css/pages/dashboard.css');
+        $this->css = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/dashboard.css');
     }
 
     /** Corps du bloc @media bureau consacré à la timeline fluide (accolades imbriquées gérées). */

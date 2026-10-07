@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Support;
+namespace App\Tests\Doubles;
 
 use App\Group\Entity\GroupUserRole;
 use App\Group\Entity\Group;
