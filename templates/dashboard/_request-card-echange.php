@@ -2,11 +2,11 @@
 /**
  * Carte d'un échange entre groupes du bloc « Demandes de créneau » (#292, #303) : choisie par RequestKind::Echange.
  *
- * @var \App\Entity\DashboardExceptionItem $item
+ * @var \App\Dashboard\DashboardExceptionItem $item
  * @var int $deckPosition
  */
     $exception = $item->exception();
-    $isRecue = $item->direction() === \App\Entity\Enum\ExceptionDirection::Recue;
+    $isRecue = $item->direction() === \App\Planning\Entity\ExceptionDirection::Recue;
     $slot = $item->slot();
     $initials = \App\Support\Initials::from($item->requestedByGroupName());
     // Profondeur de pile visible plafonnée (cf. exception-deck.js

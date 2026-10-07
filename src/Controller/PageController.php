@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\DashboardExceptionItem;
-use App\Entity\DashboardRequestItem;
-use App\Entity\Enum\ExceptionDirection;
+use App\Dashboard\DashboardExceptionItem;
+use App\Dashboard\DashboardRequestItem;
+use App\Planning\Entity\ExceptionDirection;
 use App\Entity\Enum\UserRole;
-use App\Entity\RecurringSlot;
-use App\Entity\SlotException;
+use App\Planning\Entity\RecurringSlot;
+use App\Planning\Entity\SlotException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Group\Repository\GroupDocumentRepositoryInterface;
 use App\Repository\Contract\NotificationPreferenceRepositoryInterface;
 use App\Group\Repository\GroupRepositoryInterface;
-use App\Presenter\DashboardView;
+use App\Dashboard\DashboardView;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Security\SafeRedirect;
-use App\Service\Contract\AvailabilityServiceInterface;
+use App\Planning\Service\AvailabilityServiceInterface;
 use App\Group\Service\GroupServiceInterface;
-use App\Service\Contract\SlotServiceInterface;
+use App\Planning\Service\SlotServiceInterface;
 use App\Support\Initials;
 use App\View\TemplateRendererInterface;
 

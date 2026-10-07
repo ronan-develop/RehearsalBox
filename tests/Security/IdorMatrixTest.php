@@ -7,7 +7,7 @@ namespace App\Tests\Security;
 use App\Container\Container;
 use App\Group\Entity\GroupUserRole;
 use App\Entity\Enum\UserRole;
-use App\Entity\Enum\Weekday;
+use App\Planning\Entity\Weekday;
 use App\Group\Entity\Group;
 use App\Group\Entity\GroupDocument;
 use App\Entity\User;
@@ -15,12 +15,12 @@ use App\Http\Request;
 use App\Kernel;
 use App\Migration\Migrator;
 use App\Repository\MysqlConversationRepository;
-use App\Repository\MysqlFreeSlotBookingRepository;
+use App\Planning\Repository\MysqlFreeSlotBookingRepository;
 use App\Repository\MysqlConversationMessageRepository;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
-use App\Repository\MysqlRecurringSlotRepository;
-use App\Repository\MysqlSlotExceptionRepository;
+use App\Planning\Repository\MysqlRecurringSlotRepository;
+use App\Planning\Repository\MysqlSlotExceptionRepository;
 use App\Repository\MysqlUserRepository;
 use App\Routing\Router;
 use App\Security\CsrfTokenManager;
@@ -102,7 +102,7 @@ final class IdorMatrixTest extends TestCase
         $groups->addMember($groupB->id(), $outsiderB->id());
         $groups->addMember($groupB->id(), $dual->id());
 
-        $slotA = $slots->save(new \App\Entity\RecurringSlot(0, $groupA->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $slotA = $slots->save(new \App\Planning\Entity\RecurringSlot(0, $groupA->id(), Weekday::Tuesday, '18:00:00', '20:00:00', true));
 
         // Demande du groupe B (demandeur) sur le créneau de A (titulaire).
         $exceptionBA = $exceptions->createRequest($slotA->id(), new \DateTimeImmutable('+7 days'), $groupB->id(), $outsiderB->id(), 'Concert');
@@ -116,7 +116,7 @@ final class IdorMatrixTest extends TestCase
         $messages->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
 
         // Réservation libre du groupe A (#263) : seuls les membres de A l'annulent, seuls les administrateurs la tranchent.
-        $bookingA = (new MysqlFreeSlotBookingRepository($pdo))->create(new \App\Entity\Requester($groupA->id(), $memberA->id()), new \DateTimeImmutable('+20 days'), new \App\Entity\TimeRange('09:00:00', '10:00:00'), null);
+        $bookingA = (new MysqlFreeSlotBookingRepository($pdo))->create(new \App\Planning\Entity\Requester($groupA->id(), $memberA->id()), new \DateTimeImmutable('+20 days'), new \App\Planning\Entity\TimeRange('09:00:00', '10:00:00'), null);
 
         self::$storagePath = sys_get_temp_dir() . '/rb-idor-' . bin2hex(random_bytes(4));
         mkdir(self::$storagePath);

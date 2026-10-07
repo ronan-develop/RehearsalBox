@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Entity\Enum\SlotExceptionStatus;
-use App\Entity\Enum\Weekday;
+use App\Planning\Entity\SlotExceptionStatus;
+use App\Planning\Entity\Weekday;
 
 if (!function_exists('e')) {
     /** Échappement HTML systématique — jamais de <?= $value ?> brut dans les templates (cf. plan §10.2). */

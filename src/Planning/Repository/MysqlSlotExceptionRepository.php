@@ -1,0 +1,196 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Planning\Repository;
+
+use App\Planning\Entity\SlotExceptionStatus;
+use App\Planning\Entity\Requester;
+use App\Planning\Entity\SlotException;
+use App\Planning\Entity\TimeRange;
+use App\Planning\Repository\SlotExceptionRepositoryInterface;
+use App\Repository\Exception\DuplicateOccurrenceException;
+
+final class MysqlSlotExceptionRepository implements SlotExceptionRepositoryInterface
+{
+    public function __construct(private readonly \PDO $pdo)
+    {
+    }
+
+    public function findById(int $id): ?SlotException
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM slot_exceptions WHERE id = :id');
+        $statement->execute(['id' => $id]);
+
+        $row = $statement->fetch(\PDO::FETCH_ASSOC);
+
+        return $row === false ? null : $this->hydrate($row);
+    }
+
+    public function findPendingForHolderGroup(int $groupId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT se.* FROM slot_exceptions se
+             INNER JOIN recurring_slots rs ON rs.id = se.recurring_slot_id
+             WHERE rs.group_id = :group_id
+               AND se.status = 'en_attente'
+               AND se.occurrence_date >= CURDATE()
+             ORDER BY se.occurrence_date"
+        );
+        $statement->execute(['group_id' => $groupId]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function findByRequestingGroup(int $groupId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT * FROM slot_exceptions
+             WHERE requested_by_group_id = :group_id
+               AND (status != 'en_attente' OR occurrence_date >= CURDATE())
+             ORDER BY occurrence_date"
+        );
+        $statement->execute(['group_id' => $groupId]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function findArchivedForGroup(int $groupId): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT se.* FROM slot_exceptions se
+             INNER JOIN recurring_slots rs ON rs.id = se.recurring_slot_id
+             WHERE (rs.group_id = :group_id_holder OR se.requested_by_group_id = :group_id_requester)
+               AND se.status != 'en_attente'
+             ORDER BY se.occurrence_date DESC"
+        );
+        $statement->execute(['group_id_holder' => $groupId, 'group_id_requester' => $groupId]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function findAcceptedForCurrentWeek(): array
+    {
+        $monday = (new \DateTimeImmutable('today'))->modify('monday this week')->format('Y-m-d');
+        $sunday = (new \DateTimeImmutable('today'))->modify('sunday this week')->format('Y-m-d');
+
+        $statement = $this->pdo->prepare(
+            "SELECT * FROM slot_exceptions
+             WHERE status = 'acceptee' AND occurrence_date BETWEEN :monday AND :sunday
+             ORDER BY occurrence_date"
+        );
+        $statement->execute(['monday' => $monday, 'sunday' => $sunday]);
+
+        return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function createRequest(
+        int $recurringSlotId,
+        \DateTimeImmutable $occurrenceDate,
+        int $requestedByGroupId,
+        int $requestedByUserId,
+        ?string $reason,
+        ?string $startTime = null,
+        ?string $endTime = null,
+    ): SlotException {
+        $statement = $this->pdo->prepare(
+            "INSERT INTO slot_exceptions (recurring_slot_id, occurrence_date, start_time, end_time, status, requested_by_group_id, requested_by_user_id, request_reason)
+             VALUES (:recurring_slot_id, :occurrence_date, :start_time, :end_time, 'en_attente', :requested_by_group_id, :requested_by_user_id, :request_reason)"
+        );
+        try {
+            $statement->execute([
+                'recurring_slot_id' => $recurringSlotId,
+                'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'requested_by_group_id' => $requestedByGroupId,
+                'requested_by_user_id' => $requestedByUserId,
+                'request_reason' => $reason,
+            ]);
+        } catch (\PDOException $e) {
+            // 1062 = clé d'unicité (créneau, date) : une autre demande occupe déjà cette date (409, jamais une erreur SQL).
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                throw new DuplicateOccurrenceException();
+            }
+
+            throw $e;
+        }
+
+        return $this->findById((int) $this->pdo->lastInsertId());
+    }
+
+    public function respond(int $exceptionId, bool $accepted, int $respondedByUserId, ?\DateTimeImmutable $expectedOccurrenceDate = null): bool
+    {
+        $newStatus = $accepted ? SlotExceptionStatus::Acceptee : SlotExceptionStatus::Refusee;
+
+        // La date vue par le titulaire fait partie de la condition ATOMIQUE : si le demandeur l'a changée entre-temps,
+        // la réponse ne s'applique pas (et la demande reste en attente).
+        $statement = $this->pdo->prepare(
+            "UPDATE slot_exceptions
+             SET status = :new_status, responded_by_user_id = :user_id, responded_at = NOW()
+             WHERE id = :id AND status = 'en_attente'" . ($expectedOccurrenceDate === null ? '' : ' AND occurrence_date = :expected_date')
+        );
+        $parameters = [
+            'new_status' => $newStatus->value,
+            'id' => $exceptionId,
+            'user_id' => $respondedByUserId,
+        ];
+        if ($expectedOccurrenceDate !== null) {
+            $parameters['expected_date'] = $expectedOccurrenceDate->format('Y-m-d');
+        }
+        $statement->execute($parameters);
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function update(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason): bool
+    {
+        $statement = $this->pdo->prepare(
+            "UPDATE slot_exceptions
+             SET occurrence_date = :occurrence_date, request_reason = :request_reason
+             WHERE id = :id AND status = 'en_attente'"
+        );
+        try {
+            $statement->execute([
+                'occurrence_date' => $occurrenceDate->format('Y-m-d'),
+                'request_reason' => $reason,
+                'id' => $exceptionId,
+            ]);
+        } catch (\PDOException $e) {
+            // 1062 = clé d'unicité (créneau, date) : une autre demande occupe déjà cette date.
+            if (($e->errorInfo[1] ?? null) === 1062) {
+                throw new DuplicateOccurrenceException();
+            }
+
+            throw $e;
+        }
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function delete(int $exceptionId): bool
+    {
+        $statement = $this->pdo->prepare(
+            "DELETE FROM slot_exceptions WHERE id = :id AND status = 'en_attente'"
+        );
+        $statement->execute(['id' => $exceptionId]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    /** @param array<string, mixed> $row */
+    private function hydrate(array $row): SlotException
+    {
+        return new SlotException(
+            id: (int) $row['id'],
+            recurringSlotId: (int) $row['recurring_slot_id'],
+            occurrenceDate: new \DateTimeImmutable((string) $row['occurrence_date']),
+            status: SlotExceptionStatus::from((string) $row['status']),
+            requester: new Requester((int) $row['requested_by_group_id'], (int) $row['requested_by_user_id']),
+            requestReason: $row['request_reason'] !== null ? (string) $row['request_reason'] : null,
+            respondedByUserId: $row['responded_by_user_id'] !== null ? (int) $row['responded_by_user_id'] : null,
+            createdAt: new \DateTimeImmutable((string) $row['created_at']),
+            range: TimeRange::fromColumns($row['start_time'] !== null ? (string) $row['start_time'] : null, $row['end_time'] !== null ? (string) $row['end_time'] : null),
+        );
+    }
+}

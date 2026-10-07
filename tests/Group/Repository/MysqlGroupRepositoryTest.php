@@ -267,8 +267,8 @@ final class MysqlGroupRepositoryTest extends RepositoryTestCase
         $requester = $groups->save(new Group(0, 'Demandeur', null, null, 'demandeur@example.test'));
         $user = $users->save($this->newUser('alice@rehearsalbox.test'));
         $groups->addMember($requester->id(), $user->id());
-        $slot = (new \App\Repository\MysqlRecurringSlotRepository($this->pdo))->save(new \App\Entity\RecurringSlot(0, $holder->id(), \App\Entity\Enum\Weekday::Tuesday, '18:00:00', '20:00:00', true));
-        $requests = new \App\Repository\MysqlSlotExceptionRepository($this->pdo);
+        $slot = (new \App\Planning\Repository\MysqlRecurringSlotRepository($this->pdo))->save(new \App\Planning\Entity\RecurringSlot(0, $holder->id(), \App\Planning\Entity\Weekday::Tuesday, '18:00:00', '20:00:00', true));
+        $requests = new \App\Planning\Repository\MysqlSlotExceptionRepository($this->pdo);
         $request = $requests->createRequest($slot->id(), new \DateTimeImmutable('+7 days'), $requester->id(), $user->id(), 'Concert');
 
         // Avant la migration 027 : « Cannot delete or update a parent row » (une erreur 500 pour l'administrateur).

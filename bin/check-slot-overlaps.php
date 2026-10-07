@@ -15,14 +15,14 @@ if (PHP_SAPI !== 'cli') {
 require __DIR__ . '/../vendor/autoload.php';
 
 use App\Group\Repository\GroupRepositoryInterface;
-use App\Repository\Contract\RecurringSlotRepositoryInterface;
-use App\Service\SlotOverlapAudit;
+use App\Planning\Repository\RecurringSlotRepositoryInterface;
+use App\Planning\Service\SlotOverlapAudit;
 
 $config = require __DIR__ . '/../config/config.php';
 $container = (require __DIR__ . '/../config/services.php')($config);
 $groups = $container->get(GroupRepositoryInterface::class);
 
-$describe = static function (App\Entity\RecurringSlot $slot) use ($groups): string {
+$describe = static function (App\Planning\Entity\RecurringSlot $slot) use ($groups): string {
     return sprintf('#%d %s %s–%s (%s)', $slot->id(), $slot->weekday()->name, substr($slot->startTime(), 0, 5), substr($slot->endTime(), 0, 5), $groups->findById($slot->groupId())?->name() ?? 'groupe inconnu');
 };
 
