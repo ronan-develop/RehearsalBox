@@ -7,7 +7,6 @@ namespace App\Service;
 use App\Entity\DueReminder;
 use App\Mail\Mailbox;
 use App\Repository\Contract\ConversationNoticeRepositoryInterface;
-use App\Support\DaytimeWindow;
 use App\Support\HeaderText;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Mime\Email;
@@ -21,9 +20,6 @@ use Symfony\Component\Mime\Email;
  */
 final class ConversationReminderService
 {
-    public const MIN_AGE = '-24 hours';
-    public const MAX_AGE = '-7 days';
-
     public function __construct(
         private readonly ConversationNoticeRepositoryInterface $notices,
         private readonly Mailbox $mailbox,
@@ -34,37 +30,37 @@ final class ConversationReminderService
 
     public function sendDue(): ReminderReport
     {
-        $now = $this->clock->now();
-        if (!DaytimeWindow::contains($now, $this->localTimezone)) {
-            return new ReminderReport(outsideWindow: true);
+        $run = new ReminderRun($this->clock->now(), $this->localTimezone);
+        if (!$run->inDaytime()) {
+            return $run->outsideWindowReport();
         }
 
-        $sent = $failed = $skipped = 0;
-        foreach ($this->notices->findDueReminders($now->modify(self::MIN_AGE), $now->modify(self::MAX_AGE)) as $reminder) {
+        $now = $run->now();
+        foreach ($this->notices->findDueReminders($run->notBefore(), $run->notAfter()) as $reminder) {
             if (filter_var($reminder->contactEmail(), FILTER_VALIDATE_EMAIL) === false) {
                 error_log(sprintf('Relance de conversation : adresse de contact invalide (groupe #%d).', $reminder->groupId()));
-                ++$skipped;
+                $run->markSkipped();
                 continue;
             }
 
             $previous = $this->notices->remindedAt($reminder->conversationId(), $reminder->groupId());
             if (!$this->notices->claimReminder($reminder->conversationId(), $reminder->groupId(), $now)) {
-                ++$skipped;
+                $run->markSkipped();
                 continue;
             }
 
             try {
                 $this->mailbox->send($this->buildMail($reminder));
-                ++$sent;
+                $run->markSent();
             } catch (\Throwable $e) {
                 // Rien n'est resté « relancé » : un nouvel essai reste possible. Ni adresse ni contenu dans le journal.
                 $this->notices->restoreReminder($reminder->conversationId(), $reminder->groupId(), $previous);
                 error_log(sprintf('Relance de conversation : échec (%s, conversation #%d, groupe #%d).', $e::class, $reminder->conversationId(), $reminder->groupId()));
-                ++$failed;
+                $run->markFailed();
             }
         }
 
-        return new ReminderReport($sent, $failed, $skipped);
+        return $run->report();
     }
 
     private function buildMail(DueReminder $reminder): Email

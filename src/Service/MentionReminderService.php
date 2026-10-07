@@ -7,7 +7,6 @@ namespace App\Service;
 use App\Entity\DueMentionReminder;
 use App\Mail\Mailbox;
 use App\Repository\Contract\MentionNoticeRepositoryInterface;
-use App\Support\DaytimeWindow;
 use App\Support\HeaderText;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Mime\Email;
@@ -20,9 +19,6 @@ use Symfony\Component\Mime\Email;
  */
 final class MentionReminderService
 {
-    public const MIN_AGE = '-24 hours';
-    public const MAX_AGE = '-7 days';
-
     public function __construct(
         private readonly MentionNoticeRepositoryInterface $notices,
         private readonly Mailbox $mailbox,
@@ -33,34 +29,34 @@ final class MentionReminderService
 
     public function sendDue(): ReminderReport
     {
-        $now = $this->clock->now();
-        if (!DaytimeWindow::contains($now, $this->localTimezone)) {
-            return new ReminderReport(outsideWindow: true);
+        $run = new ReminderRun($this->clock->now(), $this->localTimezone);
+        if (!$run->inDaytime()) {
+            return $run->outsideWindowReport();
         }
 
-        $sent = $failed = $skipped = 0;
-        foreach ($this->notices->findDueReminders($now->modify(self::MIN_AGE), $now->modify(self::MAX_AGE)) as $reminder) {
+        $now = $run->now();
+        foreach ($this->notices->findDueReminders($run->notBefore(), $run->notAfter()) as $reminder) {
             if (filter_var($reminder->email(), FILTER_VALIDATE_EMAIL) === false) {
                 error_log(sprintf('Relance de mention : adresse invalide (personne #%d).', $reminder->userId()));
-                ++$skipped;
+                $run->markSkipped();
                 continue;
             }
             if (!$this->notices->claimReminder($reminder->conversationId(), $reminder->userId(), $now)) {
-                ++$skipped;
+                $run->markSkipped();
                 continue;
             }
 
             try {
                 $this->mailbox->send($this->buildMail($reminder));
-                ++$sent;
+                $run->markSent();
             } catch (\Throwable $e) {
                 $this->notices->restoreReminder($reminder->conversationId(), $reminder->userId());
                 error_log(sprintf('Relance de mention : échec (%s, conversation #%d, personne #%d).', $e::class, $reminder->conversationId(), $reminder->userId()));
-                ++$failed;
+                $run->markFailed();
             }
         }
 
-        return new ReminderReport($sent, $failed, $skipped);
+        return $run->report();
     }
 
     private function buildMail(DueMentionReminder $reminder): Email

@@ -254,3 +254,7 @@ Le bloc « Demandes de créneau » du tableau de bord (Reçues / Envoyées / Arc
 ### Sélecteur d'horaire en deux listes (#290, #296)
 
 Sur « Réserver le local », un horaire se choisit en deux listes natives, heures puis minutes (quarts d'heure), via `<rb-time-picker>` (`rb-time-picker.js`) : le serveur rend les listes et un champ caché portant le nom du champ (`start`, `end`), le composant tient à jour sa valeur « HH:MM » (vide tant que l'heure ou les minutes manquent) et restreint les minutes à `data-min`/`data-max` (début 00:00–23:45, fin 00:15–23:30). La logique pure est dans `time-picker.js` (`combine`, `minutesFor`), testée sans DOM. Le formulaire relit le champ caché ; le composant n'appelle jamais l'API. Sous 480 px, « De » et « À » passent l'un sous l'autre pour ne pas rogner les chiffres. Le gabarit `templates/bookings/_time-select.php` est le seul endroit qui rend ce sélecteur.
+
+### Relances (#238)
+
+`ConversationReminderService` (groupes, #180) et `MentionReminderService` (personnes mentionnées, #178) partagent un petit `ReminderRun` : l'instant de l'exécution, la fenêtre d'âge (`MIN_AGE` 24 h, `MAX_AGE` 7 jours : `notBefore()` / `notAfter()`), la plage de jour locale (`inDaytime()`) et les compteurs du bilan (`markSent/Failed/Skipped`, `report()`). Volontairement pas de « template method » générique : la réservation, l'envoi et la restauration diffèrent (clé groupe ou personne, `$previous` d'un seul côté).
