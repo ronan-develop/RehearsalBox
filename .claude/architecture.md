@@ -319,3 +319,12 @@ La pastille d'initiales est un **gabarit partiel** (`templates/partials/avatar.p
 - La lecture des évènements est plafonnée à 5 000 lignes (coût borné).
 - Pas encore : comptes verrouillés, part de robots par catégorie d'agent, énumération d'identifiants consécutifs de conversation (il faudrait conserver l'identifiant demandé ou la catégorie d'agent dans les mesures : à décider avec l'audit #185).
 
+## Tableau de bord des mesures : charge et dégradation (#198)
+
+`GET /admin/metrics/load?periode=…` (même contrôleur, même règle d'accès à un seul compte, onglet « Charge »).
+
+- **Médiane et 95e centile sans garder les durées une par une** : migration 032, six colonnes de répartition dans `metric_hourly` (≤ 50, 100, 250, 500, 1000 ms, au-delà). `DurationHistogram` classe chaque durée et estime un centile par la **borne haute de la tranche** qui le contient (« au plus 250 ms » ; au-delà d'une seconde : « > 1000 ms »). Les lignes collectées avant la migration n'ont pas de répartition : leurs centiles sont inconnus.
+- **Page** : requêtes par minute (moyenne et pic), médiane et 95e centile, pic de mémoire PHP, **routes les plus sollicitées** avec leur part du temps total et le **polling de la messagerie** mis en évidence (`/api/conversations/{id}/updates`, premier suspect si le trafic grossit).
+- **Indicateur de dégradation** (`Report/Load/DegradationDetector`, fonction pure, testée avec des séries simulées) : les 3 dernières heures sont comparées aux heures des 7 derniers jours **de volume comparable** (±50 %) : temps de réponse orange à ×1,5 et rouge à ×2 (et au moins +20 ms), erreurs 5xx rouges dès 3 erreurs récentes dont le taux dépasse trois fois celui de la base (et 1 %) sans hausse de trafic. Pas assez d'historique comparable (moins de 6 heures) : **inconnu**, jamais « normal » par défaut.
+- Pas encore : nombre et durée des requêtes SQL (il faudrait instrumenter PDO) et erreurs 503/508 de l'hébergeur (elles sont renvoyées avant PHP : le site ne peut pas les compter ; seul un contrôle externe les verrait).
+

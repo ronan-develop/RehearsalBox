@@ -10,6 +10,8 @@ use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\MetricsReaderInterface;
 use App\Metrics\Report\MysqlMetricsReader;
+use App\Metrics\Report\Load\DegradationDetector;
+use App\Metrics\Report\Load\LoadReportBuilder;
 use App\Metrics\Report\Security\AnomalyDetector;
 use App\Metrics\Report\Security\SecurityReportBuilder;
 use App\Metrics\Report\Thresholds;
@@ -217,6 +219,7 @@ return static function (array $config): Container {
                 $c->get(ClockInterface::class),
                 $timezone,
             ),
+            new LoadReportBuilder($c->get(MetricsReaderInterface::class), new DegradationDetector(), $thresholds, $c->get(ClockInterface::class), $timezone),
             $timezone,
         );
     });

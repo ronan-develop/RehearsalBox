@@ -13,6 +13,12 @@ final class FakeMetricsReader implements MetricsReaderInterface
     /** @var array<string, array{requests: int, errors: int, durationMs: int}> */
     public array $requests = [];
 
+    /** @var array<string, array{requests: int, errors: int, durationMs: int, memoryKb: int, buckets: list<int>}> */
+    public array $load = [];
+
+    /** @var list<array{route: string, requests: int, durationMs: int, maxMs: int}> */
+    public array $routes = [];
+
     /** @var array<string, array<string, int>> */
     public array $events = [];
 
@@ -28,6 +34,18 @@ final class FakeMetricsReader implements MetricsReaderInterface
         $this->requestedSince = $since;
 
         return $this->requests;
+    }
+
+    public function loadByHour(\DateTimeImmutable $since): array
+    {
+        $this->requestedSince = $since;
+
+        return $this->load;
+    }
+
+    public function routeTotals(\DateTimeImmutable $since, int $limit = 10): array
+    {
+        return $this->routes;
     }
 
     public function eventsByHour(\DateTimeImmutable $since, array $types): array

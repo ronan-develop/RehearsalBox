@@ -11,6 +11,8 @@ use App\Http\Request;
 use App\Metrics\Controller\MetricsPageController;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
+use App\Metrics\Report\Load\DegradationDetector;
+use App\Metrics\Report\Load\LoadReportBuilder;
 use App\Metrics\Report\Security\AnomalyDetector;
 use App\Metrics\Report\Security\SecurityReportBuilder;
 use App\Metrics\Report\Thresholds;
@@ -64,6 +66,7 @@ final class MetricsPageControllerTest extends TestCase
             new MetricsAccess($viewerEmail),
             new HealthReportBuilder(new FakeMetricsReader(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
             new SecurityReportBuilder(new FakeMetricsReader(), new AnomalyDetector(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
+            new LoadReportBuilder(new FakeMetricsReader(), new DegradationDetector(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
             new \DateTimeZone('Europe/Paris'),
         );
     }
@@ -126,6 +129,21 @@ final class MetricsPageControllerTest extends TestCase
 
         foreach ([null, $this->user('other@rehearsalbox.test'), $this->user('owner@rehearsalbox.test', UserRole::Musicien)] as $who) {
             self::assertSame(404, $this->controller($who)->security($request)->statusCode());
+        }
+    }
+
+    #[Test]
+    public function testTheLoadPageFollowsTheSameSingleAccountRule(): void
+    {
+        $request = new Request('GET', '/admin/metrics/load', [], [], []);
+
+        $owner = $this->controller($this->user('owner@rehearsalbox.test'))->load($request);
+        self::assertSame(200, $owner->statusCode());
+        self::assertStringContainsString('Verdict de dégradation', $owner->body());
+        self::assertStringContainsString('aria-current="page">Charge', $owner->body());
+
+        foreach ([null, $this->user('other@rehearsalbox.test')] as $who) {
+            self::assertSame(404, $this->controller($who)->load($request)->statusCode());
         }
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Metrics\Collection;
 
+use App\Metrics\DurationHistogram;
 use App\Metrics\MetricEventType;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -22,7 +23,7 @@ final class MetricsRecorder implements MetricsRecorderInterface
     /** @var list<array{MetricEventType, string, ?int, ?string, \DateTimeImmutable}> */
     private array $events = [];
 
-    /** @var array<string, array{hour: \DateTimeImmutable, route: string, class: string, requests: int, total: int, max: int, memory: int}> */
+    /** @var array<string, array{hour: \DateTimeImmutable, route: string, class: string, requests: int, total: int, max: int, memory: int, buckets: list<int>}> */
     private array $hourly = [];
 
     public function __construct(
@@ -46,11 +47,12 @@ final class MetricsRecorder implements MetricsRecorderInterface
         $class = intdiv($status, 100) . 'xx';
         $key = $hour->format('c') . '|' . $route . '|' . $class;
 
-        $entry = $this->hourly[$key] ?? ['hour' => $hour, 'route' => $route, 'class' => $class, 'requests' => 0, 'total' => 0, 'max' => 0, 'memory' => 0];
+        $entry = $this->hourly[$key] ?? ['hour' => $hour, 'route' => $route, 'class' => $class, 'requests' => 0, 'total' => 0, 'max' => 0, 'memory' => 0, 'buckets' => array_fill(0, DurationHistogram::BUCKETS, 0)];
         ++$entry['requests'];
         $entry['total'] += $durationMs;
         $entry['max'] = max($entry['max'], $durationMs);
         $entry['memory'] = max($entry['memory'], $memoryPeakKb);
+        ++$entry['buckets'][DurationHistogram::bucketOf($durationMs)];
         $this->hourly[$key] = $entry;
     }
 
@@ -66,7 +68,7 @@ final class MetricsRecorder implements MetricsRecorderInterface
                 $this->repository->addEvent($type, $route, $status, $ipHash, $at);
             }
             foreach ($hourly as $h) {
-                $this->repository->addHourly($h['hour'], $h['route'], $h['class'], $h['requests'], $h['total'], $h['max'], $h['memory']);
+                $this->repository->addHourly($h['hour'], $h['route'], $h['class'], $h['requests'], $h['total'], $h['max'], $h['memory'], $h['buckets']);
             }
         } catch (\Throwable $e) {
             $this->logger->warning('Mesures : écriture impossible', ['exception' => $e::class]);

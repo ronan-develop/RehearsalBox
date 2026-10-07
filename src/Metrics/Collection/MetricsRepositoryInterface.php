@@ -11,8 +11,12 @@ interface MetricsRepositoryInterface
 {
     public function addEvent(MetricEventType $type, string $route, ?int $status, ?string $ipHash, \DateTimeImmutable $at): void;
 
-    /** Ajoute à l'agrégat de l'heure (UPSERT) : les compteurs s'additionnent, durée et mémoire gardent leur maximum. */
-    public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb): void;
+    /**
+     * Ajoute à l'agrégat de l'heure (UPSERT) : les compteurs s'additionnent, durée et mémoire gardent leur maximum.
+     *
+     * @param list<int> $durationBuckets effectifs des six tranches de durée (DurationHistogram)
+     */
+    public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb, array $durationBuckets = [0, 0, 0, 0, 0, 0]): void;
 
     public function saveSnapshot(HealthSnapshot $snapshot): void;
 
