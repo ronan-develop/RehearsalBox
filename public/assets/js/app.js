@@ -14,7 +14,8 @@ import { initTornPaper } from './ui/tornpaper-init.js';
 import { initPlanningSearch } from './planning/dashboard/planning-search.js';
 import { initScrollHint } from './ui/scroll-hint.js';
 import { initExceptionDeck } from './planning/dashboard/exception-deck.js';
-import { initContact } from './planning/contact.js';
+import './planning/rb-planning-card.js';
+import './planning/rb-request-card.js';
 import './messaging/chat/components/rb-chat.js';
 import { initMessagesBadge } from './messaging/messages-badge.js';
 import { initMessagesTrash } from './messaging/messages-trash.js';
@@ -39,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlanningSearch();
   initScrollHint();
   initExceptionDeck();
-  initContact();
   initMessagesTrash();
   initSwipeDelete();
   initMessagesBadge();

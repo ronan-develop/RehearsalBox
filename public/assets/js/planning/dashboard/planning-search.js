@@ -52,7 +52,7 @@ export function initPlanningSearch(doc = document) {
     const cards = doc.querySelectorAll('.rb-planning-card');
     cards.forEach((card) => {
       const matches = matchesPlanningSearch(
-        { weekday: card.dataset.weekday, groupName: card.dataset.contactGroupName },
+        { weekday: card.getAttribute('weekday'), groupName: card.getAttribute('group-name') },
         input.value,
       );
       card.classList.toggle('rb-planning-card--hidden', !matches);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getCurrentGroupId, handleRespond, handleCancel, handleUpdateSubmit } from './availability.js';
+import { getCurrentGroupId, handleRespond, handleCancel, handleUpdate } from './availability.js';
 
 function fakeRoot(selectValue) {
   return {
@@ -40,8 +40,8 @@ function fakeDocument() {
   };
 }
 
-function fakeButton(exceptionId, accepted, occurrenceDate = '2026-10-20') {
-  return { dataset: { exceptionId, accepted: String(accepted), occurrenceDate } };
+function fakeButton(id, accepted, occurrenceDate = '2026-10-20') {
+  return { id, accepted, occurrenceDate };
 }
 
 function fakeRootWithCard() {
@@ -49,7 +49,7 @@ function fakeRootWithCard() {
   return {
     root: {
       querySelector: (selector) => {
-        const match = /\[data-exception-id="(.+)"\]/.exec(selector);
+        const match = /\[exception-id="(.+)"\]/.exec(selector);
         if (match) {
           return { remove: () => removed.push(match[1]), closest: () => null };
         }
@@ -128,8 +128,8 @@ test('handleRespond removes the card on 409 (already responded)', async () => {
   assert.deepEqual(removed, ['9']);
 });
 
-function fakeCancelButton(exceptionId) {
-  return { dataset: { exceptionId } };
+function fakeCancelButton(id) {
+  return { id };
 }
 
 test('handleCancel sends DELETE and removes the card on success', async () => {
@@ -181,7 +181,7 @@ test('handleCancel renumbers the deck and reveals the empty state when it was th
   assert.equal(emptyState.hiddenRemoved, true);
 });
 
-test('handleUpdateSubmit prevents native submit and PATCHes the form as JSON', async () => {
+test('handleUpdate PATCHes the changed request as JSON', async () => {
   let calledUrl;
   let calledMethod;
   let calledBody;
@@ -193,36 +193,43 @@ test('handleUpdateSubmit prevents native submit and PATCHes the form as JSON', a
   };
   globalThis.document = fakeDocument();
 
-  let prevented = false;
+  await handleUpdate({ id: '12', occurrenceDate: '2026-08-11', reason: 'Raison modifiée' }, fakeRoot());
 
-  const RealFormData = globalThis.FormData;
-  const formData = new RealFormData();
-  formData.append('occurrenceDate', '2026-08-11');
-  formData.append('reason', 'Raison modifiée');
-
-  const event = {
-    preventDefault: () => {
-      prevented = true;
-    },
-    target: {
-      reset: () => {},
-      dataset: { exceptionId: '12' },
-    },
-  };
-  globalThis.FormData = function FakeFormData() {
-    return formData;
-  };
-
-  await handleUpdateSubmit(event, fakeRoot());
-  globalThis.FormData = RealFormData;
-
-  assert.equal(prevented, true);
   assert.equal(calledUrl, '/api/availability/12');
   assert.equal(calledMethod, 'PATCH');
-  assert.deepEqual(calledBody, {
-    occurrenceDate: '2026-08-11',
-    reason: 'Raison modifiée',
-  });
+  assert.deepEqual(calledBody, { occurrenceDate: '2026-08-11', reason: 'Raison modifiée' });
+});
+
+test('handleUpdate sends an empty reason as null', async () => {
+  let calledBody;
+  globalThis.fetch = async (url, options) => {
+    calledBody = JSON.parse(options.body);
+    return { ok: true, json: async () => ({}) };
+  };
+  globalThis.document = fakeDocument();
+
+  await handleUpdate({ id: '12', occurrenceDate: '2026-08-11', reason: '' }, fakeRoot());
+
+  assert.equal(calledBody.reason, null);
+});
+
+test('the card is busy during the call and free again afterwards, even when the call fails', async () => {
+  globalThis.document = fakeDocument();
+  const seen = [];
+  const card = {};
+  let busy = false;
+  Object.defineProperty(card, 'busy', { get: () => busy, set: (value) => { busy = value; seen.push(value); } });
+
+  globalThis.fetch = async () => {
+    assert.equal(busy, true, 'occupée pendant l\'appel');
+    return { ok: true, json: async () => ({}) };
+  };
+  await handleUpdate({ id: '1', occurrenceDate: '2026-08-11', reason: '' }, fakeRoot(), card);
+
+  globalThis.fetch = async () => ({ ok: false, status: 500, json: async () => ({ error: 'Erreur interne.' }) });
+  await handleCancel({ id: '2' }, fakeRootWithCard().root, card);
+
+  assert.deepEqual(seen, [true, false, true, false]);
 });
 
 test('handleRespond sends the date the holder saw, so a date changed in the meantime cannot be accepted by mistake (#221)', async () => {

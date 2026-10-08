@@ -15,7 +15,7 @@
     // avec un historique archivé volumineux.
     $visualDeckIndex = min($deckPosition, 2);
     ?>
-    <article class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" data-exception-id="<?= e((string) $exception->id()) ?>"
+    <rb-request-card role="article" class="rb-exception-card rb-stone-surface<?= $deckPosition === 0 ? ' rb-exception-card--active' : '' ?>" exception-id="<?= e((string) $exception->id()) ?>" occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>"
              style="--deck-index: <?= e((string) $visualDeckIndex) ?>; --group-color: <?= e(\App\Support\SafeColor::from($item->requestedByGroupColorHex()) ?? 'var(--rb-accent)') ?>;">
         <div class="rb-exception-card-head">
             <?php $avatarInitials = $initials; $avatarClass = ''; $avatarColor = null; $avatarTitle = null; require __DIR__ . '/../partials/avatar.php'; ?>
@@ -39,17 +39,15 @@
         <?php endif; ?>
         <?php if ($isRecue && $exception->isEnAttente()): ?>
             <div class="rb-exception-card-actions">
-                <button type="button" class="rb-btn rb-btn-danger" data-respond-button data-accepted="false"
-                        data-exception-id="<?= e((string) $exception->id()) ?>" data-occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>">
+                <button type="button" class="rb-btn rb-btn-danger" data-action="respond" data-accepted="false">
                     Refuser
                 </button>
-                <button type="button" class="rb-btn rb-btn-primary" data-respond-button data-accepted="true"
-                        data-exception-id="<?= e((string) $exception->id()) ?>" data-occurrence-date="<?= e($exception->occurrenceDate()->format('Y-m-d')) ?>">
+                <button type="button" class="rb-btn rb-btn-primary" data-action="respond" data-accepted="true">
                     Accepter
                 </button>
             </div>
         <?php elseif (!$isRecue && $exception->isEnAttente()): ?>
-            <form data-update-form data-exception-id="<?= e((string) $exception->id()) ?>">
+            <form data-update>
                 <div class="rb-field">
                     <label for="occurrence-date-<?= e((string) $exception->id()) ?>">Date précise</label>
                     <input type="date" id="occurrence-date-<?= e((string) $exception->id()) ?>" name="occurrenceDate"
@@ -61,12 +59,11 @@
                            class="rb-input" value="<?= e($exception->requestReason() ?? '') ?>">
                 </div>
                 <div class="rb-exception-card-actions">
-                    <button type="button" class="rb-btn rb-btn-danger" data-cancel-button
-                            data-exception-id="<?= e((string) $exception->id()) ?>">
+                    <button type="button" class="rb-btn rb-btn-danger" data-action="cancel">
                         Annuler
                     </button>
                     <button type="submit" class="rb-btn rb-btn-primary">Modifier</button>
                 </div>
             </form>
         <?php endif; ?>
-    </article>
+    </rb-request-card>

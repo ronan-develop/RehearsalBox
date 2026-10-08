@@ -3,6 +3,9 @@
  * (répondre, modifier, annuler une demande) passent en XHR : le DOM est
  * patché en place, jamais de rechargement de page. Cas 409 (déjà répondue) :
  * toast d'erreur + retrait de la carte pour resynchroniser sans reload complet.
+ *
+ * Les cartes sont des <rb-request-card> (#330) : elles émettent `request:respond`, `request:cancel` et `request:update` ; ce module
+ * parle à l'API. Pendant l'appel la carte est occupée (`busy`) : un double clic sur « Accepter » n'envoie plus deux requêtes.
  */
 import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
@@ -10,7 +13,7 @@ import { refreshExceptionalPlanning } from './dashboard/exceptional-planning.js'
 import { renumberDeck } from './dashboard/exception-deck.js';
 
 function removeExceptionCard(root, exceptionId) {
-  const card = root.querySelector(`[data-exception-id="${exceptionId}"]`);
+  const card = root.querySelector(`rb-request-card[exception-id="${exceptionId}"]`);
   const deck = card?.closest('[data-exception-deck]');
   card?.remove();
   if (deck) {
@@ -23,72 +26,78 @@ export function getCurrentGroupId(root = document) {
   return select ? select.value : root.querySelector('[data-current-group-id]')?.dataset.currentGroupId;
 }
 
-export async function handleRespond(button, root = document) {
-  const exceptionId = button.dataset.exceptionId;
-  const accepted = button.dataset.accepted === 'true';
-  // La date que le titulaire a sous les yeux : si le demandeur l'a changée entre-temps, le serveur refuse (409) plutôt que
-  // d'accepter une autre date que celle affichée (#221).
-  const occurrenceDate = button.dataset.occurrenceDate;
-
+/** Occupe la carte pendant un appel (les boutons sont désactivés), même si la carte n'est pas fournie (tests, appels directs). */
+async function whileBusy(card, work) {
+  if (card) {
+    card.busy = true;
+  }
   try {
-    await apiFetch(`/api/availability/${exceptionId}/respond`, {
-      method: 'POST',
-      body: JSON.stringify({ accepted, occurrenceDate }),
-    });
-
-    removeExceptionCard(root, exceptionId);
-    showToast(accepted ? 'Demande acceptée.' : 'Demande refusée.', 'success');
-
-    if (accepted) {
-      await refreshExceptionalPlanning(root);
-    }
-  } catch (error) {
-    showToast(error.message, 'error');
-
-    if (error.status === 409) {
-      removeExceptionCard(root, exceptionId);
+    await work();
+  } finally {
+    if (card) {
+      card.busy = false;
     }
   }
 }
 
-export async function handleCancel(button, root = document) {
-  const exceptionId = button.dataset.exceptionId;
+/** @param {{id: string, accepted: boolean, occurrenceDate: string}} request la date est celle que le titulaire a sous les yeux */
+export async function handleRespond({ id, accepted, occurrenceDate }, root = document, card = null) {
+  await whileBusy(card, async () => {
+    try {
+      // Si le demandeur a changé la date entre-temps, le serveur refuse (409) plutôt que d'accepter une autre date que celle affichée (#221).
+      await apiFetch(`/api/availability/${id}/respond`, {
+        method: 'POST',
+        body: JSON.stringify({ accepted, occurrenceDate }),
+      });
 
-  try {
-    await apiFetch(`/api/availability/${exceptionId}`, {
-      method: 'DELETE',
-    });
+      removeExceptionCard(root, id);
+      showToast(accepted ? 'Demande acceptée.' : 'Demande refusée.', 'success');
 
-    removeExceptionCard(root, exceptionId);
-    showToast('Demande annulée.', 'success');
-  } catch (error) {
-    showToast(error.message, 'error');
+      if (accepted) {
+        await refreshExceptionalPlanning(root);
+      }
+    } catch (error) {
+      showToast(error.message, 'error');
 
-    if (error.status === 409) {
-      removeExceptionCard(root, exceptionId);
+      if (error.status === 409) {
+        removeExceptionCard(root, id);
+      }
     }
-  }
+  });
 }
 
-export async function handleUpdateSubmit(event, root = document) {
-  event.preventDefault();
-  const form = event.target;
-  const exceptionId = form.dataset.exceptionId;
-  const formData = new FormData(form);
+export async function handleCancel({ id }, root = document, card = null) {
+  await whileBusy(card, async () => {
+    try {
+      await apiFetch(`/api/availability/${id}`, {
+        method: 'DELETE',
+      });
 
-  try {
-    await apiFetch(`/api/availability/${exceptionId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        occurrenceDate: formData.get('occurrenceDate'),
-        reason: formData.get('reason') || null,
-      }),
-    });
+      removeExceptionCard(root, id);
+      showToast('Demande annulée.', 'success');
+    } catch (error) {
+      showToast(error.message, 'error');
 
-    showToast('Demande modifiée.', 'success');
-  } catch (error) {
-    showToast(error.message, 'error');
-  }
+      if (error.status === 409) {
+        removeExceptionCard(root, id);
+      }
+    }
+  });
+}
+
+export async function handleUpdate({ id, occurrenceDate, reason }, root = document, card = null) {
+  await whileBusy(card, async () => {
+    try {
+      await apiFetch(`/api/availability/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ occurrenceDate, reason: reason || null }),
+      });
+
+      showToast('Demande modifiée.', 'success');
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  });
 }
 
 export function initAvailability(root = document) {
@@ -96,21 +105,7 @@ export function initAvailability(root = document) {
     event.target.dataset.currentGroupId = event.target.value;
   });
 
-  root.addEventListener('click', (event) => {
-    const respondButton = event.target.closest('[data-respond-button]');
-    if (respondButton) {
-      handleRespond(respondButton, root);
-    }
-
-    const cancelButton = event.target.closest('[data-cancel-button]');
-    if (cancelButton) {
-      handleCancel(cancelButton, root);
-    }
-  });
-
-  root.querySelectorAll('[data-update-form]').forEach((form) => {
-    form.addEventListener('submit', (event) => {
-      handleUpdateSubmit(event, root);
-    });
-  });
+  root.addEventListener('request:respond', (event) => handleRespond(event.detail, root, event.target));
+  root.addEventListener('request:cancel', (event) => handleCancel(event.detail, root, event.target));
+  root.addEventListener('request:update', (event) => handleUpdate(event.detail, root, event.target));
 }

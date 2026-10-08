@@ -39,11 +39,11 @@
             $slot = $requestableSlot->slot();
             $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
             ?>
-            <article class="rb-planning-card" role="button" tabindex="0" data-contact-group-id="<?= e((string) $requestableSlot->groupId()) ?>" data-contact-group-name="<?= e($requestableSlot->groupName()) ?>" data-contact-group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" data-weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' data-current-user-group-role="' . e($groupRole->value) . '"' : '' ?>>
+            <rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="<?= e((string) $requestableSlot->groupId()) ?>" group-name="<?= e($requestableSlot->groupName()) ?>" group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' member' : '' ?>>
                 <h4 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h4>
                 <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                 <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
-            </article>
+            </rb-planning-card>
             <?php
         };
 

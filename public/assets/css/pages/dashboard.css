@@ -316,6 +316,18 @@ body {
   }
 }
 
+/* <rb-planning-card> et <rb-request-card> (#330) : des blocs, comme les <article> qu'ils remplacent. */
+rb-planning-card,
+rb-request-card {
+  display: block;
+}
+
+/* Le deck masque les cartes passées par l'attribut hidden : la règle d'affichage ci-dessus ne doit pas l'emporter. */
+rb-planning-card[hidden],
+rb-request-card[hidden] {
+  display: none;
+}
+
 /* <rb-tabs> (#328) : simple enveloppe de comportement, un bloc comme le <div> qu'elle remplace. */
 rb-tabs {
   display: block;
