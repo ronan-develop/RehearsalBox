@@ -316,6 +316,11 @@ body {
   }
 }
 
+/* <rb-tabs> (#328) : simple enveloppe de comportement, un bloc comme le <div> qu'elle remplace. */
+rb-tabs {
+  display: block;
+}
+
 /* --- Deck d'exceptions --- */
 .rb-exceptions-section {
   margin-bottom: var(--rb-space-4);
@@ -568,7 +573,7 @@ body {
 /* --- Planning : onglets et liste par jour sur mobile (#201) ---
    Sous 768 px le carrousel devient une liste (un seul balisage, restylé ici) : onglets Planning | Exceptionnels, un titre par
    jour à partir d'aujourd'hui, une ligne par créneau. Dès 768 px rien ne change : carrousel, deux sections visibles. Les onglets
-   n'existent que si le JavaScript les a activés (data-planning-tabs-ready) : sans lui, tout reste affiché. */
+   n'existent que si le JavaScript les a activés (`<rb-tabs data-ready>`, posé par le composant) : sans lui, tout reste affiché. */
 .rb-planning-tabs {
   display: none;
 }
@@ -625,15 +630,15 @@ body {
     text-shadow: 0 0 4px var(--rb-bg), 0 0 8px var(--rb-bg);
   }
 
-  [data-planning-tabs-ready] .rb-planning-tabs {
+  rb-tabs[data-ready] .rb-planning-tabs {
     display: flex;
   }
 
-  [data-planning-tabs-ready] .rb-planning-section:not(.is-active) {
+  rb-tabs[data-ready] .rb-planning-section:not([data-active]) {
     display: none;
   }
 
-  [data-planning-tabs-ready] .rb-planning-section > h2 {
+  rb-tabs[data-ready] .rb-planning-section > h2 {
     display: none;
   }
 

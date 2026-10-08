@@ -50,13 +50,13 @@
         ?>
 
         <?php // Mobile (< 768 px) : deux onglets, une liste à la fois ; bureau : les deux sections côte à côte, en carrousels (#201). Un seul balisage, restylé par le CSS. ?>
-        <div class="rb-planning" data-planning-tabs>
+        <rb-tabs class="rb-planning" persist="rb-planning-tab">
             <div class="rb-planning-tabs" role="tablist" aria-label="Type de créneau">
-                <button type="button" role="tab" class="rb-planning-tab" id="planning-tab-regular" aria-controls="planning-panel-regular" aria-selected="true" data-planning-tab="regular">Planning</button>
-                <button type="button" role="tab" class="rb-planning-tab" id="planning-tab-exceptional" aria-controls="planning-panel-exceptional" aria-selected="false" data-planning-tab="exceptional">Exceptionnels <span class="rb-planning-tab-count" data-planning-tab-count><?= e((string) count($exceptionalPlanningSlots)) ?></span></button>
+                <button type="button" role="tab" class="rb-planning-tab" id="planning-tab-regular" aria-controls="planning-panel-regular" aria-selected="true" data-tab="regular">Planning</button>
+                <button type="button" role="tab" class="rb-planning-tab" id="planning-tab-exceptional" aria-controls="planning-panel-exceptional" aria-selected="false" data-tab="exceptional">Exceptionnels <span class="rb-planning-tab-count" data-planning-tab-count><?= e((string) count($exceptionalPlanningSlots)) ?></span></button>
             </div>
 
-            <section class="rb-planning-section is-active" id="planning-panel-regular" role="tabpanel" aria-labelledby="planning-tab-regular" data-planning-panel="regular">
+            <section class="rb-planning-section" id="planning-panel-regular" role="tabpanel" aria-labelledby="planning-tab-regular">
                 <h2>Planning :</h2>
                 <?php if ($planningDays === []): ?>
                     <p class="rb-planning-empty">Aucun créneau fixe pour le moment.</p>
@@ -78,7 +78,7 @@
             </section>
 
             <?php // Section toujours rendue : #79 doit pouvoir la remplir dynamiquement après une acceptation, sans reload complet. Vide : masquée sur bureau, message sur mobile. ?>
-            <section class="rb-planning-section<?= $exceptionalPlanningSlots === [] ? ' rb-planning-section--empty' : '' ?>" id="planning-panel-exceptional" role="tabpanel" aria-labelledby="planning-tab-exceptional" data-planning-panel="exceptional" data-exceptional-planning-section>
+            <section class="rb-planning-section<?= $exceptionalPlanningSlots === [] ? ' rb-planning-section--empty' : '' ?>" id="planning-panel-exceptional" role="tabpanel" aria-labelledby="planning-tab-exceptional" data-exceptional-planning-section>
                 <h2>Créneaux exceptionnels :</h2>
                 <p class="rb-planning-empty" data-planning-empty>Aucun créneau exceptionnel cette semaine.</p>
                 <div class="rb-planning-slider rb-planning-slider--exceptional" data-planning-slider-exceptional>
@@ -87,38 +87,40 @@
                     </div>
                 </div>
             </section>
-        </div>
+        </rb-tabs>
 
         <section class="rb-exceptions-section">
             <h2>Demandes de créneau</h2>
-            <div class="rb-exceptions-tabs" role="tablist">
-                <button type="button" class="rb-exceptions-tab" role="tab" aria-selected="true" data-tab-target="received">
+            <rb-tabs hide-inactive>
+            <div class="rb-exceptions-tabs" role="tablist" aria-label="Demandes de créneau">
+                <button type="button" class="rb-exceptions-tab" role="tab" id="requests-tab-received" aria-controls="requests-panel-received" aria-selected="true" data-tab="received">
                     Reçues<?php if ($receivedExceptions !== []): ?> <span class="rb-badge rb-badge-warn"><?= e((string) count($receivedExceptions)) ?></span><?php endif; ?>
                 </button>
-                <button type="button" class="rb-exceptions-tab" role="tab" aria-selected="false" data-tab-target="sent">Envoyées</button>
-                <button type="button" class="rb-exceptions-tab" role="tab" aria-selected="false" data-tab-target="archived">Archivées</button>
+                <button type="button" class="rb-exceptions-tab" role="tab" id="requests-tab-sent" aria-controls="requests-panel-sent" aria-selected="false" data-tab="sent">Envoyées</button>
+                <button type="button" class="rb-exceptions-tab" role="tab" id="requests-tab-archived" aria-controls="requests-panel-archived" aria-selected="false" data-tab="archived">Archivées</button>
             </div>
 
-            <div class="rb-exception-deck" data-exception-deck data-deck="received">
+            <div class="rb-exception-deck" id="requests-panel-received" role="tabpanel" aria-labelledby="requests-tab-received" data-exception-deck data-deck="received">
                 <?php foreach ($receivedExceptions as $deckPosition => $item): ?>
                     <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
                 <?php $emptyText = 'Aucune demande reçue en attente.'; $emptyHidden = $receivedExceptions !== []; require __DIR__ . '/../partials/empty-state.php'; ?>
             </div>
 
-            <div class="rb-exception-deck" data-exception-deck data-deck="sent" hidden>
+            <div class="rb-exception-deck" id="requests-panel-sent" role="tabpanel" aria-labelledby="requests-tab-sent" data-exception-deck data-deck="sent" hidden>
                 <?php foreach ($sentExceptions as $deckPosition => $item): ?>
                     <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
                 <?php $emptyText = 'Aucune demande envoyée en attente.'; $emptyHidden = $sentExceptions !== []; require __DIR__ . '/../partials/empty-state.php'; ?>
             </div>
 
-            <div class="rb-exception-deck" data-exception-deck data-deck="archived" hidden>
+            <div class="rb-exception-deck" id="requests-panel-archived" role="tabpanel" aria-labelledby="requests-tab-archived" data-exception-deck data-deck="archived" hidden>
                 <?php foreach ($archivedExceptions as $deckPosition => $item): ?>
                     <?php require __DIR__ . '/_request-card-' . $item->kind()->value . '.php'; ?>
                 <?php endforeach; ?>
                 <?php $emptyText = 'Aucune demande archivée.'; $emptyHidden = $archivedExceptions !== []; require __DIR__ . '/../partials/empty-state.php'; ?>
             </div>
+            </rb-tabs>
         </section>
 
         <a href="/messages" class="rb-messages-link" data-messages-link>
