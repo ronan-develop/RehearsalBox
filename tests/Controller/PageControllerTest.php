@@ -95,8 +95,10 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringContainsString('data-planning-slider', $response->body());
         self::assertStringContainsString('Groupe Test', $response->body());
-        self::assertStringContainsString('data-contact-group-id="' . $group->id() . '"', $response->body());
-        self::assertStringContainsString('data-contact-group-slug="groupe-test"', $response->body());
+        self::assertStringContainsString('<rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="' . $group->id() . '"', $response->body());
+        self::assertStringContainsString('group-slug="groupe-test"', $response->body());
+        self::assertStringNotContainsString('data-contact-group', $response->body(), 'plus d\'attributs data-* ni de délégation globale (#330)');
+        self::assertDoesNotMatchRegularExpression('/<rb-planning-card [^>]* member>/', $response->body(), 'un groupe dont on n\'est pas membre : pas de « member »');
         self::assertStringNotContainsString('contact@example.test', $response->body());
     }
 
@@ -144,7 +146,7 @@ final class PageControllerTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testDashboardExposesCurrentUserGroupRoleOnPlanningCard(): void
+    public function testDashboardMarksTheCardsOfTheUsersOwnGroupsAsMember(): void
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
         $user = $this->createLoggedInUser($userRepository, $authService);
@@ -154,7 +156,8 @@ final class PageControllerTest extends RepositoryTestCase
 
         $response = $controller->dashboard();
 
-        self::assertStringContainsString('data-current-user-group-role="gestionnaire"', $response->body());
+        // #330 : le serveur pose `member` quand l'utilisateur appartient au groupe de la carte (elle ouvre alors son espace).
+        self::assertMatchesRegularExpression('/<rb-planning-card [^>]*group-slug="groupe-test"[^>]* member>/', $response->body());
     }
 
     #[Test]
@@ -377,8 +380,11 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringContainsString('data-exception-deck', $response->body());
         self::assertStringContainsString('Concert samedi', $response->body());
         self::assertStringContainsString('Groupe Demandeur', $response->body());
-        // La date que le titulaire a sous les yeux part avec sa réponse (#221) : sur « Accepter » comme sur « Refuser ».
-        self::assertSame(2, substr_count($response->body(), 'data-occurrence-date="' . $seen->format('Y-m-d') . '"'));
+        // La date que le titulaire a sous les yeux part avec sa réponse (#221) : portée par la carte (#330), elle sert à « Accepter »
+        // comme à « Refuser » (un seul endroit, plus de copie sur chaque bouton).
+        self::assertSame(1, substr_count($response->body(), ' occurrence-date="' . $seen->format('Y-m-d') . '"'));
+        self::assertSame(2, substr_count($response->body(), 'data-action="respond"'));
+        self::assertMatchesRegularExpression('#<rb-request-card [^>]*exception-id="\d+" occurrence-date="' . $seen->format('Y-m-d') . '".*?data-accepted="false".*?data-accepted="true"#s', $response->body());
     }
 
     #[Test]

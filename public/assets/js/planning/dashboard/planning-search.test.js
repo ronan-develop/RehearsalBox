@@ -27,7 +27,7 @@ test('matchesPlanningSearch matches everything when the query is empty', () => {
 function fakeCard({ weekday, groupName }) {
   const classes = new Set();
   return {
-    dataset: { weekday, contactGroupName: groupName },
+    getAttribute: (name) => ({ weekday, 'group-name': groupName })[name] ?? null,
     classList: {
       add: (c) => classes.add(c),
       remove: (c) => classes.delete(c),
