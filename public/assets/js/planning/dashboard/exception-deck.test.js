@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDeckSwipeController, computeCardState, renumberDeck, initExceptionTabs } from './exception-deck.js';
+import { createDeckSwipeController, computeCardState, renumberDeck } from './exception-deck.js';
 
 test('createDeckSwipeController starts at index 0', () => {
   const controller = createDeckSwipeController({ count: 3 });
@@ -217,48 +217,4 @@ test('renumberDeck does not touch the empty state while cards remain', () => {
   renumberDeck(deck);
 
   assert.equal(revealed, false);
-});
-
-function fakeTab(target) {
-  const listeners = {};
-  return {
-    dataset: { tabTarget: target },
-    ariaSelected: 'false',
-    setAttribute(name, value) { if (name === 'aria-selected') this.ariaSelected = value; },
-    addEventListener(event, cb) { listeners[event] = cb; },
-    click() { listeners.click?.(); },
-  };
-}
-
-function fakeTabDeck(target) {
-  return { dataset: { deck: target }, hidden: target !== 'received' };
-}
-
-test('initExceptionTabs does nothing when there are no tabs or decks', () => {
-  const root = { querySelectorAll: () => [] };
-
-  assert.doesNotThrow(() => initExceptionTabs(root));
-});
-
-test('initExceptionTabs switches the visible deck and aria-selected state on tab click', () => {
-  const receivedTab = fakeTab('received');
-  const sentTab = fakeTab('sent');
-  const receivedDeck = fakeTabDeck('received');
-  const sentDeck = fakeTabDeck('sent');
-
-  const root = {
-    querySelectorAll: (selector) => {
-      if (selector === '.rb-exceptions-tab') return [receivedTab, sentTab];
-      if (selector === '[data-exception-deck]') return [receivedDeck, sentDeck];
-      return [];
-    },
-  };
-
-  initExceptionTabs(root);
-  sentTab.click();
-
-  assert.equal(receivedTab.ariaSelected, 'false');
-  assert.equal(sentTab.ariaSelected, 'true');
-  assert.equal(receivedDeck.hidden, true);
-  assert.equal(sentDeck.hidden, false);
 });

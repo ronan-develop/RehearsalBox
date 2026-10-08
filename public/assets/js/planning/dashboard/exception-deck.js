@@ -182,24 +182,3 @@ export function renumberDeck(deck) {
     deck.querySelector('.rb-exception-empty')?.removeAttribute('hidden');
   }
 }
-
-/** Bascule Reçues/Envoyées/Archivées : un seul deck visible à la fois. */
-export function initExceptionTabs(root = document) {
-  const tabs = Array.from(root.querySelectorAll('.rb-exceptions-tab'));
-  const decks = Array.from(root.querySelectorAll('[data-exception-deck]'));
-  if (tabs.length === 0 || decks.length === 0) {
-    return;
-  }
-
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      tabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
-      tab.setAttribute('aria-selected', 'true');
-
-      const target = tab.dataset.tabTarget;
-      decks.forEach((deck) => {
-        deck.hidden = deck.dataset.deck !== target;
-      });
-    });
-  });
-}
