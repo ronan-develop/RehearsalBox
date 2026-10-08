@@ -1,20 +1,10 @@
-/** Notifications non bloquantes — jamais d'alert()/confirm() natifs (cf. plan §6/§10.2). */
+/** Notifications non bloquantes — jamais d'alert()/confirm() natifs (cf. plan §6/§10.2). Façade de <rb-toast-region> (#329). */
+import { ensureToastRegion } from './rb-toast-region.js';
 
 export function showToast(message, type = 'info') {
-  const container = document.querySelector('.rb-toast-container') || createContainer();
-
-  const toast = document.createElement('div');
-  toast.className = `rb-toast rb-toast--${type}`;
-  toast.textContent = message;
-
-  container.appendChild(toast);
-
-  setTimeout(() => toast.remove(), 4000);
-}
-
-function createContainer() {
-  const container = document.createElement('div');
-  container.className = 'rb-toast-container';
-  document.body.appendChild(container);
-  return container;
+  // Sans navigateur (tests sous node --test, pas de DOM), il n'y a pas de région où afficher : on ne fait rien.
+  if (typeof HTMLElement === 'undefined') {
+    return;
+  }
+  ensureToastRegion().show(message, type);
 }

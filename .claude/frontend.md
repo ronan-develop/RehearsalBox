@@ -32,7 +32,7 @@ Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/as
 
 - Toute surface (modale, card, toolbar) utilise `var(--rb-surface)` / `var(--rb-border)` / `var(--rb-shadow-lg)` — jamais de couleur en dur
 - Toujours une transition sur les éléments cliquables/survolables
-- Toasts non bloquants pour tout retour d'action async (succès/erreur) — jamais `alert()`/`confirm()` natifs (mauvaise UX mobile)
+- Toasts non bloquants pour tout retour d'action async (succès/erreur) via `showToast(message, type)` (`core/toast.js`, façade de `<rb-toast-region>`, #329) — jamais `alert()`/`confirm()` natifs (mauvaise UX mobile)
 - Confirmation d'action destructive : `<rb-confirm-dialog>` (#326), jamais `confirm()` natif. Le gabarit `templates/partials/confirm-dialog.php` (posé une fois par page) contient l'élément **natif `<dialog>`** : le composant `ui/rb-confirm-dialog.js` y met le texte (`textContent`), ouvre en modal (focus piégé, Échap, restitution du focus : le navigateur) et répond par une promesse (`confirmAction(message, {title, confirmLabel, cancelLabel})`). Focus initial sur « Annuler ». La logique pure (paragraphes, clic hors de la fenêtre = « Annuler ») est dans `ui/confirm-dialog.js`, testée.
 - Zones tactiles suffisamment grandes (mobile-first) sur les boutons d'action (claim, libérer, supprimer)
 
@@ -58,6 +58,10 @@ Tout formulaire qui modifie des données est enveloppé : `<rb-async-form endpoi
 ## Onglets : `<rb-tabs>` (#328)
 
 `<rb-tabs [persist="clé"] [hide-inactive]>` enveloppe un balisage ARIA rendu par le serveur : un `role="tablist"` de boutons `role="tab"` (`id`, `data-tab="nom"`, `aria-controls`, `aria-selected`) et des `role="tabpanel"` (`id`, `aria-labelledby`). **Aucun sélecteur global** : le composant ne voit que ses propres onglets et panneaux (reliés par `aria-controls`), deux jeux d'onglets d'une même page ne se connaissent pas. Il pose `aria-selected` et un tabindex itinérant, gère flèches, Début et Fin (`ui/tabs.js`, logique pure testée), marque le panneau actif `data-active` (le CSS décide de ce qu'il masque : le planning n'en montre qu'un sous 768 px) ou, avec `hide-inactive`, le masque par `hidden` (demandes de créneau). `data-ready` n'est posé que par le composant : sans JavaScript tout reste visible. Avec `persist`, le dernier onglet est mémorisé sur l'appareil (facultatif, sans effet si le stockage est refusé). Émet `tabs:change` { name, index }. Les onglets de l'administration et des mesures sont de **vrais liens** (navigation serveur), pas des `rb-tabs`. Garde-fou : `tests/View/TabsMarkupTest.php`.
+
+## Notifications : `<rb-toast-region>` (#329)
+
+`core/rb-toast-region.js` (logique pure dans `core/toasts.js`) est une **région `aria-live`** (`role="status"`, `aria-live="polite"`) créée **au chargement** de la page par `app.js` (`ensureToastRegion`) : une région live doit exister avant son premier message pour être annoncée. Les messages s'**empilent** (quatre au plus, le plus ancien s'efface), un **même message** (texte et type) n'est pas répété (on prolonge celui qui est affiché : un double clic ne fait pas deux bandeaux), chaque message a un bouton **« Fermer »**, s'efface seul (4 s, 7 s pour une erreur) et son minuteur est **suspendu** au survol et au focus. Une erreur porte `role="alert"` (annoncée tout de suite). Le texte passe par `textContent`, jamais en HTML. L'API `showToast` des 11 appelants ne change pas ; sous `node --test` (pas de DOM) elle ne fait rien. Pas d'action « annuler » dans le message : rien ne l'exige (YAGNI).
 
 ## Confort de la messagerie (#187) — sans SPA
 
