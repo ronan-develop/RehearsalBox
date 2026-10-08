@@ -506,7 +506,7 @@ button:active::after, .rb-btn:active::after {
   text-decoration: none;
 }
 
-.rb-toast-container {
+rb-toast-region {
   position: fixed;
   bottom: calc(var(--rb-space-4) + env(safe-area-inset-bottom));
   left: 50%;
@@ -521,13 +521,48 @@ button:active::after, .rb-btn:active::after {
 }
 
 .rb-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
   padding: var(--rb-space-3) var(--rb-space-4);
   border-radius: var(--rb-radius-md);
   box-shadow: var(--rb-shadow-lg);
   color: #fff;
   font-size: 0.9375rem;
-  text-align: center;
   animation: rb-toast-in 0.2s ease-out;
+  pointer-events: auto;
+}
+
+.rb-toast-text {
+  flex: 1;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.rb-toast-close {
+  flex: none;
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  border-radius: var(--rb-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.rb-toast-close:hover,
+.rb-toast-close:focus-visible {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-toast {
+    animation: none;
+  }
 }
 
 .rb-toast--success {

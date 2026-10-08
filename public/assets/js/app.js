@@ -1,4 +1,5 @@
 import './core/rb-async-form.js';
+import { ensureToastRegion } from './core/rb-toast-region.js';
 import './ui/rb-tabs.js';
 import { initLogoMigration } from './ui/logo-migration.js';
 import { initAuth } from './account/auth.js';
@@ -22,6 +23,7 @@ import { initGroupDocuments } from './group/group-documents.js';
 import { initGroupSpaceEditor } from './group/group-space.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  ensureToastRegion(); // une région aria-live doit exister avant son premier message
   // Après le chargement de la police du watermark : la position de repos
   // (centrée par le CSS) dépend de la largeur réelle du texte.
   (document.fonts?.ready ?? Promise.resolve()).then(() => initLogoMigration());
