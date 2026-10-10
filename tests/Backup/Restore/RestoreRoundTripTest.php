@@ -29,6 +29,12 @@ final class RestoreRoundTripTest extends TestCase
 
     protected function setUp(): void
     {
+        foreach (['mariadb-dump', 'mariadb'] as $program) {
+            exec('command -v ' . $program . ' 2>/dev/null', $found, $code);
+            if ($code !== 0) {
+                self::markTestSkipped("Le client « {$program} » n'est pas installé sur ce poste (aller-retour réel impossible).");
+            }
+        }
         $this->pdo = TestDatabase::connection();
         foreach ([self::PROD, self::SCRATCH] as $schema) {
             $this->pdo->exec("DROP DATABASE IF EXISTS `{$schema}`");
