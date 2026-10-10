@@ -34,7 +34,14 @@ final class GroupApiControllerTest extends RepositoryTestCase
         $groupService = new GroupService($groupRepository, $userRepository);
 
         // Le contrôleur tel que le sert le Kernel : une exception métier devient sa réponse (KernelTranslation).
-        $controller = new KernelTranslation(new GroupApiController($groupService, $authGuard));
+        $controller = new KernelTranslation(new GroupApiController($groupService, $authGuard, new \App\Group\Service\GroupMembershipAdminService(
+            $userRepository,
+            $groupRepository,
+            $managers = new \App\Group\Repository\MysqlGroupManagerRepository($this->pdo),
+            new \App\Group\Service\GroupManagerService($groupRepository, $managers),
+            new \App\Database\TransactionRunner($this->pdo),
+            new \Psr\Log\NullLogger(),
+        )));
 
         return [$controller, $groupRepository, $userRepository, $authService];
     }

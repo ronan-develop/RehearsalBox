@@ -177,6 +177,12 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/admin/users', ['email' => 'intrus@rehearsalbox.test', 'displayName' => 'Intrus', 'role' => 'admin'], ['anon', 'stranger', 'memberA', 'managerA']],
             ['PATCH', '/api/admin/users/{userMemberA}', ['active' => false], ['anon', 'stranger', 'memberA', 'managerA']],
             ['POST', '/api/admin/users/{userMemberA}/unlock', [], ['anon', 'stranger', 'memberA', 'managerA']],
+            // Admin : modifier un compte (#272) — identité, rôle, appartenances aux groupes
+            ['PUT', '/api/admin/users/{userMemberA}/identity', ['displayName' => 'Piraté', 'email' => 'pirate@rehearsalbox.test'], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['PUT', '/api/admin/users/{userMemberA}/role', ['role' => 'admin'], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['PUT', '/api/admin/users/{userMemberA}/groups/{groupA}', ['role' => 'gestionnaire'], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['DELETE', '/api/admin/users/{userMemberA}/groups/{groupA}', [], ['anon', 'stranger', 'memberA', 'managerA']],
+            ['POST', '/api/admin/users/{userMemberA}/groups/{groupA}/move', ['toGroupId' => 1], ['anon', 'stranger', 'memberA', 'managerA']],
             // Mon compte (#161) : seul l'utilisateur connecté, sur son propre compte
             ['PATCH', '/api/account/profile', ['displayName' => 'Intrus'], ['anon']],
             ['PATCH', '/api/account/email', ['email' => 'intrus@rehearsalbox.test', 'currentPassword' => 'x'], ['anon']],
@@ -244,6 +250,8 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/admin/bookings/{id}/refuse', [], 'bkA'],
             ['PATCH', '/api/admin/users/{id}', ['active' => false], 'userMemberA'],
             ['POST', '/api/admin/users/{id}/unlock', [], 'userMemberA'],
+            ['PUT', '/api/admin/users/{id}/identity', ['displayName' => 'Piraté', 'email' => 'pirate@rehearsalbox.test'], 'userMemberA'],
+            ['PUT', '/api/admin/users/{id}/role', ['role' => 'admin'], 'userMemberA'],
             ['GET', '/api/groups/{id}/space', [], 'groupA'],
             ['PATCH', '/api/groups/{id}/space', ['lineup' => [], 'upcomingShows' => []], 'groupA'],
             ['GET', '/api/groups/{id}/documents', [], 'groupA'],

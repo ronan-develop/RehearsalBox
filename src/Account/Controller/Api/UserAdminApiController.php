@@ -11,7 +11,9 @@ use App\Account\Entity\User;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Security\AuthGuard;
+use App\Account\Service\UserAccountAdminService;
 use App\Account\Service\UserAdminServiceInterface;
+use App\Account\Exception\UserValidationException;
 
 /**
  * Gestion des comptes (#138). Admin uniquement. L'admin ne choisit ni ne voit jamais
@@ -23,6 +25,7 @@ final class UserAdminApiController
     public function __construct(
         private readonly UserAdminServiceInterface $userAdminService,
         private readonly AuthGuard $authGuard,
+        private readonly UserAccountAdminService $accounts,
     ) {
     }
 
@@ -102,6 +105,49 @@ final class UserAdminApiController
         return new JsonResponse(self::userToArray($user));
     }
 
+    /** Nom affiché et adresse e-mail d'un compte (#272). Jamais de mot de passe : l'administrateur n'en choisit ni n'en connaît. */
+    public function updateIdentity(Request $request, string $id): JsonResponse
+    {
+        $actor = $this->authGuard->requireRole(UserRole::Admin);
+
+        $userId = self::parseId($id);
+        if ($userId === null) {
+            return new JsonResponse(['error' => 'Utilisateur introuvable.'], 404);
+        }
+        $displayName = $request->body('displayName');
+        $email = $request->body('email');
+        $fields = [];
+        if (!is_string($displayName)) {
+            $fields['displayName'] = 'Nom affiché requis (100 caractères maximum).';
+        }
+        if (!is_string($email)) {
+            $fields['email'] = 'Adresse email invalide.';
+        }
+        if ($fields !== []) {
+            throw new UserValidationException($fields);
+        }
+
+        return new JsonResponse(self::userToArray($this->accounts->updateIdentity($userId, (string) $displayName, (string) $email, $actor->id())));
+    }
+
+    /** Rôle d'un compte (#272) : jamais le dernier administrateur actif, jamais soi-même. */
+    public function updateRole(Request $request, string $id): JsonResponse
+    {
+        $actor = $this->authGuard->requireRole(UserRole::Admin);
+
+        $userId = self::parseId($id);
+        if ($userId === null) {
+            return new JsonResponse(['error' => 'Utilisateur introuvable.'], 404);
+        }
+        $value = $request->body('role');
+        $role = is_string($value) ? UserRole::tryFrom($value) : null;
+        if ($role === null) {
+            throw new UserValidationException(['role' => 'Rôle invalide.']);
+        }
+
+        return new JsonResponse(self::userToArray($this->accounts->changeRole($userId, $role, $actor->id())));
+    }
+
     /** Identifiant strict : uniquement des chiffres (« 1.5 », « abc », « -1 » ne sont pas réinterprétés). */
     private static function parseId(string $id): ?int
     {
@@ -125,7 +171,7 @@ final class UserAdminApiController
     {
         return self::userToArray($item->user()) + [
             'isLocked' => $item->isLocked(),
-            'groups' => array_map(static fn (Group $g): array => ['id' => $g->id(), 'name' => $g->name()], $item->groups()),
+            'groups' => array_map(static fn (Group $g): array => ['id' => $g->id(), 'name' => $g->name(), 'role' => $item->groupRole($g->id())], $item->groups()),
         ];
     }
 }

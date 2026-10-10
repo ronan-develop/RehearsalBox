@@ -40,9 +40,19 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $hasher = new FastPasswordHasher();
         $this->auth = new AuthService($this->users, $hasher, new InMemorySession(), $this->groups);
+        $transactions = new \App\Database\TransactionRunner($this->pdo);
+        $accounts = new \App\Account\Service\UserAccountAdminService(
+            $this->users,
+            new \App\Account\Service\EmailChangeService($this->users, new \App\Account\Repository\MysqlEmailChangeRepository($this->pdo), new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo), $hasher, \App\Tests\Scenarios\TestMailbox::of(new \App\Tests\Doubles\RecordingMailer()), $transactions),
+            new \App\Account\Security\LastAdminGuard($this->users),
+            new \App\Account\Security\DisplayNamePolicy(),
+            $transactions,
+            new \Psr\Log\NullLogger(),
+        );
         $this->controller = new KernelTranslation(new UserAdminApiController(
-            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo)),
+            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo), new \App\Account\Security\LastAdminGuard($this->users), $transactions),
             new AuthGuard($this->auth),
+            $accounts,
         ));
     }
 
@@ -81,6 +91,8 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
             fn () => $this->controller->store($this->request('POST', '/api/admin/users', ['email' => 'a@b.test', 'displayName' => 'A', 'role' => 'musicien'])),
             fn () => $this->controller->update($this->request('PATCH', '/api/admin/users/1', ['active' => false]), '1'),
             fn () => $this->controller->unlock($this->request('POST', '/api/admin/users/1/unlock'), '1'),
+            fn () => $this->controller->updateIdentity($this->request('PUT', '/api/admin/users/1/identity', ['displayName' => 'A', 'email' => 'a@b.test']), '1'),
+            fn () => $this->controller->updateRole($this->request('PUT', '/api/admin/users/1/role', ['role' => 'admin']), '1'),
         ] as $call) {
             try {
                 $call();
@@ -102,6 +114,8 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
             fn () => $this->controller->store($this->request('POST', '/api/admin/users', ['email' => 'a@b.test', 'displayName' => 'A', 'role' => 'musicien'])),
             fn () => $this->controller->update($this->request('PATCH', '/api/admin/users/1', ['active' => false]), '1'),
             fn () => $this->controller->unlock($this->request('POST', '/api/admin/users/1/unlock'), '1'),
+            fn () => $this->controller->updateIdentity($this->request('PUT', '/api/admin/users/1/identity', ['displayName' => 'A', 'email' => 'a@b.test']), '1'),
+            fn () => $this->controller->updateRole($this->request('PUT', '/api/admin/users/1/role', ['role' => 'admin']), '1'),
         ] as $call) {
             try {
                 $call();
@@ -132,7 +146,7 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         self::assertSame('musicien', $aliceRow['role']);
         self::assertTrue($aliceRow['isActive']);
         self::assertFalse($aliceRow['isLocked']);
-        self::assertSame([['id' => $group->id(), 'name' => 'Rock']], $aliceRow['groups']);
+        self::assertSame([['id' => $group->id(), 'name' => 'Rock', 'role' => 'membre']], $aliceRow['groups']);
         self::assertStringNotContainsString('password', strtolower($response->body()));
         self::assertStringNotContainsString('$2y$', $response->body());
     }
@@ -290,5 +304,79 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         $this->loginAsAdmin();
 
         self::assertSame(404, $this->controller->unlock($this->request('POST', '/api/admin/users/9999/unlock'), '9999')->statusCode());
+    }
+
+    // --- Identité et rôle (#272) -----------------------------------------------------------------------
+
+    #[Test]
+    public function testIdentityChangesNameAndAddressAndNeverReturnsAPasswordHash(): void
+    {
+        $this->loginAsAdmin();
+        $alice = $this->user('alice@rehearsalbox.test');
+
+        $response = $this->controller->updateIdentity($this->request('PUT', '/x', ['displayName' => 'Alice Martin', 'email' => 'nouvelle@rehearsalbox.test']), (string) $alice->id());
+
+        self::assertSame(200, $response->statusCode());
+        self::assertSame('Alice Martin', $this->json($response)['displayName']);
+        self::assertSame('nouvelle@rehearsalbox.test', $this->json($response)['email']);
+        self::assertStringNotContainsString('$2y$', $response->body());
+    }
+
+    #[Test]
+    public function testIdentityAnswers422ForBadTypesAnInvalidOrUsedAddressAndAnInvalidName(): void
+    {
+        $this->loginAsAdmin();
+        $alice = $this->user('alice@rehearsalbox.test');
+        $this->user('bob@rehearsalbox.test');
+
+        foreach ([
+            [['displayName' => 12, 'email' => 'a@b.test'], 'displayName'],
+            [['displayName' => 'Alice', 'email' => ['x']], 'email'],
+            [['displayName' => 'Alice', 'email' => 'pas-une-adresse'], 'email'],
+            [['displayName' => 'Alice', 'email' => 'bob@rehearsalbox.test'], 'email'],
+            [['displayName' => '', 'email' => 'alice@rehearsalbox.test'], 'displayName'],
+        ] as [$body, $field]) {
+            $response = $this->controller->updateIdentity($this->request('PUT', '/x', $body), (string) $alice->id());
+            self::assertSame(422, $response->statusCode(), json_encode($body));
+            self::assertArrayHasKey($field, $this->json($response)['fields']);
+        }
+        self::assertSame('alice@rehearsalbox.test', $this->users->findById($alice->id())->email());
+    }
+
+    #[Test]
+    public function testAnAdminCannotChangeTheirOwnAddressFromThisRouteAnd404ForUnknownOrMalformedIds(): void
+    {
+        $admin = $this->loginAsAdmin();
+
+        $own = $this->controller->updateIdentity($this->request('PUT', '/x', ['displayName' => 'Chef', 'email' => 'autre@rehearsalbox.test']), (string) $admin->id());
+        self::assertSame(422, $own->statusCode());
+        self::assertSame('Modifiez votre propre adresse depuis Mon compte.', $this->json($own)['error']);
+
+        foreach (['999999', '1.5', '-1', 'abc', '1e3', ''] as $id) {
+            self::assertSame(404, $this->controller->updateIdentity($this->request('PUT', '/x', ['displayName' => 'A', 'email' => 'a@b.test']), $id)->statusCode(), "identité : {$id}");
+            self::assertSame(404, $this->controller->updateRole($this->request('PUT', '/x', ['role' => 'admin']), $id)->statusCode(), "rôle : {$id}");
+        }
+    }
+
+    #[Test]
+    public function testRolePromotesDemotesAndRefusesAnInvalidRoleOrTheLastAdmin(): void
+    {
+        $admin = $this->loginAsAdmin();
+        $alice = $this->user('alice@rehearsalbox.test');
+
+        $promoted = $this->controller->updateRole($this->request('PUT', '/x', ['role' => 'admin']), (string) $alice->id());
+        self::assertSame('admin', $this->json($promoted)['role']);
+        $demoted = $this->controller->updateRole($this->request('PUT', '/x', ['role' => 'musicien']), (string) $alice->id());
+        self::assertSame('musicien', $this->json($demoted)['role']);
+
+        foreach ([['role' => 'root'], ['role' => 3], []] as $body) {
+            $response = $this->controller->updateRole($this->request('PUT', '/x', $body), (string) $alice->id());
+            self::assertSame(422, $response->statusCode());
+            self::assertArrayHasKey('role', $this->json($response)['fields']);
+        }
+
+        $self = $this->controller->updateRole($this->request('PUT', '/x', ['role' => 'musicien']), (string) $admin->id());
+        self::assertSame(422, $self->statusCode());
+        self::assertSame('admin', $this->users->findById($admin->id())->role()->value);
     }
 }

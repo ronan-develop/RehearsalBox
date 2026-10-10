@@ -11,6 +11,7 @@ use App\Messaging\Exception\ConversationRateLimitException;
 use App\Messaging\Exception\ConversationValidationException;
 use App\Planning\Exception\FreeSlotBookingConflictException;
 use App\Group\Exception\GroupValidationException;
+use App\Group\Exception\LastGroupManagerException;
 use App\Account\Exception\InvalidEmailChangeException;
 use App\Account\Exception\InvalidResetTokenException;
 use App\Group\Exception\InvalidUploadException;
@@ -41,7 +42,8 @@ final class ExceptionTranslator
             $e instanceof InvalidResetTokenException,
             $e instanceof InvalidEmailChangeException,
             $e instanceof InvalidUploadException,
-            $e instanceof UserAdminRuleException => new JsonResponse(['error' => $e->getMessage()], 422),
+            $e instanceof UserAdminRuleException,
+            $e instanceof LastGroupManagerException => new JsonResponse(['error' => $e->getMessage()], 422),
             $e instanceof FreeSlotBookingConflictException,
             $e instanceof RequestAlreadyRespondedException,
             $e instanceof RequestChangedException,
