@@ -48,6 +48,8 @@ cp $SRC/delegation.md .claude/
 Une demande qui modifie du code et n'est pas triviale (au-delà de 1-2 fichiers) suit la procédure de `.claude/commands/dispatch.md` : choisir le mode (direct, Sonnet + Haiku, Opus + Haiku), l'annoncer en une ligne, le lancer. Jamais de Haiku sur <zones sensibles du projet>. Détail : `.claude/delegation.md`.
 ```
 
+Si le projet a une checklist de refacto, ajouter aussi la règle « Refacto » de CLAUDE.md (passe obligatoire avant les commits, définie dans `delegation.md`) ; sinon supprimer l'étape 6 de `split.md` et l'étape 4 de `dispatch.md`.
+
 Et une ligne dans l'index de CLAUDE.md : `| Délégation (/dispatch, /split, /split-opus) | .claude/delegation.md |`.
 
 **d) `.claude/settings.json`** — autoriser les commandes de test ciblées. **Obligatoire** : les agents Haiku tournent en parallèle et ne peuvent pas demander d'autorisation, sans cela ils bloquent.

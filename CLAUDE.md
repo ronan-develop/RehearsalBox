@@ -55,6 +55,10 @@ Chaque accès aux données passe par un repository PDO écrit à la main (prepar
 
 Une demande qui modifie du code et n'est pas triviale (au-delà de 1-2 fichiers) suit la procédure de `.claude/commands/dispatch.md` : choisir le mode (direct, Sonnet + Haiku, Opus + Haiku), l'annoncer en une ligne, le lancer. Jamais de Haiku sur l'authentification, les droits, la concurrence SQL, les transactions, les e-mails ni la sécurité. Détail : `.claude/delegation.md`.
 
+### Refacto
+
+Tout ticket qui modifie du code passe, tests verts et avant les commits, par la passe de refacto de `.claude/delegation.md` (carte en « Refacto », checklist de la colonne relue sur le diff, corrections dans le même ticket, résultat annoncé en une ligne). Quel que soit le mode, y compris en direct ou sans commande.
+
 ### Async systématique
 
 Toute action qui modifie des données (login, claim, CRUD admin) passe par `fetch()`/XHR, jamais par un submit de formulaire natif avec rechargement de page. La navigation entre pages reste du rendu serveur classique.
