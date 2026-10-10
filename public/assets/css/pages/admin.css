@@ -394,3 +394,21 @@ rb-restore {
 [data-restore-done][hidden] {
   display: none;
 }
+
+/* Édition d'un compte (#272) : le panneau prend toute la largeur de la carte, replié par défaut. */
+.rb-user-edit {
+  flex: 1 1 100%;
+  display: grid;
+  gap: var(--rb-space-3);
+  padding-top: var(--rb-space-3);
+  border-top: 1px solid var(--rb-border);
+}
+
+.rb-user-edit[hidden],
+[data-user-edit-error][hidden] {
+  display: none;
+}
+
+.rb-user-edit .rb-field button {
+  justify-self: start;
+}
