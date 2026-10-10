@@ -38,8 +38,8 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
         parent::setUp();
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->notices = new MysqlMentionNoticeRepository($this->pdo);
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
@@ -204,9 +204,9 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
         self::assertSame([], $this->due(), 'désinscrit : aucune relance');
         (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->id('denis'), true);
 
-        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($this->conversationId, $this->now);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->moveToTrash($this->conversationId, $this->now);
         self::assertSame([], $this->due(), 'conversation à la corbeille');
-        (new MysqlConversationTrashRepository($this->pdo))->restore($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->restore($this->conversationId);
 
         (new MysqlConversationGuestRepository($this->pdo))->remove($this->conversationId, $this->id('denis'));
         self::assertSame([], $this->due(), 'plus participant');
@@ -217,7 +217,7 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
     {
         $this->notices->claimNotice($this->conversationId, $this->id('denis'), $this->id('alice'), $this->now, $this->notBefore());
 
-        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->delete($this->conversationId);
 
         self::assertNull($this->notices->find($this->conversationId, $this->id('denis')));
     }

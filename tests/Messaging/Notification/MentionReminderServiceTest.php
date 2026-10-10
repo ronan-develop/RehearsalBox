@@ -42,8 +42,8 @@ final class MentionReminderServiceTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->notices = new MysqlMentionNoticeRepository($this->pdo);
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);

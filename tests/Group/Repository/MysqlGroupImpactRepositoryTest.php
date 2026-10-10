@@ -39,10 +39,10 @@ final class MysqlGroupImpactRepositoryTest extends RepositoryTestCase
         $groups->addMember($alpha->id(), $bob->id());
         $groups->addMember($beta->id(), $bob->id());
 
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $conversations->create($alpha->id(), $beta->id(), null, new \DateTimeImmutable('2026-10-04 10:00:00'), $alice->id());
         $trashed = $conversations->create($beta->id(), $alpha->id(), null, new \DateTimeImmutable('2026-10-04 11:00:00'), $bob->id());
-        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($trashed->id(), new \DateTimeImmutable('2026-10-04 12:00:00'));
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->moveToTrash($trashed->id(), new \DateTimeImmutable('2026-10-04 12:00:00'));
 
         (new MysqlGroupDocumentRepository($this->pdo))->save(new GroupDocument(0, $alpha->id(), 'fiche.pdf', 'abc.pdf', 'application/pdf', 10, $alice->id()));
 

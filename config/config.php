@@ -46,6 +46,11 @@ $defaults = [
         // Alertes par e-mail au propriétaire du tableau de bord (viewer_email) : un résumé, pas avant min_gap_hours entre deux alertes d'un même type.
         'alerts' => ['enabled' => true, 'min_gap_hours' => 12],
     ],
+    'messages' => [
+        // Clés de chiffrement du texte de la messagerie (#171) : hors dépôt et hors base, créé UNE fois par `php bin/message-keys.php init`.
+        // En production, config/message-keys.json est un lien vers shared/message-keys.json (jamais régénéré par un déploiement).
+        'key_file' => __DIR__ . '/message-keys.json',
+    ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',
     ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Messaging\Repository;
 
+use App\Messaging\Crypto\MessageCipher;
 use App\Messaging\Entity\Conversation;
 use App\Messaging\Entity\ConversationMessage;
 use App\Messaging\Repository\ConversationRepositoryInterface;
@@ -12,8 +13,11 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
 {
     private const DATE_FORMAT = ConversationSql::DATE_FORMAT;
 
-    public function __construct(private readonly \PDO $pdo)
+    private readonly ConversationRows $rows;
+
+    public function __construct(private readonly \PDO $pdo, private readonly MessageCipher $cipher)
     {
+        $this->rows = new ConversationRows($cipher);
     }
 
     public function create(int $initiatorGroupId, int $targetGroupId, ?string $title, \DateTimeImmutable $now, ?int $createdBy = null): Conversation
@@ -26,7 +30,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             'initiator' => $initiatorGroupId,
             'target' => $targetGroupId,
             'created_by' => $createdBy,
-            'title' => $title,
+            'title' => $title === null ? null : $this->cipher->encrypt($title),
             'created_at' => $now->format(self::DATE_FORMAT),
         ]);
 
@@ -56,7 +60,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function rename(int $conversationId, ?string $title): void
     {
         $statement = $this->pdo->prepare('UPDATE conversations SET title = :title WHERE id = :id');
-        $statement->execute(['title' => $title, 'id' => $conversationId]);
+        $statement->execute(['title' => $title === null ? null : $this->cipher->encrypt($title), 'id' => $conversationId]);
     }
 
     public function findById(int $id): ?Conversation
@@ -67,7 +71,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
         $statement->execute(['id' => $id]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : ConversationRows::conversation($row);
+        return $row === false ? null : $this->rows->conversation($row);
     }
 
     public function listFor(int $userId, string $box, \DateTimeImmutable $inactiveBefore): array
@@ -97,7 +101,7 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
             'cutoff' => $inactiveBefore->format(self::DATE_FORMAT),
         ]);
 
-        return array_map(ConversationRows::summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map($this->rows->summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function countUnreadFor(int $userId, \DateTimeImmutable $inactiveBefore, ?string $box = null): int

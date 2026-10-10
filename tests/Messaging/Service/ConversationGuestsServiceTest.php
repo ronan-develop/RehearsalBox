@@ -67,8 +67,8 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         $groups->addMember($this->alpha, $this->people['alice']->id());
         $groups->addMember($this->beta, $this->people['bob']->id());
         $groups->addMember($carnage, $this->people['denis']->id());
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
@@ -102,7 +102,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $this->clock,
             $mentionService,
         );
-        $this->trash = new ConversationTrashService($access, new \App\Messaging\Repository\Participation\MysqlConversationTrashRepository($this->pdo), $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
+        $this->trash = new ConversationTrashService($access, new \App\Messaging\Repository\Participation\MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), $transactions, $this->clock, new MysqlConversationAlertRepository($this->pdo));
         $this->guestService = new ConversationGuestService($access, $this->guests, $this->messages, $users, $transactions, $this->clock);
         $this->conversationId = $this->service->start($this->id('alice'), $this->alpha, $this->beta, 'Bonjour', 'Concert')->id();
     }

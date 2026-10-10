@@ -33,10 +33,10 @@ final class DirectConversationServiceTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->setUpWorld();
-        $this->conversations = new MysqlConversationRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->direct = new DirectConversationService(
             $this->conversations,
-            new MysqlConversationMessageRepository($this->pdo),
+            new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
             new MysqlConversationPresenceRepository($this->pdo),
             $this->users,
             new TransactionRunner($this->pdo),
@@ -207,7 +207,7 @@ final class DirectConversationServiceTest extends RepositoryTestCase
             $this->users,
             new \App\Messaging\Repository\Participation\MysqlConversationMuteRepository($this->pdo),
         );
-        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $transactions = new TransactionRunner($this->pdo);
         $direct = new DirectConversationService($this->conversations, $messages, $presence, $this->users, $transactions, $this->clock, notifier: $notifier);

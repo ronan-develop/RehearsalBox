@@ -42,8 +42,8 @@ final class DirectConversationApiControllerTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), new MysqlGroupRepository($this->pdo));
         $service = new DirectConversationService(
-            new MysqlConversationRepository($this->pdo),
-            new MysqlConversationMessageRepository($this->pdo),
+            new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
+            new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
             new MysqlConversationPresenceRepository($this->pdo),
             $this->users,
             new TransactionRunner($this->pdo),
@@ -75,7 +75,7 @@ final class DirectConversationApiControllerTest extends RepositoryTestCase
         [$status, $json] = $this->start(['targetUserId' => $bob->id(), 'message' => 'Salut']);
 
         self::assertSame(201, $status);
-        $found = (new MysqlConversationRepository($this->pdo))->findById($json['id']);
+        $found = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->findById($json['id']);
         self::assertTrue($found->isDirect());
         self::assertSame($alice->id(), $found->createdBy());
     }

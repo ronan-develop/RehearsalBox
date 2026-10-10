@@ -27,8 +27,8 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->setUpScenario();
-        $this->repository = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->repository = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
     }
 
@@ -338,5 +338,36 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
             'INSERT INTO conversations (initiator_group_id, target_group_id, direct_low_user_id, direct_high_user_id, created_at)
              VALUES (?, ?, ?, ?, ?)'
         )->execute([$a->id(), $a->id(), $alice->id(), $bob->id(), '2026-10-04 12:00:00']);
+    }
+
+    // --- Titres chiffrés (#171) ----------------------------------------------------------------------
+
+    #[Test]
+    public function testTheLongestTitleOfFourByteCharactersSurvivesEncryption(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $title = str_repeat('𝄞', 150);
+
+        $created = $this->repository->create($a->id(), $b->id(), $title, $this->now, $alice->id());
+
+        self::assertSame($title, $this->repository->findById($created->id())->title());
+        $stored = (string) $this->pdo->query('SELECT title FROM conversations')->fetchColumn();
+        self::assertStringStartsWith('v1.k1:', $stored);
+        self::assertStringNotContainsString('𝄞', $stored);
+    }
+
+    #[Test]
+    public function testTheTitleIsStoredEncryptedAndRenamingKeepsItEncrypted(): void
+    {
+        [$alice, , $a, $b] = $this->pair();
+        $created = $this->repository->create($a->id(), $b->id(), 'Plan secret', $this->now, $alice->id());
+
+        $this->repository->rename($created->id(), 'Autre plan secret');
+
+        $stored = (string) $this->pdo->query('SELECT title FROM conversations')->fetchColumn();
+        self::assertStringNotContainsString('secret', $stored);
+        self::assertSame('Autre plan secret', $this->repository->findById($created->id())->title());
+        $this->repository->rename($created->id(), null);
+        self::assertNull($this->pdo->query('SELECT title FROM conversations')->fetchColumn() ?: null);
     }
 }

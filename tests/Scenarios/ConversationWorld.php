@@ -35,8 +35,8 @@ trait ConversationWorld
         $this->clock = new MockClock('2026-10-04 12:00:00');
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
-        $conversations = new MysqlConversationRepository($this->pdo);
-        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->service = new ConversationService($conversations, $messages, $presence, $this->groups, new TransactionRunner($this->pdo), $this->clock);
         $this->reader = $this->readerFor($conversations, $messages, $presence);

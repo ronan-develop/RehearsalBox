@@ -35,7 +35,7 @@ final class ConversationMuteServiceTest extends RepositoryTestCase
         $stranger = $this->user('Carole');
         $a = $this->group('Alpha', $alice);
         $b = $this->group('Beta', $bob);
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->conversationId = $conversations->create($a->id(), $b->id(), 'Fil', $this->now, $alice->id())->id();
         $this->mutes = new MysqlConversationMuteRepository($this->pdo);
         $this->service = new ConversationMuteService(new ConversationAccess($conversations, $this->groups), $this->mutes);

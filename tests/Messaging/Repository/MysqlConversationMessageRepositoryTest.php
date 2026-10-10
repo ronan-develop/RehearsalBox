@@ -27,8 +27,8 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->setUpScenario();
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
     }
 
@@ -137,7 +137,7 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
         self::assertSame('Seconde correction', $message->body());
         self::assertEquals($this->now, $message->editedAt());
         self::assertEquals($this->at('-10 minutes'), $message->createdAt(), 'la date d\'envoi ne bouge pas');
-        self::assertSame(['Texte initial', 'Première correction'], array_column((new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($messageId), 'body'), 'chaque ancienne version est gardée, la plus ancienne d\'abord');
+        self::assertSame(['Texte initial', 'Première correction'], array_column((new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->versionsOf($messageId), 'body'), 'chaque ancienne version est gardée, la plus ancienne d\'abord');
     }
 
     #[Test]
@@ -147,7 +147,7 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
 
         self::assertNull($this->messages->messageById($conversationId, $messageId)->editedAt());
         self::assertNull($this->messages->messagesOf($conversationId)[0]->editedAt());
-        self::assertSame([], (new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($messageId));
+        self::assertSame([], (new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->versionsOf($messageId));
     }
 
     #[Test]
@@ -191,7 +191,7 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
         [, , $conversationId, $messageId] = $this->threadWithAMessage();
         $this->messages->updateBody($messageId, 'Corrigé', $this->now);
 
-        (new MysqlConversationTrashRepository($this->pdo))->delete($conversationId);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->delete($conversationId);
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_message_versions')->fetchColumn());
     }
@@ -262,7 +262,7 @@ final class MysqlConversationMessageRepositoryTest extends RepositoryTestCase
         $original = $this->messages->addMessage($thread->id(), $bob->id(), 'Jeudi ?', $this->at('-1 hour'));
         $this->messages->addMessage($thread->id(), $alice->id(), 'Oui', $this->now, false, $original->id());
 
-        (new MysqlConversationTrashRepository($this->pdo))->delete($thread->id());
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->delete($thread->id());
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_messages')->fetchColumn());
     }

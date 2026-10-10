@@ -104,7 +104,7 @@ final class AdminGroupPageControllerTest extends RepositoryTestCase
         $alpha = $this->groups->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
         $beta = $this->groups->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
         $this->groups->addMember($alpha->id(), $admin->id());
-        (new MysqlConversationRepository($this->pdo))->create($alpha->id(), $beta->id(), null, new \DateTimeImmutable('2026-10-04 10:00:00'), $admin->id());
+        (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create($alpha->id(), $beta->id(), null, new \DateTimeImmutable('2026-10-04 10:00:00'), $admin->id());
 
         $body = $this->controller->index()->body();
 

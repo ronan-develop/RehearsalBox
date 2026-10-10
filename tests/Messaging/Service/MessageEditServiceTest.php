@@ -67,8 +67,8 @@ final class MessageEditServiceTest extends RepositoryTestCase
         $groups->addMember($alpha, $this->id('carole'));
         $groups->addMember($beta, $this->id('bob'));
         $groups->addMember($carnage, $this->id('denis'));
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
@@ -117,8 +117,27 @@ final class MessageEditServiceTest extends RepositoryTestCase
 
         self::assertSame('Bonjour à tous', $edited->body(), 'même normalisation qu\'à l\'envoi');
         self::assertEquals($this->clock->now(), $edited->editedAt());
-        self::assertSame(['Bonjour'], array_column((new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($this->messageId), 'body'));
+        self::assertSame(['Bonjour'], array_column((new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->versionsOf($this->messageId), 'body'));
         self::assertSame('Bonjour à tous', $this->body());
+    }
+
+    #[Test]
+    public function testNoTextOfTheConversationIsInClearInTheDatabaseAfterStartReplyRenameAndEdit(): void
+    {
+        $this->clock->modify('+5 minutes');
+        $this->service->reply($this->id('bob'), $this->conversationId, 'Réponse confidentielle');
+        $this->service->rename($this->id('alice'), $this->conversationId, 'Titre confidentiel');
+        $this->editor->edit($this->id('alice'), $this->conversationId, $this->messageId, 'Texte corrigé confidentiel');
+
+        $dump = '';
+        foreach (['SELECT title FROM conversations', 'SELECT body FROM conversation_messages', 'SELECT body FROM conversation_message_versions'] as $sql) {
+            $dump .= implode('|', $this->pdo->query($sql)->fetchAll(\PDO::FETCH_COLUMN)) . '|';
+        }
+
+        foreach (['Bonjour', 'Concert', 'Réponse', 'Titre', 'corrigé', 'confidentiel', 'renommé'] as $clear) {
+            self::assertStringNotContainsString($clear, $dump, "« {$clear} » est en clair en base");
+        }
+        self::assertSame('Texte corrigé confidentiel', $this->body(), 'et le métier relit bien le clair');
     }
 
     #[Test]
@@ -146,7 +165,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
         $this->denied(fn () => $this->editor->edit($this->id('alice'), $this->conversationId, $system, 'x'));
         $this->denied(fn () => $this->editor->edit($this->id('alice'), 999999, $this->messageId, 'x'));
 
-        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($this->conversationId, $this->clock->now());
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->moveToTrash($this->conversationId, $this->clock->now());
         $this->denied(fn () => $this->editor->edit($this->id('alice'), $this->conversationId, $this->messageId, 'x'));
     }
 
@@ -179,7 +198,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
             }
         }
         self::assertSame('Bonjour', $this->body());
-        self::assertSame([], (new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($this->messageId));
+        self::assertSame([], (new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->versionsOf($this->messageId));
     }
 
     #[Test]
@@ -188,7 +207,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
         $this->editor->edit($this->id('alice'), $this->conversationId, $this->messageId, ' Bonjour ');
 
         self::assertNull($this->messages->messageById($this->conversationId, $this->messageId)->editedAt());
-        self::assertSame([], (new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo))->versionsOf($this->messageId));
+        self::assertSame([], (new \App\Messaging\Repository\MysqlMessageVersionRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->versionsOf($this->messageId));
     }
 
     #[Test]

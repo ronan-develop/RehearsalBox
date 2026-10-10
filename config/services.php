@@ -112,6 +112,8 @@ use App\Messaging\Repository\Mention\MemberDirectoryInterface;
 use App\Messaging\Repository\Notice\MentionNoticeRepositoryInterface;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
 use App\Messaging\Notification\DirectMessageNotifier;
+use App\Messaging\Crypto\MessageCipher;
+use App\Messaging\Crypto\MessageKeyFile;
 use App\Messaging\Notification\MentionNotifier;
 use App\Messaging\Service\MessageEditService;
 use App\Messaging\Presenter\EditedMessageFragments;
@@ -544,11 +546,16 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
     ));
 
-    $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class)));
-    $container->set(MessageVersionRepositoryInterface::class, fn ($c) => new MysqlMessageVersionRepository($c->get(PDO::class)));
-    $container->set(ConversationMessageRepositoryInterface::class, fn ($c) => new MysqlConversationMessageRepository($c->get(PDO::class)));
+    // Chiffrement au repos du texte de la messagerie (#171). Sans fichier de clés valide, le service lève une exception : rien n'est
+    // lu ni écrit, on ne retombe jamais sur du clair en silence.
+    $container->set(MessageKeyFile::class, fn () => new MessageKeyFile($config['messages']['key_file']));
+    $container->set(MessageCipher::class, fn ($c) => $c->get(MessageKeyFile::class)->cipher());
+
+    $container->set(ConversationRepositoryInterface::class, fn ($c) => new MysqlConversationRepository($c->get(PDO::class), $c->get(MessageCipher::class)));
+    $container->set(MessageVersionRepositoryInterface::class, fn ($c) => new MysqlMessageVersionRepository($c->get(PDO::class), $c->get(MessageCipher::class)));
+    $container->set(ConversationMessageRepositoryInterface::class, fn ($c) => new MysqlConversationMessageRepository($c->get(PDO::class), $c->get(MessageCipher::class)));
     $container->set(ConversationPresenceRepositoryInterface::class, fn ($c) => new MysqlConversationPresenceRepository($c->get(PDO::class)));
-    $container->set(ConversationTrashRepositoryInterface::class, fn ($c) => new MysqlConversationTrashRepository($c->get(PDO::class)));
+    $container->set(ConversationTrashRepositoryInterface::class, fn ($c) => new MysqlConversationTrashRepository($c->get(PDO::class), $c->get(MessageCipher::class)));
 
     $container->set(ConversationNoticeRepositoryInterface::class, fn ($c) => new MysqlConversationNoticeRepository($c->get(PDO::class)));
 

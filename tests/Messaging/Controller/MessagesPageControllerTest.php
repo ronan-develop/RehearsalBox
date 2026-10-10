@@ -53,9 +53,9 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), $session, $this->groups);
         $this->clock = new MockClock('2026-10-04 12:00:00');
-        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo), new MysqlConversationMessageRepository($this->pdo), new MysqlConversationPresenceRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
-        $conversations = new MysqlConversationRepository($this->pdo);
-        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->service = new ConversationService(new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), new MysqlConversationPresenceRepository($this->pdo), $this->groups, new TransactionRunner($this->pdo), $this->clock);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->reader = new \App\Messaging\Service\ConversationReader(
             new \App\Messaging\Service\ConversationAccess($conversations, $this->groups),
@@ -65,7 +65,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
             $presence,
             $this->clock,
         );
-        $this->trash = new \App\Messaging\Service\ConversationTrashService(new \App\Messaging\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups), new \App\Messaging\Repository\Participation\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Messaging\Repository\Participation\MysqlConversationAlertRepository($this->pdo));
+        $this->trash = new \App\Messaging\Service\ConversationTrashService(new \App\Messaging\Service\ConversationAccess(new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), $this->groups), new \App\Messaging\Repository\Participation\MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), new TransactionRunner($this->pdo), $this->clock, new \App\Messaging\Repository\Participation\MysqlConversationAlertRepository($this->pdo));
         $formatter = new ConversationFormatter(new \DateTimeZone('Europe/Paris'));
         $this->controller = new MessagesPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),

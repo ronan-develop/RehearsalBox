@@ -26,9 +26,9 @@ final class MysqlMessageVersionRepositoryTest extends RepositoryTestCase
         $groups = new MysqlGroupRepository($this->pdo);
         $a = $groups->save(new Group(0, 'Alpha', null, null, 'alpha@rehearsalbox.test'));
         $b = $groups->save(new Group(0, 'Beta', null, null, 'beta@rehearsalbox.test'));
-        $conversation = (new MysqlConversationRepository($this->pdo))->create($a->id(), $b->id(), null, $now->modify('-60 days'));
-        $messages = new MysqlConversationMessageRepository($this->pdo);
-        $versions = new MysqlMessageVersionRepository($this->pdo);
+        $conversation = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create($a->id(), $b->id(), null, $now->modify('-60 days'));
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $versions = new MysqlMessageVersionRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $message = $messages->addMessage($conversation->id(), $author->id(), 'Texte initial', $now->modify('-60 days'));
         $messages->updateBody($message->id(), 'Première correction', $now->modify('-40 days'));
         $messages->updateBody($message->id(), 'Seconde correction', $now->modify('-1 day'));

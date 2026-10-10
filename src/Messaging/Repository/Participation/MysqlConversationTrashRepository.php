@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Messaging\Repository\Participation;
 
+use App\Messaging\Crypto\MessageCipher;
 use App\Messaging\Repository\Participation\ConversationTrashRepositoryInterface;
 use App\Messaging\Repository\ConversationRows;
 use App\Messaging\Repository\ConversationSql;
@@ -12,8 +13,11 @@ final class MysqlConversationTrashRepository implements ConversationTrashReposit
 {
     private const DATE_FORMAT = ConversationSql::DATE_FORMAT;
 
-    public function __construct(private readonly \PDO $pdo)
+    private readonly ConversationRows $rows;
+
+    public function __construct(private readonly \PDO $pdo, MessageCipher $cipher)
     {
+        $this->rows = new ConversationRows($cipher);
     }
 
     public function moveToTrash(int $conversationId, \DateTimeImmutable $now): void
@@ -50,7 +54,7 @@ final class MysqlConversationTrashRepository implements ConversationTrashReposit
         );
         $statement->execute(['user_id' => $userId, 'label_user' => $userId, 'since' => $trashedSince->format(self::DATE_FORMAT)]);
 
-        return array_map(ConversationRows::summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map($this->rows->summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function purgeTrashedBefore(\DateTimeImmutable $cutoff): int

@@ -37,8 +37,8 @@ final class MysqlConversationGuestRepositoryTest extends RepositoryTestCase
         parent::setUp();
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->cutoff = $this->now->modify('-30 days');
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
