@@ -48,7 +48,7 @@ trait ConversationWorld
 
         return new ConversationReader(
             $access,
-            new ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->clock),
+            new ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->users, $this->clock),
             $conversations,
             $messages,
             $presence,

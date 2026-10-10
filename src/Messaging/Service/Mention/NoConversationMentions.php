@@ -11,7 +11,7 @@ use App\Messaging\Service\Mention\ConversationMentionsInterface;
 /** Null Object : aucune mention (le texte n'est jamais analysé, personne n'est invité ni prévenu). Évite un collaborateur « optionnel » à tester partout. */
 final class NoConversationMentions implements ConversationMentionsInterface
 {
-    public function plan(int $actorId, int $initiatorGroupId, int $targetGroupId, ?int $conversationId, string $body, array $userIds): MentionPlan
+    public function plan(int $actorId, ?int $initiatorGroupId, ?int $targetGroupId, ?int $conversationId, string $body, array $userIds): MentionPlan
     {
         return new MentionPlan([], []);
     }

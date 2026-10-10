@@ -41,9 +41,10 @@ final class ConversationMentionService implements ConversationMentionsInterface
      *
      * @throws ConversationValidationException identifiant invalide, personne inconnue ou inactive, trop de mentions, ajout interdit
      */
-    public function plan(int $actorId, int $initiatorGroupId, int $targetGroupId, ?int $conversationId, string $body, array $userIds): MentionPlan
+    public function plan(int $actorId, ?int $initiatorGroupId, ?int $targetGroupId, ?int $conversationId, string $body, array $userIds): MentionPlan
     {
-        if ($userIds === []) {
+        // Message direct (#269) : exactement deux personnes, personne à inviter, donc rien à planifier.
+        if ($userIds === [] || ($initiatorGroupId === null && $targetGroupId === null)) {
             return new MentionPlan([], []);
         }
         $ids = [];
@@ -55,7 +56,7 @@ final class ConversationMentionService implements ConversationMentionsInterface
             throw $this->refusal(sprintf('Vous pouvez mentionner au plus %d personnes par message.', self::MAX_MENTIONS));
         }
 
-        $actorIsGroupMember = $this->groups->isMember($initiatorGroupId, $actorId) || $this->groups->isMember($targetGroupId, $actorId);
+        $actorIsGroupMember = $this->groups->isMember((int) $initiatorGroupId, $actorId) || $this->groups->isMember((int) $targetGroupId, $actorId);
         $labels = [];
         $outsiders = [];
         foreach ($ids as $id) {
@@ -156,10 +157,10 @@ final class ConversationMentionService implements ConversationMentionsInterface
         return $this->mentions->forMessages(array_map(static fn (ConversationMessage $m): int => $m->id(), $messages));
     }
 
-    private function participates(int $userId, int $initiatorGroupId, int $targetGroupId, ?int $conversationId): bool
+    private function participates(int $userId, ?int $initiatorGroupId, ?int $targetGroupId, ?int $conversationId): bool
     {
-        return $this->groups->isMember($initiatorGroupId, $userId)
-            || $this->groups->isMember($targetGroupId, $userId)
+        return $this->groups->isMember((int) $initiatorGroupId, $userId)
+            || $this->groups->isMember((int) $targetGroupId, $userId)
             || ($conversationId !== null && $this->guests->isGuest($conversationId, $userId));
     }
 

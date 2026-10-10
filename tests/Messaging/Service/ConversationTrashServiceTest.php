@@ -59,7 +59,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->reader = new \App\Messaging\Service\ConversationReader(
             $access,
-            new \App\Messaging\Service\ConversationThreadBuilder($this->conversations, $messages, $presence, $groups, $this->clock),
+            new \App\Messaging\Service\ConversationThreadBuilder($this->conversations, $messages, $presence, $groups, new \App\Account\Repository\MysqlUserRepository($this->pdo), $this->clock),
             $this->conversations,
             $messages,
             $presence,
@@ -246,5 +246,35 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         }
 
         $this->denied(fn () => $this->trash->delete($this->id('alice'), $this->conversationId));
+    }
+
+    // --- Messages directs (#269) --------------------------------------------------------------------
+
+    private function directConversation(): int
+    {
+        return $this->conversations->openDirect($this->id('alice'), $this->id('erin'), $this->clock->now())->id();
+    }
+
+    #[Test]
+    public function testTheOpenerTrashesADirectConversationAndTheOtherPersonIsAlertedAndLosesIt(): void
+    {
+        $id = $this->directConversation();
+        (new MysqlConversationMessageRepository($this->pdo))->addMessage($id, $this->id('alice'), 'Salut', $this->clock->now());
+
+        $this->trash->delete($this->id('alice'), $id);
+
+        self::assertSame([], $this->reader->listFor($this->id('erin'), Box::BOX_ACTIVE));
+        $this->denied(fn () => $this->reader->open($this->id('erin'), $id));
+        self::assertSame(['Erin'], array_map(static fn ($s) => $s->label(), $this->trash->trash($this->id('alice'))));
+        self::assertSame(['Alice'], array_map(static fn ($a) => $a->label(), $this->trash->alertsFor($this->id('erin'))));
+    }
+
+    #[Test]
+    public function testTheOtherPersonOfADirectConversationCannotTrashIt(): void
+    {
+        $id = $this->directConversation();
+
+        $this->denied(fn () => $this->trash->delete($this->id('erin'), $id));
+        $this->denied(fn () => $this->trash->delete($this->id('bob'), $id));
     }
 }

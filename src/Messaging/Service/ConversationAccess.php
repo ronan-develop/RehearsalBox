@@ -12,7 +12,8 @@ use App\Security\Exception\AccessDeniedException;
 
 /**
  * Qui a accès à une conversation (IDOR) : une seule règle, partagée par tous les services de la messagerie.
- * Participant = membre de l'un des deux groupes ou invité, conversation hors corbeille. Une conversation inconnue,
+ * Participant = membre de l'un des deux groupes, invité, ou l'une des deux personnes d'un message direct (#269), conversation
+ * hors corbeille. Une conversation inconnue,
  * interdite ou à la corbeille produit le même refus : rien ne révèle son existence.
  */
 final class ConversationAccess
@@ -32,8 +33,7 @@ final class ConversationAccess
         $conversation = $this->conversations->findById($conversationId);
         if ($conversation === null
             || $conversation->deletedAt() !== null
-            || (!$this->groups->isMember($conversation->initiatorGroupId(), $userId)
-                && !$this->groups->isMember($conversation->targetGroupId(), $userId)
+            || (!$this->isMemberOrPair($conversation, $userId)
                 && !($this->guests?->isGuest($conversationId, $userId) ?? false))) {
             throw new AccessDeniedException(self::DENIED);
         }
@@ -43,18 +43,28 @@ final class ConversationAccess
 
     /**
      * Conversation ouverte par cette personne, en service ou à la corbeille, TANT QU'elle appartient encore à l'un des deux
-     * groupes : en les quittant, elle perd aussi le droit de la supprimer. @throws AccessDeniedException
+     * groupes (ou à la paire d'un message direct) : en les quittant, elle perd aussi le droit de la supprimer. @throws AccessDeniedException
      */
     public function ownedBy(int $userId, int $conversationId): Conversation
     {
         $conversation = $this->conversations->findById($conversationId);
         if ($conversation === null
             || $conversation->createdBy() !== $userId
-            || (!$this->groups->isMember($conversation->initiatorGroupId(), $userId)
-                && !$this->groups->isMember($conversation->targetGroupId(), $userId))) {
+            || !$this->isMemberOrPair($conversation, $userId)) {
             throw new AccessDeniedException(self::DENIED);
         }
 
         return $conversation;
+    }
+
+    /** Membre de l'un des deux groupes, ou l'une des deux personnes d'un message direct (hors invités). */
+    private function isMemberOrPair(Conversation $conversation, int $userId): bool
+    {
+        if ($conversation->isDirect()) {
+            return $conversation->hasDirectParticipant($userId);
+        }
+
+        return $this->groups->isMember((int) $conversation->initiatorGroupId(), $userId)
+            || $this->groups->isMember((int) $conversation->targetGroupId(), $userId);
     }
 }

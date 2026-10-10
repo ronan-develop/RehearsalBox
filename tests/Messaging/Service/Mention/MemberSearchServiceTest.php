@@ -85,6 +85,14 @@ final class MemberSearchServiceTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testADirectConversationProposesNobodyBecauseNobodyCanBeAddedToIt(): void
+    {
+        $direct = (new MysqlConversationRepository($this->pdo))->openDirect($this->id('alice'), $this->id('bob'), new \DateTimeImmutable('2026-10-06 12:00:00'));
+
+        self::assertSame([], $this->service->search($this->id('alice'), 'denis', $direct->id()));
+    }
+
+    #[Test]
     public function testAnInvitedGuestCountsAsAParticipant(): void
     {
         $this->guests->add($this->conversationId, $this->id('denis'), $this->id('alice'), new \DateTimeImmutable('2026-10-06 12:00:00'));
