@@ -14,6 +14,8 @@ use App\Messaging\Entity\SeenReceipt;
  */
 final class ConversationFormatter
 {
+    private const DAY_SECONDS = 86400;
+
     public function __construct(private readonly \DateTimeZone $displayTimezone)
     {
     }
@@ -28,16 +30,20 @@ final class ConversationFormatter
         return $date->setTimezone($this->displayTimezone)->format('H:i');
     }
 
-    /** Heure aujourd'hui, « Hier », sinon jour/mois : date d'une ligne de la liste des conversations. */
+    /**
+     * Date d'une ligne de la liste des conversations (#377) : l'heure aujourd'hui, « Hier » tant que le message a MOINS de 24 h, sinon
+     * la date (jj/mm, avec l'année si ce n'est pas l'année en cours). Le seuil se mesure en secondes écoulées : un message d'hier
+     * soir lu le lendemain matin reste « Hier », celui d'hier matin affiche sa date.
+     */
     public function listDate(\DateTimeImmutable $date, \DateTimeImmutable $now): string
     {
-        $label = $this->dayLabel($date, $now);
+        if ($now->getTimestamp() - $date->getTimestamp() < self::DAY_SECONDS) {
+            return $this->dayLabel($date, $now) === "Aujourd'hui" ? $this->time($date) : 'Hier';
+        }
+        $local = $date->setTimezone($this->displayTimezone);
+        $sameYear = $local->format('Y') === $now->setTimezone($this->displayTimezone)->format('Y');
 
-        return match (true) {
-            $label === "Aujourd'hui" => $this->time($date),
-            $label === 'Hier' => 'Hier',
-            default => $date->setTimezone($this->displayTimezone)->format('d/m'),
-        };
+        return $local->format($sameYear ? 'd/m' : 'd/m/Y');
     }
 
     /** « Aujourd'hui », « Hier » ou jj/mm/aaaa, selon le jour calendaire local. */

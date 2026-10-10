@@ -40,11 +40,34 @@ final class ConversationFormatterTest extends TestCase
     }
 
     #[Test]
-    public function testListDateShowsTheTimeTodayHierYesterdayThenDayMonth(): void
+    public function testListDateShowsTheTimeTodayAndHierOnlyWithinTwentyFourHours(): void
     {
         self::assertSame('09:05', $this->formatter->listDate($this->utc('2026-10-04 07:05:00'), $this->now));
-        self::assertSame('Hier', $this->formatter->listDate($this->utc('2026-10-03 07:05:00'), $this->now));
+        self::assertSame('Hier', $this->formatter->listDate($this->utc('2026-10-03 17:00:01'), $this->now), 'hier, 22 h 59 plus tôt');
+        self::assertSame('Hier', $this->formatter->listDate($this->utc('2026-10-03 16:00:01'), $this->now), '23 h 59 min 59 s : encore moins de 24 h');
+    }
+
+    #[Test]
+    public function testListDateShowsTheDateFromTwentyFourHoursOn(): void
+    {
+        self::assertSame('03/10', $this->formatter->listDate($this->utc('2026-10-03 16:00:00'), $this->now), '24 h pile : la date');
+        self::assertSame('03/10', $this->formatter->listDate($this->utc('2026-10-03 07:05:00'), $this->now), 'hier mais il y a plus de 24 h');
         self::assertSame('30/09', $this->formatter->listDate($this->utc('2026-09-30 07:05:00'), $this->now));
+    }
+
+    #[Test]
+    public function testListDateAddsTheYearWhenItIsNotTheCurrentOne(): void
+    {
+        self::assertSame('31/12/2025', $this->formatter->listDate($this->utc('2025-12-31 12:00:00'), $this->now));
+        $newYear = $this->utc('2027-01-01 10:00:00');
+        self::assertSame('31/12/2026', $this->formatter->listDate($this->utc('2026-12-31 08:00:00'), $newYear), 'l\'année change au 1er janvier local : l\'année est affichée');
+        self::assertSame('29/12', $this->formatter->listDate($this->utc('2026-12-29 10:00:00'), $this->utc('2026-12-31 12:00:00')), 'même année : pas d\'année');
+    }
+
+    #[Test]
+    public function testListDateOfAFutureMessageFromClockSkewShowsTheTime(): void
+    {
+        self::assertSame('18:05', $this->formatter->listDate($this->utc('2026-10-04 16:05:00'), $this->now));
     }
 
     #[Test]
