@@ -47,7 +47,7 @@ final class MysqlGroupManagerRepositoryTest extends RepositoryTestCase
     }
     #[Test]
 
-    public function testCountManagersCountsOnlyGestionnaireRole(): void
+    public function testLockManagerIdsListsOnlyGestionnaireRoleInOrder(): void
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
@@ -57,7 +57,12 @@ final class MysqlGroupManagerRepositoryTest extends RepositoryTestCase
         $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
         $groupRepository->addMember($group->id(), $member->id());
 
-        self::assertSame(1, (new MysqlGroupManagerRepository($this->pdo))->countManagers($group->id()));
+        $this->pdo->beginTransaction();
+        try {
+            self::assertSame([$manager->id()], (new MysqlGroupManagerRepository($this->pdo))->lockManagerIds($group->id()));
+        } finally {
+            $this->pdo->rollBack();
+        }
     }
 
     private function newUser(string $email): User

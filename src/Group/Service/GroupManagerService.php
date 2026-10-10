@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Group\Service;
 
 use App\Group\Entity\GroupUserRole;
+use App\Group\Exception\LastGroupManagerException;
 use App\Group\Repository\GroupManagerRepositoryInterface;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
@@ -33,13 +34,25 @@ final class GroupManagerService
     {
         $this->assertActorIsManager($groupId, $actorUserId);
 
-        if ($this->groupRepository->roleOf($groupId, $userId) === GroupUserRole::Gestionnaire
-            && $this->managers->countManagers($groupId) <= 1
-        ) {
-            throw new \LogicException('Impossible de rétrograder le dernier gestionnaire du groupe.');
-        }
+        $this->assertNotLastManager($groupId, $userId);
 
         $this->managers->demoteToMember($groupId, $userId);
+    }
+
+    /**
+     * Règle unique « jamais sans gestionnaire » (rétrogradation, retrait et déplacement d'un membre, #272). À appeler dans la
+     * transaction de l'écriture : les gestionnaires du groupe sont verrouillés, un second appel simultané attend le premier.
+     *
+     * @throws LastGroupManagerException
+     */
+    public function assertNotLastManager(int $groupId, int $userId): void
+    {
+        if ($this->groupRepository->roleOf($groupId, $userId) !== GroupUserRole::Gestionnaire) {
+            return;
+        }
+        if (count($this->managers->lockManagerIds($groupId)) <= 1) {
+            throw new LastGroupManagerException('Impossible de retirer ou rétrograder le dernier gestionnaire du groupe.');
+        }
     }
 
     private function assertActorIsManager(int $groupId, int $actorUserId): void

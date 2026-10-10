@@ -37,6 +37,8 @@ final class UserAdminServiceTest extends RepositoryTestCase
             $this->groups,
             new UserProvisioningService($this->users, new FastPasswordHasher(), new PasswordPolicy()),
             \App\Tests\Support\TestLoginThrottle::make($this->pdo),
+            new \App\Account\Security\LastAdminGuard($this->users),
+            new \App\Database\TransactionRunner($this->pdo),
         );
     }
 
@@ -68,6 +70,9 @@ final class UserAdminServiceTest extends RepositoryTestCase
         self::assertCount(2, $items);
         self::assertSame('Alice', $items[0]->user()->displayName());
         self::assertSame(['Punk', 'Rock'], array_map(static fn (Group $g): string => $g->name(), $items[0]->groups()));
+        self::assertSame('gestionnaire', $items[0]->groupRole($punk->id()), 'le rôle dans chaque groupe accompagne la liste (#272)');
+        self::assertSame('membre', $items[0]->groupRole($rock->id()));
+        self::assertNull($items[0]->groupRole(999999), 'groupe où la personne n\'est pas');
         self::assertFalse($items[0]->isLocked());
         self::assertSame([], $items[1]->groups());
         self::assertTrue($items[1]->isLocked());
