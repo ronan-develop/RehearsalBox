@@ -166,11 +166,36 @@ final class MessageKeysCommandTest extends TestCase
     }
 
     #[Test]
+    public function testTransitionReopensPlaintextAndExplainsTheNextSteps(): void
+    {
+        $this->command('init');
+        $this->command('strict');
+        self::assertFalse($this->file->status()['allowPlaintext']);
+
+        [$code, $output] = $this->command('transition');
+
+        self::assertSame(0, $code);
+        self::assertTrue($this->file->status()['allowPlaintext']);
+        self::assertStringContainsString('encrypt-messages.php', $output);
+        self::assertStringContainsString('strict', $output, 'rappelle de refermer la transition ensuite');
+    }
+
+    #[Test]
+    public function testTransitionWithoutAKeyFileIsRefused(): void
+    {
+        [$code, $output] = $this->command('transition');
+
+        self::assertSame(1, $code);
+        self::assertStringContainsString('absent', $output);
+    }
+
+    #[Test]
     public function testAnUnknownCommandAndAMissingFileAreExplained(): void
     {
         [$code, $output] = $this->command('nimporte');
         self::assertSame(2, $code);
         self::assertStringContainsString('init', $output);
+        self::assertStringContainsString('transition', $output, 'l\'aide cite la nouvelle commande');
 
         [$code, $output] = $this->command('status');
         self::assertSame(1, $code);

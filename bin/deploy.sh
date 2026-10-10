@@ -24,7 +24,6 @@ SECRETS_FILE="${RB_SECRETS_FILE:-.secrets}"
 REMOTE_PHP="${RB_REMOTE_PHP:-/usr/local/bin/php}"
 REMOTE_COMPOSER="${RB_REMOTE_COMPOSER:-/usr/local/bin/composer}"
 KEEP_RELEASES=3
-KEEP_BACKUPS=7
 
 rb_ssh() { ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@"; }
 # Étapes numérotées avec barre de progression (#277) : 12 étapes au total, celles qu'on saute comptent quand même.
@@ -106,27 +105,10 @@ else
 fi
 
 # --- 5. Sauvegarde de la base avant migration -----------------------------
+# Même script que le dump quotidien (#167) : dump provisoire, vérifié (tables, ligne de fin), puis renommé ; 7 d'avant déploiement gardés.
+# Identifiants jamais en argument. Base vide (premier déploiement) : rien à sauvegarder. Échec : le déploiement s'arrête ici.
 progress_step "Sauvegarde de la base (si elle contient des tables)"
-rb_ssh bash -s -- "$BASE" "$release" "$REMOTE_PHP" "$KEEP_BACKUPS" <<'REMOTE'
-set -euo pipefail
-base=$1; rel=$2; php=$3; keep=$4
-umask 077
-cfg="$HOME/$base/shared/config.local.php"
-cnf=$(mktemp)
-trap 'rm -f "$cnf"' EXIT
-"$php" -r '$d = (require $argv[1])["db"]; printf("[client]\nhost=%s\nport=%s\nuser=%s\npassword=\"%s\"\n", $d["host"], $d["port"], $d["user"], addcslashes($d["password"], "\"\\"));' "$cfg" > "$cnf"
-db=$("$php" -r 'echo (require $argv[1])["db"]["name"];' "$cfg")
-tables=$(mariadb --defaults-extra-file="$cnf" -N -e 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()' "$db")
-if [ "$tables" -gt 0 ]; then
-    mariadb-dump --defaults-extra-file="$cnf" --single-transaction --routines --no-tablespaces "$db" \
-        | gzip > "$HOME/$base/backups/pre-$rel.sql.gz"
-    echo "Sauvegarde : backups/pre-$rel.sql.gz"
-else
-    echo "Base vide : pas de sauvegarde nécessaire."
-fi
-# Rotation : aucune sauvegarde existante n'est normale au premier déploiement
-ls -1t "$HOME/$base/backups/"*.sql.gz 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -- || true
-REMOTE
+rb_ssh "cd \"\$HOME/$BASE/releases/$release\" && $REMOTE_PHP bin/backup-db.php --kind=pre-deploy --label=\"$release\" --dir=\"\$HOME/$BASE/backups\" --skip-if-empty"
 
 # --- 6. Migrations, test à blanc, bascule ---------------------------------
 progress_step "Migrations (jamais de seed en production)"
