@@ -10,37 +10,60 @@ import { escapeHtml } from '../core/html.js';
 export function renderGroupCard(group) {
   return `
     <article class="rb-group-card rb-card" data-group-id="${group.id}">
-      <h3>${escapeHtml(group.name)}</h3>
-      ${group.genre ? `<p class="rb-group-genre">${escapeHtml(group.genre)}</p>` : ''}
+      <header class="rb-group-card-head">
+        <div class="rb-group-card-identity">
+          <h3>${escapeHtml(group.name)}</h3>
+          ${group.genre ? `<p class="rb-group-genre">${escapeHtml(group.genre)}</p>` : ''}
+        </div>
+        <div class="rb-group-actions">
+          <button type="button" class="rb-btn rb-btn-icon" data-edit-group-button data-group-id="${group.id}" aria-label="Modifier">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+          </button>
+          <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-group-button data-group-id="${group.id}" data-members-count="0" data-conversations-count="0" data-documents-count="0" data-requests-count="0" aria-label="Supprimer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+            </svg>
+          </button>
+        </div>
+      </header>
       <rb-async-form endpoint="/api/admin/groups/${group.id}" method="PATCH"><form class="rb-edit-group-form" hidden>
-        <input type="text" name="name" class="rb-input" value="${escapeHtml(group.name)}" required maxlength="120">
-        <input type="text" name="genre" class="rb-input" value="${escapeHtml(group.genre)}" maxlength="60">
-        <input type="color" name="colorHex" value="${escapeHtml(group.colorHex || '#b5654a')}">
-        <input type="email" name="contactEmail" class="rb-input" value="${escapeHtml(group.contactEmail ?? '')}" required maxlength="190">
-        <button type="submit" class="rb-btn">Enregistrer</button>
+        <div class="rb-field rb-group-field-name">
+          <label for="group-${group.id}-name">Nom du groupe</label>
+          <input type="text" id="group-${group.id}-name" name="name" class="rb-input" value="${escapeHtml(group.name)}" required maxlength="120">
+        </div>
+        <div class="rb-field rb-group-field-genre">
+          <label for="group-${group.id}-genre">Genre</label>
+          <input type="text" id="group-${group.id}-genre" name="genre" class="rb-input" value="${escapeHtml(group.genre)}" maxlength="60">
+        </div>
+        <div class="rb-field rb-group-field-color">
+          <label for="group-${group.id}-colorHex">Couleur</label>
+          <rb-color-picker><input type="text" id="group-${group.id}-colorHex" name="colorHex" class="rb-input" value="${escapeHtml(group.colorHex || '#b5654a')}" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
+        </div>
+        <div class="rb-field rb-group-field-contact">
+          <label for="group-${group.id}-contactEmail">Email de contact</label>
+          <input type="email" id="group-${group.id}-contactEmail" name="contactEmail" class="rb-input" value="${escapeHtml(group.contactEmail ?? '')}" required maxlength="190">
+        </div>
+        <div class="rb-group-form-actions">
+          <button type="submit" class="rb-btn-primary">Enregistrer</button>
+        </div>
       </form></rb-async-form>
-      <div class="rb-group-actions">
-        <button type="button" class="rb-btn rb-btn-icon" data-edit-group-button data-group-id="${group.id}" aria-label="Modifier">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-          </svg>
-        </button>
-        <button type="button" class="rb-btn rb-btn-danger rb-btn-icon" data-delete-group-button data-group-id="${group.id}" data-members-count="0" data-conversations-count="0" data-documents-count="0" data-requests-count="0" aria-label="Supprimer">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
-          </svg>
-        </button>
-      </div>
-      <rb-async-form endpoint="/api/admin/groups/${group.id}/members" method="POST"><form class="rb-add-member-form">
-        <input type="email" name="email" class="rb-input" placeholder="Email du musicien" required>
-        <button type="submit" class="rb-btn rb-btn-icon" aria-label="Ajouter">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-        </button>
-      </form></rb-async-form>
+      <section class="rb-group-members">
+        <rb-async-form endpoint="/api/admin/groups/${group.id}/members" method="POST"><form class="rb-add-member-form">
+          <label for="group-${group.id}-member-email">Ajouter un membre</label>
+          <div class="rb-add-member-row">
+            <input type="email" id="group-${group.id}-member-email" name="email" class="rb-input" placeholder="Email du musicien" required>
+            <button type="submit" class="rb-btn rb-btn-icon" aria-label="Ajouter">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+          </div>
+        </form></rb-async-form>
+      </section>
     </article>
   `;
 }

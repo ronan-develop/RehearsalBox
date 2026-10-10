@@ -51,6 +51,60 @@ test('renderGroupCard renders action buttons as icons with accessible labels', (
   assert.match(html, /<svg[^>]*aria-hidden="true"/);
 });
 
+test('renderGroupCard puts the id in the card, the endpoints and the field ids', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null, contactEmail: 'g@example.test' });
+
+  assert.ok(html.includes('<article class="rb-group-card rb-card" data-group-id="7">'));
+  assert.ok(html.includes('endpoint="/api/admin/groups/7"'));
+  assert.ok(html.includes('endpoint="/api/admin/groups/7/members"'));
+  assert.ok(html.includes('id="group-7-name"'));
+  assert.ok(html.includes('id="group-7-member-email"'));
+});
+
+test('each field of the edit form has a label bound to its input', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: 'metal', colorHex: '#e63946', contactEmail: 'g@example.test' });
+
+  for (const field of ['name', 'genre', 'colorHex', 'contactEmail']) {
+    assert.ok(html.includes(`<label for="group-7-${field}">`), `label pour ${field}`);
+    assert.ok(html.includes(`id="group-7-${field}" name="${field}"`), `champ ${field} avec son id`);
+  }
+});
+
+test('the colour field is a text input wrapped by rb-color-picker, never a native colour input', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: '#e63946' });
+
+  assert.match(html, /<rb-color-picker><input type="text" id="group-7-colorHex" name="colorHex"[^>]*value="#e63946"/);
+  assert.ok(!html.includes('type="color"'));
+});
+
+test('a missing colour falls back to the default brick colour', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null });
+
+  assert.match(html, /name="colorHex"[^>]*value="#b5654a"/);
+});
+
+test('the action buttons sit in the rb-group-card-head header', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null });
+  const header = html.match(/<header class="rb-group-card-head">([\s\S]*?)<\/header>/);
+
+  assert.ok(header, 'un en-tête rb-group-card-head existe');
+  assert.ok(header[1].includes('<div class="rb-group-actions">'));
+  assert.ok(header[1].includes('data-edit-group-button'));
+  assert.ok(header[1].includes('data-delete-group-button'));
+});
+
+test('the add-member form labels its email field', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null });
+
+  assert.ok(html.includes('<label for="group-7-member-email">Ajouter un membre</label>'));
+});
+
+test('a null genre writes no genre paragraph', () => {
+  const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null });
+
+  assert.ok(!html.includes('rb-group-genre'));
+});
+
 test('deleting an empty group only asks for a simple confirmation', () => {
   assert.equal(groupDeletionWarning({ members: 0, conversations: 0, documents: 0, requests: 0 }), 'Supprimer ce groupe ?');
 });
