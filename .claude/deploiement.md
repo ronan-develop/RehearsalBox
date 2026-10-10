@@ -13,7 +13,7 @@ Déploiement par **releases** en SSH depuis le poste de dev, sans démon ni bina
 ├── shared/config.local.php        ← 0600, généré par bin/generate-config.php
 ├── shared/storage/                ← documents des groupes (inscriptible)
 ├── shared/well-known/             ← validation du certificat
-└── backups/pre-<release>.sql.gz   ← dump avant migration (7 conservés)
+└── backups/                       ← dumps (0700) : db-<horodatage UTC>.sql.gz quotidiens (14 conservés), pre-<release>.sql.gz avant migration (7 conservés)
 ~/<racine-du-domaine>/public -> ~/rehearsalbox/current/public   ← seule partie exposée
 ```
 
@@ -118,9 +118,61 @@ Le texte de la messagerie (messages, anciennes versions corrigées, titres) est 
 
 **Rotation de clé** (sur soupçon de fuite, pas périodique) : `php bin/message-keys.php rotate` (ajoute une clé et la rend courante, les anciennes restent pour lire), puis `php bin/encrypt-messages.php` (réécrit avec la nouvelle), puis **sauvegarder à nouveau** (`export`). Une ancienne clé ne se supprime qu'une fois tout réécrit (vérifier avec `check`).
 
-**Restauration** (serveur neuf) : `php bin/message-keys.php import < sauvegarde-cles.json` (refuse d'écraser un fichier existant), puis `check`.
+**Restauration** (serveur neuf) : `php bin/message-keys.php import < sauvegarde-cles.json` (refuse d'écraser un fichier existant), puis `check`. Après la restauration d'un dump d'AVANT le chiffrement : `php bin/message-keys.php transition`, puis `encrypt-messages.php`, `check`, `strict` (voir « Restaurer la base — mode opératoire »).
 
 **Perte de la clé = messages définitivement illisibles** : c'est le prix du chiffrement. Vérifier de temps en temps que la sauvegarde KeePass existe et que `export` donne le même fichier.
+
+## Sauvegardes de la base (#167)
+
+Un seul script, `bin/backup-db.php`, sert au déploiement et au dump quotidien : `--kind=daily` (`db-<horodatage UTC>.sql.gz`, **14 gardés**) ou `--kind=pre-deploy --label=<release>` (`pre-<release>.sql.gz`, **7 gardés**, lancé par `bin/deploy.sh` avant les migrations ; un échec arrête le déploiement). `--dir=<dossier>` est obligatoire, `--skip-if-empty` évite un dump d'une base vide (premier déploiement).
+
+**Garanties** : le dump est écrit dans un fichier **provisoire**, **vérifié** (gzip valide, une instruction `CREATE TABLE` par table, ligne de fin `-- Dump completed`), puis renommé (atomique) ; la **rotation ne passe qu'après une réussite** (un dump raté ne supprime jamais une bonne sauvegarde) et ne touche que les fichiers de son type ; un fichier existant n'est jamais écrasé. Dossier en 0700, fichiers en 0600, hors racine web. Les identifiants passent par un fichier d'options **temporaire en 0600** : jamais en argument, ni dans la sortie, ni dans un journal ; connexion en utf8mb4 (le serveur est en latin1 par défaut).
+
+**Dump quotidien (cron cPanel)**, à installer **une fois** (sur ordre) à côté de la tâche des relances (heure du serveur) :
+
+```cron
+30 3 * * * cd "$HOME/rehearsalbox/current" && [ -f bin/backup-db.php ] && /usr/local/bin/php bin/backup-db.php --kind=daily --dir="$HOME/rehearsalbox/backups" --skip-if-empty >> "$HOME/rehearsalbox/shared/backup.log" 2>&1
+```
+
+Le journal ne contient que des noms de fichiers. Un code de sortie 1 (« Sauvegarde ÉCHOUÉE ») signale un problème : relancer à la main (`php bin/backup-db.php …`) et lire le message. La date de modification de `backup.log` prouve que la tâche tourne.
+
+**Copie hors serveur** : `RB_SSH_CONFIG=<chemin> ./bin/fetch-backup.sh` (depuis le poste de dev) rapatrie le dernier dump quotidien (`--pre` : le dernier d'avant déploiement) dans `~/rehearsalbox-backups` (0700, **jamais dans le dépôt**, vérifié par `gzip -t`, 30 gardés ; `RB_BACKUP_LOCAL_DIR` / `RB_BACKUP_LOCAL_KEEP` pour changer). À lancer régulièrement : seule une copie hors du serveur protège d'une perte du compte d'hébergement.
+
+**Un dump seul ne suffit pas à relire les messages** : le texte de la messagerie y est chiffré (#171) et **la clé n'est pas dans le dump**. Il faut aussi la sauvegarde de la clé (KeePass, à part, voir « Chiffrement des messages »).
+
+## Restaurer la base — mode opératoire (#167, #171)
+
+À suivre dans l'ordre, sans sauter d'étape. Un outil scripté (confirmation, dump préalable automatique, nettoyage) est prévu au ticket #241 ; d'ici là, tout est manuel et volontairement prudent.
+
+**0. Avant toute chose**
+- **Quel est le besoin ?** *Revenir à l'état d'un jour* (restauration complète : on perd ce qui a été écrit depuis) **ou** *récupérer quelques lignes* (groupe, compte, message supprimés) **sans** perdre le reste : dans ce second cas, ne restaure PAS la base de production, passe par la base temporaire (étape B).
+- **Quel dump ?** `ls -l ~/rehearsalbox/backups` : `db-<horodatage UTC>.sql.gz` (quotidien) ou `pre-<release>.sql.gz` (juste avant un déploiement). Contrôle-le : `gzip -t <fichier>`. Le contenu d'un dump est à l'heure indiquée dans son nom.
+- **La clé est-elle là ?** `php bin/message-keys.php check` doit répondre « Clés vérifiées » sur la base actuelle. Sur un **serveur neuf**, restaure d'abord la clé depuis KeePass : `php bin/message-keys.php import < sauvegarde-cles.json`.
+- **Ce dump est-il d'avant ou d'après le chiffrement des messages (mise en service du 10/10/2026, ticket #171) ?** Les dumps `db-*` à venir sont tous chiffrés ; les `pre-20261010120354…`, `pre-20261010124228…` et `pre-20261010134000…` sont **d'avant** (messages en clair). Cela change l'étape 6.
+
+**A. Restauration complète (la base de production revient à l'état du dump)**
+1. **Dump de l'état actuel d'abord** (le « retour du retour ») : `php bin/backup-db.php --kind=pre-deploy --label=<AAAAMMJJHHMMSS>-avant-restauration --dir="$HOME/rehearsalbox/backups"` (l'horodatage : 14 chiffres, maintenant). Ne continue pas s'il échoue.
+2. **Essai à blanc dans la base temporaire** `sc2ron2cuba_restore` (étape B, 1 à 3) : si l'import échoue ou si les effectifs sont faux, on s'arrête là, la production n'a pas été touchée.
+3. **Prévenir** les utilisateurs : pas de mode maintenance, la coupure dure le temps de l'import (quelques secondes à quelques minutes).
+4. **Vider la base de production**, puis **importer** : `gunzip -c <dump> | mariadb --defaults-extra-file=<fichier d'options 0600> sc2ron2cuba_rehearsalbox`. Vider = supprimer toutes ses tables (l'utilisateur de l'application n'a pas le droit de supprimer la base elle-même) ; le dump recrée tout (`DROP TABLE IF EXISTS` inclus). Le fichier d'options contient les identifiants (jamais en argument) : droits 600, à supprimer après.
+5. **Remettre le schéma à jour** si le dump est d'avant des migrations : `php bin/migrate.php` (la table `migrations_log` revient avec le dump, les migrations manquantes se rejouent).
+6. **Messages chiffrés** : `php bin/message-keys.php check`.
+   - Dump **d'après** le chiffrement : « Clés vérifiées », rien d'autre à faire.
+   - Dump **d'avant** : le mode strict refuse le clair et la messagerie renverrait une erreur. Enchaîne : `php bin/message-keys.php transition` (rouvre la transition) → `php bin/encrypt-messages.php --dry-run` (compte) → `php bin/encrypt-messages.php` → `php bin/message-keys.php check` → `php bin/message-keys.php strict` (referme).
+   - Dump chiffré avec une **ancienne clé** (après une rotation) : elle doit être dans le fichier de clés (elles y restent) ; `check` le prouve.
+7. **Vérifier le site** : se connecter, ouvrir une conversation, envoyer un message ; `php bin/send-reminders.php` ne doit rien envoyer d'absurde (les relances reposent sur des dates : vérifier qu'aucune rafale ne part). OPcache : aucune purge nécessaire (le code n'a pas changé).
+8. **Si ça tourne mal** : restaurer le dump de l'étape 1 de la même façon (c'est le retour du retour).
+
+**B. Récupérer des lignes précises, sans toucher à la production** (base temporaire `sc2ron2cuba_restore`, même utilisateur, tous droits)
+1. S'assurer qu'elle est **vide** (elle contient de vraies données dès qu'on y importe : à vider après usage).
+2. `gunzip -c <dump> | mariadb --defaults-extra-file=<options> sc2ron2cuba_restore` (la base temporaire est en latin1 par défaut, sans importance : les tables du dump portent leur propre jeu de caractères utf8mb4).
+3. Vérifier : même nombre de tables que le dump (`CREATE TABLE` compté par `gunzip -c <dump> | grep -c '^CREATE TABLE'`), effectifs plausibles.
+4. Copier les lignes voulues d'une base à l'autre dans UNE connexion (l'utilisateur voit les deux) : `INSERT INTO sc2ron2cuba_rehearsalbox.<table> SELECT * FROM sc2ron2cuba_restore.<table> WHERE <condition>;` — respecter l'ordre des clés étrangères (parent avant enfant : groupe avant ses membres, conversation avant ses messages) et ne jamais écraser une ligne existante (`INSERT IGNORE` ou condition explicite). Les messages se recopient **tels quels (chiffrés)** : la même clé les lit.
+5. **Vider la base temporaire** (supprimer ses tables) : elle contient des données personnelles.
+
+**Ce qu'on ne fait jamais** : restaurer par-dessus la production sans le dump de l'étape A1 ; utiliser une clé de chiffrement autre que celle des messages pour un dump (elle n'y est pas) ; supprimer une ancienne clé du fichier tant qu'un dump qui l'utilise est conservé ; lancer `bin/encrypt-messages.php` avant d'avoir sous la main la sauvegarde de la clé.
+
+**Cas de la copie sur le poste** (`bin/fetch-backup.sh`) : un dump y est lisible sans la clé, **sauf les messages** (chiffrés) ; pour les relire, il faut la clé de KeePass ET le dump.
 
 ## Retour arrière
 
