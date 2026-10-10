@@ -79,7 +79,7 @@ La CI mesure la couverture à chaque run (extension **PCOV**, légère) et affic
 ```bash
 # Installation (une fois) : paquet de la distribution, ex. Debian/Ubuntu → sudo apt install php8.4-pcov  (ou : pecl install pcov)
 php -d pcov.enabled=1 ./vendor/bin/phpunit --coverage-clover=build/coverage/clover.xml   # conteneur de test démarré, comme pour tout PHPUnit
-php bin/coverage-summary.php                                                              # Markdown : le moins couvert d'abord (build/ est ignoré par git)
+php bin/coverage-summary.php [--min=90]                                                  # Markdown : le moins couvert d'abord (build/ est ignoré par git) ; --min : code 1 sous le seuil (la CI impose 90)
 ```
 
 Couverture JS : `node --test --experimental-test-coverage` (hors périmètre pour l'instant).
