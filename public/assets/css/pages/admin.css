@@ -75,19 +75,138 @@
   gap: var(--rb-space-3);
 }
 
+/* Carte d'un groupe (#267) : trois sections — en-tête (identité + actions alignées à droite), formulaire de modification (affiché
+   au clic sur le crayon), puis ajout de membre — séparées par des espacements réguliers et un filet. */
+.rb-group-card {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-group-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--rb-space-3);
+}
+
+.rb-group-card-identity {
+  min-width: 0;
+}
+
+.rb-group-card-identity h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .rb-group-genre {
   color: var(--rb-text-2);
   font-size: 0.875rem;
-  margin: 0 0 var(--rb-space-3);
+  margin: var(--rb-space-1) 0 0;
+}
+
+.rb-group-actions {
+  display: flex;
+  gap: var(--rb-space-2);
+  flex-shrink: 0;
+}
+
+.rb-edit-group-form {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+/* L'attribut hidden doit gagner contre display: grid (même leçon que .rb-badge[hidden]). */
+.rb-edit-group-form[hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .rb-edit-group-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rb-group-field-color,
+  .rb-group-field-contact,
+  .rb-group-form-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+.rb-group-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rb-group-form-actions .rb-btn-primary {
+  width: auto;
+}
+
+.rb-group-members {
+  border-top: 1px solid var(--rb-border);
+  padding-top: var(--rb-space-3);
 }
 
 .rb-add-member-form {
+  display: grid;
+  gap: var(--rb-space-1);
+}
+
+.rb-add-member-form label {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-add-member-row {
   display: flex;
   gap: var(--rb-space-2);
 }
 
-.rb-add-member-form .rb-input {
+.rb-add-member-row .rb-input {
   flex: 1;
+}
+
+/* <rb-color-picker> (#120) : palette de pastilles aux couleurs du thème, au-dessus du champ #rrggbb. Zone tactile de 44 px, la
+   pastille elle-même (28 px) est dessinée par ::before avec la couleur de --swatch. */
+rb-color-picker {
+  display: block;
+}
+
+.rb-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-1);
+  margin-bottom: var(--rb-space-2);
+}
+
+.rb-color-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: var(--rb-radius-md);
+  background: transparent;
+  cursor: pointer;
+}
+
+.rb-color-swatch::before {
+  content: "";
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.rb-color-swatch[aria-checked="true"]::before {
+  box-shadow: 0 0 0 2px var(--rb-bg), 0 0 0 4px var(--rb-text);
+}
+
+.rb-color-swatch:focus-visible {
+  outline: 2px solid var(--rb-accent);
+  outline-offset: 2px;
 }
 
 /* Onglets Groupes | Utilisateurs (#155) — même apparence que les onglets du tableau de bord */
