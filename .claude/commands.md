@@ -60,6 +60,18 @@ composer test:quick   # boucle de travail (#301) : sans les tests qui touchent l
 npm test                         # tests JS (node --test sur assets/js/*)
 ```
 
+### Couverture de tests (#129, PCOV)
+
+La CI mesure la couverture à chaque run (extension **PCOV**, légère) et affiche le résumé par dossier et par couche dans l'onglet « Summary » du run. **Aucun seuil bloquant** : on mesure d'abord. En local, PCOV est facultatif (non installé par défaut : le run est plus lent avec) :
+
+```bash
+# Installation (une fois) : paquet de la distribution, ex. Debian/Ubuntu → sudo apt install php8.4-pcov  (ou : pecl install pcov)
+php -d pcov.enabled=1 ./vendor/bin/phpunit --coverage-clover=build/coverage/clover.xml   # conteneur de test démarré, comme pour tout PHPUnit
+php bin/coverage-summary.php                                                              # Markdown : le moins couvert d'abord (build/ est ignoré par git)
+```
+
+Couverture JS : `node --test --experimental-test-coverage` (hors périmètre pour l'instant).
+
 ## Contrôles de qualité (aussi exécutés par la CI)
 
 ```bash

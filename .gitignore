@@ -3,6 +3,7 @@
 /config/config.local.php
 /.secrets
 /.phpunit.cache/
+/build/
 /.phpunit.result.cache
 *.log
 .DS_Store
