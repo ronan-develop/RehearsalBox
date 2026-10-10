@@ -255,4 +255,23 @@ final class MessageEditServiceTest extends RepositoryTestCase
         self::assertTrue($this->guests->isGuest($this->conversationId, $this->id('denis')));
         self::assertSame($sentBefore, count($this->mailer->sent), 'une modification n\'envoie jamais d\'e-mail');
     }
+
+    #[Test]
+    public function testEditingADirectMessageWithAMentionInvitesNobodyAndSendsNoMentionEmail(): void
+    {
+        $users = new MysqlUserRepository($this->pdo);
+        $transactions = new TransactionRunner($this->pdo);
+        $direct = new \App\Messaging\Service\Direct\DirectConversationService($this->conversations, $this->messages, $this->presence, $users, $transactions, $this->clock);
+        $conversation = $direct->start($this->id('alice'), $this->id('bob'), 'Salut');
+        $messageId = $this->messages->messagesOf($conversation->id())[0]->id();
+        $sentBefore = count($this->mailer->sent);
+        $this->clock->modify('+5 minutes');
+
+        $edited = $this->editor->edit($this->id('alice'), $conversation->id(), $messageId, 'Salut @Carole', [$this->id('carole')]);
+
+        self::assertSame('Salut @Carole', $edited->body());
+        self::assertSame(2, $this->conversations->participantCount($conversation->id()), 'personne n\'est invité');
+        self::assertSame([], $this->mentions->forMessages([$messageId])[$messageId] ?? [], 'aucune mention enregistrée');
+        self::assertCount($sentBefore, $this->mailer->sent, 'aucun e-mail de mention');
+    }
 }
