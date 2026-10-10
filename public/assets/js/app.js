@@ -1,6 +1,7 @@
 import './core/rb-async-form.js';
 import { ensureToastRegion } from './core/rb-toast-region.js';
 import './ui/rb-tabs.js';
+import './ui/rb-color-picker.js';
 import { initLogoMigration } from './ui/logo-migration.js';
 import { initAuth } from './account/auth.js';
 import { initAvailability } from './planning/availability.js';
