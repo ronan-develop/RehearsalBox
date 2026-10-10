@@ -6,14 +6,14 @@ namespace App\Account\Controller\Api;
 
 use App\Http\JsonResponse;
 use App\Http\Request;
-use App\Account\Service\IpThrottle;
+use App\Account\Service\Throttle\SubjectThrottle;
 use App\Account\Service\PasswordResetService;
 
 final class PasswordResetApiController
 {
     public function __construct(
         private readonly PasswordResetService $passwordReset,
-        private readonly IpThrottle $throttle,
+        private readonly SubjectThrottle $throttle,
     ) {
     }
 

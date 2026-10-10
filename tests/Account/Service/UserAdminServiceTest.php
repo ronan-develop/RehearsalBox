@@ -36,6 +36,7 @@ final class UserAdminServiceTest extends RepositoryTestCase
             $this->users,
             $this->groups,
             new UserProvisioningService($this->users, new FastPasswordHasher(), new PasswordPolicy()),
+            \App\Tests\Support\TestLoginThrottle::make($this->pdo),
         );
     }
 

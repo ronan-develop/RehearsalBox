@@ -10,6 +10,7 @@ use App\Group\Entity\Group;
 use App\Account\Entity\User;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Account\Repository\UserRepositoryInterface;
+use App\Account\Service\Throttle\LoginThrottle;
 use App\Account\Service\UserAdminServiceInterface;
 use App\Account\Exception\UserAdminRuleException;
 use App\Account\Exception\UserNotFoundException;
@@ -21,6 +22,7 @@ final class UserAdminService implements UserAdminServiceInterface
         private readonly UserRepositoryInterface $userRepository,
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly UserProvisioningService $provisioning,
+        private readonly LoginThrottle $loginThrottle,
     ) {
     }
 
@@ -73,6 +75,8 @@ final class UserAdminService implements UserAdminServiceInterface
         $user = $this->userRepository->findById($userId) ?? throw new UserNotFoundException("Utilisateur {$userId} introuvable.");
 
         $this->userRepository->resetFailedLogins($user->id());
+        // Le blocage annoncé à l'écran de connexion (#236) est tenu par identifiant : sans cela, « Débloquer » ne débloquerait rien.
+        $this->loginThrottle->forgetIdentifier($user->email());
 
         return $this->userRepository->findById($user->id()) ?? $user;
     }
