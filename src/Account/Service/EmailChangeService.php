@@ -52,9 +52,7 @@ final class EmailChangeService
 
         (new CurrentPasswordVerifier($this->userRepository, $this->passwordHasher))->assertMatches($user, $currentPassword, $now);
 
-        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL) || strlen($newEmail) > self::MAX_EMAIL_LENGTH) {
-            throw new UserValidationException(['email' => 'Adresse email invalide.']);
-        }
+        $this->assertValidAddress($newEmail);
         if (strcasecmp($newEmail, $user->email()) === 0) {
             throw new UserValidationException(['email' => "C'est déjà votre adresse e-mail."]);
         }
@@ -125,6 +123,50 @@ final class EmailChangeService
         $this->sendChangedAlert($oldEmail, $updated->email());
 
         return $updated;
+    }
+
+    /**
+     * Changement d'adresse décidé par un ADMINISTRATEUR (#272) : pas de lien de confirmation (l'administrateur répond du changement),
+     * mais les mêmes effets qu'un changement confirmé : toutes les sessions du compte sont fermées et les liens déjà envoyés à
+     * l'ancienne boîte ne valent plus. L'alerte à l'ancienne adresse part à part (`alertPreviousAddress`), APRÈS le commit.
+     * N'ouvre PAS de transaction : l'appelant l'a ouverte (PDO n'imbrique pas) pour que le nom et l'adresse changent ensemble.
+     *
+     * @throws UserValidationException adresse invalide ou déjà utilisée par un autre compte
+     */
+    public function applyNewAddress(User $user, string $newEmail, \DateTimeImmutable $now): User
+    {
+        $this->assertValidAddress($newEmail);
+
+        $holder = $this->userRepository->findByEmail($newEmail);
+        if ($holder !== null && $holder->id() !== $user->id()) {
+            throw new UserValidationException(['email' => 'Adresse déjà utilisée par un autre compte.']);
+        }
+        try {
+            $saved = $this->userRepository->save($user->withEmail($newEmail));
+        } catch (\PDOException $e) {
+            if (($e->errorInfo[1] ?? null) !== 1062) {
+                throw $e;
+            }
+            // Course sur l'unicité de l'adresse (clé unique en base) : même refus.
+            throw new UserValidationException(['email' => 'Adresse déjà utilisée par un autre compte.']);
+        }
+        $this->revokeOutstandingTokens($user->id(), $now);
+
+        return $saved;
+    }
+
+    /** L'ANCIENNE adresse est prévenue (la nouvelle y est masquée) ; un échec d'envoi n'annule rien. À appeler après le commit. */
+    public function alertPreviousAddress(string $oldEmail, string $newEmail): void
+    {
+        $this->sendChangedAlert($oldEmail, $newEmail);
+    }
+
+    /** @throws UserValidationException */
+    private function assertValidAddress(string $email): void
+    {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > self::MAX_EMAIL_LENGTH) {
+            throw new UserValidationException(['email' => 'Adresse email invalide.']);
+        }
     }
 
     /**
