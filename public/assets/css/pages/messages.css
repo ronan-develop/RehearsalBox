@@ -32,7 +32,7 @@
     display: flex;
   }
 
-  /* .rb-chat devant : plus spécifique que .rb-chat-icon-link (déclaré plus bas, display: inline-flex). */
+  /* .rb-chat devant : plus spécifique que .rb-back-link (base.css, display: inline-flex). */
   .rb-chat .rb-chat-back {
     display: none;
   }
@@ -66,40 +66,6 @@ rb-composer {
 .rb-chat-sidebar-head h1 {
   margin: 0;
   font-size: 1.25rem;
-}
-
-.rb-chat-icon-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  color: var(--rb-text-2);
-  background: transparent;
-  border: none;
-  border-radius: var(--rb-radius-md);
-  font-size: 1.25rem;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.rb-chat-icon-link:hover {
-  color: var(--rb-accent);
-}
-
-/* Retour (#256) : un bouton léger, texte plein sur fond relevé — sans bordure ni ombre, moins lourd que .rb-btn. */
-.rb-chat-icon-link--back {
-  color: var(--rb-text);
-  background: var(--rb-surface);
-  border-radius: var(--rb-radius-md);
-}
-
-.rb-chat-icon-link--back:hover {
-  color: var(--rb-accent);
-}
-
-.rb-chat-icon-link[hidden] {
-  display: none;
 }
 
 .rb-chat-archives {

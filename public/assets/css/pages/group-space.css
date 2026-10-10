@@ -5,11 +5,8 @@
   padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
 }
 
-.rb-group-space-back {
-  display: inline-block;
-  width: auto;
+.rb-group-space-header .rb-back-link {
   margin-bottom: var(--rb-space-3);
-  text-decoration: none;
 }
 
 .rb-group-space-header {

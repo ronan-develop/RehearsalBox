@@ -20,7 +20,7 @@
 <body class="rb-chat-page">
     <main class="rb-trash">
         <header class="rb-chat-sidebar-head rb-trash-head">
-            <a href="/messages" class="rb-chat-icon-link rb-chat-icon-link--back" aria-label="Retour aux conversations"><?php require __DIR__ . '/_icon-back.php'; ?></a>
+            <a href="/messages" class="rb-back-link" aria-label="Retour aux conversations"><?php require __DIR__ . '/../partials/icon-back.php'; ?></a>
             <h1>Corbeille</h1>
         </header>
         <p class="rb-trash-help">Les conversations supprimées restent ici 30 jours. Passé ce délai, elles disparaissent définitivement.</p>

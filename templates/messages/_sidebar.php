@@ -11,7 +11,7 @@ $items = $sidebar['items'];
 <rb-sidebar data-box="<?= $archived ? 'archived' : 'active' ?>">
     <aside class="rb-chat-sidebar" aria-label="Conversations">
         <header class="rb-chat-sidebar-head">
-            <a href="<?= $archived ? '/messages' : '/' ?>" class="rb-chat-icon-link rb-chat-icon-link--back" data-chat-home aria-label="<?= $archived ? 'Retour aux conversations' : 'Retour aux disponibilités' ?>"><?php require __DIR__ . '/_icon-back.php'; ?></a>
+            <a href="<?= $archived ? '/messages' : '/' ?>" class="rb-back-link" data-chat-home aria-label="<?= $archived ? 'Retour aux conversations' : 'Retour aux disponibilités' ?>"><?php require __DIR__ . '/../partials/icon-back.php'; ?></a>
             <h1 data-chat-list-title><?= $archived ? 'Archivées' : 'Messages' ?></h1>
         </header>
         <?php foreach ($sidebar['alerts'] as $alert): ?>
