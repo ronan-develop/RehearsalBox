@@ -123,6 +123,36 @@ final class MessageKeyFileTest extends TestCase
     }
 
     #[Test]
+    public function testReopeningTheTransitionLetsPlaintextBeReadAgainAndKeepsEveryKey(): void
+    {
+        $file = new MessageKeyFile($this->path);
+        $file->init();
+        $file->rotate();
+        $stored = $file->cipher()->encrypt('Message');
+        $file->endTransition();
+        try {
+            $file->cipher()->decrypt('Texte en clair');
+            self::fail('Refus attendu en mode strict');
+        } catch (MessageCipherException) {
+            self::addToAssertionCount(1);
+        }
+
+        $file->beginTransition();
+
+        self::assertSame(0o600, fileperms($this->path) & 0o777);
+        self::assertSame(['current' => 'k2', 'keys' => ['k1', 'k2'], 'allowPlaintext' => true], $file->status());
+        self::assertSame('Texte en clair', $file->cipher()->decrypt('Texte en clair'), 'un dump d\'avant le chiffrement redevient lisible');
+        self::assertSame('Message', $file->cipher()->decrypt($stored), 'le chiffré reste lisible');
+    }
+
+    #[Test]
+    public function testReopeningTheTransitionNeedsAValidKeyFile(): void
+    {
+        $this->expectException(MessageCipherException::class);
+        (new MessageKeyFile($this->path))->beginTransition();
+    }
+
+    #[Test]
     public function testRotatingAddsANewCurrentKeyAndOldMessagesStayReadable(): void
     {
         $file = new MessageKeyFile($this->path);

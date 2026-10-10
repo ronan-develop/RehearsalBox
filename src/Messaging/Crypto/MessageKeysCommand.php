@@ -6,7 +6,7 @@ namespace App\Messaging\Crypto;
 
 /**
  * Commandes du propriétaire pour le fichier de clés (#171), derrière `bin/message-keys.php` : init, status, check (lancé par le
- * déploiement avant la bascule), export, import, rotate, strict. Ne renvoie jamais une clé hors `export` (la sauvegarde, À CONSERVER hors du serveur) : les messages d'aide, les erreurs
+ * déploiement avant la bascule), export, import, rotate, transition (après la restauration d'un dump d'avant le chiffrement), strict. Ne renvoie jamais une clé hors `export` (la sauvegarde, À CONSERVER hors du serveur) : les messages d'aide, les erreurs
  * et `status` ne contiennent que des noms.
  */
 final class MessageKeysCommand
@@ -34,8 +34,9 @@ final class MessageKeysCommand
                 'import' => $this->import($input),
                 'rotate' => $this->rotate(),
                 'strict' => $this->strict(),
+                'transition' => $this->transition(),
                 'check' => $this->check(),
-                default => [2, "Commande inconnue. Usage : php bin/message-keys.php init|status|check|export|import|rotate|strict\n"],
+                default => [2, "Commande inconnue. Usage : php bin/message-keys.php init|status|check|export|import|rotate|transition|strict\n"],
             };
         } catch (\LogicException|\InvalidArgumentException|MessageCipherException $e) {
             return [1, $e->getMessage() . "\n"];
@@ -79,6 +80,15 @@ final class MessageKeysCommand
 
         return [0, "Nouvelle clé courante : {$id}. Les anciennes restent pour lire.\n"
             . "Réécrivez maintenant les messages avec la nouvelle clé : php bin/encrypt-messages.php (puis sauvegardez à nouveau : export).\n"];
+    }
+
+    /** @return array{int, string} */
+    private function transition(): array
+    {
+        $this->file->beginTransition();
+
+        return [0, "Transition rouverte : le texte en clair d'avant le chiffrement est de nouveau lisible.\n"
+            . "Étapes suivantes : php bin/encrypt-messages.php (chiffre ce qui est en clair), puis php bin/message-keys.php strict (referme la transition).\n"];
     }
 
     /** @return array{int, string} */

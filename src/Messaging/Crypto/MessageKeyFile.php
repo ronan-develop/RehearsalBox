@@ -58,6 +58,18 @@ final class MessageKeyFile
         $this->write($data);
     }
 
+    /**
+     * Rouvre la transition : le texte en clair d'avant le chiffrement redevient lisible. À utiliser après la restauration d'un dump
+     * d'AVANT le chiffrement (ses messages sont en clair et le mode strict les refuserait) ; on rechiffre ensuite, puis on referme.
+     */
+    public function beginTransition(): void
+    {
+        $this->cipher(); // valide le fichier avant de le réécrire
+        $data = $this->read();
+        $data['allow_plaintext'] = true;
+        $this->write($data);
+    }
+
     /** Ajoute une clé et la rend courante ; les anciennes restent pour lire. @return string l'identifiant de la nouvelle clé */
     public function rotate(): string
     {
