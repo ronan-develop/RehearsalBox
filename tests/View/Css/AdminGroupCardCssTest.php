@@ -116,7 +116,7 @@ final class AdminGroupCardCssTest extends TestCase
     public function testColorSwatchesWrapAndHaveTouchSizedTargets(): void
     {
         $css = $this->css();
-        $swatches = $this->block('.rb-color-swatches', $css);
+        $swatches = $this->block('.rb-color-hues', $css);
         $swatch = $this->block('.rb-color-swatch', $css);
 
         self::assertMatchesRegularExpression('/display:\s*flex/', $swatches);
