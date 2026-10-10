@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeQuery, applyMention, mentionedIds, pendingGuests } from './mentions.js';
+import { activeQuery, applyMention, mentionScope, mentionedIds, pendingGuests } from './mentions.js';
 
 test('activeQuery finds the mention being typed at the caret', () => {
   assert.deepEqual(activeQuery('Salut @de', 9), { start: 6, query: 'de' });
@@ -47,4 +47,18 @@ test('pendingGuests lists the names of mentioned people who are not in the conve
 
   assert.deepEqual(pendingGuests('@Denis @Bob', picks), ['Denis']);
   assert.deepEqual(pendingGuests('rien', picks), []);
+});
+
+test('mentionScope gives no list for a direct-message draft, whatever else is set', () => {
+  assert.equal(mentionScope({ activeId: null, draftTargetId: 7, draftDirect: true, senderId: 3 }), null);
+  assert.equal(mentionScope({ activeId: null, draftTargetId: null, draftDirect: true, senderId: 3 }), null);
+});
+
+test('mentionScope gives no list when nothing is open', () => {
+  assert.equal(mentionScope({ activeId: null, draftTargetId: null, draftDirect: false, senderId: 3 }), null);
+});
+
+test('mentionScope uses the open conversation, or the two groups of a group draft', () => {
+  assert.deepEqual(mentionScope({ activeId: 12, draftTargetId: null, draftDirect: false, senderId: 3 }), { conversation: 12 });
+  assert.deepEqual(mentionScope({ activeId: null, draftTargetId: 7, draftDirect: false, senderId: 3 }), { groupId: 3, targetGroupId: 7 });
 });

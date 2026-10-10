@@ -6,6 +6,21 @@
 const MAX_QUERY = 30;
 const WORD_CHAR = /[\p{L}\p{N}_]/u;
 
+/**
+ * Contexte de la liste « @ » (#372) : la conversation ouverte, ou les deux groupes d'un brouillon. Aucune liste (null) pour un
+ * brouillon de message direct (deux personnes, personne à inviter), ni quand rien n'est ouvert.
+ *
+ * @param {{ activeId: number | null, draftTargetId: number | null, draftDirect: boolean, senderId: number | null }} state
+ * @returns {{ conversation: number } | { groupId: number | null, targetGroupId: number } | null}
+ */
+export function mentionScope({ activeId, draftTargetId, draftDirect, senderId }) {
+  if ((activeId === null && draftTargetId === null) || draftDirect) {
+    return null;
+  }
+
+  return activeId !== null ? { conversation: activeId } : { groupId: senderId, targetGroupId: draftTargetId };
+}
+
 /** Mention en cours de saisie à la position du curseur : { start, query }, sinon null. */
 export function activeQuery(text, caret) {
   const before = text.slice(0, caret);
