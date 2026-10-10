@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Account\Controller\Api\AccountApiController;
 use App\Account\Controller\Api\AuthApiController;
 use App\Planning\Controller\Api\AvailabilityApiController;
+use App\Backup\Controller\RestoreController;
 use App\Metrics\Controller\MetricsPageController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
@@ -41,6 +42,7 @@ return [
         ['GET', '/admin/groups', [AdminGroupPageController::class, 'index']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
+        ['GET', '/admin/restore', [RestoreController::class, 'page']],
         ['GET', '/admin/metrics', [MetricsPageController::class, 'index']],
         ['GET', '/admin/metrics/security', [MetricsPageController::class, 'security']],
         ['GET', '/admin/metrics/load', [MetricsPageController::class, 'load']],
@@ -92,6 +94,7 @@ return [
         ['POST',   '/api/admin/users', [UserAdminApiController::class, 'store']],
         ['PATCH',  '/api/admin/users/{id}', [UserAdminApiController::class, 'update']],
         ['POST',   '/api/admin/users/{id}/unlock', [UserAdminApiController::class, 'unlock']],
+        ['POST',   '/api/admin/restore', [RestoreController::class, 'start']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
         ['GET',    '/api/conversations', [ConversationFeedApiController::class, 'index']],
