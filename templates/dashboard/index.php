@@ -35,11 +35,12 @@
         <?php endif; ?>
 
         <?php
-        $renderPlanningCard = static function ($requestableSlot) use ($currentUserGroupRoles) {
+        $renderPlanningCard = static function ($requestableSlot, bool $isToday = false) use ($currentUserGroupRoles) {
             $slot = $requestableSlot->slot();
             $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
             ?>
-            <rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="<?= e((string) $requestableSlot->groupId()) ?>" group-name="<?= e($requestableSlot->groupName()) ?>" group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $groupRole !== null ? ' member' : '' ?>>
+            <rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="<?= e((string) $requestableSlot->groupId()) ?>" group-name="<?= e($requestableSlot->groupName()) ?>" group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $isToday ? ' data-today' : '' ?><?= $groupRole !== null ? ' member' : '' ?>>
+                <?php if ($isToday): ?><span class="rb-badge rb-planning-card-today">Aujourd’hui</span><?php endif; ?>
                 <h4 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h4>
                 <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
                 <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
@@ -69,7 +70,7 @@
                                     <?php if ($day->isToday()): ?><span class="rb-planning-day-today">Aujourd’hui</span><?php endif; ?>
                                 </h3>
                                 <?php foreach ($day->slots() as $requestableSlot): ?>
-                                    <?php $renderPlanningCard($requestableSlot); ?>
+                                    <?php $renderPlanningCard($requestableSlot, $day->isToday()); ?>
                                 <?php endforeach; ?>
                             <?php endforeach; ?>
                         </div>

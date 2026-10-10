@@ -310,6 +310,20 @@ body {
   padding-right: var(--rb-space-4);
 }
 
+/* Jour courant (#271) : la pastille « Aujourd'hui » est un .rb-badge (fond, bordure, couleur et taille viennent de .rb-badge, plus bas
+   dans ce fichier), posée de travers et fondue dans le papier de la carte (multiply). Dans le flux, au-dessus du nom du groupe : elle
+   ne peut jamais le recouvrir, quelle que soit la longueur du nom, et les autres cartes de la piste s'étirent à la même hauteur.
+   Rendu par le serveur, sans JS ; ni filtre ni découpe ni ombre sur la carte, pour ne pas toucher au bord papier déchiré (#268).
+   Sur mobile, le titre du jour le dit. */
+.rb-planning-card-today {
+  width: fit-content;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+
 @media (min-width: 768px) {
   .rb-planning-card {
     width: 204px;
@@ -697,6 +711,10 @@ rb-tabs {
     color: #fff;
     font-size: 0.6875rem;
     font-weight: 700;
+  }
+
+  .rb-planning-card-today {
+    display: none;
   }
 
   .rb-planning-day--hidden {
