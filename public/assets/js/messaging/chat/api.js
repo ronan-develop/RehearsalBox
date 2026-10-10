@@ -52,6 +52,14 @@ export function startConversation({ groupId, targetGroupId, message, mentions = 
   });
 }
 
+/** Message direct (#269) : crée la conversation à deux personnes à l'envoi du premier message. Le serveur revérifie tout. */
+export function startDirectConversation({ targetUserId, message }) {
+  return apiFetch('/api/conversations/direct', {
+    method: 'POST',
+    body: JSON.stringify({ targetUserId, message }),
+  });
+}
+
 /**
  * Liste proposée après « @ » : { members: [{ id, name, groups, participant }] }. Le contexte est une conversation
  * (`conversation`) ou, sur la page de démarrage, le groupe émetteur et le groupe visé.

@@ -11,6 +11,7 @@ use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
 use App\Account\Controller\AdminUserPageController;
 use App\Messaging\Controller\Api\ConversationApiController;
+use App\Messaging\Controller\Api\DirectConversationApiController;
 use App\Messaging\Controller\Api\ConversationFeedApiController;
 use App\Messaging\Controller\Api\ConversationMuteApiController;
 use App\Planning\Controller\Api\FreeSlotBookingApiController;
@@ -49,6 +50,8 @@ return [
         ['GET', '/messages/archives', [MessagesPageController::class, 'archives']],
         ['GET', '/messages/trash', [MessagesPageController::class, 'trash']],
         ['GET', '/messages/new/{groupId}', [MessagesPageController::class, 'compose']],
+        ['GET', '/messages/direct', [MessagesPageController::class, 'direct']],
+        ['GET', '/messages/direct/{userId}', [MessagesPageController::class, 'directCompose']],
         ['GET', '/messages/{id}', [MessagesPageController::class, 'show']],
     ],
     'api' => [
@@ -93,6 +96,7 @@ return [
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],
         ['GET',    '/api/conversations', [ConversationFeedApiController::class, 'index']],
         ['POST',   '/api/conversations', [ConversationApiController::class, 'start']],
+        ['POST',   '/api/conversations/direct', [DirectConversationApiController::class, 'start']],
         ['GET',    '/api/members', [MemberApiController::class, 'search']],
         ['GET',    '/api/conversation-list', [ConversationFeedApiController::class, 'listFragment']],
         ['GET',    '/api/conversations/{id}/updates', [ConversationFeedApiController::class, 'updates']],

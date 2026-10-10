@@ -10,8 +10,9 @@ import './rb-sidebar.js';
 import './rb-thread-header.js';
 import './rb-message-list.js';
 import './rb-composer.js';
+import './rb-member-filter.js';
 import {
-  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, searchMembers, editMessage, setMute,
+  fetchUpdates, sendMessage, renameConversation, sendTyping, startConversation, startDirectConversation, searchMembers, editMessage, setMute,
 } from '../api.js';
 import { isAbort, sleep, whenVisible } from '../async.js';
 import { EVT } from '../events.js';
@@ -23,6 +24,7 @@ export class RbChat extends HTMLElement {
   #lifetime = new AbortController();
   #activeId = null;
   #draftTargetId = null;
+  #draftDirect = false; // brouillon d'un message direct (#269) : une personne, pas un groupe
   #lastId = 0;
   #editedAt = 0; // curseur des corrections déjà reçues (secondes Unix)
   #idle = 0;
@@ -37,6 +39,7 @@ export class RbChat extends HTMLElement {
 
     this.#activeId = this.dataset.activeId || null;
     this.#draftTargetId = this.dataset.draftTargetId || null;
+    this.#draftDirect = this.dataset.draftDirect !== undefined;
     this.#lastId = Number(this.dataset.lastId || 0);
     this.#editedAt = Number(this.dataset.editedAt || 0);
 
@@ -50,7 +53,7 @@ export class RbChat extends HTMLElement {
     // Brouillon conservé par utilisateur et par conversation (ou par page de démarrage), jamais envoyé avant l'envoi.
     this.composer.configureDrafts(
       createDraftStore(browserStorage(), { userId: this.dataset.userId ?? '0' }),
-      this.#activeId !== null ? this.#activeId : `new-${this.#draftTargetId ?? 'inconnu'}`,
+      this.#activeId !== null ? this.#activeId : `new-${this.#draftDirect ? 'direct-' : ''}${this.#draftTargetId ?? 'inconnu'}`,
     );
     this.addEventListener(EVT.TYPING, () => {
       if (this.#activeId !== null) {
@@ -158,9 +161,9 @@ export class RbChat extends HTMLElement {
     }
   }
 
-  /** Liste après « @ » : le contexte est la conversation ouverte, ou les deux groupes d'un brouillon. */
+  /** Liste après « @ » : le contexte est la conversation ouverte, ou les deux groupes d'un brouillon. Aucune pour un brouillon direct. */
   async #suggestMembers(query) {
-    if (this.#activeId === null && this.#draftTargetId === null) {
+    if ((this.#activeId === null && this.#draftTargetId === null) || this.#draftDirect) {
       return [];
     }
     const context = this.#activeId !== null
@@ -193,12 +196,14 @@ export class RbChat extends HTMLElement {
   /** Premier message d'un brouillon : la conversation est créée, puis navigation classique vers sa page. */
   async #submitDraft(text, mentions = []) {
     try {
-      const { id } = await startConversation({
-        groupId: this.header.senderId,
-        targetGroupId: this.#draftTargetId,
-        message: text,
-        mentions,
-      });
+      const { id } = this.#draftDirect
+        ? await startDirectConversation({ targetUserId: this.#draftTargetId, message: text })
+        : await startConversation({
+          groupId: this.header.senderId,
+          targetGroupId: this.#draftTargetId,
+          message: text,
+          mentions,
+        });
       window.location.assign(`/messages/${id}`);
     } catch (error) {
       this.composer.restore(text);

@@ -13,6 +13,7 @@ $items = $sidebar['items'];
         <header class="rb-chat-sidebar-head">
             <a href="<?= $archived ? '/messages' : '/' ?>" class="rb-back-link" data-chat-home aria-label="<?= $archived ? 'Retour aux conversations' : 'Retour aux disponibilités' ?>"><?php require __DIR__ . '/../partials/icon-back.php'; ?></a>
             <h1 data-chat-list-title><?= $archived ? 'Archivées' : 'Messages' ?></h1>
+            <a href="/messages/direct" class="rb-btn rb-chat-new-dm" data-chat-new-dm>Nouveau message</a>
         </header>
         <?php foreach ($sidebar['alerts'] as $alert): ?>
             <div class="rb-chat-alert" role="status" data-trash-alert>
@@ -29,6 +30,6 @@ $items = $sidebar['items'];
             <a href="/messages/trash" class="rb-chat-archives">Corbeille <span class="rb-badge" aria-label="<?= e((string) $sidebar['trashCount']) ?> conversation(s)"><?= e((string) $sidebar['trashCount']) ?></span></a>
         <?php endif; ?>
         <ul class="rb-chat-list" data-chat-list><?php require __DIR__ . '/_conversation-items.php'; ?></ul>
-        <p class="rb-chat-empty" data-chat-empty<?= $items === [] ? '' : ' hidden' ?>><?= $archived ? 'Aucune conversation archivée.' : 'Aucune conversation. Écrivez à un groupe depuis le planning ou depuis sa page.' ?></p>
+        <p class="rb-chat-empty" data-chat-empty<?= $items === [] ? '' : ' hidden' ?>><?= $archived ? 'Aucune conversation archivée.' : 'Aucune conversation. Écrivez à un groupe depuis le planning, ou à un membre avec « Nouveau message ».' ?></p>
     </aside>
 </rb-sidebar>

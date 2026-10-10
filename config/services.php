@@ -33,6 +33,7 @@ use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
 use App\Account\Controller\AdminUserPageController;
 use App\Messaging\Controller\Api\ConversationApiController;
+use App\Messaging\Controller\Api\DirectConversationApiController;
 use App\Messaging\Controller\Api\ConversationFeedApiController;
 use App\Messaging\Controller\Api\ConversationMuteApiController;
 use App\Planning\Controller\Api\FreeSlotBookingApiController;
@@ -110,6 +111,7 @@ use App\Planning\Repository\FreeSlotBookingRepositoryInterface;
 use App\Messaging\Repository\Mention\MemberDirectoryInterface;
 use App\Messaging\Repository\Notice\MentionNoticeRepositoryInterface;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
+use App\Messaging\Notification\DirectMessageNotifier;
 use App\Messaging\Notification\MentionNotifier;
 use App\Messaging\Service\MessageEditService;
 use App\Messaging\Presenter\EditedMessageFragments;
@@ -139,6 +141,8 @@ use App\Messaging\Service\Mention\MemberSearchService;
 use App\Messaging\Controller\Api\MemberApiController;
 use App\Messaging\Notification\ConversationReminderService;
 use App\Messaging\Service\ConversationService;
+use App\Messaging\Service\Direct\DirectConversationService;
+use App\Messaging\Service\Direct\DirectMemberListService;
 use App\Messaging\Service\ConversationReader;
 use App\Messaging\Service\ConversationThreadBuilder;
 use App\Messaging\Repository\ConversationMessageRepositoryInterface;
@@ -610,6 +614,24 @@ return static function (array $config): Container {
         $c->get(ClockInterface::class),
     ));
 
+    $container->set(DirectMessageNotifier::class, fn ($c) => new DirectMessageNotifier(
+        $c->get(Mailbox::class),
+        $c->get(MentionNoticeRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(ConversationMuteRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(DirectConversationService::class, fn ($c) => new DirectConversationService(
+        $c->get(ConversationRepositoryInterface::class),
+        $c->get(ConversationMessageRepositoryInterface::class),
+        $c->get(ConversationPresenceRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(ClockInterface::class),
+        notifier: $c->get(DirectMessageNotifier::class),
+    ));
+
     $container->set(ConversationService::class, fn ($c) => new ConversationService(
         $c->get(ConversationRepositoryInterface::class),
         $c->get(ConversationMessageRepositoryInterface::class),
@@ -620,6 +642,7 @@ return static function (array $config): Container {
         notifier: $c->get(ConversationNotifier::class),
         mentions: $c->get(ConversationMentionService::class),
         access: $c->get(ConversationAccess::class),
+        directNotifier: $c->get(DirectMessageNotifier::class),
     ));
 
     $container->set(ConversationThreadBuilder::class, fn ($c) => new ConversationThreadBuilder(
@@ -627,6 +650,7 @@ return static function (array $config): Container {
         $c->get(ConversationMessageRepositoryInterface::class),
         $c->get(ConversationPresenceRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
         $c->get(ClockInterface::class),
         $c->get(ConversationMentionService::class),
     ));
@@ -685,6 +709,17 @@ return static function (array $config): Container {
         $c->get(ConversationReader::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(MessagesPageView::class),
+        $c->get(DirectMemberListService::class),
+    ));
+
+    $container->set(DirectMemberListService::class, fn ($c) => new DirectMemberListService(
+        $c->get(MemberDirectoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+    ));
+
+    $container->set(DirectConversationApiController::class, fn ($c) => new DirectConversationApiController(
+        $c->get(DirectConversationService::class),
+        $c->get(AuthGuard::class),
     ));
 
     $container->set(ConversationUpdates::class, fn ($c) => new ConversationUpdates(

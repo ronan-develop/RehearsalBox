@@ -13,12 +13,14 @@ use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\ConversationReader;
+use App\Messaging\Service\Direct\DirectMemberListService;
 use App\Support\StrictId;
 use App\View\TemplateRendererInterface;
 
 /**
  * Pages de la messagerie (#169, #183) : `/messages` (liste), `/messages/archives`, `/messages/{id}` (une conversation, une
- * route) et `/messages/new/{groupId}` (brouillon). Navigation classique : chaque URL est une page rendue par le serveur,
+ * route), `/messages/new/{groupId}` (brouillon) et les messages directs (#269) : `/messages/direct` (tous les membres) puis
+ * `/messages/direct/{userId}` (brouillon adressé à une personne). Navigation classique : chaque URL est une page rendue par le serveur,
  * le JS n'ajoute que le direct (nouveaux messages, envoi, titre).
  */
 final class MessagesPageController
@@ -30,6 +32,7 @@ final class MessagesPageController
         private readonly ConversationReader $conversationReader,
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly MessagesPageView $view,
+        private readonly DirectMemberListService $directMembers,
     ) {
     }
 
@@ -106,12 +109,47 @@ final class MessagesPageController
         ]);
     }
 
+    /** Nouveau message (#269) : tous les membres actifs, nom et groupes, jamais d'adresse ; le filtre par nom se fait dans le navigateur. */
+    public function direct(Request $request): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $members = array_map(
+            static fn ($member): array => ['id' => $member->id(), 'name' => $member->name(), 'groups' => implode(', ', $member->groupNames())],
+            $this->directMembers->members($user->id()),
+        );
+
+        return $this->render($this->view->sidebar($user->id(), null), null, null, $members);
+    }
+
+    /**
+     * Brouillon d'un message direct : un fil vide adressé à une personne, sans choix de groupe émetteur. Rien n'est créé ici : la
+     * conversation naît au premier message (POST /api/conversations/direct, qui revérifie tout). Soi-même, personne inconnue
+     * ou inactive, identifiant mal formé : même refus qu'ailleurs.
+     */
+    public function directCompose(Request $request, string $userId): Response
+    {
+        $user = $this->authGuard->requireLogin();
+
+        $targetId = StrictId::from($userId) ?? throw new AccessDeniedException('Accès refusé.');
+        $target = $this->directMembers->recipient($user->id(), $targetId);
+
+        return $this->render($this->view->sidebar($user->id(), null), null, [
+            'targetId' => $target->id(),
+            'targetName' => $target->displayName(),
+            'senders' => [],
+            'blocked' => false,
+            'direct' => true,
+        ]);
+    }
+
     /**
      * @param array{items: list<array<string, mixed>>, box: string, archivedUnread: int, alerts: list<array{id: int, text: string, url: ?string}>, trashCount: int} $sidebar
      * @param array<string, mixed>|null                                                                                                                                  $thread
-     * @param array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool}|null                                                  $draft
+     * @param array{targetId: int, targetName: string, senders: list<array{id: int, name: string}>, blocked: bool, direct?: bool}|null                                  $draft
+     * @param list<array{id: int, name: string, groups: string}>|null                                                                                                    $picker membres proposés par « Nouveau message »
      */
-    private function render(array $sidebar, ?array $thread = null, ?array $draft = null): Response
+    private function render(array $sidebar, ?array $thread = null, ?array $draft = null, ?array $picker = null): Response
     {
         $user = $this->authGuard->requireLogin();
 
@@ -123,6 +161,7 @@ final class MessagesPageController
                 'sidebar' => $sidebar,
                 'thread' => $thread,
                 'draft' => $draft,
+                'picker' => $picker,
             ]),
         );
     }

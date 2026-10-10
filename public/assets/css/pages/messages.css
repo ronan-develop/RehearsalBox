@@ -68,6 +68,32 @@ rb-composer {
   font-size: 1.25rem;
 }
 
+/* Entrée « Nouveau message » (#269) : à droite du titre de la liste, zone tactile de 44 px. */
+.rb-chat-new-dm {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 var(--rb-space-3);
+  color: var(--rb-text);
+  background: var(--rb-surface);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .rb-chat-new-dm:hover {
+    color: var(--rb-accent);
+    border-color: var(--rb-accent);
+  }
+}
+
 .rb-chat-archives {
   display: flex;
   box-sizing: border-box;
@@ -175,6 +201,75 @@ rb-composer {
 
 .rb-chat-empty[hidden] {
   display: none;
+}
+
+/* --- Nouveau message (#269) : tous les membres, filtrés par nom ------------------------------------ */
+.rb-chat-picker {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.rb-chat-picker-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.rb-chat-picker-search {
+  display: block;
+  padding: var(--rb-space-3);
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-chat-picker-search .rb-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rb-chat-picker-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.rb-chat-picker-list li {
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-chat-picker-list li[hidden] {
+  display: none;
+}
+
+.rb-chat-picker-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: var(--rb-space-2) var(--rb-space-3);
+  color: var(--rb-text);
+  text-decoration: none;
+}
+
+.rb-chat-picker-name {
+  font-weight: 600;
+}
+
+.rb-chat-picker-groups {
+  color: var(--rb-text-2);
+  font-size: 0.8125rem;
+}
+
+@media (hover: hover) {
+  .rb-chat-picker-item:hover {
+    background: var(--rb-bg-2);
+  }
 }
 
 /* --- Fil ---------------------------------------------------------------------------------------- */

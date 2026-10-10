@@ -59,7 +59,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->reader = new \App\Messaging\Service\ConversationReader(
             new \App\Messaging\Service\ConversationAccess($conversations, $this->groups),
-            new \App\Messaging\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->clock),
+            new \App\Messaging\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, new \App\Account\Repository\MysqlUserRepository($this->pdo), $this->clock),
             $conversations,
             $messages,
             $presence,
@@ -74,6 +74,7 @@ final class MessagesPageControllerTest extends RepositoryTestCase
             $this->reader,
             $this->groups,
             new MessagesPageView($this->reader, new ConversationListView($formatter), new ConversationTimeline($formatter), $formatter, $this->clock, $this->trash),
+            new \App\Messaging\Service\Direct\DirectMemberListService(new \App\Messaging\Repository\Mention\MysqlMemberDirectory($this->pdo), $this->users),
         );
     }
 
@@ -517,5 +518,106 @@ final class MessagesPageControllerTest extends RepositoryTestCase
         $this->loginAs($alice);
         $this->expectException(\App\Security\Exception\AccessDeniedException::class);
         $this->controller->show($this->request(), (string) $id);
+    }
+
+    // --- Messages directs (#269) ----------------------------------------------------------------------
+
+    #[Test]
+    public function testTheSidebarOffersANewMessageEntryPoint(): void
+    {
+        $this->loginAs($this->user('Alice'));
+
+        $body = $this->controller->list($this->request())->body();
+
+        self::assertStringContainsString('href="/messages/direct"', $body);
+        self::assertStringContainsString('Nouveau message', $body);
+    }
+
+    #[Test]
+    public function testTheDirectPickerListsEveryOtherActiveMemberWithTheirGroupsAndNoAddress(): void
+    {
+        $alice = $this->user('Alice');
+        $bob = $this->user('Bob');
+        $this->group('Beta', $bob);
+        $carol = $this->user('Carol');
+        $this->users->save(new User(0, 'away@rehearsalbox.test', 'hash', 'Away', UserRole::Musicien, false, 0, null));
+        $this->loginAs($alice);
+
+        $response = $this->controller->direct($this->request());
+        $body = $response->body();
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('href="/messages/direct/' . $bob->id() . '"', $body);
+        self::assertStringContainsString('href="/messages/direct/' . $carol->id() . '"', $body);
+        self::assertStringContainsString('Beta', $body);
+        self::assertStringNotContainsString('href="/messages/direct/' . $alice->id() . '"', $body, 'jamais soi-même');
+        self::assertStringNotContainsString('Away', $body);
+        self::assertStringNotContainsString('@rehearsalbox.test', $body, 'jamais une adresse e-mail');
+        self::assertStringContainsString('data-view="thread"', $body);
+    }
+
+    #[Test]
+    public function testTheDirectPickerEscapesNames(): void
+    {
+        $alice = $this->user('Alice');
+        $this->user('<b>Gras</b>');
+        $this->loginAs($alice);
+
+        $body = $this->controller->direct($this->request())->body();
+
+        self::assertStringNotContainsString('<b>Gras</b>', $body);
+        self::assertStringContainsString('&lt;b&gt;Gras&lt;/b&gt;', $body);
+    }
+
+    #[Test]
+    public function testDirectComposeRendersAnEmptyThreadAddressedToThePersonWithoutSenderChoice(): void
+    {
+        $alice = $this->user('Alice');
+        $this->group('Alpha', $alice);
+        $this->group('Gamma', $alice);
+        $bob = $this->user('Bob');
+        $this->loginAs($alice);
+
+        $response = $this->controller->directCompose($this->request(), (string) $bob->id());
+        $body = $response->body();
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('data-draft-target-id="' . $bob->id() . '"', $body);
+        self::assertStringContainsString('data-draft-direct', $body);
+        self::assertStringContainsString('Nouvelle conversation avec Bob', $body);
+        self::assertStringContainsString('data-chat-form', $body);
+        self::assertStringNotContainsString('<option value=', $body, 'pas de choix de groupe émetteur');
+        self::assertStringNotContainsString('data-draft-blocked', $body);
+        self::assertSame([], $this->reader->listFor($alice->id(), 'active'), 'ouvrir la page ne crée rien');
+    }
+
+    #[Test]
+    public function testDirectComposeRefusesYourselfUnknownInactiveAndMalformedTargets(): void
+    {
+        $alice = $this->user('Alice');
+        $away = $this->users->save(new User(0, 'away@rehearsalbox.test', 'hash', 'Away', UserRole::Musicien, false, 0, null));
+        $this->loginAs($alice);
+
+        foreach ([(string) $alice->id(), '9999', (string) $away->id(), 'abc', '-1'] as $target) {
+            try {
+                $this->controller->directCompose($this->request(), $target);
+                self::fail('Refus attendu pour ' . $target);
+            } catch (\App\Security\Exception\AccessDeniedException) {
+                self::addToAssertionCount(1);
+            }
+        }
+    }
+
+    #[Test]
+    public function testDirectPagesRequireALogin(): void
+    {
+        foreach ([fn () => $this->controller->direct($this->request()), fn () => $this->controller->directCompose($this->request(), '1')] as $call) {
+            try {
+                $call();
+                self::fail('connexion exigée');
+            } catch (UnauthenticatedException) {
+                self::addToAssertionCount(1);
+            }
+        }
     }
 }
