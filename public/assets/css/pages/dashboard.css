@@ -310,21 +310,13 @@ body {
   padding-right: var(--rb-space-4);
 }
 
-/* Jour courant (#271) : un tampon d'encre « Aujourd'hui » sur le papier de la carte — texte et double trait d'accent, légère
-   rotation, fusion « multiply » avec le papier craie. Dans le flux, au-dessus du nom du groupe : il ne peut jamais le recouvrir,
-   quelle que soit la longueur du nom, et les autres cartes de la piste s'étirent à la même hauteur. Rendu par le serveur, sans JS ;
-   ni filtre ni découpe ni ombre sur la carte, pour ne pas toucher au bord papier déchiré (#268). Sur mobile, le titre du jour le dit. */
+/* Jour courant (#271) : la pastille « Aujourd'hui » est un .rb-badge (fond, bordure, couleur et taille viennent de .rb-badge, plus bas
+   dans ce fichier), posée de travers et fondue dans le papier de la carte (multiply). Dans le flux, au-dessus du nom du groupe : elle
+   ne peut jamais le recouvrir, quelle que soit la longueur du nom, et les autres cartes de la piste s'étirent à la même hauteur.
+   Rendu par le serveur, sans JS ; ni filtre ni découpe ni ombre sur la carte, pour ne pas toucher au bord papier déchiré (#268).
+   Sur mobile, le titre du jour le dit. */
 .rb-planning-card-today {
-  display: block;
   width: fit-content;
-  margin: 0 0 var(--rb-space-2) 2px;
-  padding: 1px 6px;
-  border: 2px double var(--rb-accent);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--rb-accent);
-  font-size: 0.625rem;
-  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transform: rotate(-4deg);
