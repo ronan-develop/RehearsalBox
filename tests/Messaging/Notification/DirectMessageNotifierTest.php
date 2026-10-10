@@ -6,7 +6,6 @@ namespace App\Tests\Messaging\Notification;
 
 use App\Account\Entity\User;
 use App\Account\Entity\UserRole;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Entity\Conversation;
 use App\Messaging\Notification\DirectMessageNotifier;
@@ -90,17 +89,6 @@ final class DirectMessageNotifierTest extends RepositoryTestCase
 
         $this->write($notifier, $this->now->modify('+25 hours'));
         self::assertCount(2, $mailer->sent);
-    }
-
-    #[Test]
-    public function testTheGeneralEmailOptOutDoesNotApplyToDirectMessages(): void
-    {
-        (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->id('bob'), false);
-        $mailer = new RecordingMailer();
-
-        $this->write($this->notifier($mailer));
-
-        self::assertCount(1, $mailer->sent);
     }
 
     #[Test]

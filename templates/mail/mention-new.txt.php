@@ -2,7 +2,6 @@
 /**
  * @var string $mentionerName
  * @var string $link
- * @var string $accountLink
  */
 ?>
 Bonjour,
@@ -15,5 +14,4 @@ Pour lire le message et répondre, ouvrez la conversation (connexion requise) :
 
 Le contenu du message n'est volontairement pas envoyé par e-mail : il se lit sur le site.
 
-Vous ne souhaitez plus recevoir ces e-mails ? Gérez vos notifications dans Mon compte :
-<?= $accountLink ?>
+Pour ne plus recevoir d'e-mail pour cette conversation, mettez-la en sourdine depuis la messagerie.

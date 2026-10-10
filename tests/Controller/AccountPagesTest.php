@@ -50,7 +50,6 @@ final class AccountPagesTest extends RepositoryTestCase
             new SlotService($slotRepository, $groupRepository, $exceptionRepository),
             new GroupService($groupRepository, $this->users),
             new MysqlGroupDocumentRepository($this->pdo),
-            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
     }
@@ -77,19 +76,17 @@ final class AccountPagesTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testAccountPageOffersTheMentionEmailChoiceWithTheCurrentState(): void
+    public function testAccountPageOffersNoGeneralEmailUnsubscribe(): void
     {
         $controller = $this->controller();
         $this->logIn(UserRole::Musicien);
 
-        $on = $controller->accountPassword()->body();
-        self::assertStringContainsString('endpoint="/api/account/notifications"', $on);
-        self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="1"\\s+checked/', $on, 'activé par défaut');
-        self::assertDoesNotMatchRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $on);
+        $page = $controller->accountPassword()->body();
 
-        (new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->users->findByEmail('alice@rehearsalbox.test')->id(), false);
-        $off = $controller->accountPassword()->body();
-        self::assertMatchesRegularExpression('/name="emailNotifications"\\s+value="0"\\s+checked/', $off, 'désinscrit');
+        // Règle du projet (#266) : on ne se désabonne que par conversation (sourdine), jamais en général.
+        self::assertStringNotContainsString('/api/account/notifications', $page);
+        self::assertStringNotContainsString('emailNotifications', $page);
+        self::assertStringNotContainsString('Notifications par e-mail', $page);
     }
 
     #[Test]

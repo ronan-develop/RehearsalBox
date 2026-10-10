@@ -13,7 +13,6 @@ use App\Messaging\Repository\Participation\MysqlConversationMuteRepository;
 use App\Messaging\Repository\MysqlConversationRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Notification\MentionNotifier;
 use App\Tests\Database\RepositoryTestCase;
@@ -23,13 +22,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Mailer\MailerInterface;
 use App\Tests\Scenarios\TestMailbox;
 
-/** #178 : l'e-mail « vous avez été mentionné » — un par conversation et par personne toutes les 24 h, désinscription respectée. */
+/** #178 : l'e-mail « vous avez été mentionné » — un par conversation et par personne toutes les 24 h, sourdine respectée. */
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class MentionNotifierTest extends RepositoryTestCase
 {
     private \DateTimeImmutable $now;
     private MysqlMentionNoticeRepository $notices;
-    private MysqlNotificationPreferenceRepository $preferences;
     private MysqlConversationMuteRepository $mutes;
     private MysqlUserRepository $users;
     private Conversation $conversation;
@@ -41,7 +39,6 @@ final class MentionNotifierTest extends RepositoryTestCase
         parent::setUp();
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->notices = new MysqlMentionNoticeRepository($this->pdo);
-        $this->preferences = new MysqlNotificationPreferenceRepository($this->pdo);
         $this->mutes = new MysqlConversationMuteRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
@@ -64,7 +61,7 @@ final class MentionNotifierTest extends RepositoryTestCase
 
     private function notifier(MailerInterface $mailer): MentionNotifier
     {
-        return new MentionNotifier(TestMailbox::of($mailer), $this->notices, $this->users, $this->preferences, $this->mutes);
+        return new MentionNotifier(TestMailbox::of($mailer), $this->notices, $this->users, $this->mutes);
     }
 
     private function mention(MentionNotifier $notifier, array $ids, ?\DateTimeImmutable $at = null): void
@@ -88,7 +85,7 @@ final class MentionNotifierTest extends RepositoryTestCase
         $text = (string) $email->getTextBody();
         foreach ([$html, $text] as $body) {
             self::assertStringContainsString('https://rehearsalbox.example/messages/' . $this->conversation->id(), $body);
-            self::assertStringContainsString('/account/password', $body, 'lien vers la désinscription (Mon compte)');
+            self::assertStringNotContainsString('/account/password', $body, 'plus de lien vers Mon compte');
             self::assertStringNotContainsString('Titre secret', $body, 'ni titre ni texte du message');
             self::assertStringContainsString('Alice', $body);
         }
@@ -118,18 +115,6 @@ final class MentionNotifierTest extends RepositoryTestCase
 
         $this->mention($notifier, [$this->id('denis')], $this->now->modify('+25 hours'));
         self::assertCount(2, $mailer->sent, 'après 24 h, un nouvel e-mail');
-    }
-
-    #[Test]
-    public function testAnUnsubscribedPersonReceivesNothing(): void
-    {
-        $this->preferences->setEmailEnabled($this->id('denis'), false);
-        $mailer = new RecordingMailer();
-
-        $this->mention($this->notifier($mailer), [$this->id('denis')]);
-
-        self::assertSame([], $mailer->sent);
-        self::assertNull($this->notices->find($this->conversation->id(), $this->id('denis')), 'rien n\'est réservé');
     }
 
     #[Test]

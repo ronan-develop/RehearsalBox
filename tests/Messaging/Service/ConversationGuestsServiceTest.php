@@ -81,7 +81,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
             $this->guests,
             $this->mentions,
             $this->messages,
-            new MentionNotifier(TestMailbox::of($this->mailer), new \App\Messaging\Repository\Notice\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo), new \App\Messaging\Repository\Participation\MysqlConversationMuteRepository($this->pdo)),
+            new MentionNotifier(TestMailbox::of($this->mailer), new \App\Messaging\Repository\Notice\MysqlMentionNoticeRepository($this->pdo), $users, new \App\Messaging\Repository\Participation\MysqlConversationMuteRepository($this->pdo)),
         );
         $this->service = new ConversationService(
             $this->conversations,

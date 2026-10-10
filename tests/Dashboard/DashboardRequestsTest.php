@@ -84,7 +84,6 @@ final class DashboardRequestsTest extends RepositoryTestCase
             $slotService,
             new GroupService($this->groups, $users),
             new MysqlGroupDocumentRepository($this->pdo),
-            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
     }

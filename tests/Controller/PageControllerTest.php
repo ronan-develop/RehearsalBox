@@ -58,7 +58,6 @@ final class PageControllerTest extends RepositoryTestCase
             $slotService,
             $groupService,
             $groupDocumentRepository,
-            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
 

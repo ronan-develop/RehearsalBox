@@ -50,7 +50,7 @@ final class AsyncFormMarkupTest extends TestCase
             $total += $opened;
         }
 
-        self::assertSame(14, $total, 'les 14 formulaires asynchrones des gabarits');
+        self::assertSame(13, $total, 'les 13 formulaires asynchrones des gabarits');
     }
 
     #[Test]

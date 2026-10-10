@@ -94,7 +94,6 @@ final class MysqlMentionNoticeRepository implements MentionNoticeRepositoryInter
              LEFT JOIN users mu ON mu.id = n.notified_by
              WHERE n.reminded_at IS NULL AND n.notified_at <= :due_before AND n.notified_at >= :not_before
                AND c.deleted_at IS NULL AND u.is_active = 1
-               AND (u.email_notifications = 1 OR c.direct_low_user_id IS NOT NULL) -- message direct : pas de désabonnement général (#269)
                AND (
                    n.user_id IN (c.direct_low_user_id, c.direct_high_user_id)
                    OR n.user_id IN (

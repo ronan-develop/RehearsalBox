@@ -92,7 +92,6 @@ final class MentionReminderService
             [
                 'mentionerName' => $name,
                 'link' => $link,
-                'accountLink' => $this->mailbox->url('/account/password'),
                 'preheader' => 'Vous avez été mentionné(e) et le message n\'a pas encore été lu.',
             ],
         );

@@ -65,16 +65,4 @@ final class DirectReminderServiceTest extends RepositoryTestCase
         }
     }
 
-    #[Test]
-    public function testOnlyOneReminderIsEverSentAndTheGeneralOptOutDoesNotApply(): void
-    {
-        $this->pdo->exec('UPDATE users SET email_notifications = 0 WHERE id = ' . $this->people['bob']->id());
-        $mailer = new RecordingMailer();
-
-        $this->service($mailer, '2026-10-06 10:30:00')->sendDue();
-        $second = $this->service($mailer, '2026-10-06 11:30:00')->sendDue();
-
-        self::assertCount(1, $mailer->sent);
-        self::assertSame(0, $second->sent());
-    }
 }

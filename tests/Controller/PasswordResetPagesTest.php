@@ -44,7 +44,6 @@ final class PasswordResetPagesTest extends RepositoryTestCase
             new SlotService($slotRepository, $groupRepository, $exceptionRepository),
             new GroupService($groupRepository, $userRepository),
             new MysqlGroupDocumentRepository($this->pdo),
-            new \App\Account\Repository\MysqlNotificationPreferenceRepository($this->pdo),
             TestDashboard::view($this->pdo),
         );
     }

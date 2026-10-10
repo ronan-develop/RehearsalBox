@@ -2,7 +2,6 @@
 /**
  * @var string $mentionerName nom de la personne qui a mentionné le destinataire
  * @var string $link          lien vers la conversation (connexion requise)
- * @var string $accountLink   lien vers Mon compte (désinscription)
  */
 ?>
 <h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;color:#1c1a17;">Vous avez été mentionné(e)</h1>
@@ -19,4 +18,4 @@
 <p style="margin:0 0 8px 0;font-size:13px;color:#5a5449;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>
 <p style="margin:0 0 24px 0;font-size:13px;word-break:break-all;"><a href="<?= e($link) ?>" style="color:#9c5540;"><?= e($link) ?></a></p>
 <p style="margin:0 0 8px 0;font-size:14px;color:#5a5449;">Le contenu du message n'est volontairement pas envoyé par e-mail : il se lit sur le site.</p>
-<p style="margin:0;font-size:13px;color:#5a5449;">Vous ne souhaitez plus recevoir ces e-mails ? <a href="<?= e($accountLink) ?>" style="color:#9c5540;">Gérer mes notifications dans Mon compte</a> (<?= e($accountLink) ?>).</p>
+<p style="margin:0;font-size:13px;color:#5a5449;">Pour ne plus recevoir d'e-mail pour cette conversation, mettez-la en sourdine depuis la messagerie.</p>
