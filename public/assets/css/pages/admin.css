@@ -363,3 +363,34 @@ rb-booking-card {
 rb-booking-card[aria-busy] {
   opacity: 0.6;
 }
+
+/* Page Restauration de la base (#241) */
+rb-restore {
+  display: block; /* un élément personnalisé est « inline » par défaut */
+}
+
+/* Le tableau reste affiché sur mobile : il défile horizontalement dans .rb-admin-table-wrapper */
+.rb-restore-table {
+  display: table;
+}
+
+.rb-restore-warning,
+.rb-restore-status,
+.rb-restore-section {
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-restore-warning {
+  border-color: var(--rb-warn);
+}
+
+.rb-restore-status[data-restore-state="failed"],
+.rb-restore-status[data-restore-state="interrupted"] {
+  border-color: var(--rb-err);
+}
+
+/* .rb-field-error est en display: block : l'attribut hidden doit rester prioritaire */
+[data-restore-error][hidden],
+[data-restore-done][hidden] {
+  display: none;
+}
