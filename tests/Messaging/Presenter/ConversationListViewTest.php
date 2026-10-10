@@ -30,7 +30,7 @@ final class ConversationListViewTest extends TestCase
 
         $items = $view->items([
             $this->summary(7, 'Concert du 12', true, 'Salut', false),
-            $this->summary(8, null, false, 'Réponse', true, '2026-10-03 07:05:00'),
+            $this->summary(8, null, false, 'Réponse', true, '2026-10-03 17:00:00'),
         ], 10, $now, 8);
 
         self::assertSame('/messages/7', $items[0]['url']);
