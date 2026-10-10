@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Messaging\Repository;
 
+use App\Messaging\Crypto\MessageCipher;
 use App\Messaging\Repository\MessageVersionRepositoryInterface;
 
 final class MysqlMessageVersionRepository implements MessageVersionRepositoryInterface
 {
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private readonly \PDO $pdo, private readonly MessageCipher $cipher)
     {
     }
 
@@ -18,7 +19,7 @@ final class MysqlMessageVersionRepository implements MessageVersionRepositoryInt
         $statement->execute(['id' => $messageId]);
 
         return array_map(
-            static fn (array $row): array => ['body' => (string) $row['body'], 'savedAt' => new \DateTimeImmutable($row['saved_at'])],
+            fn (array $row): array => ['body' => $this->cipher->decrypt((string) $row['body']), 'savedAt' => new \DateTimeImmutable($row['saved_at'])],
             $statement->fetchAll(\PDO::FETCH_ASSOC),
         );
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Messaging\Repository;
 
+use App\Messaging\Crypto\MessageCipher;
 use App\Messaging\Entity\ConversationMessage;
 use App\Messaging\Repository\ConversationMessageRepositoryInterface;
 
@@ -19,8 +20,11 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
          LEFT JOIN conversation_messages q ON q.id = m.reply_to_message_id
          LEFT JOIN users qu ON qu.id = q.author_id';
 
-    public function __construct(private readonly \PDO $pdo)
+    private readonly ConversationRows $rows;
+
+    public function __construct(private readonly \PDO $pdo, private readonly MessageCipher $cipher)
     {
+        $this->rows = new ConversationRows($cipher);
     }
 
     public function addMessage(int $conversationId, int $authorId, string $body, \DateTimeImmutable $now, bool $system = false, ?int $replyToId = null): ConversationMessage
@@ -32,7 +36,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         $statement->execute([
             'conversation_id' => $conversationId,
             'author_id' => $authorId,
-            'body' => $body,
+            'body' => $this->cipher->encrypt($body),
             'is_system' => (int) $system,
             'reply_to' => $replyToId,
             'created_at' => $now->format(self::DATE_FORMAT),
@@ -60,7 +64,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         $statement->execute(['conversation_id' => $conversationId, 'id' => $messageId]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : ConversationRows::message($row, $conversationId);
+        return $row === false ? null : $this->rows->message($row, $conversationId);
     }
 
     public function lastMessageBy(int $conversationId, int $authorId): ?ConversationMessage
@@ -73,7 +77,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         $statement->execute(['conversation_id' => $conversationId, 'author_id' => $authorId]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
-        return $row === false ? null : ConversationRows::message($row, $conversationId);
+        return $row === false ? null : $this->rows->message($row, $conversationId);
     }
 
     public function messagesOf(int $conversationId, int $afterId = 0): array
@@ -85,7 +89,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         );
         $statement->execute(['conversation_id' => $conversationId, 'after_id' => $afterId]);
 
-        return array_map(fn (array $row): ConversationMessage => ConversationRows::message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(fn (array $row): ConversationMessage => $this->rows->message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function updateBody(int $messageId, string $body, \DateTimeImmutable $now): void
@@ -94,7 +98,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         $save->execute(['now' => $now->format(self::DATE_FORMAT), 'id' => $messageId]);
 
         $update = $this->pdo->prepare('UPDATE conversation_messages SET body = :body, edited_at = :now WHERE id = :id');
-        $update->execute(['body' => $body, 'now' => $now->format(self::DATE_FORMAT), 'id' => $messageId]);
+        $update->execute(['body' => $this->cipher->encrypt($body), 'now' => $now->format(self::DATE_FORMAT), 'id' => $messageId]);
     }
 
     public function editedSince(int $conversationId, \DateTimeImmutable $since, int $upToMessageId): array
@@ -106,7 +110,7 @@ final class MysqlConversationMessageRepository implements ConversationMessageRep
         );
         $statement->execute(['conversation_id' => $conversationId, 'up_to' => $upToMessageId, 'since' => $since->format(self::DATE_FORMAT)]);
 
-        return array_map(fn (array $row): ConversationMessage => ConversationRows::message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
+        return array_map(fn (array $row): ConversationMessage => $this->rows->message($row, $conversationId), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     public function countMessagesBySince(int $authorId, \DateTimeImmutable $since): int

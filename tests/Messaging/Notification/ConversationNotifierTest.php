@@ -35,7 +35,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
         $groups = new MysqlGroupRepository($this->pdo);
         $this->source = $groups->save(new Group(0, 'Alpha', null, null, 'alpha@rehearsalbox.test'));
         $this->target = $groups->save(new Group(0, 'Beta', null, null, 'contact-beta@rehearsalbox.test'));
-        $this->conversation = (new MysqlConversationRepository($this->pdo))->create($this->source->id(), $this->target->id(), 'Titre secret', $this->now);
+        $this->conversation = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create($this->source->id(), $this->target->id(), 'Titre secret', $this->now);
     }
 
     private function notifier(MailerInterface $mailer): ConversationNotifier
@@ -198,7 +198,7 @@ final class ConversationNotifierTest extends RepositoryTestCase
     {
         $mailer = new RecordingMailer();
         $notifier = $this->notifier($mailer);
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $groups = new MysqlGroupRepository($this->pdo);
         $other = $groups->save(new Group(0, 'Gamma', null, null, 'gamma@rehearsalbox.test'));
 

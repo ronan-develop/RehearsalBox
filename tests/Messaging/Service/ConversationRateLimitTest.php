@@ -20,7 +20,7 @@ final class ConversationRateLimitTest extends RepositoryTestCase
     public function testTheCheckSerializesConcurrentWritersOfTheSameAuthor(): void
     {
         $author = (new MysqlUserRepository($this->pdo))->save(new User(0, 'alice@rehearsalbox.test', 'x', 'Alice', UserRole::Musicien, true, 0, null));
-        $limit = new ConversationRateLimit(new MysqlConversationMessageRepository($this->pdo));
+        $limit = new ConversationRateLimit(new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()));
         $other = TestDatabase::connection();
         $other->exec('SET SESSION innodb_lock_wait_timeout = 1');
 

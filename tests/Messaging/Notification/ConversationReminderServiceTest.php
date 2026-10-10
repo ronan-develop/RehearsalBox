@@ -37,8 +37,8 @@ final class ConversationReminderServiceTest extends RepositoryTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->notices = new MysqlConversationNoticeRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);

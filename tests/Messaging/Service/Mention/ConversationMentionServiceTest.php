@@ -53,8 +53,8 @@ final class ConversationMentionServiceTest extends RepositoryTestCase
         $groups->addMember($this->alpha, $this->people['carole']->id());
         $groups->addMember($this->beta, $this->people['bob']->id());
         $groups->addMember($carnage, $this->people['denis']->id());
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);

@@ -7,20 +7,28 @@ namespace App\Messaging\Repository;
 use App\Messaging\Entity\Conversation;
 use App\Messaging\Entity\ConversationMessage;
 use App\Messaging\Entity\ConversationSummary;
+use App\Messaging\Crypto\MessageCipher;
 use App\Messaging\Entity\MessageQuote;
 
-/** Lignes SQL de la messagerie → entités. Fonctions pures, partagées par les dépôts de la messagerie. */
+/**
+ * Lignes SQL de la messagerie → entités, partagées par les dépôts de la messagerie. C'est ICI que le texte stocké chiffré (corps,
+ * citation, titre : #171) redevient du clair : tout ce qui est construit à partir d'une ligne ne voit jamais le chiffré.
+ */
 final class ConversationRows
 {
+    public function __construct(private readonly MessageCipher $cipher)
+    {
+    }
+
     /** @param array<string, mixed> $row ligne de liste ; `unread` absent (corbeille) = lu */
-    public static function summary(array $row): ConversationSummary
+    public function summary(array $row): ConversationSummary
     {
         return new ConversationSummary(
-            self::conversation($row),
+            $this->conversation($row),
             $row['initiator_name'] === null
                 ? (string) $row['other_name']
                 : $row['initiator_name'] . ' ↔ ' . $row['target_name'],
-            self::message($row, (int) $row['id'], 'last_'),
+            $this->message($row, (int) $row['id'], 'last_'),
             (bool) ($row['unread'] ?? false),
             (bool) ($row['mentioned'] ?? false),
             (bool) ($row['muted'] ?? false),
@@ -28,13 +36,13 @@ final class ConversationRows
     }
 
     /** @param array<string, mixed> $row */
-    public static function conversation(array $row): Conversation
+    public function conversation(array $row): Conversation
     {
         return new Conversation(
             (int) $row['id'],
             $row['initiator_group_id'] === null ? null : (int) $row['initiator_group_id'],
             $row['target_group_id'] === null ? null : (int) $row['target_group_id'],
-            $row['title'] === null ? null : (string) $row['title'],
+            $row['title'] === null ? null : $this->cipher->decrypt((string) $row['title']),
             new \DateTimeImmutable($row['created_at']),
             $row['created_by'] === null ? null : (int) $row['created_by'],
             $row['deleted_at'] === null ? null : new \DateTimeImmutable($row['deleted_at']),
@@ -47,18 +55,18 @@ final class ConversationRows
      * @param array<string, mixed> $row    colonnes id, author_id, author_name, body, created_at, éventuellement préfixées
      * @param string               $prefix préfixe des colonnes du message dans la ligne (ex. « last_ »)
      */
-    public static function message(array $row, int $conversationId, string $prefix = ''): ConversationMessage
+    public function message(array $row, int $conversationId, string $prefix = ''): ConversationMessage
     {
         return new ConversationMessage(
             (int) $row[$prefix . 'id'],
             $conversationId,
             (int) $row[$prefix . 'author_id'],
             (string) $row[$prefix . 'author_name'],
-            (string) $row[$prefix . 'body'],
+            $this->cipher->decrypt((string) $row[$prefix . 'body']),
             new \DateTimeImmutable($row[$prefix . 'created_at']),
             (bool) $row[$prefix . 'is_system'],
             isset($row[$prefix . 'edited_at']) ? new \DateTimeImmutable($row[$prefix . 'edited_at']) : null,
-            isset($row[$prefix . 'quote_id']) ? new MessageQuote((int) $row[$prefix . 'quote_id'], (string) $row[$prefix . 'quote_author'], (string) $row[$prefix . 'quote_body']) : null,
+            isset($row[$prefix . 'quote_id']) ? new MessageQuote((int) $row[$prefix . 'quote_id'], (string) $row[$prefix . 'quote_author'], $this->cipher->decrypt((string) $row[$prefix . 'quote_body'])) : null,
         );
     }
 }

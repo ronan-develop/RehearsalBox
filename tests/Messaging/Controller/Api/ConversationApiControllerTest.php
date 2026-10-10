@@ -56,12 +56,12 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
         $guests = new \App\Messaging\Repository\Participation\MysqlConversationGuestRepository($this->pdo);
-        $access = new \App\Messaging\Service\ConversationAccess(new MysqlConversationRepository($this->pdo), $this->groups, $guests);
-        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $access = new \App\Messaging\Service\ConversationAccess(new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), $this->groups, $guests);
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $mentionService = new \App\Messaging\Service\Mention\ConversationMentionService($this->users, $this->groups, $guests, new \App\Messaging\Repository\Mention\MysqlConversationMentionRepository($this->pdo), $messages);
         $service = new ConversationService(
-            new MysqlConversationRepository($this->pdo),
+            new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
             $messages,
             $presence,
             $this->groups,
@@ -70,12 +70,12 @@ final class ConversationApiControllerTest extends RepositoryTestCase
             mentions: $mentionService,
             access: $access,
         );
-        $trash = new \App\Messaging\Service\ConversationTrashService($access, new \App\Messaging\Repository\Participation\MysqlConversationTrashRepository($this->pdo), new TransactionRunner($this->pdo), $this->clock, new \App\Messaging\Repository\Participation\MysqlConversationAlertRepository($this->pdo));
+        $trash = new \App\Messaging\Service\ConversationTrashService($access, new \App\Messaging\Repository\Participation\MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), new TransactionRunner($this->pdo), $this->clock, new \App\Messaging\Repository\Participation\MysqlConversationAlertRepository($this->pdo));
         $guestService = new \App\Messaging\Service\ConversationGuestService($access, $guests, $messages, $this->users, new TransactionRunner($this->pdo), $this->clock);
         $this->muteController = new \App\Messaging\Controller\Api\ConversationMuteApiController(new \App\Messaging\Service\ConversationMuteService($access, new \App\Messaging\Repository\Participation\MysqlConversationMuteRepository($this->pdo)), new AuthGuard($this->auth));
         $this->trashController = new \App\Messaging\Controller\Api\ConversationTrashApiController($trash, new AuthGuard($this->auth));
         $editService = new \App\Messaging\Service\MessageEditService($access, $messages, $mentionService, new TransactionRunner($this->pdo), $this->clock);
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $reader = new \App\Messaging\Service\ConversationReader(
             $access,
             new \App\Messaging\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, new \App\Account\Repository\MysqlUserRepository($this->pdo), $this->clock, $mentionService),

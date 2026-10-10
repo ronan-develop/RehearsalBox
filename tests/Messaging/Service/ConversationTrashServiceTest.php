@@ -52,10 +52,10 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         $groups->addMember($alpha->id(), $this->people['alice']->id());
         $groups->addMember($alpha->id(), $this->people['carole']->id());
         $groups->addMember($beta->id(), $this->people['bob']->id());
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->service = new ConversationService($this->conversations, new MysqlConversationMessageRepository($this->pdo), new MysqlConversationPresenceRepository($this->pdo), $groups, new TransactionRunner($this->pdo), $this->clock);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->service = new ConversationService($this->conversations, new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()), new MysqlConversationPresenceRepository($this->pdo), $groups, new TransactionRunner($this->pdo), $this->clock);
         $access = new ConversationAccess($this->conversations, $groups);
-        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->reader = new \App\Messaging\Service\ConversationReader(
             $access,
@@ -67,7 +67,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
         );
         $this->trash = new ConversationTrashService(
             $access,
-            new MysqlConversationTrashRepository($this->pdo),
+            new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
             new TransactionRunner($this->pdo),
             $this->clock,
             new MysqlConversationAlertRepository($this->pdo),
@@ -259,7 +259,7 @@ final class ConversationTrashServiceTest extends RepositoryTestCase
     public function testTheOpenerTrashesADirectConversationAndTheOtherPersonIsAlertedAndLosesIt(): void
     {
         $id = $this->directConversation();
-        (new MysqlConversationMessageRepository($this->pdo))->addMessage($id, $this->id('alice'), 'Salut', $this->clock->now());
+        (new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->addMessage($id, $this->id('alice'), 'Salut', $this->clock->now());
 
         $this->trash->delete($this->id('alice'), $id);
 

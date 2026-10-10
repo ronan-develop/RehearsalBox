@@ -111,8 +111,8 @@ final class IdorMatrixTest extends TestCase
         $document = $documents->save(new GroupDocument(0, $groupA->id(), 'secret-de-A.pdf', 'stored-secret.pdf', 'application/pdf', 10, $managerA->id()));
 
         // Conversation entre A (initiateur) et B (visé) : seuls les membres de A ou B y ont accès.
-        $conversations = new MysqlConversationRepository($pdo);
-        $messages = new MysqlConversationMessageRepository($pdo);
+        $conversations = new MysqlConversationRepository($pdo, \App\Tests\Support\TestMessageCipher::make());
+        $messages = new MysqlConversationMessageRepository($pdo, \App\Tests\Support\TestMessageCipher::make());
         $conversationAB = $conversations->create($groupA->id(), $groupB->id(), 'Secret entre A et B', new \DateTimeImmutable());
         $messages->addMessage($conversationAB->id(), $memberA->id(), 'Message confidentiel', new \DateTimeImmutable());
 
@@ -424,6 +424,7 @@ final class IdorMatrixTest extends TestCase
             'password' => getenv('DB_TEST_PASSWORD') ?: 'root',
         ];
         $config['storage']['group_documents_path'] = self::$storagePath;
+        $config['messages']['key_file'] = \App\Tests\Support\TestMessageCipher::keyFile();
 
         $container = (require __DIR__ . '/../../config/services.php')($config);
         $session = new InMemorySession();

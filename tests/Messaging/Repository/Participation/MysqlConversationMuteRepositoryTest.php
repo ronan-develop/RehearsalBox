@@ -27,8 +27,8 @@ final class MysqlConversationMuteRepositoryTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->setUpScenario();
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $this->mutes = new MysqlConversationMuteRepository($this->pdo);
     }

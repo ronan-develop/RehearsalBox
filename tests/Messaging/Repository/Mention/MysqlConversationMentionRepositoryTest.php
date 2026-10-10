@@ -34,8 +34,8 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         parent::setUp();
         $this->now = new \DateTimeImmutable('2026-10-06 12:00:00');
         $this->mentions = new MysqlConversationMentionRepository($this->pdo);
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
         $users = new MysqlUserRepository($this->pdo);
         $groups = new MysqlGroupRepository($this->pdo);
@@ -94,7 +94,7 @@ final class MysqlConversationMentionRepositoryTest extends RepositoryTestCase
         $id = $this->say('@Bob');
         $this->mentions->record($id, [$this->people['bob']->id() => '@Bob']);
 
-        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->delete($this->conversationId);
 
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM message_mentions')->fetchColumn());
     }

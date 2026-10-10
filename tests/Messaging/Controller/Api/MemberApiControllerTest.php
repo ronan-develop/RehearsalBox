@@ -46,7 +46,7 @@ final class MemberApiControllerTest extends RepositoryTestCase
         $this->groups = new MysqlGroupRepository($this->pdo);
         $this->users = new MysqlUserRepository($this->pdo);
         $this->auth = new AuthService($this->users, new FastPasswordHasher(), new InMemorySession(), $this->groups);
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $guests = new MysqlConversationGuestRepository($this->pdo);
         $this->controller = new MemberApiController(
             new MemberSearchService(new MysqlMemberDirectory($this->pdo), new ConversationAccess($conversations, $this->groups, $guests), $this->groups, $guests),

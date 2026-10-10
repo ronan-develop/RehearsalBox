@@ -34,6 +34,7 @@ Le routeur, le container DI et le renderer de vues restent volontairement minima
 
 - Ne jamais commiter de secrets — relire le diff stagé avant chaque commit
 - `config/config.local.php` : valeurs sensibles, jamais committé (`.gitignore`)
+- `config/message-keys.json` : clés du chiffrement des messages (#171), jamais committé ; **perdues, les messages sont illisibles** — voir `.claude/deploiement.md`
 
 ### Git
 

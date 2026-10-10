@@ -45,7 +45,7 @@ final class MemberSearchServiceTest extends RepositoryTestCase
         $groups->addMember($this->alpha, $this->people['alice']->id());
         $groups->addMember($this->beta, $this->people['bob']->id());
         $groups->addMember($this->carnage, $this->people['denis']->id());
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->guests = new MysqlConversationGuestRepository($this->pdo);
         $this->conversationId = $conversations->create($this->alpha, $this->beta, null, new \DateTimeImmutable('2026-10-06 12:00:00'), $this->people['alice']->id())->id();
         $this->service = new MemberSearchService(
@@ -87,7 +87,7 @@ final class MemberSearchServiceTest extends RepositoryTestCase
     #[Test]
     public function testADirectConversationProposesNobodyBecauseNobodyCanBeAddedToIt(): void
     {
-        $direct = (new MysqlConversationRepository($this->pdo))->openDirect($this->id('alice'), $this->id('bob'), new \DateTimeImmutable('2026-10-06 12:00:00'));
+        $direct = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->openDirect($this->id('alice'), $this->id('bob'), new \DateTimeImmutable('2026-10-06 12:00:00'));
 
         self::assertSame([], $this->service->search($this->id('alice'), 'denis', $direct->id()));
     }

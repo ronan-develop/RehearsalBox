@@ -6,6 +6,18 @@
 php -S localhost:8000 -t public public/index.php
 ```
 
+### Chiffrement des messages en local (#171)
+
+La messagerie chiffre son texte en base : **sans fichier de clés, elle ne lit ni n'écrit rien** (erreur 500, voulu). Une fois par poste :
+
+```bash
+php bin/message-keys.php init          # crée config/message-keys.json (ignoré par git)
+php bin/encrypt-messages.php           # chiffre les messages déjà présents dans la base de dev (idempotent ; --dry-run pour compter)
+php bin/message-keys.php strict        # facultatif : refuse désormais le texte en clair
+```
+
+Les tests n'en ont pas besoin (`Tests\Support\TestMessageCipher` fournit une clé de test).
+
 ## Base de données
 
 ```bash

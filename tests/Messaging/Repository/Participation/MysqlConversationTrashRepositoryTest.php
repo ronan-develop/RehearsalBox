@@ -28,10 +28,10 @@ final class MysqlConversationTrashRepositoryTest extends RepositoryTestCase
     {
         parent::setUp();
         $this->setUpScenario();
-        $this->conversations = new MysqlConversationRepository($this->pdo);
-        $this->messages = new MysqlConversationMessageRepository($this->pdo);
+        $this->conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $this->messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->presence = new MysqlConversationPresenceRepository($this->pdo);
-        $this->repository = new MysqlConversationTrashRepository($this->pdo);
+        $this->repository = new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
     }
 
     /** @return list<string> */

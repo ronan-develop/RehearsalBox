@@ -124,8 +124,8 @@ final class ConversationServiceTest extends RepositoryTestCase
     private function serviceWithMailer(MailerInterface $mailer): ConversationService
     {
         return new ConversationService(
-            new MysqlConversationRepository($this->pdo),
-            new MysqlConversationMessageRepository($this->pdo),
+            new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
+            new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()),
             new MysqlConversationPresenceRepository($this->pdo),
             $this->groups,
             new TransactionRunner($this->pdo),

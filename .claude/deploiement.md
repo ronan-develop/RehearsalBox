@@ -100,6 +100,28 @@ Avant la première collecte en production, ajouter dans `shared/config.local.php
 - « Ce n'est pas moi » **verrouille** le compte (7 jours), ferme toutes les sessions et envoie un lien de réinitialisation. L'ancien mot de passe n'est **pas** restauré : l'auteur du changement le connaît forcément.
 - Déploiement : les migrations 011 et 012 sont appliquées automatiquement (sauvegarde préalable).
 
+## Chiffrement des messages (#171)
+
+Le texte de la messagerie (messages, anciennes versions corrigées, titres) est chiffré **en base** (libsodium). **Les clés sont dans `shared/message-keys.json`** (droits 600, hors dépôt, hors base, hors racine web), relié à chaque release (`config/message-keys.json`) comme `config.local.php`. Un déploiement ne le régénère jamais : **les messages restent lisibles d'une release à l'autre**.
+
+**Garde-fous du déploiement (`bin/deploy.sh`)**
+- Premier passage : le fichier est créé **sur le serveur** (`bin/message-keys.php init`) ; la clé n'est jamais affichée ni transmise.
+- À chaque passage, **avant la bascule** : `bin/message-keys.php check` déchiffre un échantillon de la base. Clé perdue, fichier absent ou corrompu : **le déploiement s'arrête, la release n'est pas basculée** et les messages restent lisibles.
+- Le déploiement **ne chiffre pas** les anciens messages et n'affiche aucune clé (volontaire : voir la procédure).
+- `bin/rollback.sh` **refuse** de revenir à une release d'avant le chiffrement (elle lirait du chiffré comme du texte), sauf `RB_FORCE_ROLLBACK=1`.
+
+**Mise en service (une seule fois, dans cet ordre)**
+1. Déployer (le fichier de clés est créé ; tant que rien n'est rattrapé, les anciens messages restent lisibles en clair et les nouveaux sont chiffrés : mode « transition »).
+2. **Sauvegarder la clé hors du serveur AVANT toute autre étape** : `ssh <serveur> 'php ~/rehearsalbox/current/bin/message-keys.php export' > sauvegarde-cles.json`, puis ranger ce fichier dans **KeePass** (pièce jointe d'une entrée). O2switch (hébergement mutualisé, cPanel) n'offre pas de coffre de secrets : KeePass reste local. **Ne jamais la ranger avec les sauvegardes de la base** (`backups/` est sur le serveur, dans le même compte que la clé).
+3. Chiffrer l'existant (la sauvegarde `backups/pre-<release>.sql.gz` du déploiement fait foi) : `php bin/encrypt-messages.php --dry-run` (compte), puis `php bin/encrypt-messages.php` (idempotent, sans écraser un message corrigé pendant le passage).
+4. Quand il ne reste rien en clair : `php bin/message-keys.php strict` (le texte non chiffré est alors refusé).
+
+**Rotation de clé** (sur soupçon de fuite, pas périodique) : `php bin/message-keys.php rotate` (ajoute une clé et la rend courante, les anciennes restent pour lire), puis `php bin/encrypt-messages.php` (réécrit avec la nouvelle), puis **sauvegarder à nouveau** (`export`). Une ancienne clé ne se supprime qu'une fois tout réécrit (vérifier avec `check`).
+
+**Restauration** (serveur neuf) : `php bin/message-keys.php import < sauvegarde-cles.json` (refuse d'écraser un fichier existant), puis `check`.
+
+**Perte de la clé = messages définitivement illisibles** : c'est le prix du chiffrement. Vérifier de temps en temps que la sauvegarde KeePass existe et que `export` donne le même fichier.
+
 ## Retour arrière
 
 ```bash

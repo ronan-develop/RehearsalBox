@@ -52,7 +52,7 @@ final class MentionNotifierTest extends RepositoryTestCase
         $beta = $groups->save(new Group(0, 'Beta', null, null, 'contact-beta@rehearsalbox.test'))->id();
         $groups->addMember($alpha, $this->id('alice'));
         $groups->addMember($beta, $this->id('bob'));
-        $conversations = new MysqlConversationRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $this->conversation = $conversations->create($alpha, $beta, 'Titre secret', $this->now->modify('-2 days'), $this->id('alice'));
         (new MysqlConversationGuestRepository($this->pdo))->add($this->conversation->id(), $this->id('denis'), $this->id('alice'), $this->now->modify('-1 day'));
     }
@@ -152,7 +152,7 @@ final class MentionNotifierTest extends RepositoryTestCase
     #[Test]
     public function testMutingOneConversationDoesNotSilenceAnotherOne(): void
     {
-        $other = (new MysqlConversationRepository($this->pdo))->create(
+        $other = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create(
             $this->conversation->initiatorGroupId(),
             $this->conversation->targetGroupId(),
             'Autre fil',

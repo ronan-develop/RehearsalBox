@@ -34,7 +34,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
         $groups = new MysqlGroupRepository($this->pdo);
         $this->groupA = $groups->save(new Group(0, 'Alpha', null, null, 'alpha@rehearsalbox.test'))->id();
         $this->groupB = $groups->save(new Group(0, 'Beta', null, null, 'beta@rehearsalbox.test'))->id();
-        $this->conversationId = (new MysqlConversationRepository($this->pdo))->create($this->groupA, $this->groupB, null, $this->now)->id();
+        $this->conversationId = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create($this->groupA, $this->groupB, null, $this->now)->id();
     }
 
     #[Test]
@@ -101,7 +101,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
 
     private function say(int $authorId, string $at, bool $system = false): int
     {
-        return (new MysqlConversationMessageRepository($this->pdo))->addMessage($this->conversationId, $authorId, 'texte', new \DateTimeImmutable($at), $system)->id();
+        return (new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->addMessage($this->conversationId, $authorId, 'texte', new \DateTimeImmutable($at), $system)->id();
     }
 
     /** @return list<array{int, string}> [groupId, nom du groupe d'en face] */
@@ -131,7 +131,7 @@ final class MysqlConversationNoticeRepositoryTest extends RepositoryTestCase
         $this->say($alice->id(), '2026-10-05 10:00:00');
         self::assertCount(1, $this->due());
 
-        (new MysqlConversationTrashRepository($this->pdo))->moveToTrash($this->conversationId, $this->now);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->moveToTrash($this->conversationId, $this->now);
 
         self::assertSame([], $this->due());
     }

@@ -43,7 +43,7 @@ final class MysqlConversationAlertRepositoryTest extends RepositoryTestCase
         foreach (['bob', 'dave'] as $name) {
             $groups->addMember($beta, $this->people[$name]->id());
         }
-        $this->conversationId = (new MysqlConversationRepository($this->pdo))->create($alpha, $beta, 'Secret', $this->now, $this->people['alice']->id())->id();
+        $this->conversationId = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create($alpha, $beta, 'Secret', $this->now, $this->people['alice']->id())->id();
     }
 
     private function id(string $name): int
@@ -72,7 +72,7 @@ final class MysqlConversationAlertRepositoryTest extends RepositoryTestCase
     #[Test]
     public function testTheOtherPersonOfADirectConversationIsAlertedUnderTheNameOfTheActor(): void
     {
-        $directId = (new MysqlConversationRepository($this->pdo))->openDirect($this->id('alice'), $this->id('erin'), $this->now)->id();
+        $directId = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->openDirect($this->id('alice'), $this->id('erin'), $this->now)->id();
 
         $this->alerts->notifyParticipants($directId, $this->id('alice'), ConversationAlert::DELETED, $this->now);
 
@@ -133,7 +133,7 @@ final class MysqlConversationAlertRepositoryTest extends RepositoryTestCase
     {
         $this->alerts->notifyParticipants($this->conversationId, $this->id('alice'), ConversationAlert::DELETED, $this->now);
 
-        (new MysqlConversationTrashRepository($this->pdo))->delete($this->conversationId);
+        (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->delete($this->conversationId);
 
         $alert = $this->alerts->findActiveFor($this->id('bob'), $this->now->modify('-1 day'))[0];
         self::assertNull($alert->conversationId());

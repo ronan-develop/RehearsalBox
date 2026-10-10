@@ -42,7 +42,7 @@ final class DirectMessageNotifierTest extends RepositoryTestCase
         foreach (['alice', 'bob'] as $name) {
             $this->people[$name] = $this->users->save(new User(0, "{$name}.perso@rehearsalbox.test", 'hash', ucfirst($name), UserRole::Musicien, true, 0, null));
         }
-        $this->conversation = (new MysqlConversationRepository($this->pdo))->openDirect($this->id('alice'), $this->id('bob'), $this->now->modify('-2 days'));
+        $this->conversation = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->openDirect($this->id('alice'), $this->id('bob'), $this->now->modify('-2 days'));
     }
 
     private function id(string $name): int
@@ -161,7 +161,7 @@ final class DirectMessageNotifierTest extends RepositoryTestCase
         for ($i = 0; $i < DirectMessageNotifier::MAX_PER_AUTHOR_PER_HOUR + 1; $i++) {
             $carols[] = $this->users->save(new User(0, "p{$i}@rehearsalbox.test", 'hash', "P{$i}", UserRole::Musicien, true, 0, null));
         }
-        $repository = new MysqlConversationRepository($this->pdo);
+        $repository = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         foreach ($carols as $person) {
             $notifier->newMessage($repository->openDirect($this->id('alice'), $person->id(), $this->now), $this->id('alice'), 'Alice', $this->now);
         }

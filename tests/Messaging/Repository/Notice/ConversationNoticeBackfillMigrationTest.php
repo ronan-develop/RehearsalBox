@@ -30,8 +30,8 @@ final class ConversationNoticeBackfillMigrationTest extends RepositoryTestCase
         $users = new MysqlUserRepository($this->pdo);
         $alice = $users->save(new User(0, 'alice@rehearsalbox.test', 'hash', 'Alice', UserRole::Musicien, true, 0, null));
         $groups->addMember($alpha, $alice->id());
-        $conversations = new MysqlConversationRepository($this->pdo);
-        $messages = new MysqlConversationMessageRepository($this->pdo);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $messages = new MysqlConversationMessageRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
         $conversationId = $conversations->create($alpha, $beta, null, new \DateTimeImmutable('2026-10-01 10:00:00'))->id();
         $messages->addMessage($conversationId, $alice->id(), 'ancien message non lu', new \DateTimeImmutable('2026-10-01 10:00:00'));
 

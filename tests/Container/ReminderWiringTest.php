@@ -27,6 +27,7 @@ final class ReminderWiringTest extends TestCase
             'user' => getenv('DB_TEST_USER') ?: 'root',
             'password' => getenv('DB_TEST_PASSWORD') ?: 'root',
         ];
+        $config['messages']['key_file'] = \App\Tests\Support\TestMessageCipher::keyFile();
         $container = (require __DIR__ . '/../../config/services.php')($config);
 
         self::assertInstanceOf(ConversationNotifier::class, $container->get(ConversationNotifier::class));
