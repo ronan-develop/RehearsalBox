@@ -17,7 +17,7 @@ interface ConversationMentionsInterface
      *
      * @throws ConversationValidationException
      */
-    public function plan(int $actorId, int $initiatorGroupId, int $targetGroupId, ?int $conversationId, string $body, array $userIds): MentionPlan;
+    public function plan(int $actorId, ?int $initiatorGroupId, ?int $targetGroupId, ?int $conversationId, string $body, array $userIds): MentionPlan;
 
     /**
      * @param list<mixed> $newIds

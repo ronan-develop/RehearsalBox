@@ -78,7 +78,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         $conversations = new MysqlConversationRepository($this->pdo);
         $reader = new \App\Messaging\Service\ConversationReader(
             $access,
-            new \App\Messaging\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, $this->clock, $mentionService),
+            new \App\Messaging\Service\ConversationThreadBuilder($conversations, $messages, $presence, $this->groups, new \App\Account\Repository\MysqlUserRepository($this->pdo), $this->clock, $mentionService),
             $conversations,
             $messages,
             $presence,

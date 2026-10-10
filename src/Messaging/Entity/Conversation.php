@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace App\Messaging\Entity;
 
-/** Échange entre deux groupes : le groupe qui l'ouvre (initiateur) et celui qui est visé. */
+/**
+ * Échange entre deux groupes (le groupe qui l'ouvre, l'initiateur, et celui qui est visé) OU message direct entre deux
+ * personnes (#269) : alors les deux groupes sont absents et la paire est ordonnée (la plus petite identité d'abord).
+ */
 final class Conversation
 {
     public function __construct(
         private readonly int $id,
-        private readonly int $initiatorGroupId,
-        private readonly int $targetGroupId,
+        private readonly ?int $initiatorGroupId,
+        private readonly ?int $targetGroupId,
         private readonly ?string $title,
         private readonly \DateTimeImmutable $createdAt,
         private readonly ?int $createdBy = null,
         private readonly ?\DateTimeImmutable $deletedAt = null,
+        private readonly ?int $directLowUserId = null,
+        private readonly ?int $directHighUserId = null,
     ) {
     }
 
@@ -23,12 +28,14 @@ final class Conversation
         return $this->id;
     }
 
-    public function initiatorGroupId(): int
+    /** Null pour un message direct. */
+    public function initiatorGroupId(): ?int
     {
         return $this->initiatorGroupId;
     }
 
-    public function targetGroupId(): int
+    /** Null pour un message direct. */
+    public function targetGroupId(): ?int
     {
         return $this->targetGroupId;
     }
@@ -54,5 +61,25 @@ final class Conversation
     public function deletedAt(): ?\DateTimeImmutable
     {
         return $this->deletedAt;
+    }
+
+    public function isDirect(): bool
+    {
+        return $this->directLowUserId !== null;
+    }
+
+    public function hasDirectParticipant(int $userId): bool
+    {
+        return $this->isDirect() && ($userId === $this->directLowUserId || $userId === $this->directHighUserId);
+    }
+
+    /** L'autre personne d'un message direct ; null si la conversation est de groupe ou si $userId n'en fait pas partie. */
+    public function otherParticipantOf(int $userId): ?int
+    {
+        if (!$this->hasDirectParticipant($userId)) {
+            return null;
+        }
+
+        return $userId === $this->directLowUserId ? $this->directHighUserId : $this->directLowUserId;
     }
 }

@@ -42,6 +42,8 @@ final class ConversationSql
             SELECT gu.user_id FROM group_user gu WHERE gu.group_id IN (c.initiator_group_id, c.target_group_id)
             UNION
             SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
+            UNION
+            SELECT c.direct_low_user_id UNION SELECT c.direct_high_user_id
         )';
     }
 
@@ -50,4 +52,12 @@ final class ConversationSql
     {
         return $box === ConversationRepositoryInterface::BOX_ARCHIVED ? 'lm.created_at < :cutoff' : 'lm.created_at >= :cutoff';
     }
+
+    /** Colonnes du libellé : noms des deux groupes, ou de l'autre personne pour un message direct (alias de LABEL_JOINS). */
+    public const LABEL_COLUMNS = 'gi.name AS initiator_name, gt.name AS target_name, ou.display_name AS other_name';
+
+    /** Jointures du libellé ; paramètre nommé attendu : :label_user (la personne qui consulte). */
+    public const LABEL_JOINS = 'LEFT JOIN `groups` gi ON gi.id = c.initiator_group_id
+        LEFT JOIN `groups` gt ON gt.id = c.target_group_id
+        LEFT JOIN users ou ON ou.id = IF(c.direct_low_user_id = :label_user, c.direct_high_user_id, c.direct_low_user_id)';
 }

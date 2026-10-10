@@ -36,8 +36,12 @@ final class MemberSearchService
     public function search(int $userId, string $query, int $conversationId): array
     {
         $conversation = $this->access->participant($userId, $conversationId);
+        // Message direct (#269) : exactement deux personnes, personne à inviter, donc rien à proposer.
+        if ($conversation->isDirect()) {
+            return [];
+        }
 
-        return $this->find($userId, $query, [$conversation->initiatorGroupId(), $conversation->targetGroupId()], $conversationId);
+        return $this->find($userId, $query, [(int) $conversation->initiatorGroupId(), (int) $conversation->targetGroupId()], $conversationId);
     }
 
     /**

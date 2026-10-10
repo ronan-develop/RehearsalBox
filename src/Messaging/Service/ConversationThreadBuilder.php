@@ -13,6 +13,7 @@ use App\Messaging\Repository\ConversationMessageRepositoryInterface;
 use App\Messaging\Repository\ConversationPresenceRepositoryInterface;
 use App\Messaging\Repository\ConversationRepositoryInterface;
 use App\Group\Repository\GroupRepositoryInterface;
+use App\Account\Repository\UserRepositoryInterface;
 use App\Messaging\Service\Mention\ConversationMentionsInterface;
 use Symfony\Component\Clock\ClockInterface;
 use App\Messaging\Service\Mention\NoConversationMentions;
@@ -30,6 +31,7 @@ final class ConversationThreadBuilder
         private readonly ConversationMessageRepositoryInterface $messages,
         private readonly ConversationPresenceRepositoryInterface $presence,
         private readonly GroupRepositoryInterface $groups,
+        private readonly UserRepositoryInterface $users,
         private readonly ClockInterface $clock,
         private readonly ConversationMentionsInterface $mentions = new NoConversationMentions(),
     ) {
@@ -43,7 +45,7 @@ final class ConversationThreadBuilder
 
         return new ConversationThread(
             $conversation,
-            $this->labelOf($conversation),
+            $this->labelOf($conversation, $userId),
             $messages,
             $this->presence->typingNames($conversation->id(), $userId, $this->clock->now()->modify(self::TYPING_WINDOW)),
             $this->seenReceipt($conversation, $userId),
@@ -82,7 +84,7 @@ final class ConversationThreadBuilder
 
     /**
      * Pastille : groupe d'appartenance de chaque auteur parmi les deux groupes de la conversation ;
-     * null s'il est dans les deux (ou plus dans aucun) : on ne devine pas.
+     * null s'il est dans les deux (ou plus dans aucun) : on ne devine pas. Un message direct n'a pas de groupe : toujours null.
      *
      * @param list<ConversationMessage> $messages
      *
@@ -90,8 +92,12 @@ final class ConversationThreadBuilder
      */
     private function authorGroups(Conversation $conversation, array $messages): array
     {
-        $initiator = $this->groups->findById($conversation->initiatorGroupId());
-        $target = $this->groups->findById($conversation->targetGroupId());
+        if ($conversation->isDirect()) {
+            return array_fill_keys(array_map(static fn (ConversationMessage $m): int => $m->authorId(), $messages), null);
+        }
+
+        $initiator = $this->groups->findById((int) $conversation->initiatorGroupId());
+        $target = $this->groups->findById((int) $conversation->targetGroupId());
 
         $result = [];
         foreach ($messages as $message) {
@@ -107,10 +113,17 @@ final class ConversationThreadBuilder
         return $result;
     }
 
-    private function labelOf(Conversation $conversation): string
+    /** Les deux groupes, ou le nom de l'autre personne pour un message direct (vu par $userId). */
+    private function labelOf(Conversation $conversation, int $userId): string
     {
-        $initiator = $this->groups->findById($conversation->initiatorGroupId());
-        $target = $this->groups->findById($conversation->targetGroupId());
+        if ($conversation->isDirect()) {
+            $other = $conversation->otherParticipantOf($userId);
+
+            return ($other === null ? null : $this->users->findById($other)?->displayName()) ?? '?';
+        }
+
+        $initiator = $this->groups->findById((int) $conversation->initiatorGroupId());
+        $target = $this->groups->findById((int) $conversation->targetGroupId());
 
         return ($initiator?->name() ?? '?') . ' ↔ ' . ($target?->name() ?? '?');
     }

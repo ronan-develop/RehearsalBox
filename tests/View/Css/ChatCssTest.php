@@ -253,4 +253,25 @@ final class ChatCssTest extends TestCase
         self::assertMatchesRegularExpression('/@media \(hover: hover\)\s*\{[^@]*\.rb-chat-message:hover \.rb-chat-edit/s', $this->css(), 'le survol reste pour l\'ordinateur');
         self::assertMatchesRegularExpression('/@media \(hover: hover\)\s*\{[^@]*\.rb-chat-message:hover \.rb-chat-quote-action/s', $this->css());
     }
+
+    // --- Messages directs (#269) ---------------------------------------------------------------------
+
+    #[Test]
+    public function testTheNewMessageButtonAndThePickerRowsAreTouchFriendly(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-new-dm\s*\{[^}]*min-height:\s*44px/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-picker-item\s*\{[^}]*min-height:\s*44px/s', $css);
+    }
+
+    #[Test]
+    public function testThePickerFillsTheMainPaneAndScrollsItsList(): void
+    {
+        $css = $this->css();
+
+        self::assertMatchesRegularExpression('/\.rb-chat-picker\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-picker-list\s*\{[^}]*overflow-y:\s*auto/s', $css);
+        self::assertMatchesRegularExpression('/\.rb-chat-picker-list li\[hidden\]\s*\{[^}]*display:\s*none/s', $css, 'une ligne filtrée reste masquée malgré son display');
+    }
 }

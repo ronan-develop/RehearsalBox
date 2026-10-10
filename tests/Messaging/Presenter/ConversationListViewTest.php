@@ -19,7 +19,7 @@ final class ConversationListViewTest extends TestCase
         $conversation = new Conversation($id, 3, 4, $title, new \DateTimeImmutable('2026-10-01 10:00:00'), $createdBy);
         $message = new ConversationMessage(50 + $id, $id, $mine ? 10 : 11, $mine ? 'Alice' : 'Bob', $body, new \DateTimeImmutable($at, new \DateTimeZone('UTC')));
 
-        return new ConversationSummary($conversation, 'Alpha', 'Beta', $message, $unread);
+        return new ConversationSummary($conversation, 'Alpha ↔ Beta', $message, $unread);
     }
 
     #[Test]
@@ -54,8 +54,8 @@ final class ConversationListViewTest extends TestCase
         $message = new ConversationMessage(57, 7, 11, 'Bob', 'Salut', new \DateTimeImmutable('2026-10-04 07:05:00', new \DateTimeZone('UTC')));
 
         $items = $view->items([
-            new ConversationSummary($conversation, 'Alpha', 'Beta', $message, false, false, true),
-            new ConversationSummary($conversation, 'Alpha', 'Beta', $message, false),
+            new ConversationSummary($conversation, 'Alpha ↔ Beta', $message, false, false, true),
+            new ConversationSummary($conversation, 'Alpha ↔ Beta', $message, false),
         ], 10, $now, null);
 
         self::assertSame([true, false], array_column($items, 'muted'));

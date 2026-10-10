@@ -9,8 +9,7 @@ final class ConversationSummary
 {
     public function __construct(
         private readonly Conversation $conversation,
-        private readonly string $initiatorGroupName,
-        private readonly string $targetGroupName,
+        private readonly string $label,
         private readonly ConversationMessage $lastMessage,
         private readonly bool $unread,
         private readonly bool $mentioned = false,
@@ -23,13 +22,13 @@ final class ConversationSummary
         return $this->conversation;
     }
 
-    /** Identifie la conversation par ses deux groupes. */
+    /** Identifie la conversation : ses deux groupes, ou l'autre personne pour un message direct. */
     public function label(): string
     {
-        return $this->initiatorGroupName . ' ↔ ' . $this->targetGroupName;
+        return $this->label;
     }
 
-    /** Titre affiché : celui choisi par les membres, sinon le label des deux groupes. */
+    /** Titre affiché : celui choisi par les membres, sinon son label. */
     public function displayTitle(): string
     {
         return $this->conversation->title() ?? $this->label();

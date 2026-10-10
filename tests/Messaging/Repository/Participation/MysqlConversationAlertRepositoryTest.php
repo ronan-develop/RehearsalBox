@@ -70,6 +70,19 @@ final class MysqlConversationAlertRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheOtherPersonOfADirectConversationIsAlertedUnderTheNameOfTheActor(): void
+    {
+        $directId = (new MysqlConversationRepository($this->pdo))->openDirect($this->id('alice'), $this->id('erin'), $this->now)->id();
+
+        $this->alerts->notifyParticipants($directId, $this->id('alice'), ConversationAlert::DELETED, $this->now);
+
+        self::assertSame(['deleted'], $this->kindsFor('erin'));
+        self::assertSame([], $this->kindsFor('alice'), "l'auteur de l'action n'est pas prévenu");
+        self::assertSame([], $this->kindsFor('bob'), 'un tiers, même membre de la messagerie, ne sait rien');
+        self::assertSame('Alice', $this->alerts->findActiveFor($this->id('erin'), $this->now->modify('-1 day'))[0]->label());
+    }
+
+    #[Test]
     public function testTheAlertCarriesTheGroupLabelAndNeverTheTitle(): void
     {
         $this->alerts->notifyParticipants($this->conversationId, $this->id('alice'), ConversationAlert::RESTORED, $this->now);

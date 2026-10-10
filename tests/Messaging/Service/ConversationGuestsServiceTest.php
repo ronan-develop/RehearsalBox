@@ -95,7 +95,7 @@ final class ConversationGuestsServiceTest extends RepositoryTestCase
         );
         $this->reader = new \App\Messaging\Service\ConversationReader(
             $access,
-            new \App\Messaging\Service\ConversationThreadBuilder($this->conversations, $this->messages, $this->presence, $groups, $this->clock, $mentionService),
+            new \App\Messaging\Service\ConversationThreadBuilder($this->conversations, $this->messages, $this->presence, $groups, new \App\Account\Repository\MysqlUserRepository($this->pdo), $this->clock, $mentionService),
             $this->conversations,
             $this->messages,
             $this->presence,

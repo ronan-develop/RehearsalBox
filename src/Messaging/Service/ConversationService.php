@@ -14,6 +14,7 @@ use App\Group\Repository\GroupRepositoryInterface;
 use App\Messaging\Service\ConversationInputPolicy;
 use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\Mention\ConversationMentionsInterface;
+use App\Messaging\Notification\DirectMessageNotifier;
 use App\Messaging\Notification\NewConversationNotifierInterface;
 use App\Messaging\Exception\ConversationRateLimitException;
 use App\Messaging\Exception\ConversationValidationException;
@@ -46,6 +47,7 @@ final class ConversationService
         private readonly ConversationMentionsInterface $mentions = new NoConversationMentions(),
         ?ConversationAccess $access = null,
         ?ConversationRateLimit $rateLimit = null,
+        private readonly ?DirectMessageNotifier $directNotifier = null,
     ) {
         $this->access = $access ?? new ConversationAccess($conversations, $groups);
         $this->rateLimit = $rateLimit ?? new ConversationRateLimit($messages);
@@ -128,6 +130,10 @@ final class ConversationService
 
         // Après la validation de la transaction : les personnes taguées sont prévenues par e-mail (jamais le contenu).
         $this->mentions->notify($plan, $conversation, $userId, $message->authorName(), $now);
+        // Message direct (#269) : l'autre personne est prévenue (sans le texte) ; les mentions n'y ont pas cours.
+        if ($conversation->isDirect()) {
+            $this->directNotifier?->newMessage($conversation, $userId, $message->authorName(), $now);
+        }
 
         return $message;
     }
@@ -141,6 +147,9 @@ final class ConversationService
     public function rename(int $userId, int $conversationId, ?string $title): void
     {
         $conversation = $this->participantConversation($userId, $conversationId);
+        if ($conversation->isDirect()) {
+            throw new ConversationValidationException(['title' => 'Un message direct ne se renomme pas : il porte le nom de l\'autre personne.']);
+        }
 
         $title = $this->normalizedTitle($title);
         $this->assertValid($title, null);

@@ -46,7 +46,7 @@ final class ConversationPresenterTest extends TestCase
     public function testSummaryHasTheDisplayTitleLastMessageAndUnreadFlag(): void
     {
         $conversation = new Conversation(7, 3, 4, 'Concert', new \DateTimeImmutable('2026-10-04 11:00:00'));
-        $summary = new ConversationSummary($conversation, 'Alpha', 'Beta', $this->message(5, 11, 'Bob', 'Dernier'), true);
+        $summary = new ConversationSummary($conversation, 'Alpha ↔ Beta', $this->message(5, 11, 'Bob', 'Dernier'), true);
 
         $json = (new ConversationPresenter())->summary($summary, 10);
 

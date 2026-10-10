@@ -17,8 +17,9 @@ final class ConversationRows
     {
         return new ConversationSummary(
             self::conversation($row),
-            (string) $row['initiator_name'],
-            (string) $row['target_name'],
+            $row['initiator_name'] === null
+                ? (string) $row['other_name']
+                : $row['initiator_name'] . ' ↔ ' . $row['target_name'],
             self::message($row, (int) $row['id'], 'last_'),
             (bool) ($row['unread'] ?? false),
             (bool) ($row['mentioned'] ?? false),
@@ -31,12 +32,14 @@ final class ConversationRows
     {
         return new Conversation(
             (int) $row['id'],
-            (int) $row['initiator_group_id'],
-            (int) $row['target_group_id'],
+            $row['initiator_group_id'] === null ? null : (int) $row['initiator_group_id'],
+            $row['target_group_id'] === null ? null : (int) $row['target_group_id'],
             $row['title'] === null ? null : (string) $row['title'],
             new \DateTimeImmutable($row['created_at']),
             $row['created_by'] === null ? null : (int) $row['created_by'],
             $row['deleted_at'] === null ? null : new \DateTimeImmutable($row['deleted_at']),
+            isset($row['direct_low_user_id']) ? (int) $row['direct_low_user_id'] : null,
+            isset($row['direct_high_user_id']) ? (int) $row['direct_high_user_id'] : null,
         );
     }
 
