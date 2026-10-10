@@ -291,6 +291,19 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testOpeningAgainATrashedDirectConversationBringsItBackFromTheTrash(): void
+    {
+        [$alice, $bob] = $this->pair();
+        $first = $this->repository->openDirect($alice->id(), $bob->id(), $this->now);
+        $this->pdo->exec('UPDATE conversations SET deleted_at = NOW() WHERE id = ' . $first->id());
+
+        $second = $this->repository->openDirect($bob->id(), $alice->id(), $this->at('+1 minute'));
+
+        self::assertSame($first->id(), $second->id());
+        self::assertNull($second->deletedAt());
+    }
+
+    #[Test]
     public function testADirectConversationIsListedForBothUnderTheOtherPersonsName(): void
     {
         [$alice, $bob] = $this->pair();

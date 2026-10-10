@@ -245,4 +245,43 @@ final class DirectConversationServiceTest extends RepositoryTestCase
         self::assertCount(2, $mailer->sent);
         self::assertSame('alice@rehearsalbox.test', $mailer->sent[1]->getTo()[0]->getAddress());
     }
+
+    #[Test]
+    public function testReplyingToATrashedDirectConversationIsRefusedAndEmailsNobody(): void
+    {
+        [$direct, $service, $mailer] = $this->withMail();
+        [$alice, $bob] = $this->world();
+        $conversation = $direct->start($alice->id(), $bob->id(), 'Salut');
+        $this->pdo->exec('UPDATE conversations SET deleted_at = NOW() WHERE id = ' . $conversation->id());
+        $messagesBefore = (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_messages')->fetchColumn();
+
+        try {
+            $service->reply($bob->id(), $conversation->id(), 'Salut Alice');
+            self::fail('Refus attendu');
+        } catch (AccessDeniedException $e) {
+            self::assertSame(ConversationAccess::DENIED, $e->getMessage());
+        }
+
+        self::assertSame($messagesBefore, (int) $this->pdo->query('SELECT COUNT(*) FROM conversation_messages')->fetchColumn());
+        self::assertCount(1, $mailer->sent, 'seul l\'e-mail du premier message est parti');
+    }
+
+    #[Test]
+    public function testStartingAgainAfterTheConversationWasTrashedDoesNotWriteIntoTheTrash(): void
+    {
+        [$direct, , $mailer] = $this->withMail();
+        [$alice, $bob] = $this->world();
+        $first = $direct->start($alice->id(), $bob->id(), 'Salut');
+        $this->pdo->exec('UPDATE conversations SET deleted_at = NOW() WHERE id = ' . $first->id());
+
+        try {
+            $second = $direct->start($alice->id(), $bob->id(), 'Rebonjour');
+        } catch (AccessDeniedException) {
+            self::assertCount(1, $mailer->sent);
+
+            return;
+        }
+
+        self::assertNull($second->deletedAt(), 'une conversation visible, pas la corbeille');
+    }
 }
