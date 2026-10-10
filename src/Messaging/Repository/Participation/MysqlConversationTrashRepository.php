@@ -37,19 +37,18 @@ final class MysqlConversationTrashRepository implements ConversationTrashReposit
     public function listTrashedBy(int $userId, \DateTimeImmutable $trashedSince): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT c.id, c.initiator_group_id, c.target_group_id, c.created_by, c.title, c.created_at, c.deleted_at,
-                    gi.name AS initiator_name, gt.name AS target_name,
+            'SELECT c.id, c.initiator_group_id, c.target_group_id, c.direct_low_user_id, c.direct_high_user_id, c.created_by, c.title, c.created_at, c.deleted_at,
+                    ' . ConversationSql::LABEL_COLUMNS . ',
                     lm.id AS last_id, lm.author_id AS last_author_id, lu.display_name AS last_author_name,
                     lm.body AS last_body, lm.is_system AS last_is_system, lm.created_at AS last_created_at
              FROM conversations c
-             JOIN `groups` gi ON gi.id = c.initiator_group_id
-             JOIN `groups` gt ON gt.id = c.target_group_id
+             ' . ConversationSql::LABEL_JOINS . '
              ' . ConversationSql::LAST_MESSAGE_JOIN . '
              JOIN users lu ON lu.id = lm.author_id
              WHERE c.created_by = :user_id AND c.deleted_at IS NOT NULL AND c.deleted_at >= :since
              ORDER BY c.deleted_at DESC, c.id DESC'
         );
-        $statement->execute(['user_id' => $userId, 'since' => $trashedSince->format(self::DATE_FORMAT)]);
+        $statement->execute(['user_id' => $userId, 'label_user' => $userId, 'since' => $trashedSince->format(self::DATE_FORMAT)]);
 
         return array_map(ConversationRows::summary(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }

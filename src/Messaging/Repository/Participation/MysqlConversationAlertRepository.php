@@ -33,6 +33,24 @@ final class MysqlConversationAlertRepository implements ConversationAlertReposit
             'except_user' => $exceptUserId,
         ]);
 
+        // Message direct (#269) : l'autre personne de la paire est prévenue ; faute de groupes, l'avis porte le nom de l'auteur.
+        $direct = $this->pdo->prepare(
+            "INSERT INTO conversation_alerts (user_id, conversation_id, kind, label, created_at)
+             SELECT IF(c.direct_low_user_id = :except_user, c.direct_high_user_id, c.direct_low_user_id), c.id, :kind, actor.display_name, :now
+             FROM conversations c
+             JOIN users actor ON actor.id = :actor_user
+             WHERE c.id = :conversation_id AND c.direct_low_user_id IS NOT NULL
+               AND :participant_user IN (c.direct_low_user_id, c.direct_high_user_id)"
+        );
+        $direct->execute([
+            'kind' => $kind,
+            'now' => $now->format(self::DATE_FORMAT),
+            'conversation_id' => $conversationId,
+            'except_user' => $exceptUserId,
+            'actor_user' => $exceptUserId,
+            'participant_user' => $exceptUserId,
+        ]);
+
         // Les invités (#178) sont prévenus aussi, sauf s'ils sont déjà membres d'un des deux groupes (déjà avertis ci-dessus).
         $guests = $this->pdo->prepare(
             "INSERT INTO conversation_alerts (user_id, conversation_id, kind, label, created_at)

@@ -15,13 +15,19 @@ interface ConversationRepositoryInterface
 
     public function create(int $initiatorGroupId, int $targetGroupId, ?string $title, \DateTimeImmutable $now, ?int $createdBy = null): Conversation;
 
+    /**
+     * Message direct (#269) entre deux personnes : ouvre la conversation de la paire, ou rend celle qui existe déjà (une seule
+     * par paire, quel que soit l'ordre, y compris si deux ouvertures arrivent en même temps). $userId en est l'initiateur.
+     */
+    public function openDirect(int $userId, int $otherUserId, \DateTimeImmutable $now): Conversation;
+
     /** @param string|null $title null pour retirer le titre (la conversation reprend le label de ses deux groupes) */
     public function rename(int $conversationId, ?string $title): void;
 
     public function findById(int $id): ?Conversation;
 
     /**
-     * Conversations visibles par la personne (membre de l'un des deux groupes). L'archivage est DÉRIVÉ :
+     * Conversations visibles par la personne (membre de l'un des deux groupes, invitée, ou l'une des deux personnes d'un message direct). L'archivage est DÉRIVÉ :
      * une conversation dont le dernier message est antérieur à $inactiveBefore est archivée, sinon active.
      *
      * @return list<ConversationSummary> la plus récemment active d'abord

@@ -259,4 +259,84 @@ final class MysqlConversationRepositoryTest extends RepositoryTestCase
 
         self::assertNull($this->repository->findById($thread->id())->createdBy());
     }
+
+    // --- Messages directs (#269) -------------------------------------------------------------------
+
+    #[Test]
+    public function testOpensADirectConversationBetweenTwoPeopleWithoutGroup(): void
+    {
+        [$alice, $bob] = $this->pair();
+
+        $conversation = $this->repository->openDirect($alice->id(), $bob->id(), $this->now);
+
+        $found = $this->repository->findById($conversation->id());
+        self::assertTrue($found->isDirect());
+        self::assertNull($found->initiatorGroupId());
+        self::assertNull($found->targetGroupId());
+        self::assertSame($alice->id(), $found->createdBy());
+        self::assertSame($bob->id(), $found->otherParticipantOf($alice->id()));
+        self::assertSame(2, $this->repository->participantCount($conversation->id()));
+    }
+
+    #[Test]
+    public function testTheSamePairReopensTheSameConversationWhateverTheOrder(): void
+    {
+        [$alice, $bob] = $this->pair();
+
+        $first = $this->repository->openDirect($alice->id(), $bob->id(), $this->now);
+        $second = $this->repository->openDirect($bob->id(), $alice->id(), $this->at('+1 minute'));
+
+        self::assertSame($first->id(), $second->id());
+        self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM conversations')->fetchColumn());
+    }
+
+    #[Test]
+    public function testADirectConversationIsListedForBothUnderTheOtherPersonsName(): void
+    {
+        [$alice, $bob] = $this->pair();
+        $carol = $this->user('Carol');
+        $conversation = $this->repository->openDirect($alice->id(), $bob->id(), $this->now);
+        $this->messages->addMessage($conversation->id(), $alice->id(), 'Salut Bob', $this->at('+1 minute'));
+
+        self::assertSame(['Bob'], $this->titles($alice->id(), Box::BOX_ACTIVE));
+        self::assertSame(['Alice'], $this->titles($bob->id(), Box::BOX_ACTIVE));
+        self::assertSame([], $this->titles($carol->id(), Box::BOX_ACTIVE));
+        self::assertSame(1, $this->repository->countUnreadFor($bob->id(), $this->cutoff, Box::BOX_ACTIVE));
+        self::assertSame(0, $this->repository->countUnreadFor($carol->id(), $this->cutoff, Box::BOX_ACTIVE));
+    }
+
+    #[Test]
+    public function testADirectConversationIsArchivedByInactivityLikeAnyOther(): void
+    {
+        [$alice, $bob] = $this->pair();
+        $conversation = $this->repository->openDirect($alice->id(), $bob->id(), $this->at('-90 days'));
+        $this->messages->addMessage($conversation->id(), $alice->id(), 'Très ancien', $this->at('-90 days'));
+
+        self::assertSame([], $this->titles($alice->id(), Box::BOX_ACTIVE));
+        self::assertSame(['Bob'], $this->titles($alice->id(), Box::BOX_ARCHIVED));
+        self::assertSame(['Alice'], $this->titles($bob->id(), Box::BOX_ARCHIVED));
+    }
+
+    #[Test]
+    public function testDeletingOneOfTheTwoAccountsRemovesTheDirectConversation(): void
+    {
+        [$alice, $bob] = $this->pair();
+        $conversation = $this->repository->openDirect($alice->id(), $bob->id(), $this->now);
+
+        $this->pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$bob->id()]);
+
+        self::assertNull($this->repository->findById($conversation->id()));
+    }
+
+    #[Test]
+    public function testTheDatabaseRefusesAConversationThatIsBothGroupAndDirect(): void
+    {
+        [$alice, $bob, $a] = $this->pair();
+
+        $this->expectException(\PDOException::class);
+        $this->pdo->prepare(
+            'INSERT INTO conversations (initiator_group_id, target_group_id, direct_low_user_id, direct_high_user_id, created_at)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([$a->id(), $a->id(), $alice->id(), $bob->id(), '2026-10-04 12:00:00']);
+    }
 }
