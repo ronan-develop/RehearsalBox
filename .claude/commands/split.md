@@ -51,6 +51,10 @@ Ressource partagée (base de test, port, fichier de verrou : voir « Paramètres
 3. Lancer toi seul les contrôles de « Paramètres du projet » (prérequis d'environnement, suite complète, contrôles de qualité concernés).
 4. Résumer à l'utilisateur : ce qui a été fait, ce qui a été délégué, ce qui reste.
 
-## 6. Git — jamais en automatique
+## 6. Passe de refacto — obligatoire, avant les commits
+
+Tests verts : applique la « Passe de refacto » de `.claude/delegation.md` (carte en Refacto, checklist relue sur le diff, corrections dans le ticket, résultat annoncé en une ligne, même « rien à changer »). Ne propose pas les commits avant.
+
+## 7. Git — jamais en automatique
 
 Aucun exécutant ne commite. Quand tout est vert, propose le découpage en commits atomiques selon le workflow git du projet (« Paramètres du projet ») et attends la validation. Jamais de commit sur la branche principale ; pas de `git push`, de PR ni de merge sans confirmation.

@@ -43,6 +43,12 @@ Les règles de l'exécutant lui-même (test d'abord, aucune commande git qui éc
 
 - **Un fichier, un propriétaire** par `/split` : sinon écrasements silencieux dans l'arbre de travail commun.
 - **Ressource partagée à un seul utilisateur** (base de test, port, fichier de verrou) : réservée à un exécutant au plus ; la suite complète n'est lancée que par l'orchestrateur.
+- **Passe de refacto — obligatoire, pour TOUT ticket qui modifie du code, quel que soit le mode** (direct, `/split`, `/split-opus`), une fois les tests verts et AVANT de proposer les commits :
+  1. passer la carte en « Refacto » ;
+  2. lire la checklist de la colonne (« Checklist de refacto » ci-dessous) puis relire le diff du ticket critère par critère ;
+  3. appliquer les corrections DANS le ticket (jamais un ticket refacto séparé), tests toujours verts ;
+  4. annoncer le résultat en une ligne, même vide (« Refacto : rien à changer — SRP, DRY, KISS relus »).
+  Sans cette ligne, le ticket n'est pas prêt pour les commits. Une passe de refacto touche du code : si elle concerne une zone sensible, c'est l'orchestrateur qui l'écrit.
 - **Git** : commits après validation de l'utilisateur ; pas de push, PR ou merge sans confirmation (sauf autorisation donnée pour ce ticket).
 
 ## Paramètres du projet — la section à réécrire dans un autre projet (avec le bloc « Règles du projet » de `haiku-worker.md`)
