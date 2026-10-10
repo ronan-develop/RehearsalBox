@@ -41,12 +41,18 @@ final class MysqlUserRepository implements UserRepositoryInterface
         return array_map($this->hydrate(...), $rows);
     }
 
-    public function countActiveAdmins(): int
+    public function lockActiveAdminIds(): array
     {
-        $statement = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE role = :role AND is_active = 1');
+        $statement = $this->pdo->prepare('SELECT id FROM users WHERE role = :role AND is_active = 1 ORDER BY id FOR UPDATE');
         $statement->execute(['role' => UserRole::Admin->value]);
 
-        return (int) $statement->fetchColumn();
+        return array_map('intval', $statement->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
+    public function updateRole(int $userId, UserRole $role): void
+    {
+        $statement = $this->pdo->prepare('UPDATE users SET role = :role WHERE id = :id');
+        $statement->execute(['role' => $role->value, 'id' => $userId]);
     }
 
     public function save(User $user): User

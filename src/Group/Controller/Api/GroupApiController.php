@@ -11,6 +11,7 @@ use App\Http\Request;
 use App\Security\AuthGuard;
 use App\Group\Exception\GroupValidationException;
 use App\Support\StrictId;
+use App\Group\Service\GroupMembershipAdminService;
 use App\Group\Service\GroupServiceInterface;
 
 final class GroupApiController
@@ -18,6 +19,7 @@ final class GroupApiController
     public function __construct(
         private readonly GroupServiceInterface $groupService,
         private readonly AuthGuard $authGuard,
+        private readonly GroupMembershipAdminService $memberships,
     ) {
     }
 
@@ -90,9 +92,10 @@ final class GroupApiController
 
     public function removeMember(Request $request, string $id, string $userId): JsonResponse
     {
-        $this->authGuard->requireRole(UserRole::Admin);
+        $actor = $this->authGuard->requireRole(UserRole::Admin);
 
-        $this->groupService->removeMember(StrictId::orDenied($id), StrictId::orDenied($userId));
+        // Même garde que depuis la page des comptes (#272) : jamais le dernier gestionnaire, une ligne de journal.
+        $this->memberships->removeMembership(StrictId::orDenied($userId), StrictId::orDenied($id), $actor->id());
 
         return new JsonResponse([], 204);
     }

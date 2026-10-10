@@ -69,11 +69,6 @@ final class GroupService implements GroupServiceInterface
         $this->groupRepository->addMember($groupId, $user->id());
     }
 
-    public function removeMember(int $groupId, int $userId): void
-    {
-        $this->groupRepository->removeMember($groupId, $userId);
-    }
-
     public function findAll(): array
     {
         return $this->groupRepository->findAll();

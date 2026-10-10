@@ -59,11 +59,21 @@
             <button type="submit" class="rb-btn-primary">Créer le compte</button>
         </form></rb-async-form>
 
-        <div class="rb-user-list" data-user-list data-current-user-id="<?= e((string) $currentUserId) ?>">
+        <?php
+        $allGroupsJson = e(json_encode(array_map(
+            static fn ($group): array => ['id' => $group->id(), 'name' => $group->name()],
+            $groups
+        ), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE));
+        ?>
+        <div class="rb-user-list" data-user-list data-current-user-id="<?= e((string) $currentUserId) ?>" data-groups='<?= $allGroupsJson ?>'>
             <?php foreach ($items as $item): ?>
                 <?php
                 $user = $item->user();
                 $isSelf = $user->id() === $currentUserId;
+                $userGroupsJson = e(json_encode(array_map(
+                    static fn ($group): array => ['id' => $group->id(), 'name' => $group->name(), 'role' => $item->groupRole($group->id()) ?? 'membre'],
+                    $item->groups()
+                ), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE));
                 ?>
                 <article class="rb-user-card rb-card" data-user-card data-user-id="<?= e((string) $user->id()) ?>">
                     <div class="rb-user-main">
@@ -91,6 +101,33 @@
                         <?php elseif (!$isSelf): ?>
                             <button type="button" class="rb-btn rb-btn-danger" data-deactivate-user-button data-user-id="<?= e((string) $user->id()) ?>">Désactiver</button>
                         <?php endif; ?>
+                        <button type="button" class="rb-btn" data-edit-user-button data-user-id="<?= e((string) $user->id()) ?>">Modifier</button>
+                    </div>
+                    <div class="rb-user-edit" data-user-edit hidden>
+                        <form data-user-identity-form data-user-id="<?= e((string) $user->id()) ?>">
+                            <div class="rb-field">
+                                <label for="user-<?= e((string) $user->id()) ?>-display-name">Nom affiché</label>
+                                <input type="text" id="user-<?= e((string) $user->id()) ?>-display-name" name="displayName" class="rb-input" required maxlength="100" value="<?= e($user->displayName()) ?>">
+                            </div>
+                            <div class="rb-field">
+                                <label for="user-<?= e((string) $user->id()) ?>-email">Adresse e-mail</label>
+                                <input type="email" id="user-<?= e((string) $user->id()) ?>-email" name="email" class="rb-input" required maxlength="190" value="<?= e($user->email()) ?>"<?= $isSelf ? ' disabled' : '' ?>>
+                                <?php if ($isSelf): ?><p class="rb-admin-note">Pour modifier votre propre adresse, utilisez Mon compte.</p><?php endif; ?>
+                            </div>
+                            <p class="rb-field-error" data-user-edit-error role="alert" hidden></p>
+                            <button type="submit" class="rb-btn-primary">Enregistrer</button>
+                        </form>
+                        <?php if (!$isSelf): ?>
+                            <div class="rb-field">
+                                <label for="user-<?= e((string) $user->id()) ?>-role">Rôle</label>
+                                <select id="user-<?= e((string) $user->id()) ?>-role" class="rb-input" data-user-role-select data-user-id="<?= e((string) $user->id()) ?>">
+                                    <option value="admin"<?= $user->role() === \App\Account\Entity\UserRole::Admin ? ' selected' : '' ?>>Administrateur</option>
+                                    <option value="musicien"<?= $user->role() === \App\Account\Entity\UserRole::Musicien ? ' selected' : '' ?>>Musicien</option>
+                                </select>
+                                <button type="button" class="rb-btn" data-user-role-save>Changer le rôle</button>
+                            </div>
+                        <?php endif; ?>
+                        <rb-user-groups user-id="<?= e((string) $user->id()) ?>" groups='<?= $userGroupsJson ?>' all-groups='<?= $allGroupsJson ?>'></rb-user-groups>
                     </div>
                 </article>
             <?php endforeach; ?>

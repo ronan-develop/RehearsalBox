@@ -20,6 +20,7 @@ use App\Messaging\Controller\Api\ConversationTrashApiController;
 use App\Messaging\Controller\Api\MemberApiController;
 use App\Messaging\Controller\Api\MessageApiController;
 use App\Group\Controller\Api\GroupApiController;
+use App\Group\Controller\Api\UserGroupAdminApiController;
 use App\Account\Controller\Api\UserAdminApiController;
 use App\Group\Controller\Api\GroupDocumentApiController;
 use App\Group\Controller\Api\GroupSpaceApiController;
@@ -93,6 +94,11 @@ return [
         ['POST',   '/api/admin/users', [UserAdminApiController::class, 'store']],
         ['PATCH',  '/api/admin/users/{id}', [UserAdminApiController::class, 'update']],
         ['POST',   '/api/admin/users/{id}/unlock', [UserAdminApiController::class, 'unlock']],
+        ['PUT',    '/api/admin/users/{id}/identity', [UserAdminApiController::class, 'updateIdentity']],
+        ['PUT',    '/api/admin/users/{id}/role', [UserAdminApiController::class, 'updateRole']],
+        ['PUT',    '/api/admin/users/{id}/groups/{groupId}', [UserGroupAdminApiController::class, 'set']],
+        ['DELETE', '/api/admin/users/{id}/groups/{groupId}', [UserGroupAdminApiController::class, 'remove']],
+        ['POST',   '/api/admin/users/{id}/groups/{groupId}/move', [UserGroupAdminApiController::class, 'move']],
         ['POST',   '/api/admin/restore', [RestoreController::class, 'start']],
         ['POST',   '/api/admin/groups/{id}/members', [GroupApiController::class, 'addMember']],
         ['DELETE', '/api/admin/groups/{id}/members/{userId}', [GroupApiController::class, 'removeMember']],

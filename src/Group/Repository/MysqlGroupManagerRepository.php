@@ -23,14 +23,12 @@ final class MysqlGroupManagerRepository implements GroupManagerRepositoryInterfa
         $this->updateRole($groupId, $userId, GroupUserRole::Membre);
     }
 
-    public function countManagers(int $groupId): int
+    public function lockManagerIds(int $groupId): array
     {
-        $statement = $this->pdo->prepare(
-            "SELECT COUNT(*) FROM group_user WHERE group_id = :group_id AND role = 'gestionnaire'"
-        );
+        $statement = $this->pdo->prepare("SELECT user_id FROM group_user WHERE group_id = :group_id AND role = 'gestionnaire' ORDER BY user_id FOR UPDATE");
         $statement->execute(['group_id' => $groupId]);
 
-        return (int) $statement->fetchColumn();
+        return array_map('intval', $statement->fetchAll(\PDO::FETCH_COLUMN));
     }
 
     private function updateRole(int $groupId, int $userId, GroupUserRole $role): void

@@ -45,7 +45,7 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
             new CsrfTokenManager($session),
             new AuthGuard($this->auth),
-            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo)),
+            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo), new \App\Account\Security\LastAdminGuard($this->users), new \App\Database\TransactionRunner($this->pdo)),
             new GroupService($this->groups, $this->users),
         );
     }

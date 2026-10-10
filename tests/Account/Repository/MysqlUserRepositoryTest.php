@@ -181,16 +181,60 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testCountActiveAdminsIgnoresInactiveAdminsAndMusicians(): void
+    public function testLockActiveAdminIdsListsOnlyActiveAdminsInOrder(): void
     {
         $repository = new MysqlUserRepository($this->pdo);
-        $admin = $repository->save(new User(0, 'a@rehearsalbox.test', 'h', 'Admin A', UserRole::Admin, true, 0, null));
+        $first = $repository->save(new User(0, 'a@rehearsalbox.test', 'h', 'Admin A', UserRole::Admin, true, 0, null));
         $repository->save(new User(0, 'b@rehearsalbox.test', 'h', 'Admin B', UserRole::Admin, false, 0, null));
         $this->insertUser($repository, 'm@rehearsalbox.test', 'Musicien');
+        $third = $repository->save(new User(0, 'c@rehearsalbox.test', 'h', 'Admin C', UserRole::Admin, true, 0, null));
 
-        self::assertSame(1, $repository->countActiveAdmins());
+        $this->pdo->beginTransaction();
+        try {
+            self::assertSame([$first->id(), $third->id()], $repository->lockActiveAdminIds());
+        } finally {
+            $this->pdo->rollBack();
+        }
+    }
 
-        $repository->save($admin->withActive(false));
-        self::assertSame(0, $repository->countActiveAdmins());
+    #[Test]
+    public function testTwoAdminsLockingTheActiveAdminsAtOnceWaitForEachOther(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $repository->save(new User(0, 'a@rehearsalbox.test', 'h', 'Admin A', UserRole::Admin, true, 0, null));
+        $second = \App\Tests\Database\TestDatabase::connection(); // une AUTRE connexion : un autre administrateur qui agit en même temps
+        $second->exec('SET SESSION innodb_lock_wait_timeout = 1');
+
+        $this->pdo->beginTransaction();
+        try {
+            $repository->lockActiveAdminIds();
+
+            $second->beginTransaction();
+            try {
+                (new MysqlUserRepository($second))->lockActiveAdminIds();
+                self::fail('le second administrateur doit attendre le premier');
+            } catch (\PDOException $e) {
+                self::assertSame(1205, $e->errorInfo[1] ?? null, 'délai d\'attente du verrou : il était bien bloqué');
+            }
+            $second->rollBack();
+        } finally {
+            $this->pdo->rollBack();
+        }
+    }
+
+    #[Test]
+    public function testUpdateRoleChangesOnlyTheRoleOfThatAccount(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $alice = $repository->save(new User(0, 'a@rehearsalbox.test', 'h', 'Alice', UserRole::Admin, true, 0, null));
+        $bob = $repository->save(new User(0, 'b@rehearsalbox.test', 'h', 'Bob', UserRole::Admin, true, 0, null));
+
+        $repository->updateRole($alice->id(), UserRole::Musicien);
+
+        $after = $repository->findById($alice->id());
+        self::assertSame(UserRole::Musicien, $after->role());
+        self::assertSame('Alice', $after->displayName());
+        self::assertSame($alice->sessionVersion(), $after->sessionVersion(), 'le rôle est relu à chaque requête : les sessions ne sont pas fermées');
+        self::assertSame(UserRole::Admin, $repository->findById($bob->id())->role());
     }
 }

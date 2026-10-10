@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Account\Repository;
 
 use App\Account\Entity\User;
+use App\Account\Entity\UserRole;
 
 interface UserRepositoryInterface
 {
@@ -15,8 +16,17 @@ interface UserRepositoryInterface
     /** @return list<User> tous les comptes, par nom affiché */
     public function findAll(): array;
 
-    /** Nombre d'administrateurs actifs (garde-fou : on ne désactive jamais le dernier). */
-    public function countActiveAdmins(): int;
+    /**
+     * Identifiants des administrateurs actifs, VERROUILLÉS (`FOR UPDATE`, dans l'ordre des identifiants) jusqu'à la fin de la
+     * transaction en cours : deux administrateurs qui retirent chacun un accès en même temps se mettent en file, le second voit
+     * le résultat du premier et ne peut donc pas supprimer le dernier administrateur. À appeler dans une transaction.
+     *
+     * @return list<int>
+     */
+    public function lockActiveAdminIds(): array;
+
+    /** Change le rôle d'un compte, sans toucher au reste (ni à la version de session : le rôle est relu à chaque requête). */
+    public function updateRole(int $userId, UserRole $role): void;
 
     public function save(User $user): User;
 

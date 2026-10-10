@@ -82,20 +82,6 @@ final class GroupServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testRemoveMemberRemovesExistingMember(): void
-    {
-        [$service, $groupRepository, $userRepository] = $this->makeService();
-        $group = $service->create('Groupe Test', null, null, 'contact@example.test');
-        $user = $this->createUser($userRepository, 'bob@rehearsalbox.test');
-        $service->addMemberByEmail($group->id(), 'bob@rehearsalbox.test');
-
-        $service->removeMember($group->id(), $user->id());
-
-        self::assertFalse($groupRepository->isMember($group->id(), $user->id()));
-    }
-
-    #[Test]
-
     public function testUpdateChangesGroupFields(): void
     {
         [$service] = $this->makeService();

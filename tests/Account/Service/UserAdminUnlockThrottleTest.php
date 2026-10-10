@@ -35,6 +35,8 @@ final class UserAdminUnlockThrottleTest extends RepositoryTestCase
             new MysqlGroupRepository($this->pdo),
             new UserProvisioningService($this->users, new FastPasswordHasher(), new PasswordPolicy()),
             $this->throttle,
+            new \App\Account\Security\LastAdminGuard($this->users),
+            new \App\Database\TransactionRunner($this->pdo),
         );
     }
 

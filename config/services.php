@@ -2,7 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Account\Security\DisplayNamePolicy;
+use App\Account\Security\LastAdminGuard;
 use App\Account\Service\CurrentPasswordVerifier;
+use App\Account\Service\UserAccountAdminService;
+use App\Group\Controller\Api\UserGroupAdminApiController;
+use App\Group\Repository\GroupManagerRepositoryInterface;
+use App\Group\Repository\MysqlGroupManagerRepository;
+use App\Group\Service\GroupManagerService;
+use App\Group\Service\GroupMembershipAdminService;
 use App\Backup\Controller\RestoreController;
 use App\Backup\Restore\BackupCatalog;
 use App\Backup\Restore\DocumentOrphanReport;
@@ -508,6 +516,8 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(UserProvisioningService::class),
         $c->get(LoginThrottle::class),
+        new LastAdminGuard($c->get(UserRepositoryInterface::class)),
+        $c->get(TransactionRunner::class),
     ));
 
     $container->set(GroupImpactRepositoryInterface::class, fn ($c) => new MysqlGroupImpactRepository($c->get(PDO::class)));
@@ -545,14 +555,41 @@ return static function (array $config): Container {
         $c->get(GroupServiceInterface::class),
     ));
 
+    // Modifier un compte depuis l'administration (#272) : gardes partagées « dernier administrateur » et « dernier gestionnaire ».
+    $container->set(LastAdminGuard::class, fn ($c) => new LastAdminGuard($c->get(UserRepositoryInterface::class)));
+    $container->set(GroupManagerRepositoryInterface::class, fn ($c) => new MysqlGroupManagerRepository($c->get(PDO::class)));
+    $container->set(UserAccountAdminService::class, fn ($c) => new UserAccountAdminService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(EmailChangeService::class),
+        $c->get(LastAdminGuard::class),
+        new DisplayNamePolicy(),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+    $container->set(GroupMembershipAdminService::class, fn ($c) => new GroupMembershipAdminService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(GroupManagerRepositoryInterface::class),
+        new GroupManagerService($c->get(GroupRepositoryInterface::class), $c->get(GroupManagerRepositoryInterface::class)),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+
     $container->set(UserAdminApiController::class, fn ($c) => new UserAdminApiController(
         $c->get(UserAdminServiceInterface::class),
+        $c->get(AuthGuard::class),
+        $c->get(UserAccountAdminService::class),
+    ));
+
+    $container->set(UserGroupAdminApiController::class, fn ($c) => new UserGroupAdminApiController(
+        $c->get(GroupMembershipAdminService::class),
         $c->get(AuthGuard::class),
     ));
 
     $container->set(GroupApiController::class, fn ($c) => new GroupApiController(
         $c->get(GroupServiceInterface::class),
         $c->get(AuthGuard::class),
+        $c->get(GroupMembershipAdminService::class),
     ));
 
     // Chiffrement au repos du texte de la messagerie (#171). Sans fichier de clés valide, le service lève une exception : rien n'est

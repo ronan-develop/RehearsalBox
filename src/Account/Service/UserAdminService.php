@@ -10,7 +10,9 @@ use App\Group\Entity\Group;
 use App\Account\Entity\User;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Account\Repository\UserRepositoryInterface;
+use App\Account\Security\LastAdminGuard;
 use App\Account\Service\Throttle\LoginThrottle;
+use App\Database\TransactionRunner;
 use App\Account\Service\UserAdminServiceInterface;
 use App\Account\Exception\UserAdminRuleException;
 use App\Account\Exception\UserNotFoundException;
@@ -23,19 +25,22 @@ final class UserAdminService implements UserAdminServiceInterface
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly UserProvisioningService $provisioning,
         private readonly LoginThrottle $loginThrottle,
+        private readonly LastAdminGuard $lastAdminGuard,
+        private readonly TransactionRunner $transactions,
     ) {
     }
 
     public function listUsers(\DateTimeImmutable $now): array
     {
-        return array_map(
-            fn (User $user): AdminUserItem => new AdminUserItem(
-                $user,
-                $this->sortedByName($this->groupRepository->findByMember($user->id())),
-                $user->isLocked($now),
-            ),
-            $this->userRepository->findAll(),
-        );
+        return array_map(function (User $user) use ($now): AdminUserItem {
+            $groups = $this->sortedByName($this->groupRepository->findByMember($user->id()));
+            $roles = [];
+            foreach ($groups as $group) {
+                $roles[$group->id()] = ($this->groupRepository->roleOf($group->id(), $user->id()) ?? \App\Group\Entity\GroupUserRole::Membre)->value;
+            }
+
+            return new AdminUserItem($user, $groups, $user->isLocked($now), $roles);
+        }, $this->userRepository->findAll());
     }
 
     public function create(string $email, string $displayName, UserRole $role, ?int $groupId): User
@@ -56,18 +61,15 @@ final class UserAdminService implements UserAdminServiceInterface
 
     public function setActive(int $userId, bool $active, int $actorUserId): User
     {
-        $user = $this->userRepository->findById($userId) ?? throw new UserNotFoundException("Utilisateur {$userId} introuvable.");
-
-        if (!$active) {
-            if ($userId === $actorUserId) {
-                throw new UserAdminRuleException('Vous ne pouvez pas désactiver votre propre compte.');
+        // Une transaction : la garde « dernier administrateur » verrouille les administrateurs jusqu'à l'enregistrement (#272).
+        return $this->transactions->run(function () use ($userId, $active, $actorUserId): User {
+            $user = $this->userRepository->findById($userId) ?? throw new UserNotFoundException("Utilisateur {$userId} introuvable.");
+            if (!$active) {
+                $this->lastAdminGuard->assertMayLoseAdmin($user, $actorUserId, 'désactiver');
             }
-            if ($user->isActive() && $user->hasRole(UserRole::Admin) && $this->userRepository->countActiveAdmins() <= 1) {
-                throw new UserAdminRuleException('Impossible de désactiver le dernier administrateur actif.');
-            }
-        }
 
-        return $this->userRepository->save($user->withActive($active));
+            return $this->userRepository->save($user->withActive($active));
+        });
     }
 
     public function unlock(int $userId): User
