@@ -102,4 +102,53 @@ final class TestDatabaseTest extends TestCase
         self::assertSame(0, (int) $this->pdo->query("SELECT COUNT(*) FROM migrations_log WHERE migration = 'zz_marqueur.sql'")->fetchColumn(), 'schéma reconstruit');
         self::assertSame(count(glob(self::MIGRATIONS . '/*.sql')), $this->migrationsLogCount());
     }
+
+    /** Connexion de test dont on compte les requêtes « EXISTS » (la sonde de chaque table entre deux tests). */
+    private function countingConnection(): \PDO
+    {
+        return new class (
+            sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', getenv('DB_TEST_HOST') ?: '127.0.0.1', getenv('DB_TEST_PORT') ?: '3307', getenv('DB_TEST_NAME') ?: 'rehearsalbox_test'),
+            getenv('DB_TEST_USER') ?: 'root',
+            getenv('DB_TEST_PASSWORD') ?: 'root',
+            [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, \PDO::ATTR_EMULATE_PREPARES => false],
+        ) extends \PDO {
+            public int $probes = 0;
+
+            public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): \PDOStatement|false
+            {
+                if (str_contains($query, 'EXISTS')) {
+                    ++$this->probes;
+                }
+
+                return $fetchMode === null ? parent::query($query) : parent::query($query, $fetchMode, ...$fetchModeArgs);
+            }
+        };
+    }
+
+    #[Test]
+    public function testOnlyTablesWithoutAnAutoIncrementCounterAreProbedForRows(): void
+    {
+        TestDatabase::fresh($this->pdo, self::MIGRATIONS);
+        $withoutCounter = (int) $this->pdo->query(
+            "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' AND AUTO_INCREMENT IS NULL AND TABLE_NAME <> 'migrations_log'"
+        )->fetchColumn();
+        $counting = $this->countingConnection();
+
+        TestDatabase::fresh($counting, self::MIGRATIONS);
+
+        // Un compteur à 1 prouve qu'aucune ligne n'a été insérée : inutile de sonder ces tables-là (une requête de plus par table et par test).
+        self::assertSame($withoutCounter, $counting->probes);
+    }
+
+    #[Test]
+    public function testARowInsertedWithAnExplicitIdIsStillDetectedWithoutProbing(): void
+    {
+        TestDatabase::fresh($this->pdo, self::MIGRATIONS);
+        $this->pdo->exec("INSERT INTO users (id, email, password_hash, display_name, role, is_active) VALUES (1, 'a@rehearsalbox.test', 'x', 'N', 'musicien', 1)");
+
+        TestDatabase::fresh($this->pdo, self::MIGRATIONS);
+
+        self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM users')->fetchColumn());
+        self::assertSame(1, $this->insertUser('b@rehearsalbox.test'));
+    }
 }
