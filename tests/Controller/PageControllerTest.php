@@ -116,13 +116,45 @@ final class PageControllerTest extends RepositoryTestCase
 
         preg_match_all('/data-planning-day="(\d)"/', $body, $days);
         self::assertSame(['1', '2', '0'], $days[1], 'mardi (aujourd\'hui), mercredi, puis lundi de la semaine suivante');
-        self::assertSame(1, substr_count($body, 'data-today'), 'un seul jour est marqué aujourd\'hui');
+        self::assertSame(1, preg_match_all('/<h3 [^>]*data-today/', $body), 'un seul titre de jour est marqué aujourd\'hui');
         self::assertLessThan(
             strpos($body, 'data-planning-day="2"'),
             strpos($body, 'data-today'),
             'le marqueur est sur le premier jour',
         );
         self::assertStringNotContainsString('aria-hidden="true" style="display: contents;"', $body, 'plus de copie dupliquée dans le HTML (créée par le JS si besoin)');
+    }
+
+    #[Test]
+    public function testOnlyTheCardsOfTodayCarryARealTodayBadge(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $slotService->create($group->id(), Weekday::Monday, '18:00:00', '20:00:00');
+        $slotService->create($group->id(), Weekday::Tuesday, '18:00:00', '20:00:00'); // aujourd'hui : mardi 6 octobre 2026
+        $slotService->create($group->id(), Weekday::Tuesday, '20:00:00', '22:00:00');
+
+        $body = $controller->dashboard()->body();
+
+        self::assertSame(2, preg_match_all('/<rb-planning-card [^>]*data-today[^>]*>\s*<span class="rb-badge rb-planning-card-today">Aujourd’hui<\/span>/', $body), 'les deux cartes du jour portent le badge, en texte réel');
+        self::assertSame(2, substr_count($body, 'rb-planning-card-today'), 'aucune carte d\'un autre jour n\'est marquée');
+        self::assertStringNotContainsString('rb-planning-card-today" aria-hidden', $body, 'lisible au lecteur d\'écran');
+    }
+
+    #[Test]
+    public function testNoCardBadgeWhenThereIsNoSlotToday(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $slotService->create($group->id(), Weekday::Monday, '18:00:00', '20:00:00');
+        $slotService->create($group->id(), Weekday::Wednesday, '18:00:00', '20:00:00');
+
+        $body = $controller->dashboard()->body();
+
+        self::assertStringNotContainsString('rb-planning-card-today', $body);
+        self::assertStringNotContainsString('data-today', $body);
     }
 
     #[Test]
