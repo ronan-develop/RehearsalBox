@@ -87,17 +87,21 @@ final class MysqlMentionNoticeRepository implements MentionNoticeRepositoryInter
     public function findDueReminders(\DateTimeImmutable $dueBefore, \DateTimeImmutable $notBefore): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT n.conversation_id, n.user_id, u.email, COALESCE(mu.display_name, '') AS mentioner
+            "SELECT n.conversation_id, n.user_id, u.email, COALESCE(mu.display_name, '') AS mentioner, (c.direct_low_user_id IS NOT NULL) AS is_direct
              FROM conversation_mention_notices n
              JOIN conversations c ON c.id = n.conversation_id
              JOIN users u ON u.id = n.user_id
              LEFT JOIN users mu ON mu.id = n.notified_by
              WHERE n.reminded_at IS NULL AND n.notified_at <= :due_before AND n.notified_at >= :not_before
-               AND c.deleted_at IS NULL AND u.is_active = 1 AND u.email_notifications = 1
-               AND n.user_id IN (
-                   SELECT gu.user_id FROM group_user gu WHERE gu.group_id IN (c.initiator_group_id, c.target_group_id)
-                   UNION
-                   SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
+               AND c.deleted_at IS NULL AND u.is_active = 1
+               AND (u.email_notifications = 1 OR c.direct_low_user_id IS NOT NULL) -- message direct : pas de désabonnement général (#269)
+               AND (
+                   n.user_id IN (c.direct_low_user_id, c.direct_high_user_id)
+                   OR n.user_id IN (
+                       SELECT gu.user_id FROM group_user gu WHERE gu.group_id IN (c.initiator_group_id, c.target_group_id)
+                       UNION
+                       SELECT cg.user_id FROM conversation_guests cg WHERE cg.conversation_id = c.id
+                   )
                )
                AND NOT EXISTS (
                    SELECT 1 FROM conversation_states ms
@@ -119,7 +123,7 @@ final class MysqlMentionNoticeRepository implements MentionNoticeRepositoryInter
         ]);
 
         return array_map(
-            static fn (array $row): DueMentionReminder => new DueMentionReminder((int) $row['conversation_id'], (int) $row['user_id'], (string) $row['email'], (string) $row['mentioner']),
+            static fn (array $row): DueMentionReminder => new DueMentionReminder((int) $row['conversation_id'], (int) $row['user_id'], (string) $row['email'], (string) $row['mentioner'], (bool) $row['is_direct']),
             $statement->fetchAll(\PDO::FETCH_ASSOC),
         );
     }
