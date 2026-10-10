@@ -73,6 +73,7 @@ Si le 3 échoue, corriger d'abord les paramètres (zones sensibles, tests ciblé
 - **Un fichier, un propriétaire.** Deux exécutants sur le même fichier s'écrasent sans erreur.
 - **Une micro-tâche mal spécifiée coûte plus qu'elle ne rapporte** : si l'exécutant doit explorer le dépôt ou prendre une décision, faire en direct.
 - **La relecture du diff n'est pas optionnelle.** Haiku peut passer ses tests tout en s'écartant des conventions.
+- **Les workflows du board déplacent les cartes** : un workflow « PR liée → In progress » défait un passage manuel en Refacto à l'ouverture de la PR ; relire la colonne après chaque PR.
 - **Les Haiku ne commitent jamais** ; les commits passent par le workflow du projet, sur validation.
 
 ## 5. Réglages si les résultats déçoivent

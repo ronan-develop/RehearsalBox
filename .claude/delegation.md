@@ -33,28 +33,17 @@ Pour les tâches **moyennes ou difficiles** : Sonnet (ou Opus) conçoit et déco
 | `.claude/commands/split-opus.md`| `/split-opus <…>` — même procédure (lit `split.md`), planifiée par Opus : tâche difficile    |
 | `.claude/agents/haiku-worker.md` | L'exécutant (`model: claude-haiku-5-5`, identifiant épinglé : à changer ici à la prochaine version) : une sous-tâche bornée, test d'abord, compte rendu de 15 lignes |
 
-## Pourquoi `/split` est une commande et pas un agent
+## Pourquoi ce sont des commandes et pas des agents
 
-Un sous-agent ne peut pas en lancer d'autres. L'orchestrateur doit donc être la session principale : `/split` fixe son modèle à Sonnet pour ce tour, les `haiku-worker` en sont les enfants directs.
+Un sous-agent ne peut pas en lancer d'autres. L'orchestrateur doit donc être la session principale : `/dispatch` et `/split` fixent son modèle à Sonnet pour ce tour, les `haiku-worker` en sont les enfants directs.
 
-## Quand l'utiliser
+## Règles de l'orchestrateur (génériques)
 
-| Tâche                                                                    | Façon de faire                                     |
-|--------------------------------------------------------------------------|----------------------------------------------------|
-| Moyenne, ≥ 3 morceaux sur des fichiers distincts (couche par couche)     | `/split` (Sonnet planifie)                         |
-| Difficile : conception à trancher, plusieurs modules, ticket ambigu      | `/split-opus` (Opus planifie, Haiku exécute)       |
-| Petite (1 fichier, 1 correction)                                         | Direct, sans délégation (un brief coûte plus cher) |
-| Morceaux qui se touchent ou s'enchaînent                                 | Direct, ou en séquence                             |
-| Zone sensible du projet (voir Paramètres du projet)                      | Le planificateur seul, jamais Haiku                |
-| Conception, ambiguïté du ticket                                          | Le planificateur seul, avant de découper           |
+Les règles de l'exécutant lui-même (test d'abord, aucune commande git qui écrit, sobriété, périmètre) sont écrites UNE fois, dans `.claude/agents/haiku-worker.md`. Ici, ce qui revient à l'orchestrateur :
 
-## Règles qui s'appliquent aux exécutants (génériques)
-
-- **Test d'abord** : RED constaté avant GREEN, dans chaque micro-tâche.
 - **Un fichier, un propriétaire** par `/split` : sinon écrasements silencieux dans l'arbre de travail commun.
-- **Ressource partagée à un seul utilisateur** (base de test, port, fichier de verrou) : l'orchestrateur la réserve à un exécutant au plus ; la suite complète n'est lancée que par lui.
-- **Git** : aucun commit, `add`, `push` par un exécutant. Commits après validation de l'utilisateur ; pas de push, PR ou merge sans confirmation.
-- **Sobriété** : le brief nomme les classes à créer ; l'exécutant n'ajoute ni interface ni abstraction.
+- **Ressource partagée à un seul utilisateur** (base de test, port, fichier de verrou) : réservée à un exécutant au plus ; la suite complète n'est lancée que par l'orchestrateur.
+- **Git** : commits après validation de l'utilisateur ; pas de push, PR ou merge sans confirmation (sauf autorisation donnée pour ce ticket).
 
 ## Paramètres du projet — la section à réécrire dans un autre projet (avec le bloc « Règles du projet » de `haiku-worker.md`)
 
@@ -69,7 +58,7 @@ Valeurs de RehearsalBox (PHP pur, JS vanilla, PDO/MySQL). Quand une autre sectio
 | Ressource partagée                 | Base de test MariaDB unique, port 3307 (`docker-compose.test.yml`) : un seul PHPUnit avec base à la fois                                  |
 | Contrôles de l'orchestrateur       | Conteneur de test démarré, puis `./vendor/bin/phpunit --colors=always`, `npm test`, `phpstan analyse`, `php-cs-fixer --dry-run`, `php bin/check-size.php` |
 | Workflow git                       | Branche `<type>/#<n>-<slug>`, commits `<emoji> <type>(<scope>): …` via `/git`, jamais sur `main`, merge simple, confirmation avant push/PR/merge |
-| Suivi du ticket                    | Board GitHub projet #11 (REST) : Backlog → Ready → **In progress dès le début du code** → Refacto (checklist relue, refacto fait DANS le ticket) → Done au merge. Syntaxe de mise à jour : mémoire `feedback-board-workflow` |
+| Suivi du ticket                    | Board GitHub projet #11 (REST) : Backlog → Ready → **In progress dès le début du code** → Refacto (checklist relue, refacto fait DANS le ticket) → Done au merge. **Piège** : le workflow du projet « Pull request linked to issue » repasse la carte en In progress à l'ouverture d'une PR liée : la remettre en Refacto juste après, puis relire. Syntaxe de mise à jour : mémoire `feedback-board-workflow` |
 | Checklist de refacto               | Description de la colonne « Refacto » du board GitHub projet #11 (lue en REST) : OOP, SRP, Factory, Strategy, KISS, DRY, YAGNI             |
 | Règles de code des exécutants      | Bloc « Règles du projet » de `.claude/agents/haiku-worker.md` (à réécrire en même temps)                                                  |
 
@@ -78,7 +67,7 @@ Valeurs de RehearsalBox (PHP pur, JS vanilla, PDO/MySQL). Quand une autre sectio
 - Haiku fait le volume (écrire tests et code d'une couche déjà conçue) ; Sonnet ne lit que les comptes rendus et les diffs.
 - Briefs **courts mais complets** : fichiers autorisés, signatures, cas de test. Un exécutant qui doit explorer le dépôt coûte plus qu'il ne rapporte.
 - Comptes rendus plafonnés à 15 lignes : ils reviennent dans le contexte de Sonnet.
-- Gain nul ou négatif si le découpage est mauvais (sous-tâches liées, conception laissée à Haiku) : voir « Quand l'utiliser ».
+- Gain nul ou négatif si le découpage est mauvais (sous-tâches liées, conception laissée à Haiku) : voir « Choisir le mode » dans `.claude/commands/dispatch.md`.
 
 ## Limite connue
 

@@ -12,8 +12,7 @@ Tu es l'**aiguilleur ET l'orchestrateur**. Tu choisis le mode, tu le dis en une 
 
 - Un numéro → `gh issue view <n>`. Sinon la description telle quelle. Appliquer le contexte de `/ticket` : `git status`, branche courante (signaler des changements non commités ou un autre ticket en cours).
 - 2 à 4 recherches ciblées (`grep`/`ls`) pour situer le code : dossiers de `src/`, `public/assets/js/`, `templates/`, `tests/`. Pas de lecture de fichiers entiers à ce stade.
-
-- **Suivi du ticket** : si l'argument est un numéro, passer sa carte en « In progress » AVANT de coder (voir « Suivi du ticket » dans « Paramètres du projet »), puis en « Refacto » avant le merge et « Done » au merge.
+- **Suivi du ticket** : si l'argument est un numéro, passer sa carte en « In progress » AVANT de coder, puis en « Refacto » avant le merge (et la remettre en Refacto après l'ouverture de la PR : un workflow la repasse en In progress), « Done » au merge. Détail dans « Suivi du ticket » de « Paramètres du projet ».
 
 ## 2. Choisir le mode
 
