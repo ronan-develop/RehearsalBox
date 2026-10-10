@@ -1,6 +1,7 @@
 /vendor/
 /node_modules/
 /config/config.local.php
+/config/message-keys.json
 /.secrets
 /.phpunit.cache/
 /build/
