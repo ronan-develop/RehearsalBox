@@ -139,4 +139,55 @@ final class CoverageSummaryTest extends TestCase
 
         self::assertStringContainsString('**Total : 0,0 %** (0 / 0)', $markdown);
     }
+
+    #[Test]
+    public function testTheMinimumIsMetAboveAndExactlyAtTheThreshold(): void
+    {
+        $tool = new CoverageSummary();
+        $above = $tool->fromClover($this->clover(['A/B/C.php' => [100, 95]]), self::SRC);
+        $equal = $tool->fromClover($this->clover(['A/B/C.php' => [100, 90]]), self::SRC);
+
+        self::assertNull($tool->minimumFailure($above, 90.0));
+        self::assertNull($tool->minimumFailure($equal, 90.0), 'égal au seuil : accepté');
+    }
+
+    #[Test]
+    public function testBelowTheMinimumTheMessageGivesTheTotalAndTheThreshold(): void
+    {
+        $tool = new CoverageSummary();
+        $below = $tool->fromClover($this->clover(['A/B/C.php' => [1000, 899]]), self::SRC);
+
+        $message = $tool->minimumFailure($below, 90.0);
+
+        self::assertNotNull($message);
+        self::assertStringContainsString('89,9 %', $message);
+        self::assertStringContainsString('90,0 %', $message);
+    }
+
+    #[Test]
+    public function testAnEmptyReportFailsAnyPositiveMinimumButNotZero(): void
+    {
+        $tool = new CoverageSummary();
+        $empty = $tool->fromClover($this->clover([]), self::SRC);
+
+        self::assertNotNull($tool->minimumFailure($empty, 90.0));
+        self::assertNull($tool->minimumFailure($empty, 0.0));
+    }
+
+    #[Test]
+    public function testTheMinimumOptionAcceptsPercentagesAndRefusesTheRest(): void
+    {
+        self::assertSame(90.0, CoverageSummary::parseMinimum('90'));
+        self::assertSame(87.5, CoverageSummary::parseMinimum('87.5'));
+        self::assertSame(0.0, CoverageSummary::parseMinimum('0'));
+        self::assertSame(100.0, CoverageSummary::parseMinimum('100'));
+
+        foreach (['', 'abc', '-1', '100.1', '9 0', '1e2', 'NaN'] as $invalid) {
+            try {
+                CoverageSummary::parseMinimum($invalid);
+                self::fail("« {$invalid} » aurait dû être refusé.");
+            } catch (\InvalidArgumentException) {
+            }
+        }
+    }
 }
