@@ -63,10 +63,10 @@ final class AdminGroupsTemplateTest extends TestCase
     public function testMissingOrUnsafeColorFallsBackToTheDefaultColor(): void
     {
         $html = $this->render([new Group(8, 'Jazz', null, null, 'jazz@example.test')]);
-        self::assertMatchesRegularExpression('/id="group-8-colorHex"[^>]*value="#b5654a"/', $html);
+        self::assertMatchesRegularExpression('/id="group-8-colorHex"[^>]*value="#cb824d"/', $html);
 
         $unsafe = $this->render([new Group(9, 'Metal', null, 'red;x', 'metal@example.test')]);
-        self::assertMatchesRegularExpression('/id="group-9-colorHex"[^>]*value="#b5654a"/', $unsafe);
+        self::assertMatchesRegularExpression('/id="group-9-colorHex"[^>]*value="#cb824d"/', $unsafe);
         self::assertStringNotContainsString('red;x', $unsafe);
     }
 

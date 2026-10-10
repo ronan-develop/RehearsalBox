@@ -80,7 +80,7 @@ test('the colour field is a text input wrapped by rb-color-picker, never a nativ
 test('a missing colour falls back to the default brick colour', () => {
   const html = renderGroupCard({ id: 7, name: 'Groupe Test', genre: null, colorHex: null });
 
-  assert.match(html, /name="colorHex"[^>]*value="#b5654a"/);
+  assert.match(html, /name="colorHex"[^>]*value="#cb824d"/);
 });
 
 test('the action buttons sit in the rb-group-card-head header', () => {
