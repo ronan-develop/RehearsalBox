@@ -35,7 +35,7 @@ final class TestDatabase
     /**
      * Prépare la base d'un test : le schéma est construit UNE fois par exécution (destruction + migrations), puis, entre deux
      * tests, seules les tables touchées sont vidées (TRUNCATE : compteurs d'identifiants remis à zéro). Une table est
-     * touchée si elle contient une ligne ou si son compteur a avancé (le test a pu la vider lui-même).
+     * touchée si son compteur a avancé (le test a pu la vider lui-même) ou, faute de compteur, si elle contient une ligne.
      */
     public static function fresh(\PDO $pdo, string $migrationsDirectory): void
     {
@@ -56,8 +56,11 @@ final class TestDatabase
             if ($table === 'migrations_log') {
                 continue; // le journal décrit le schéma, pas les données du test
             }
-            $touched = ($autoIncrement !== null && (int) $autoIncrement > 1)
-                || (int) $pdo->query("SELECT EXISTS (SELECT 1 FROM `{$table}`)")->fetchColumn() === 1;
+            // Compteur : > 1 = une ligne a existé (même supprimée) ; = 1 = jamais de ligne depuis le dernier TRUNCATE, inutile de sonder
+            // (une requête de plus par table et par test). Sans compteur (clé composée), seule la présence d'une ligne le dit.
+            $touched = $autoIncrement !== null
+                ? (int) $autoIncrement > 1
+                : (int) $pdo->query("SELECT EXISTS (SELECT 1 FROM `{$table}`)")->fetchColumn() === 1;
             if ($touched) {
                 $pdo->exec("TRUNCATE TABLE `{$table}`");
             }
