@@ -40,4 +40,33 @@ final class MysqlThrottleEventRepositoryTest extends RepositoryTestCase
         self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM throttle_events')->fetchColumn());
         self::assertSame(1, $repository->countSince(str_repeat('a', 64), new \DateTimeImmutable('2025-12-01 00:00:00')));
     }
+
+    #[Test]
+    public function testItGivesTheDateOfTheNthMostRecentEventWithinTheWindow(): void
+    {
+        $repository = new MysqlThrottleEventRepository($this->pdo);
+        foreach (['09:40:00', '09:45:00', '09:50:00', '09:55:00', '09:58:00'] as $time) {
+            $repository->record(str_repeat('a', 64), new \DateTimeImmutable("2026-01-01 {$time}"));
+        }
+        $since = new \DateTimeImmutable('2026-01-01 09:43:00');
+
+        self::assertEquals(new \DateTimeImmutable('2026-01-01 09:58:00'), $repository->nthMostRecentSince(str_repeat('a', 64), 1, $since));
+        self::assertEquals(new \DateTimeImmutable('2026-01-01 09:50:00'), $repository->nthMostRecentSince(str_repeat('a', 64), 3, $since));
+        self::assertNull($repository->nthMostRecentSince(str_repeat('a', 64), 5, $since), 'seulement 4 évènements dans la fenêtre');
+        self::assertNull($repository->nthMostRecentSince(str_repeat('b', 64), 1, $since));
+    }
+
+    #[Test]
+    public function testItForgetsOneSubjectAndOnlyThatOne(): void
+    {
+        $repository = new MysqlThrottleEventRepository($this->pdo);
+        $repository->record(str_repeat('a', 64), new \DateTimeImmutable('2026-01-01 09:58:00'));
+        $repository->record(str_repeat('a', 64), new \DateTimeImmutable('2026-01-01 09:59:00'));
+        $repository->record(str_repeat('b', 64), new \DateTimeImmutable('2026-01-01 09:59:00'));
+
+        $repository->forget(str_repeat('a', 64));
+
+        self::assertSame(0, $repository->countSince(str_repeat('a', 64), new \DateTimeImmutable('2026-01-01 00:00:00')));
+        self::assertSame(1, $repository->countSince(str_repeat('b', 64), new \DateTimeImmutable('2026-01-01 00:00:00')));
+    }
 }

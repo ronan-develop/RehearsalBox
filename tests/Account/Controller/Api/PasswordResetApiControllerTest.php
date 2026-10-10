@@ -14,7 +14,7 @@ use App\Account\Repository\MysqlUserRepository;
 use App\Tests\Doubles\FastPasswordHasher;
 use App\Account\Security\PasswordPolicy;
 use App\Account\Repository\MysqlThrottleEventRepository;
-use App\Account\Service\IpThrottle;
+use App\Account\Service\Throttle\SubjectThrottle;
 use App\Account\Service\PasswordResetService;
 use App\Tests\Scenarios\KernelTranslation;
 use App\Tests\Doubles\RecordingMailer;
@@ -47,7 +47,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
             new PasswordPolicy(),
             TestMailbox::of($this->mailer),
             new TransactionRunner($this->pdo),
-        ), new IpThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour')));
+        ), new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'password-reset', self::THROTTLE_LIMIT, '-1 hour')));
     }
 
     private function insertUser(): User
