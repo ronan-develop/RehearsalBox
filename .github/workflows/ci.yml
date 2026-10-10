@@ -30,7 +30,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          coverage: none
+          coverage: pcov
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
@@ -57,7 +57,11 @@ jobs:
           DB_TEST_NAME: rehearsalbox_test
           DB_TEST_USER: root
           DB_TEST_PASSWORD: root
-        run: ./vendor/bin/phpunit --colors=always
+        run: ./vendor/bin/phpunit --colors=always --coverage-clover=build/coverage/clover.xml
+
+      # Couverture (#129) : résumé par dossier et par couche dans l'onglet « Summary » du run. Aucun seuil : on mesure d'abord.
+      - name: Coverage summary
+        run: php bin/coverage-summary.php | tee -a "$GITHUB_STEP_SUMMARY"
 
   js:
     runs-on: ubuntu-latest
