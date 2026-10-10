@@ -126,8 +126,6 @@ use App\Messaging\Presenter\EditedMessageFragments;
 use App\Messaging\Controller\Api\MessageApiController;
 use App\Messaging\Notification\MentionReminderService;
 use App\Messaging\Service\MessageVersionPurge;
-use App\Account\Repository\NotificationPreferenceRepositoryInterface;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Messaging\Repository\Participation\MysqlConversationGuestRepository;
 use App\Messaging\Repository\Mention\MysqlConversationMentionRepository;
 use App\Planning\Repository\MysqlBookingDateLock;
@@ -390,7 +388,6 @@ return static function (array $config): Container {
         $c->get(SlotServiceInterface::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupDocumentRepositoryInterface::class),
-        $c->get(NotificationPreferenceRepositoryInterface::class),
         new DashboardView(
             $c->get(AvailabilityServiceInterface::class),
             $c->get(GroupRepositoryInterface::class),
@@ -471,8 +468,7 @@ return static function (array $config): Container {
         $c->get(TransactionRunner::class),
     ));
 
-    $container->set(NotificationPreferenceRepositoryInterface::class, fn ($c) => new MysqlNotificationPreferenceRepository($c->get(PDO::class)));
-    $container->set(ProfileService::class, fn ($c) => new ProfileService($c->get(UserRepositoryInterface::class), $c->get(NotificationPreferenceRepositoryInterface::class)));
+    $container->set(ProfileService::class, fn ($c) => new ProfileService($c->get(UserRepositoryInterface::class)));
 
     $container->set(PasswordResetApiController::class, fn ($c) => new PasswordResetApiController(
         $c->get(PasswordResetService::class),
@@ -607,7 +603,6 @@ return static function (array $config): Container {
         $c->get(Mailbox::class),
         $c->get(MentionNoticeRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),
-        $c->get(NotificationPreferenceRepositoryInterface::class),
         $c->get(ConversationMuteRepositoryInterface::class),
         $c->get(LoggerInterface::class),
     ));

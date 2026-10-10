@@ -11,7 +11,6 @@ use App\Messaging\Entity\MentionNotice;
 use App\Mail\Mailbox;
 use App\Messaging\Repository\Notice\MentionNoticeRepositoryInterface;
 use App\Messaging\Repository\Participation\ConversationMuteRepositoryInterface;
-use App\Account\Repository\NotificationPreferenceRepositoryInterface;
 use App\Account\Repository\UserRepositoryInterface;
 use App\Support\HeaderText;
 use Symfony\Component\Mime\Email;
@@ -33,7 +32,6 @@ final class MentionNotifier
         private readonly Mailbox $mailbox,
         private readonly MentionNoticeRepositoryInterface $notices,
         private readonly UserRepositoryInterface $users,
-        private readonly NotificationPreferenceRepositoryInterface $preferences,
         private readonly ConversationMuteRepositoryInterface $mutes,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
@@ -58,7 +56,7 @@ final class MentionNotifier
     private function notify(Conversation $conversation, int $authorId, string $authorName, int $userId, \DateTimeImmutable $now): void
     {
         $user = $this->users->findById($userId);
-        if ($user === null || !$user->isActive() || !$this->preferences->emailEnabled($userId)) {
+        if ($user === null || !$user->isActive()) {
             return;
         }
         // Sourdine (#210) : aucune mention de cette conversation n'envoie d'e-mail, et rien n'est réservé (levée = reprise).
@@ -98,7 +96,6 @@ final class MentionNotifier
             [
                 'mentionerName' => $authorName,
                 'link' => $this->mailbox->url('/messages/' . $conversation->id()),
-                'accountLink' => $this->mailbox->url('/account/password'),
                 'preheader' => $authorName . ' vous a mentionné(e) dans une conversation.',
             ],
         );

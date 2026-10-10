@@ -10,7 +10,6 @@ use App\Planning\Entity\Requester;
 use App\Planning\Entity\TimeRange;
 use App\Account\Entity\User;
 use App\Planning\Repository\MysqlFreeSlotBookingRepository;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Planning\Service\BookingNotifier;
 use App\Tests\Database\RepositoryTestCase;
 use App\Tests\Scenarios\MessagingScenario;
@@ -98,19 +97,6 @@ final class BookingNotifierTest extends RepositoryTestCase
         self::assertStringContainsString('09:00 – 14:00', (string) $email->getTextBody());
         self::assertStringContainsString('https://rehearsalbox.example/admin/bookings', (string) $email->getTextBody());
         self::assertStringNotContainsString('Enregistrement secret', (string) $email->getHtmlBody() . (string) $email->getTextBody());
-    }
-
-    #[Test]
-    public function testTheAlertCannotBeSwitchedOffByTheGeneralPreference(): void
-    {
-        $zoe = $this->admin('Zoe');
-        (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($zoe->id(), false);
-        $mailer = new RecordingMailer();
-
-        $this->notifier($mailer)->bookingRequested($this->booking());
-        $this->later->runAll();
-
-        self::assertSame(['zoe.admin@rehearsalbox.test'], $this->recipients($mailer), 'alerte de gestion : non désactivable');
     }
 
     #[Test]

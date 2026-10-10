@@ -30,8 +30,8 @@ final class MailRendererTest extends TestCase
             ['account-alert', ['link' => self::LINK]],
             ['conversation-new', ['authorName' => 'Alice', 'groupName' => 'Alpha', 'link' => self::LINK]],
             ['conversation-reminder', ['counterpartName' => 'Alpha', 'link' => self::LINK]],
-            ['mention-new', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]],
-            ['mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]],
+            ['mention-new', ['mentionerName' => 'Alice', 'link' => self::LINK]],
+            ['mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK]],
             ['booking-pending', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'link' => self::LINK]],
             ['booking-decided', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'accepted' => true, 'note' => null, 'link' => self::LINK]],
         ] as [$template, $data]) {
@@ -199,17 +199,18 @@ final class MailRendererTest extends TestCase
     // --- E-mails de mention (#178) --------------------------------------------------------------------
 
     #[Test]
-    public function testMentionEmailsNameTheAuthorLinkToTheConversationAndToTheUnsubscribeAndEscapeEverything(): void
+    public function testMentionEmailsNameTheAuthorLinkToTheConversationPointToTheMuteAndEscapeEverything(): void
     {
         foreach (['mention-new', 'mention-reminder'] as $template) {
-            $mail = $this->renderer->render($template, ['mentionerName' => '<b>Alice</b>', 'link' => self::LINK, 'accountLink' => 'https://rehearsalbox.example/account/password']);
+            $mail = $this->renderer->render($template, ['mentionerName' => '<b>Alice</b>', 'link' => self::LINK]);
 
             self::assertStringContainsString('&lt;b&gt;Alice&lt;/b&gt;', $mail['html'], $template);
             self::assertStringNotContainsString('<b>Alice</b>', $mail['html'], $template);
             self::assertStringContainsString('href="https://rehearsalbox.example/reset-password?token=abc123&amp;x=1"', $mail['html'], $template);
             self::assertStringContainsString(self::LINK, $mail['text'], $template);
             foreach ([$mail['html'], $mail['text']] as $body) {
-                self::assertStringContainsString('https://rehearsalbox.example/account/password', $body, $template . ' : lien de désinscription');
+                self::assertStringNotContainsString('/account/password', $body, $template . ' : plus de désabonnement général (#266)');
+                self::assertStringContainsString('sourdine', $body, $template . ' : seul moyen de ne plus recevoir : la sourdine de la conversation');
                 self::assertStringContainsString('se lit sur le site', $body, $template . ' : le contenu n\'est pas envoyé');
             }
         }
@@ -258,7 +259,7 @@ final class MailRendererTest extends TestCase
     #[Test]
     public function testTheMentionReminderSaysTheMentionIsStillUnread(): void
     {
-        $mail = $this->renderer->render('mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK, 'accountLink' => self::LINK]);
+        $mail = $this->renderer->render('mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK]);
 
         foreach ([$mail['html'], $mail['text']] as $body) {
             self::assertStringContainsString('pas encore', $body);

@@ -14,7 +14,6 @@ use App\Messaging\Repository\MysqlConversationPresenceRepository;
 use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Messaging\Notification\MentionReminderService;
 use App\Tests\Database\RepositoryTestCase;
@@ -90,7 +89,7 @@ final class MentionReminderServiceTest extends RepositoryTestCase
         self::assertStringContainsString('Alice', (string) $email->getSubject());
         $text = (string) $email->getTextBody() . (string) $email->getHtmlBody() . (string) $email->getSubject();
         self::assertStringContainsString('/messages/' . $this->conversationId, $text);
-        self::assertStringContainsString('/account/password', $text);
+        self::assertStringNotContainsString('/account/password', $text);
         self::assertStringNotContainsString('Titre secret', $text);
         self::assertStringNotContainsString('Texte secret', $text);
     }
@@ -130,15 +129,11 @@ final class MentionReminderServiceTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testReadingTheConversationOrUnsubscribingCancelsTheReminder(): void
+    public function testReadingTheConversationCancelsTheReminder(): void
     {
         $this->presence->markRead($this->conversationId, $this->id('denis'), new \DateTimeImmutable('2026-10-05 20:00:00'));
         $mailer = new RecordingMailer();
         self::assertSame(0, $this->service($mailer, '2026-10-06 10:30:00')->sendDue()->sent(), 'lu : pas de relance');
-
-        $this->pdo->exec('DELETE FROM conversation_states');
-        (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->id('denis'), false);
-        self::assertSame(0, $this->service($mailer, '2026-10-06 10:30:00')->sendDue()->sent(), 'désinscrit : pas de relance');
     }
 
     #[Test]

@@ -16,7 +16,6 @@ use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Messaging\Repository\Participation\MysqlConversationTrashRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\ConversationAccess;
@@ -80,7 +79,7 @@ final class MessageEditServiceTest extends RepositoryTestCase
             $this->guests,
             $this->mentions,
             $this->messages,
-            new MentionNotifier(TestMailbox::of($this->mailer), new MysqlMentionNoticeRepository($this->pdo), $users, new MysqlNotificationPreferenceRepository($this->pdo), new \App\Messaging\Repository\Participation\MysqlConversationMuteRepository($this->pdo)),
+            new MentionNotifier(TestMailbox::of($this->mailer), new MysqlMentionNoticeRepository($this->pdo), $users, new \App\Messaging\Repository\Participation\MysqlConversationMuteRepository($this->pdo)),
         );
         $this->service = new ConversationService($this->conversations, $this->messages, $this->presence, $groups, $transactions, $this->clock, mentions: $mentionService, access: $access);
         $this->editor = new MessageEditService($access, $this->messages, $mentionService, $transactions, $this->clock);

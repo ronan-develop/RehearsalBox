@@ -15,7 +15,6 @@ use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Messaging\Repository\Participation\MysqlConversationTrashRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\Notice\MysqlMentionNoticeRepository;
-use App\Account\Repository\MysqlNotificationPreferenceRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -194,15 +193,11 @@ final class MysqlMentionNoticeRepositoryTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testNoReminderForUnsubscribedPeopleTrashedConversationsOrRemovedGuests(): void
+    public function testNoReminderForTrashedConversationsOrRemovedGuests(): void
     {
         $this->tagDenis('2026-10-05 10:00:00');
         $this->notices->claimNotice($this->conversationId, $this->id('denis'), $this->id('alice'), new \DateTimeImmutable('2026-10-05 10:00:00'), new \DateTimeImmutable('2026-10-04 10:00:00'));
         self::assertCount(1, $this->due());
-
-        (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->id('denis'), false);
-        self::assertSame([], $this->due(), 'désinscrit : aucune relance');
-        (new MysqlNotificationPreferenceRepository($this->pdo))->setEmailEnabled($this->id('denis'), true);
 
         (new MysqlConversationTrashRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->moveToTrash($this->conversationId, $this->now);
         self::assertSame([], $this->due(), 'conversation à la corbeille');

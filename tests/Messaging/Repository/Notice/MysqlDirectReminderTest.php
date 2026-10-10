@@ -7,8 +7,6 @@ namespace App\Tests\Messaging\Repository\Notice;
 use App\Account\Entity\User;
 use App\Account\Entity\UserRole;
 use App\Account\Repository\MysqlUserRepository;
-use App\Group\Entity\Group;
-use App\Group\Repository\MysqlGroupRepository;
 use App\Messaging\Repository\MysqlConversationMessageRepository;
 use App\Messaging\Repository\MysqlConversationPresenceRepository;
 use App\Messaging\Repository\MysqlConversationRepository;
@@ -18,8 +16,8 @@ use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
- * #372 : un message direct non lu est relancé UNE fois après 24 h, comme une mention, mais sans le désabonnement général
- * (règle des messages directs : seule la sourdine de la conversation coupe) et en nommant l'expéditeur.
+ * #372 : un message direct non lu est relancé UNE fois après 24 h, comme une mention, en nommant l'expéditeur
+ * (seule la sourdine de la conversation coupe, comme pour tous les e-mails de la messagerie).
  */
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class MysqlDirectReminderTest extends RepositoryTestCase
@@ -67,14 +65,6 @@ final class MysqlDirectReminderTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testTheGeneralEmailOptOutDoesNotStopTheReminderOfADirectMessage(): void
-    {
-        $this->pdo->exec('UPDATE users SET email_notifications = 0 WHERE id = ' . $this->id('bob'));
-
-        self::assertSame([[$this->id('bob'), 'Alice', true]], $this->due());
-    }
-
-    #[Test]
     public function testAMutedTrashedOrReadDirectConversationIsNotReminded(): void
     {
         (new MysqlConversationMuteRepository($this->pdo))->setMuted($this->directId, $this->id('bob'), true);
@@ -104,22 +94,5 @@ final class MysqlDirectReminderTest extends RepositoryTestCase
         $this->notices->claimNotice($this->directId, $this->id('carol'), $this->id('alice'), $this->now->modify('-25 hours'), $this->now->modify('-49 hours'));
 
         self::assertSame([], $this->due());
-    }
-
-    #[Test]
-    public function testTheGeneralOptOutStillStopsTheRemindersOfGroupMentions(): void
-    {
-        $groups = new MysqlGroupRepository($this->pdo);
-        $alpha = $groups->save(new Group(0, 'Alpha', null, null, 'alpha@rehearsalbox.test'))->id();
-        $beta = $groups->save(new Group(0, 'Beta', null, null, 'beta@rehearsalbox.test'))->id();
-        $groups->addMember($alpha, $this->id('alice'));
-        $groups->addMember($beta, $this->id('carol'));
-        $conversation = (new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make()))->create($alpha, $beta, null, $this->now->modify('-3 days'), $this->id('alice'))->id();
-        $this->notices->claimNotice($conversation, $this->id('carol'), $this->id('alice'), $this->now->modify('-25 hours'), $this->now->modify('-49 hours'));
-        $this->pdo->exec('DELETE FROM conversation_mention_notices WHERE conversation_id = ' . $this->directId);
-        self::assertCount(1, $this->due(), 'mention de groupe relancée');
-
-        $this->pdo->exec('UPDATE users SET email_notifications = 0 WHERE id = ' . $this->id('carol'));
-        self::assertSame([], $this->due(), 'le désabonnement général reste respecté pour les mentions');
     }
 }
