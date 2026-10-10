@@ -41,7 +41,7 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         $hasher = new FastPasswordHasher();
         $this->auth = new AuthService($this->users, $hasher, new InMemorySession(), $this->groups);
         $this->controller = new KernelTranslation(new UserAdminApiController(
-            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy())),
+            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo)),
             new AuthGuard($this->auth),
         ));
     }

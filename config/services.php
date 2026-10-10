@@ -159,7 +159,8 @@ use App\Messaging\Repository\MysqlConversationRepository;
 use App\Messaging\Repository\Participation\MysqlConversationTrashRepository;
 use App\Group\Service\GroupDocumentService;
 use App\Group\Service\GroupService;
-use App\Account\Service\IpThrottle;
+use App\Account\Service\Throttle\SubjectThrottle;
+use App\Account\Service\Throttle\LoginThrottle;
 use App\Account\Service\PasswordChangeService;
 use App\Account\Repository\EmailChangeRepositoryInterface;
 use App\Account\Repository\MysqlEmailChangeRepository;
@@ -474,15 +475,20 @@ return static function (array $config): Container {
 
     // Limites par adresse : une instance par route sensible, chacune avec son étiquette (#218, #219).
     $container->set(ThrottleEventRepositoryInterface::class, fn ($c) => new MysqlThrottleEventRepository($c->get(PDO::class)));
-    $container->set('throttle.login', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
-    $container->set('throttle.password-reset', fn ($c) => new IpThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
+    $container->set('throttle.login', fn ($c) => new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
+    // Connexion (#236) : 20 échecs par adresse OU 5 par identifiant saisi (réel ou inventé) en 15 minutes ; durée restante annoncée.
+    $container->set(LoginThrottle::class, fn ($c) => new LoginThrottle(
+        $c->get('throttle.login'),
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-id', 5, '-15 minutes'),
+    ));
+    $container->set('throttle.password-reset', fn ($c) => new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
 
     // Travail fait APRÈS l'envoi de la réponse (le front controller appelle run()) : sa durée ne dépend plus du compte (#219).
     $container->set(AfterResponseInterface::class, static fn ($c) => new DeferredAfterResponse(DeferredAfterResponse::finishRequest(...), $c->get(LoggerInterface::class)));
 
     $container->set(AuthApiController::class, fn ($c) => new AuthApiController(
         $c->get(AuthServiceInterface::class),
-        $c->get('throttle.login'),
+        $c->get(LoginThrottle::class),
     ));
 
     $container->set(AvailabilityApiController::class, fn ($c) => new AvailabilityApiController(
@@ -499,6 +505,7 @@ return static function (array $config): Container {
         $c->get(UserRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(UserProvisioningService::class),
+        $c->get(LoginThrottle::class),
     ));
 
     $container->set(GroupImpactRepositoryInterface::class, fn ($c) => new MysqlGroupImpactRepository($c->get(PDO::class)));
