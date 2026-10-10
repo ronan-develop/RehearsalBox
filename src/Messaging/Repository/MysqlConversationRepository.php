@@ -40,11 +40,12 @@ final class MysqlConversationRepository implements ConversationRepositoryInterfa
     public function openDirect(int $userId, int $otherUserId, \DateTimeImmutable $now): Conversation
     {
         // Clé unique sur la paire ordonnée : une seule conversation par paire, même si deux créations arrivent ensemble.
-        // ON DUPLICATE KEY ne modifie rien d'autre que de rendre l'identifiant de la ligne existante lisible.
+        // ON DUPLICATE KEY rend l'identifiant de la ligne existante lisible et la sort de la corbeille (#372) : écrire de nouveau à
+        // la même personne rouvre la conversation, au lieu d'y écrire dans le vide (invisible, avec un e-mail vers un lien inaccessible).
         $statement = $this->pdo->prepare(
             'INSERT INTO conversations (direct_low_user_id, direct_high_user_id, created_by, created_at)
              VALUES (:low, :high, :created_by, :created_at)
-             ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)'
+             ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id), deleted_at = NULL'
         );
         $statement->execute([
             'low' => min($userId, $otherUserId),

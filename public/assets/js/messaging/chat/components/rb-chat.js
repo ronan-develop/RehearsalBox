@@ -17,6 +17,7 @@ import {
 import { isAbort, sleep, whenVisible } from '../async.js';
 import { EVT } from '../events.js';
 import { browserStorage, createDraftStore } from '../composer/drafts.js';
+import { mentionScope } from '../composer/mentions.js';
 import { nextPollDelay } from '../thread/model.js';
 import { showToast } from '../../../core/toast.js';
 
@@ -163,12 +164,10 @@ export class RbChat extends HTMLElement {
 
   /** Liste après « @ » : le contexte est la conversation ouverte, ou les deux groupes d'un brouillon. Aucune pour un brouillon direct. */
   async #suggestMembers(query) {
-    if ((this.#activeId === null && this.#draftTargetId === null) || this.#draftDirect) {
+    const context = mentionScope({ activeId: this.#activeId, draftTargetId: this.#draftTargetId, draftDirect: this.#draftDirect, senderId: this.header.senderId });
+    if (context === null) {
       return [];
     }
-    const context = this.#activeId !== null
-      ? { conversation: this.#activeId }
-      : { groupId: this.header.senderId, targetGroupId: this.#draftTargetId };
     const { members } = await searchMembers({ query, ...context });
 
     return members;

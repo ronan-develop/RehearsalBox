@@ -18,6 +18,9 @@ use Symfony\Component\Mime\Email;
  * mentionnée qui n'a pas lu la conversation 24 h après l'e-mail de mention reçoit UNE relance, à l'adresse de son compte
  * (jamais le contenu), dans la plage de jour (heure locale). Au-delà de 7 jours, plus de relance. Un échec n'interrompt pas
  * les autres et laisse la relance réessayable.
+ *
+ * Mêmes relances pour un message direct (#372), dans le même cycle, avec un autre texte (« vous a écrit ») et sans lien de
+ * désabonnement général : seule la sourdine de la conversation coupe les e-mails d'un message direct.
  */
 final class MentionReminderService
 {
@@ -65,14 +68,30 @@ final class MentionReminderService
     private function buildMail(DueMentionReminder $reminder): Email
     {
         $name = $reminder->mentionerName() !== '' ? $reminder->mentionerName() : 'Quelqu\'un';
+        $link = $this->mailbox->url('/messages/' . $reminder->conversationId());
 
+        return $reminder->isDirect() ? $this->directMail($reminder, $name, $link) : $this->mentionMail($reminder, $name, $link);
+    }
+
+    private function directMail(DueMentionReminder $reminder, string $name, string $link): Email
+    {
+        return $this->mailbox->compose(
+            $reminder->email(),
+            'rappel : ' . HeaderText::oneLine($name) . ' vous a écrit',
+            'direct-reminder',
+            ['senderName' => $name, 'link' => $link, 'preheader' => $name . ' vous a écrit et le message n\'a pas encore été lu.'],
+        );
+    }
+
+    private function mentionMail(DueMentionReminder $reminder, string $name, string $link): Email
+    {
         return $this->mailbox->compose(
             $reminder->email(),
             'rappel : ' . HeaderText::oneLine($name) . ' vous a mentionné(e)',
             'mention-reminder',
             [
                 'mentionerName' => $name,
-                'link' => $this->mailbox->url('/messages/' . $reminder->conversationId()),
+                'link' => $link,
                 'accountLink' => $this->mailbox->url('/account/password'),
                 'preheader' => 'Vous avez été mentionné(e) et le message n\'a pas encore été lu.',
             ],
