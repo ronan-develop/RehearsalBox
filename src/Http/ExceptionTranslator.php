@@ -37,7 +37,7 @@ final class ExceptionTranslator
             $e instanceof GroupValidationException => new JsonResponse(['error' => $e->getMessage(), 'fields' => $e->fields()], 422),
             $e instanceof UserValidationException,
             $e instanceof AvailabilityValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
-            $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], 429),
+            $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED),
             $e instanceof InvalidResetTokenException,
             $e instanceof InvalidEmailChangeException,
             $e instanceof InvalidUploadException,

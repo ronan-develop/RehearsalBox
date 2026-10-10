@@ -35,7 +35,7 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'validation de compte' => [new UserValidationException(['email' => 'Invalide.']), 422, ['error' => 'Validation échouée', 'fields' => ['email' => 'Invalide.']]];
         yield 'groupe invalide' => [new GroupValidationException(['name' => 'Nom requis.', 'colorHex' => 'Couleur invalide.']), 422, ['error' => 'Nom requis. Couleur invalide.', 'fields' => ['name' => 'Nom requis.', 'colorHex' => 'Couleur invalide.']]];
         yield 'demande de créneau invalide' => [new AvailabilityValidationException(['occurrenceDate' => 'Passé.']), 422, ['error' => 'Validation échouée', 'fields' => ['occurrenceDate' => 'Passé.']]];
-        yield 'trop de messages' => [new ConversationRateLimitException('Trop de messages envoyés.'), 429, ['error' => 'Trop de messages envoyés.']];
+        yield 'trop de messages' => [new ConversationRateLimitException('Trop de messages envoyés.'), 423, ['error' => 'Trop de messages envoyés.']];
         yield 'jeton de réinitialisation' => [new InvalidResetTokenException(), 422, ['error' => (new InvalidResetTokenException())->getMessage()]];
         yield 'changement d\'adresse' => [new InvalidEmailChangeException(), 422, ['error' => (new InvalidEmailChangeException())->getMessage()]];
         yield 'fichier refusé' => [new InvalidUploadException('Type non autorisé.'), 422, ['error' => 'Type non autorisé.']];

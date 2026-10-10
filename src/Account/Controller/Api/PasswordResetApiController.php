@@ -6,6 +6,7 @@ namespace App\Account\Controller\Api;
 
 use App\Http\JsonResponse;
 use App\Http\Request;
+use App\Http\Response;
 use App\Account\Service\Throttle\SubjectThrottle;
 use App\Account\Service\PasswordResetService;
 
@@ -31,7 +32,7 @@ final class PasswordResetApiController
         if ($this->throttle->isBlocked($ip, $now)) {
             return new JsonResponse(
                 ['error' => 'Trop de demandes. Réessayez dans un moment.'],
-                429,
+                Response::RATE_LIMITED,
                 ['Retry-After' => (string) $this->throttle->retryAfterSeconds()],
             );
         }

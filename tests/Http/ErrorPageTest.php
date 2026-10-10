@@ -20,6 +20,7 @@ final class ErrorPageTest extends TestCase
             [404, 'Page introuvable'],
             [405, 'Méthode non autorisée'],
             [419, 'Session expirée'],
+            [423, 'Trop de requêtes'],
             [429, 'Trop de requêtes'],
             [500, 'Erreur interne'],
             [503, 'Service indisponible'],
@@ -66,6 +67,15 @@ final class ErrorPageTest extends TestCase
 
         self::assertStringContainsString('2 minutes', $body, 'arrondi à la minute supérieure');
         self::assertSame('90', ErrorPage::response(429, retryAfter: 90)->headers()['Retry-After']);
+    }
+
+    #[Test]
+    public function testTheRetryDelayIsShownOnALockedAccountPage(): void
+    {
+        $body = ErrorPage::response(423, retryAfter: 90)->body();
+
+        self::assertStringContainsString('2 minutes', $body, 'arrondi à la minute supérieure');
+        self::assertSame('90', ErrorPage::response(423, retryAfter: 90)->headers()['Retry-After']);
     }
 
     #[Test]

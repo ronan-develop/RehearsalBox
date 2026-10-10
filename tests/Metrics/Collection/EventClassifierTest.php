@@ -19,13 +19,14 @@ final class EventClassifierTest extends TestCase
             'page servie' => ['GET', '/login', 200, false, null],
             'redirection' => ['GET', '/', 302, false, null],
             'erreur serveur' => ['GET', '/x', 500, false, MetricEventType::ServerError],
-            'limite de débit' => ['POST', '/api/auth/login', 429, false, MetricEventType::RateLimited],
+            'limite de débit' => ['POST', '/api/auth/login', 423, false, MetricEventType::RateLimited],
+            'ancien statut 429 (hébergeur)' => ['POST', '/api/auth/login', 429, false, MetricEventType::RateLimited],
             'accès refusé' => ['GET', '/admin', 403, false, MetricEventType::AccessDenied],
             'jeton CSRF' => ['POST', '/api/x', 403, true, MetricEventType::CsrfFailed],
             'introuvable' => ['GET', '/.env', 404, false, MetricEventType::NotFound],
             'connexion échouée' => ['POST', '/api/auth/login', 401, false, MetricEventType::LoginFailed],
             'demande de mot de passe oublié' => ['POST', '/api/auth/forgot-password', 200, false, MetricEventType::PasswordResetRequested],
-            'mot de passe oublié limité' => ['POST', '/api/auth/forgot-password', 429, false, MetricEventType::RateLimited],
+            'mot de passe oublié limité' => ['POST', '/api/auth/forgot-password', 423, false, MetricEventType::RateLimited],
             '401 ailleurs (session expirée)' => ['GET', '/api/conversations', 401, false, null],
         ];
     }

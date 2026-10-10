@@ -159,7 +159,7 @@ final class PasswordResetApiControllerTest extends RepositoryTestCase
 
         $blocked = $this->forgotFrom($controller, '203.0.113.7', 'alice@rehearsalbox.test');
 
-        self::assertSame(429, $blocked->statusCode());
+        self::assertSame(423, $blocked->statusCode());
         self::assertSame('3600', $blocked->headers()['Retry-After']);
         self::assertCount(0, $this->mailer->sent, 'une adresse bloquée ne déclenche aucun envoi');
     }

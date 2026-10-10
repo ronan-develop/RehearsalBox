@@ -222,8 +222,9 @@ final class AuthApiControllerTest extends RepositoryTestCase
 
         $blocked = $this->loginFrom($controller, '203.0.113.7', 'dana@rehearsalbox.test', 'password123');
 
-        self::assertSame(429, $blocked->statusCode());
-        self::assertSame('900', $blocked->headers()['Retry-After']);
+        self::assertSame(423, $blocked->statusCode());
+        // Durée réelle restante (#236) : 15 minutes moins le temps écoulé depuis les échecs (quelques secondes au plus).
+        self::assertEqualsWithDelta(900, (int) $blocked->headers()['Retry-After'], 5);
         self::assertSame(0, $userRepository->findByEmail('dana@rehearsalbox.test')->failedLoginAttempts(), 'aucun compte touché par la limite');
     }
 
@@ -235,7 +236,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         for ($i = 0; $i < self::THROTTLE_LIMIT; ++$i) {
             $this->loginFrom($controller, '203.0.113.7', "personne{$i}@rehearsalbox.test", 'faux');
         }
-        self::assertSame(429, $this->loginFrom($controller, '203.0.113.7', 'dana@rehearsalbox.test', 'password123')->statusCode());
+        self::assertSame(423, $this->loginFrom($controller, '203.0.113.7', 'dana@rehearsalbox.test', 'password123')->statusCode());
 
         self::assertSame(200, $this->loginFrom($controller, '198.51.100.9', 'dana@rehearsalbox.test', 'password123')->statusCode());
     }
