@@ -6,7 +6,8 @@ namespace App\Tools;
 
 /**
  * Résumé de la couverture de tests (#129), lu dans le rapport Clover de PHPUnit : par dossier `Domaine/Couche`, par couche
- * (Service, Controller, Repository…) et au total, en instructions couvertes. Sert à repérer les trous, sans seuil bloquant.
+ * (Service, Controller, Repository…) et au total, en instructions couvertes. Sert à repérer les trous ; un minimum sur le total
+ * peut être imposé (#365, `--min` de bin/coverage-summary.php, valeur fixée par la CI).
  * Les fichiers hors de `src/` sont ignorés.
  */
 final class CoverageSummary
@@ -48,6 +49,34 @@ final class CoverageSummary
         }
 
         return ['total' => $total, 'folders' => $folders, 'layers' => $layers];
+    }
+
+    /**
+     * Minimum de couverture TOTALE (#365) : pas de seuil par dossier au départ (plusieurs dossiers sont encore sous le total visé).
+     *
+     * @param array{total: array{covered: int, statements: int}, folders: array<string, array{covered: int, statements: int}>, layers: array<string, array{covered: int, statements: int}>} $summary
+     *
+     * @return string|null le message d'échec, ou null si le minimum est atteint (égal compris)
+     */
+    public function minimumFailure(array $summary, float $minimum): ?string
+    {
+        $total = $summary['total'];
+        // Comparaison sans division : ni arrondi ni division par zéro (rapport vide = 0 % couvert).
+        if ($total['covered'] * 100 >= $minimum * $total['statements'] && ($total['statements'] > 0 || $minimum <= 0.0)) {
+            return null;
+        }
+
+        return sprintf('Couverture totale %s inférieure au minimum exigé (%s).', self::percent($total), number_format($minimum, 1, ',', '') . ' %');
+    }
+
+    /** @throws \InvalidArgumentException pas un pourcentage entre 0 et 100 */
+    public static function parseMinimum(string $value): float
+    {
+        if (preg_match('/^\d{1,3}(\.\d+)?$/', $value) !== 1 || (float) $value > 100.0) {
+            throw new \InvalidArgumentException('--min attend un pourcentage entre 0 et 100 (ex. --min=90).');
+        }
+
+        return (float) $value;
     }
 
     /** @param array{total: array{covered: int, statements: int}, folders: array<string, array{covered: int, statements: int}>, layers: array<string, array{covered: int, statements: int}>} $summary */

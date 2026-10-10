@@ -59,9 +59,11 @@ jobs:
           DB_TEST_PASSWORD: root
         run: ./vendor/bin/phpunit --colors=always --coverage-clover=build/coverage/clover.xml
 
-      # Couverture (#129) : résumé par dossier et par couche dans l'onglet « Summary » du run. Aucun seuil : on mesure d'abord.
+      # Couverture (#129, #365) : résumé par dossier et par couche dans l'onglet « Summary » du run. BLOQUANT sous 90 % de couverture
+      # totale (le seuil n'est écrit qu'ici). `shell: bash` active pipefail : sans lui, le code de sortie du script serait masqué par tee.
       - name: Coverage summary
-        run: php bin/coverage-summary.php | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: php bin/coverage-summary.php --min=90 | tee -a "$GITHUB_STEP_SUMMARY"
 
   js:
     runs-on: ubuntu-latest
