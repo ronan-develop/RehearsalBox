@@ -27,10 +27,10 @@ KEEP_RELEASES=3
 KEEP_BACKUPS=7
 
 rb_ssh() { ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@"; }
-# Étapes numérotées avec barre de progression (#277) : 11 étapes au total, celles qu'on saute comptent quand même.
+# Étapes numérotées avec barre de progression (#277) : 12 étapes au total, celles qu'on saute comptent quand même.
 source "$(dirname "$0")/lib/progress.sh"
 source "$(dirname "$0")/lib/ci-status.sh"
-progress_init 11
+progress_init 12
 
 secret() {
     local value
@@ -81,6 +81,8 @@ if ! "$php" "$composer" install --dry-run --no-dev --no-interaction 2>&1 | grep 
     exit 1
 fi
 ln -s "$HOME/$base/shared/config.local.php" config/config.local.php
+# Clés du chiffrement des messages (#171) : dans shared/, comme config.local.php, jamais régénérées par un déploiement.
+ln -s "$HOME/$base/shared/message-keys.json" config/message-keys.json
 rm -rf storage && ln -s "$HOME/$base/shared/storage" storage
 ln -s "$HOME/$base/shared/well-known" public/.well-known
 REMOTE
@@ -129,6 +131,23 @@ REMOTE
 # --- 6. Migrations, test à blanc, bascule ---------------------------------
 progress_step "Migrations (jamais de seed en production)"
 rb_ssh "cd \"\$HOME/$BASE/releases/$release\" && $REMOTE_PHP bin/migrate.php"
+
+# --- Clés de chiffrement des messages (#171) ------------------------------
+# Premier passage : le fichier de clés est créé SUR le serveur (la clé n'en sort jamais, rien n'est affiché). Ensuite il n'est
+# jamais touché. Dans tous les cas, les clés doivent LIRE ce qui est en base AVANT la bascule : sinon (clé perdue, fichier
+# absent ou corrompu) le déploiement s'arrête ici, la release n'est pas basculée et les messages restent lisibles.
+progress_step "Clés de chiffrement des messages (création au premier passage, contrôle de lecture avant bascule)"
+rb_ssh bash -s -- "$BASE" "$release" "$REMOTE_PHP" <<'REMOTE'
+set -euo pipefail
+base=$1; rel=$2; php=$3
+cd "$HOME/$base/releases/$rel"
+keys="$HOME/$base/shared/message-keys.json"
+if [ ! -e "$keys" ]; then
+    "$php" bin/message-keys.php init
+    echo "!!! PREMIER DÉPLOIEMENT DES CLÉS : sauvegardez-les AVANT de chiffrer les anciens messages (voir .claude/deploiement.md)." >&2
+fi
+"$php" bin/message-keys.php check
+REMOTE
 
 progress_step "Test à blanc du contrôleur frontal (GET /login en CLI)"
 rb_ssh "cd \"\$HOME/$BASE/releases/$release/public\" && $REMOTE_PHP -d display_errors=0 -r '\$_SERVER[\"REQUEST_METHOD\"]=\"GET\"; \$_SERVER[\"REQUEST_URI\"]=\"/login\"; require \"index.php\";' | grep -qi '<html'"
