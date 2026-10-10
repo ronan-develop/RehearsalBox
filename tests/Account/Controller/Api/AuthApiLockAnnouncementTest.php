@@ -78,7 +78,7 @@ final class AuthApiLockAnnouncementTest extends RepositoryTestCase
         $response = $this->login('alice@rehearsalbox.test', 'bon-mot-de-passe', '198.51.100.99');
         $body = $this->body($response);
 
-        self::assertSame(429, $response->statusCode());
+        self::assertSame(423, $response->statusCode());
         self::assertSame('Trop de tentatives. Réessayez dans 15 minutes.', $body['error']);
         self::assertEqualsWithDelta(900, $body['retryAfterSeconds'], 2);
         self::assertSame((string) $body['retryAfterSeconds'], $response->headers()['Retry-After']);
@@ -165,7 +165,7 @@ final class AuthApiLockAnnouncementTest extends RepositoryTestCase
         $response = $this->login('alice@rehearsalbox.test', 'bon-mot-de-passe');
         $body = $this->body($response);
 
-        self::assertSame(429, $response->statusCode());
+        self::assertSame(423, $response->statusCode());
         self::assertSame('Trop de tentatives. Réessayez dans 10 minutes.', $body['error']);
         self::assertEqualsWithDelta(600, $body['retryAfterSeconds'], 2);
         self::assertSame((string) $body['retryAfterSeconds'], $response->headers()['Retry-After']);
@@ -178,6 +178,6 @@ final class AuthApiLockAnnouncementTest extends RepositoryTestCase
             $this->login($i % 2 === 0 ? ' ALICE@rehearsalbox.test ' : 'Alice@Rehearsalbox.test', 'faux', "203.0.113.{$i}");
         }
 
-        self::assertSame(429, $this->login('alice@rehearsalbox.test', 'bon-mot-de-passe', '198.51.100.95')->statusCode());
+        self::assertSame(423, $this->login('alice@rehearsalbox.test', 'bon-mot-de-passe', '198.51.100.95')->statusCode());
     }
 }

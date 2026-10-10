@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Metrics\Collection;
 
+use App\Http\Response;
 use App\Metrics\MetricEventType;
 
 /** Quel évènement ponctuel (s'il y en a un) correspond à une réponse : table unique, pure, testée. */
@@ -17,7 +18,7 @@ final class EventClassifier
         return match (true) {
             $csrfRefused => MetricEventType::CsrfFailed,
             $status >= 500 => MetricEventType::ServerError,
-            $status === 429 => MetricEventType::RateLimited,
+            in_array($status, [Response::RATE_LIMITED, 429], true) => MetricEventType::RateLimited,
             $status === 403 => MetricEventType::AccessDenied,
             $status === 404 => MetricEventType::NotFound,
             $status === 401 && $method === 'POST' && $path === self::LOGIN_PATH => MetricEventType::LoginFailed,

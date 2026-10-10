@@ -488,7 +488,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testRateLimitAnswers429(): void
+    public function testRateLimitAnswers423(): void
     {
         [$alice, , $a, $b] = $this->world();
         $id = $this->startAsAlice($alice, $a, $b);
@@ -498,7 +498,7 @@ final class ConversationApiControllerTest extends RepositoryTestCase
         }
         [$status] = $this->call('reply', [], ['message' => 'de trop'], $id);
 
-        self::assertSame(429, $status);
+        self::assertSame(423, $status);
     }
 
     #[Test]

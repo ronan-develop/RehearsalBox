@@ -6,6 +6,13 @@ namespace App\Http;
 
 class Response
 {
+    /**
+     * Statut de TOUTES les limites de débit (connexion, mot de passe oublié, messages) : 423 et non 429. Sur l'hébergeur, un 429 à des
+     * POST répétés est bloqué (la première réponse passe, les suivantes restent suspendues : écran qui tourne sans fin), même pour un
+     * script de cinq lignes ; 423 passe normalement (#368). Ne jamais réintroduire un 429 sans le re-tester en production.
+     */
+    public const RATE_LIMITED = 423;
+
     /** @param array<string, string> $headers */
     public function __construct(
         protected readonly string $body = '',

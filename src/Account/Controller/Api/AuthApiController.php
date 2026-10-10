@@ -7,6 +7,7 @@ namespace App\Account\Controller\Api;
 use App\Group\Entity\Group;
 use App\Http\JsonResponse;
 use App\Http\Request;
+use App\Http\Response;
 use App\Support\StrictId;
 use App\Account\Service\AuthServiceInterface;
 use App\Account\Service\Throttle\LoginThrottle;
@@ -67,7 +68,7 @@ final class AuthApiController
 
         return new JsonResponse(
             ['error' => sprintf('Trop de tentatives. Réessayez dans %d minute%s.', $minutes, $minutes === 1 ? '' : 's'), 'retryAfterSeconds' => $seconds],
-            429,
+            Response::RATE_LIMITED,
             ['Retry-After' => (string) $seconds],
         );
     }

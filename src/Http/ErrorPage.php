@@ -19,6 +19,7 @@ final class ErrorPage
         404 => ['Page introuvable', 'Cette page n’existe pas ou a été déplacée.'],
         405 => ['Méthode non autorisée', 'Cette action n’est pas possible depuis cette page.'],
         419 => ['Session expirée', 'Votre session a expiré. Reconnectez-vous puis recommencez.'],
+        Response::RATE_LIMITED => ['Trop de requêtes', 'Merci de patienter un instant avant de réessayer.'],
         429 => ['Trop de requêtes', 'Merci de patienter un instant avant de réessayer.'],
         500 => ['Erreur interne', 'Un incident est survenu de notre côté. Il a été enregistré ; réessayez dans un moment.'],
         503 => ['Service indisponible', 'Le service est momentanément indisponible. Réessayez dans quelques minutes.'],
@@ -30,7 +31,7 @@ final class ErrorPage
             ? ['Erreur du serveur', 'Un incident est survenu de notre côté. Réessayez dans un moment.']
             : ['Requête refusée', 'Cette demande n’a pas pu être traitée.']);
 
-        if ($status === 429 && $retryAfter !== null) {
+        if (in_array($status, [Response::RATE_LIMITED, 429], true) && $retryAfter !== null) {
             $minutes = max(1, (int) ceil($retryAfter / 60));
             $text = sprintf('Merci de patienter %d minute%s avant de réessayer.', $minutes, $minutes > 1 ? 's' : '');
         }
