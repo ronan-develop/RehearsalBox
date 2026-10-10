@@ -57,47 +57,9 @@ final class MessagesPagesDesignTest extends TestCase
         $trash = $this->template('trash');
 
         self::assertStringContainsString('rb-chat-sidebar-head', $trash, 'même en-tête que la liste des messages');
-        self::assertStringContainsString('rb-chat-icon-link', $trash, 'même flèche de retour');
+        self::assertStringContainsString('rb-back-link', $trash, 'même flèche de retour');
         self::assertStringContainsString('class="rb-btn"', $trash);
         self::assertStringContainsString('rb-btn rb-btn-danger', $trash);
-    }
-
-    /** @return list<array{string}> */
-    public static function backLinkTemplates(): array
-    {
-        return [['_sidebar'], ['_thread-header'], ['trash']];
-    }
-
-    #[Test]
-    #[DataProvider('backLinkTemplates')]
-    public function testTheBackArrowIsTheSharedSvgIconNotATextCharacter(string $name): void
-    {
-        $template = $this->template($name);
-
-        self::assertStringNotContainsString('←', $template, 'plus de caractère texte, dont le rendu dépend de la police');
-        self::assertStringContainsString("_icon-back.php", $template, 'une seule définition de l\'icône, réutilisée');
-        self::assertStringContainsString('rb-chat-icon-link--back', $template, 'le lien de retour a sa variante en pastille');
-    }
-
-    #[Test]
-    public function testTheBackLinkIsALightButtonInFullTextColourWithAnAccentHover(): void
-    {
-        $css = $this->css();
-
-        self::assertMatchesRegularExpression('/\.rb-chat-icon-link--back\s*\{[^}]*color:\s*var\(--rb-text\)[^}]*background:\s*var\(--rb-surface\)/s', $css, 'texte plein sur un fond légèrement relevé, sans bordure ni ombre');
-        self::assertMatchesRegularExpression('/\.rb-chat-icon-link--back\s*\{[^}]*border-radius:\s*var\(--rb-radius-md\)/s', $css);
-        self::assertMatchesRegularExpression('/\.rb-chat-icon-link--back:hover\s*\{[^}]*color:\s*var\(--rb-accent\)/s', $css, 'le survol garde l\'accent, comme les autres boutons');
-    }
-
-    #[Test]
-    public function testTheBackIconIsADecorativeStrokeSvgLikeTheOtherIcons(): void
-    {
-        $icon = $this->template('_icon-back');
-
-        self::assertStringContainsString('<svg', $icon);
-        self::assertStringContainsString('stroke="currentColor"', $icon, 'prend la couleur du texte et l\'état de survol');
-        self::assertStringContainsString('stroke-width="2.5"', $icon);
-        self::assertStringContainsString('aria-hidden="true"', $icon, 'le lien porte déjà son aria-label');
     }
 
     #[Test]

@@ -11,7 +11,7 @@
 <body>
     <div class="rb-group-space-page" data-group-space data-group-id="<?= e((string) $group->id()) ?>" data-current-user-group-role="<?= e($currentUserGroupRole?->value ?? '') ?>">
         <header class="rb-group-space-header rb-stone-panel">
-            <a href="/" class="rb-btn rb-btn-primary rb-group-space-back">&larr; Retour</a>
+            <a href="/" class="rb-back-link" aria-label="Retour aux disponibilités"><?php require __DIR__ . '/../partials/icon-back.php'; ?></a>
             <h1><?= e($group->name()) ?></h1>
             <?php if ($group->genre() !== null): ?>
                 <p class="rb-group-space-genre"><?= e($group->genre()) ?></p>

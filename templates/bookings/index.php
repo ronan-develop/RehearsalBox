@@ -22,7 +22,7 @@
 </head>
 <body>
     <div class="rb-bookings-page">
-        <a href="/" class="rb-bookings-back">← Retour aux disponibilités</a>
+        <a href="/" class="rb-back-link" aria-label="Retour aux disponibilités"><?php require __DIR__ . '/../partials/icon-back.php'; ?></a>
         <h1>Réserver le local</h1>
         <p class="rb-bookings-intro">Choisissez un jour et une plage. Le local est réservé aux créneaux fixes des groupes : si votre plage les chevauche, le site réserve la partie libre et vous propose de demander le reste au groupe concerné.</p>
 

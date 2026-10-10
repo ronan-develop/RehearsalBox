@@ -239,6 +239,29 @@ button:active::after, .rb-btn:active::after {
   height: 18px;
 }
 
+/* Retour (#256, #334) : UN seul bouton « page précédente », chevron SVG — texte plein sur fond relevé, sans bordure ni ombre,
+   moins lourd que .rb-btn. Zone tactile ≥44px ; le gabarit partials/icon-back.php fournit l'icône. */
+.rb-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--rb-text);
+  background: var(--rb-surface);
+  border: none;
+  border-radius: var(--rb-radius-md);
+  text-decoration: none;
+}
+
+.rb-back-link:hover {
+  color: var(--rb-accent);
+}
+
+.rb-back-link[hidden] {
+  display: none;
+}
+
 /* Carte générique — socle commun repris par les cartes de créneau, groupe,
    formulaire admin, modale, etc. (évite de redéfinir surface/bordure/radius
    à chaque écran). */

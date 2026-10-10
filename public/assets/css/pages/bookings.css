@@ -6,11 +6,8 @@
   padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
 }
 
-.rb-bookings-back {
-  display: inline-block;
+.rb-bookings-page .rb-back-link {
   margin-bottom: var(--rb-space-3);
-  color: var(--rb-text-2);
-  text-decoration: none;
 }
 
 .rb-bookings-intro {
