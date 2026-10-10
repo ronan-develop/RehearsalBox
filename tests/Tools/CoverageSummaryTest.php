@@ -119,6 +119,20 @@ final class CoverageSummaryTest extends TestCase
     }
 
     #[Test]
+    public function testFoldersWithNothingToCoverAreLeftOutOfTheTables(): void
+    {
+        $summary = (new CoverageSummary())->fromClover($this->clover([
+            'Messaging/Exception/NoCode.php' => [0, 0],
+            'Group/Service/D.php' => [4, 2],
+        ]), self::SRC);
+
+        $markdown = (new CoverageSummary())->toMarkdown($summary);
+
+        self::assertStringNotContainsString('Messaging/Exception', $markdown);
+        self::assertStringContainsString('| Group/Service | 50,0 % | 2 / 4 |', $markdown);
+    }
+
+    #[Test]
     public function testMarkdownHandlesAnEmptyReport(): void
     {
         $markdown = (new CoverageSummary())->toMarkdown(['total' => ['covered' => 0, 'statements' => 0], 'folders' => [], 'layers' => []]);

@@ -67,10 +67,11 @@ final class CoverageSummary
     /**
      * @param array<string, array{covered: int, statements: int}> $rows
      *
-     * @return list<string> le moins couvert d'abord
+     * @return list<string> le moins couvert d'abord, sans les dossiers sans instruction
      */
     private function table(string $title, array $rows): array
     {
+        $rows = array_filter($rows, static fn (array $row): bool => $row['statements'] > 0); // rien à couvrir (exceptions, interfaces)
         uasort($rows, static fn (array $a, array $b): int => self::ratio($a) <=> self::ratio($b));
         $lines = ["| {$title} | Couverture | Instructions |", '|---|---|---|'];
         foreach ($rows as $name => $row) {
