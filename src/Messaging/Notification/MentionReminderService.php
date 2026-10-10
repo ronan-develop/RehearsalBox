@@ -68,26 +68,30 @@ final class MentionReminderService
     private function buildMail(DueMentionReminder $reminder): Email
     {
         $name = $reminder->mentionerName() !== '' ? $reminder->mentionerName() : 'Quelqu\'un';
-        if ($reminder->isDirect()) {
-            return $this->mailbox->compose(
-                $reminder->email(),
-                'rappel : ' . HeaderText::oneLine($name) . ' vous a écrit',
-                'direct-reminder',
-                [
-                    'senderName' => $name,
-                    'link' => $this->mailbox->url('/messages/' . $reminder->conversationId()),
-                    'preheader' => $name . ' vous a écrit et le message n\'a pas encore été lu.',
-                ],
-            );
-        }
+        $link = $this->mailbox->url('/messages/' . $reminder->conversationId());
 
+        return $reminder->isDirect() ? $this->directMail($reminder, $name, $link) : $this->mentionMail($reminder, $name, $link);
+    }
+
+    private function directMail(DueMentionReminder $reminder, string $name, string $link): Email
+    {
+        return $this->mailbox->compose(
+            $reminder->email(),
+            'rappel : ' . HeaderText::oneLine($name) . ' vous a écrit',
+            'direct-reminder',
+            ['senderName' => $name, 'link' => $link, 'preheader' => $name . ' vous a écrit et le message n\'a pas encore été lu.'],
+        );
+    }
+
+    private function mentionMail(DueMentionReminder $reminder, string $name, string $link): Email
+    {
         return $this->mailbox->compose(
             $reminder->email(),
             'rappel : ' . HeaderText::oneLine($name) . ' vous a mentionné(e)',
             'mention-reminder',
             [
                 'mentionerName' => $name,
-                'link' => $this->mailbox->url('/messages/' . $reminder->conversationId()),
+                'link' => $link,
                 'accountLink' => $this->mailbox->url('/account/password'),
                 'preheader' => 'Vous avez été mentionné(e) et le message n\'a pas encore été lu.',
             ],
