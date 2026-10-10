@@ -6,6 +6,7 @@ namespace App\Group\Service;
 
 use App\Group\Entity\LineupMember;
 use App\Group\Entity\UpcomingShow;
+use App\Support\SafeColor;
 
 /**
  * Règle de saisie d'un groupe et de son profil (#224) : tout ce qui entre est borné AVANT la base (une colonne trop courte
@@ -37,7 +38,8 @@ final class GroupInputPolicy
             $errors['genre'] = 'Le genre ne peut pas dépasser ' . self::MAX_GENRE . ' caractères.';
         }
 
-        if ($colorHex !== null && preg_match('/^#[0-9a-fA-F]{6}$/', $colorHex) !== 1) {
+        // Une seule règle (SafeColor : `\z`, jamais de retour à la ligne final) pour ce qui est enregistré ET ce qui est affiché (#383).
+        if ($colorHex !== null && SafeColor::from($colorHex) === null) {
             $errors['colorHex'] = 'La couleur doit s\'écrire #rrggbb (par exemple #e63946).';
         }
 

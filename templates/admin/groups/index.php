@@ -25,7 +25,7 @@
             </div>
             <div class="rb-field">
                 <label for="colorHex">Couleur</label>
-                <rb-color-picker><input type="text" id="colorHex" name="colorHex" class="rb-input" value="#b5654a" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
+                <rb-color-picker><input type="text" id="colorHex" name="colorHex" class="rb-input" value="<?= e(\App\Support\SafeColor::DEFAULT) ?>" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
             </div>
             <div class="rb-field">
                 <label for="contactEmail">Email de contact</label>
@@ -77,7 +77,7 @@
                         </div>
                         <div class="rb-field rb-group-field-color">
                             <label for="group-<?= e($groupId) ?>-colorHex">Couleur</label>
-                            <rb-color-picker><input type="text" id="group-<?= e($groupId) ?>-colorHex" name="colorHex" class="rb-input" value="<?= e(\App\Support\SafeColor::from($group->colorHex()) ?? '#b5654a') ?>" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
+                            <rb-color-picker><input type="text" id="group-<?= e($groupId) ?>-colorHex" name="colorHex" class="rb-input" value="<?= e(\App\Support\SafeColor::from($group->colorHex()) ?? \App\Support\SafeColor::DEFAULT) ?>" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
                         </div>
                         <div class="rb-field rb-group-field-contact">
                             <label for="group-<?= e($groupId) ?>-contactEmail">Email de contact</label>

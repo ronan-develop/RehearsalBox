@@ -6,6 +6,7 @@ import { apiFetch } from '../core/api.js';
 import { showToast } from '../core/toast.js';
 import { confirmAction } from '../ui/rb-confirm-dialog.js';
 import { escapeHtml } from '../core/html.js';
+import { DEFAULT_COLOR, normalizeHex } from '../ui/color-palette.js';
 
 export function renderGroupCard(group) {
   return `
@@ -41,7 +42,7 @@ export function renderGroupCard(group) {
         </div>
         <div class="rb-field rb-group-field-color">
           <label for="group-${group.id}-colorHex">Couleur</label>
-          <rb-color-picker><input type="text" id="group-${group.id}-colorHex" name="colorHex" class="rb-input" value="${escapeHtml(group.colorHex || '#b5654a')}" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
+          <rb-color-picker><input type="text" id="group-${group.id}-colorHex" name="colorHex" class="rb-input" value="${escapeHtml(normalizeHex(group.colorHex) ?? DEFAULT_COLOR)}" maxlength="7" pattern="#[0-9a-fA-F]{6}" autocomplete="off" spellcheck="false"></rb-color-picker>
         </div>
         <div class="rb-field rb-group-field-contact">
           <label for="group-${group.id}-contactEmail">Email de contact</label>

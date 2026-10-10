@@ -32,6 +32,12 @@ final class GroupInputPolicyTest extends TestCase
         yield 'couleur trop courte' => ['Nom', null, '#e63', 'a@example.test', 'colorHex'];
         yield 'couleur avec du CSS' => ['Nom', null, '#e63946;background:url(x)', 'a@example.test', 'colorHex'];
         yield 'couleur non hexadécimale' => ['Nom', null, '#gggggg', 'a@example.test', 'colorHex'];
+        yield 'couleur avec retour à la ligne final' => ['Nom', null, "#e63946\n", 'a@example.test', 'colorHex'];
+        yield 'couleur avec octet nul' => ['Nom', null, "#e63946\0", 'a@example.test', 'colorHex'];
+        yield 'couleur avec espace' => ['Nom', null, ' #e63946', 'a@example.test', 'colorHex'];
+        yield 'couleur sur huit chiffres' => ['Nom', null, '#e6394680', 'a@example.test', 'colorHex'];
+        yield 'couleur avec chiffres arabes-indiens' => ['Nom', null, "#\u{0661}\u{0662}\u{0663}\u{0664}\u{0665}\u{0666}", 'a@example.test', 'colorHex'];
+        yield 'couleur vide' => ['Nom', null, '', 'a@example.test', 'colorHex'];
         yield 'e-mail absent' => ['Nom', null, null, '', 'contactEmail'];
         yield 'e-mail invalide' => ['Nom', null, null, 'pas-un-email', 'contactEmail'];
         yield 'e-mail trop long' => ['Nom', null, null, str_repeat('a', 185) . '@example.test', 'contactEmail'];
