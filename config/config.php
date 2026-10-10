@@ -46,6 +46,15 @@ $defaults = [
         // Alertes par e-mail au propriétaire du tableau de bord (viewer_email) : un résumé, pas avant min_gap_hours entre deux alertes d'un même type.
         'alerts' => ['enabled' => true, 'min_gap_hours' => 12],
     ],
+    'restore' => [
+        // Restauration de la base depuis une sauvegarde (#241), config.local.php en production : dossier des sauvegardes (backups/ hors racine web),
+        // base temporaire pour l'essai à blanc (vide en permanence ; null = pas d'essai), programme PHP CLI qui lance bin/restore-db.php.
+        'backup_dir' => null,
+        'scratch_schema' => null,
+        'php_binary' => '/usr/local/bin/php',
+        // État de la restauration en cours (fichier, hors base : elle est remplacée pendant l'opération).
+        'state_dir' => __DIR__ . '/../storage/restore',
+    ],
     'messages' => [
         // Clés de chiffrement du texte de la messagerie (#171) : hors dépôt et hors base, créé UNE fois par `php bin/message-keys.php init`.
         // En production, config/message-keys.json est un lien vers shared/message-keys.json (jamais régénéré par un déploiement).

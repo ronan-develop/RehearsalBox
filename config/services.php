@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Account\Service\CurrentPasswordVerifier;
+use App\Backup\Controller\RestoreController;
+use App\Backup\Restore\BackupCatalog;
+use App\Backup\Restore\DocumentOrphanReport;
+use App\Backup\Restore\RestoreLauncher;
+use App\Backup\Restore\RestoreStatus;
 use App\Container\Container;
 use App\Logging\FileLogger;
 use App\Metrics\Alert\AlertEvaluator;
@@ -807,6 +813,37 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(AuthGuard::class),
     ));
+
+    // Restauration de la base depuis la page d'administration (#241) : propriétaire seulement, processus détaché (bin/restore-db.php).
+    $container->set(RestoreController::class, function ($c) use ($config) {
+        $restore = $config['restore'];
+        $backupDir = (string) ($restore['backup_dir'] ?? '');
+        $stateDir = (string) $restore['state_dir'];
+        $launcher = new RestoreLauncher(
+            (string) $restore['php_binary'],
+            __DIR__ . '/../bin/restore-db.php',
+            $backupDir,
+            $config['db']['name'],
+            $restore['scratch_schema'] ?? null,
+            $stateDir . '/restore.log',
+            __DIR__ . '/..',
+        );
+
+        return new RestoreController(
+            $c->get(TemplateRendererInterface::class),
+            $c->get(AuthGuard::class),
+            new MetricsAccess((string) $config['metrics']['viewer_email']),
+            new BackupCatalog($backupDir),
+            new RestoreStatus($stateDir, $c->get(ClockInterface::class)),
+            new DocumentOrphanReport($c->get(PDO::class), $config['storage']['group_documents_path']),
+            new CurrentPasswordVerifier($c->get(UserRepositoryInterface::class), $c->get(PasswordHasherInterface::class)),
+            $launcher->launch(...),
+            $c->get(ClockInterface::class),
+            $c->get(LoggerInterface::class),
+            new \DateTimeZone($config['app']['timezone']),
+            $c->get(CsrfTokenManager::class),
+        );
+    });
 
     $container->set(GroupDocumentRepositoryInterface::class, fn ($c) => new MysqlGroupDocumentRepository($c->get(PDO::class)));
 

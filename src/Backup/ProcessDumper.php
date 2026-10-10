@@ -14,6 +14,8 @@ final class ProcessDumper
 {
     private const CHUNK = 65536;
 
+    private readonly ClientOptions $options;
+
     /**
      * @param array{host: string, port: string, name: string, user: string, password: string} $db
      *
@@ -21,17 +23,13 @@ final class ProcessDumper
      */
     public function __construct(private readonly array $db, private readonly string $binary = 'mariadb-dump')
     {
-        foreach (['host', 'port', 'name', 'user'] as $key) {
-            if ($db[$key] === '') {
-                throw new \InvalidArgumentException('Configuration de la base incomplète.');
-            }
-        }
+        $this->options = new ClientOptions($db);
     }
 
     /** @throws BackupException */
     public function __invoke(string $destination): void
     {
-        $options = $this->writeOptionsFile();
+        $options = $this->options->writeTemporaryFile();
         try {
             $this->run($options, $destination);
         } finally {
@@ -39,15 +37,10 @@ final class ProcessDumper
         }
     }
 
-    /** Contenu du fichier d'options (identifiants échappés comme l'attend le client MariaDB). */
+    /** Contenu du fichier d'options (voir ClientOptions). */
     public function optionsFile(): string
     {
-        return "[client]\n"
-            . "host={$this->db['host']}\n"
-            . "port={$this->db['port']}\n"
-            . "user={$this->db['user']}\n"
-            . 'password="' . addcslashes($this->db['password'], "\"\\") . "\"\n"
-            . "default-character-set=utf8mb4\n";
+        return $this->options->contents();
     }
 
     /**
@@ -56,18 +49,6 @@ final class ProcessDumper
     public function arguments(string $optionsPath): array
     {
         return [$this->binary, '--defaults-extra-file=' . $optionsPath, '--single-transaction', '--routines', '--no-tablespaces', $this->db['name']];
-    }
-
-    private function writeOptionsFile(): string
-    {
-        $path = tempnam(sys_get_temp_dir(), 'rbdump');
-        if ($path === false) {
-            throw new BackupException('Fichier temporaire impossible.');
-        }
-        chmod($path, 0o600); // avant d'y écrire le mot de passe
-        file_put_contents($path, $this->optionsFile());
-
-        return $path;
     }
 
     private function run(string $optionsPath, string $destination): void
