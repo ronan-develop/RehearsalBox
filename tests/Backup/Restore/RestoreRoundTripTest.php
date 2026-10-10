@@ -45,6 +45,9 @@ final class RestoreRoundTripTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (!isset($this->pdo)) {
+            return; // test ignoré avant la préparation (client absent)
+        }
         foreach ([self::PROD, self::SCRATCH] as $schema) {
             $this->pdo->exec("DROP DATABASE IF EXISTS `{$schema}`");
         }
