@@ -15,6 +15,8 @@ Sommaire de référence. Lire avant toute intervention — suivre les liens pour
 | Commits, branches, `/git`               | [.claude/git-conventions.md](.claude/git-conventions.md) |
 | Commandes (dev, tests, DB)              | [.claude/commands.md](.claude/commands.md)               |
 | Méthodologie TDD                        | [.claude/tdd.md](.claude/tdd.md)                         |
+| Délégation (`/dispatch`, `/split`, `/split-opus`) | [.claude/delegation.md](.claude/delegation.md)           |
+| Modop : installer la délégation dans un autre projet | [.claude/modop-delegation.md](.claude/modop-delegation.md) |
 | Design frontend                         | [.claude/frontend.md](.claude/frontend.md)               |
 | Layout CSS, mobile-first                | [.claude/layout.md](.claude/layout.md)                   |
 | CI/CD, suivi                            | [.claude/cicd.md](.claude/cicd.md)                       |
@@ -48,6 +50,10 @@ Le routeur, le container DI et le renderer de vues restent volontairement minima
 ### Pas d'ORM — SQL préparé partout
 
 Chaque accès aux données passe par un repository PDO écrit à la main (prepared statements, `EMULATE_PREPARES` désactivé). Jamais de fragment SQL construit avec une valeur utilisateur concaténée. Voir `.claude/architecture.md` pour le détail et le point clé sur la concurrence des créneaux libérés (`UPDATE ... WHERE status='liberee'` atomique).
+
+### Délégation
+
+Une demande qui modifie du code et n'est pas triviale (au-delà de 1-2 fichiers) suit la procédure de `.claude/commands/dispatch.md` : choisir le mode (direct, Sonnet + Haiku, Opus + Haiku), l'annoncer en une ligne, le lancer. Jamais de Haiku sur l'authentification, les droits, la concurrence SQL, les transactions, les e-mails ni la sécurité. Détail : `.claude/delegation.md`.
 
 ### Async systématique
 
