@@ -51,18 +51,26 @@ final class FreeSlotBookingService
         }
 
         $now = $this->clock->now();
-        $range = $this->policy->assertAllowed($date, $startTime, $endTime, $reason, $this->bookings->countUpcomingFor($groupId, $now), $now);
-
-        // Le verrou du jour sérialise « vérifier puis insérer » : deux réservations simultanées, une seule passe (409 pour l'autre).
-        if (!$this->dateLock->acquire($date, $this->lockWaitSeconds)) {
-            throw new FreeSlotBookingConflictException('Une autre réservation est en cours pour ce jour : réessayez dans un instant.');
+        // Le verrou du groupe sérialise ses demandes (limite de réservations à venir relue une fois le verrou tenu, #443) ; celui du
+        // jour sérialise « vérifier puis insérer » : deux réservations simultanées, une seule passe (409 pour l'autre).
+        if (!$this->dateLock->acquireGroup($groupId, $this->lockWaitSeconds)) {
+            throw new FreeSlotBookingConflictException('Une autre demande de votre groupe est en cours : réessayez dans un instant.');
         }
         try {
-            $this->assertFree($date, $range);
+            $range = $this->policy->assertAllowed($date, $startTime, $endTime, $reason, $this->bookings->countUpcomingFor($groupId, $now), $now);
 
-            $booking = $this->bookings->create(new Requester($groupId, $userId), $date, $range, $reason);
+            if (!$this->dateLock->acquire($date, $this->lockWaitSeconds)) {
+                throw new FreeSlotBookingConflictException('Une autre réservation est en cours pour ce jour : réessayez dans un instant.');
+            }
+            try {
+                $this->assertFree($date, $range);
+
+                $booking = $this->bookings->create(new Requester($groupId, $userId), $date, $range, $reason);
+            } finally {
+                $this->dateLock->release($date);
+            }
         } finally {
-            $this->dateLock->release($date);
+            $this->dateLock->releaseGroup($groupId);
         }
         // Une fois la réservation créée et le verrou rendu : les administrateurs sont prévenus (après la réponse, sans jamais échouer).
         $this->notifier->bookingRequested($booking);

@@ -15,7 +15,7 @@ final class NativeSession implements SessionInterface
      * en HTTPS le nom porte le préfixe « __Host- » (le navigateur refuse alors tout cookie de ce nom qui ne serait pas Secure,
      * sans Domain et sur « / ») ; le mode strict ignore tout identifiant que le serveur n'a pas émis.
      *
-     * @return array{cookie_httponly: bool, cookie_samesite: string, cookie_secure: bool, use_strict_mode: bool, name: string}
+     * @return array{cookie_httponly: bool, cookie_samesite: string, cookie_secure: bool, use_strict_mode: bool, name: string, gc_maxlifetime: int}
      */
     public static function cookieOptions(bool $secure): array
     {
@@ -25,6 +25,7 @@ final class NativeSession implements SessionInterface
             'cookie_secure' => $secure,
             'use_strict_mode' => true,
             'name' => $secure ? '__Host-rbsid' : 'rbsid',
+            'gc_maxlifetime' => SessionPolicy::IDLE_SECONDS,
         ];
     }
 

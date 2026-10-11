@@ -15,6 +15,9 @@ interface GroupDocumentRepositoryInterface
 
     public function countByGroup(int $groupId): int;
 
+    /** Volume total des documents d'un groupe, en octets (plafond de volume, #432). */
+    public function totalBytesByGroup(int $groupId): int;
+
     /**
      * Verrouille le groupe jusqu'à la fin de la transaction en cours (#222) : les envois d'un MÊME groupe passent l'un après
      * l'autre, ce qui rend atomique « compter puis ajouter » (le quota ne peut plus être dépassé par des envois simultanés).

@@ -57,10 +57,18 @@ class Response
 
     public function send(): void
     {
+        $this->sendHeaders();
+        echo $this->body;
+    }
+
+    /** Code et en-têtes, communs à toute réponse envoyée (corps en mémoire ou fichier en flux). */
+    protected function sendHeaders(): void
+    {
         http_response_code($this->statusCode);
+        // PHP annonce sa version à chaque réponse (#427) : inutile au visiteur, utile à qui cherche une faille précise.
+        header_remove('X-Powered-By');
         foreach ($this->headers as $name => $value) {
             header("{$name}: {$value}");
         }
-        echo $this->body;
     }
 }

@@ -30,6 +30,16 @@ final class InMemoryMetricsRepository implements MetricsRepositoryInterface
         $this->events[] = ['type' => $type->value, 'route' => $route, 'status' => $status, 'ip' => $ipHash, 'at' => $at->format('Y-m-d H:i:s')];
     }
 
+    public function countEventsSince(?string $ipHash, \DateTimeImmutable $since): int
+    {
+        $this->failIfAsked();
+
+        return count(array_filter(
+            $this->events,
+            static fn (array $e): bool => $e['at'] >= $since->format('Y-m-d H:i:s') && ($ipHash === null || $e['ip'] === $ipHash),
+        ));
+    }
+
     public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb, array $durationBuckets = [0, 0, 0, 0, 0, 0]): void
     {
         $this->failIfAsked();

@@ -23,7 +23,12 @@ use App\Account\Service\AuthService;
 use App\Messaging\Service\ConversationAccess;
 use App\Messaging\Service\Mention\MemberSearchService;
 use App\Tests\Database\RepositoryTestCase;
+use App\Account\Repository\MysqlThrottleEventRepository;
+use App\Account\Service\Throttle\SubjectThrottle;
+use App\Account\Service\Throttle\UserActionLimit;
+use App\Security\Exception\RateLimitedException;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\Clock\Clock;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class MemberApiControllerTest extends RepositoryTestCase
@@ -143,5 +148,24 @@ final class MemberApiControllerTest extends RepositoryTestCase
             }
         }
         self::assertCount(1, array_unique($messages));
+    }
+
+    #[Test]
+    public function testTheDirectoryCannotBeCombedWithAnEndlessStreamOfSearches(): void
+    {
+        $this->auth->attempt($this->alice->email(), self::PASSWORD);
+        $conversations = new MysqlConversationRepository($this->pdo, \App\Tests\Support\TestMessageCipher::make());
+        $guests = new MysqlConversationGuestRepository($this->pdo);
+        $limited = new MemberApiController(
+            new MemberSearchService(new MysqlMemberDirectory($this->pdo), new ConversationAccess($conversations, $this->groups, $guests), $this->groups, $guests),
+            new AuthGuard($this->auth),
+            new UserActionLimit(new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'member-search', 2, '-1 minute'), new Clock(), 'Trop de recherches.'),
+        );
+        $query = ['q' => 'deni', 'conversation' => (string) $this->conversationId];
+        $limited->search(new Request('GET', '/api/members', $query, [], []));
+        $limited->search(new Request('GET', '/api/members', $query, [], []));
+
+        $this->expectException(RateLimitedException::class);
+        $limited->search(new Request('GET', '/api/members', $query, [], []));
     }
 }

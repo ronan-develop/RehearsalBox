@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Planning\Service;
 
 use App\Planning\Entity\FreeSlotBookingStatus;
+use App\Planning\Entity\Requester;
+use App\Planning\Entity\TimeRange;
+use App\Planning\Repository\BookingDateLockInterface;
 use App\Planning\Entity\Weekday;
 use App\Planning\Entity\RecurringSlot;
 use App\Planning\Repository\MysqlBookingDateLock;
@@ -294,5 +297,68 @@ final class FreeSlotBookingServiceTest extends RepositoryTestCase
         self::assertSame([$mine->id()], array_map(static fn ($b): int => $b->id(), $this->service->forGroup($this->alice, $this->alpha)));
         $this->expectException(AccessDeniedException::class);
         $this->service->forGroup($this->stranger, $this->alpha);
+    }
+
+    #[Test]
+    public function testTheUpcomingLimitIsCheckedOnceTheGroupLockIsHeld(): void
+    {
+        // Des demandes simultanées du même groupe, pour d'AUTRES jours, finissent pendant que celle-ci attend le verrou : la limite
+        // doit alors être relue (avant le correctif, le nombre lu avant l'attente laissait passer une 4e, voire une 7e, demande).
+        $rivals = function (): void {
+            foreach (['2026-10-08', '2026-10-09', '2026-10-10'] as $day) {
+                $this->bookings->create(new Requester($this->alpha, $this->alice), new \DateTimeImmutable($day), new TimeRange('09:00:00', '10:00:00'), 'rival');
+            }
+        };
+        $lock = new class (new MysqlBookingDateLock($this->pdo), $rivals) implements BookingDateLockInterface {
+            public function __construct(private readonly MysqlBookingDateLock $real, private readonly \Closure $beforeGroupLock)
+            {
+            }
+
+            public function acquire(\DateTimeImmutable $date, int $waitSeconds = 5): bool
+            {
+                return $this->real->acquire($date, $waitSeconds);
+            }
+
+            public function release(\DateTimeImmutable $date): void
+            {
+                $this->real->release($date);
+            }
+
+            public function acquireGroup(int $groupId, int $waitSeconds = 5): bool
+            {
+                ($this->beforeGroupLock)();
+
+                return $this->real->acquireGroup($groupId, $waitSeconds);
+            }
+
+            public function releaseGroup(int $groupId): void
+            {
+                $this->real->releaseGroup($groupId);
+            }
+        };
+        $service = new FreeSlotBookingService($this->bookings, $lock, $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock);
+
+        try {
+            $service->request($this->alice, $this->alpha, $this->wednesday(), '09:00', '10:00', 'quatrième');
+            self::fail('la limite de ' . FreeSlotBookingPolicy::MAX_UPCOMING_PER_GROUP . ' réservations à venir doit tenir');
+        } catch (AvailabilityValidationException $e) {
+            self::assertArrayHasKey('group', $e->fields());
+        }
+        self::assertSame(FreeSlotBookingPolicy::MAX_UPCOMING_PER_GROUP, $this->bookings->countUpcomingFor($this->alpha, $this->clock->now()));
+    }
+
+    #[Test]
+    public function testARequestWhoseGroupLockStaysBusyAsksToTryAgain(): void
+    {
+        $other = new MysqlBookingDateLock(TestDatabase::connection());
+        self::assertTrue($other->acquireGroup($this->alpha));
+        $service = new FreeSlotBookingService($this->bookings, new MysqlBookingDateLock($this->pdo), $this->slots, $this->groups, new FreeSlotBookingPolicy(), $this->clock, lockWaitSeconds: 0);
+
+        try {
+            $this->expectException(FreeSlotBookingConflictException::class);
+            $service->request($this->alice, $this->alpha, $this->wednesday(), '09:00', '10:00', 'attente');
+        } finally {
+            $other->releaseGroup($this->alpha);
+        }
     }
 }

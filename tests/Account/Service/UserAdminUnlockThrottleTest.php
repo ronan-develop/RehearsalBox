@@ -46,14 +46,15 @@ final class UserAdminUnlockThrottleTest extends RepositoryTestCase
         $user = $this->users->save(new User(0, 'Alice@Rehearsalbox.test', 'hash', 'Alice', UserRole::Musicien, true, 0, null));
         $now = new \DateTimeImmutable();
         for ($i = 1; $i <= 5; ++$i) {
-            $this->throttle->recordFailure("203.0.113.{$i}", 'alice@rehearsalbox.test', $now);
+            $this->throttle->recordFailure('203.0.113.7', 'alice@rehearsalbox.test', $now);
         }
-        self::assertGreaterThan(0, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $now));
+        self::assertGreaterThan(0, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $now));
 
         $this->service->unlock($user->id());
 
-        self::assertSame(0, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $now));
-        self::assertSame(0, $this->throttle->remainingSeconds('198.51.100.9', 'ALICE@rehearsalbox.test', $now), 'casse sans importance');
+        // Alice, qui s'était trompée cinq fois depuis chez elle, est libérée sans connaître son adresse (#441).
+        self::assertSame(0, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $now));
+        self::assertSame(0, $this->throttle->remainingSeconds('203.0.113.7', 'ALICE@rehearsalbox.test', $now), 'casse sans importance');
     }
 
     #[Test]
@@ -62,11 +63,11 @@ final class UserAdminUnlockThrottleTest extends RepositoryTestCase
         $alice = $this->users->save(new User(0, 'alice@rehearsalbox.test', 'hash', 'Alice', UserRole::Musicien, true, 0, null));
         $now = new \DateTimeImmutable();
         for ($i = 1; $i <= 5; ++$i) {
-            $this->throttle->recordFailure("203.0.113.{$i}", 'bob@rehearsalbox.test', $now);
+            $this->throttle->recordFailure('203.0.113.7', 'bob@rehearsalbox.test', $now);
         }
 
         $this->service->unlock($alice->id());
 
-        self::assertGreaterThan(0, $this->throttle->remainingSeconds('198.51.100.9', 'bob@rehearsalbox.test', $now));
+        self::assertGreaterThan(0, $this->throttle->remainingSeconds('203.0.113.7', 'bob@rehearsalbox.test', $now));
     }
 }

@@ -128,6 +128,18 @@ final class FileLoggerTest extends TestCase
     {
         $this->logger()->error('Premier message');
 
-        self::assertSame('0750', substr(sprintf('%o', fileperms($this->dir)), -4));
+        self::assertSame('0700', substr(sprintf('%o', fileperms($this->dir)), -4));
+    }
+
+    #[Test]
+    public function testTheLogFileAndItsDirectoryAreReadableByTheOwnerOnly(): void
+    {
+        $nested = $this->dir . '/neuf';
+        (new FileLogger($nested . '/app.log', new MockClock('2026-10-07 10:00:00 UTC')))->error('Une ligne');
+
+        self::assertSame('0600', substr(sprintf('%o', fileperms($nested . '/app.log')), -4), 'des identifiants d\'utilisateurs peuvent figurer dans un journal');
+        self::assertSame('0700', substr(sprintf('%o', fileperms($nested)), -4));
+        unlink($nested . '/app.log');
+        rmdir($nested);
     }
 }
