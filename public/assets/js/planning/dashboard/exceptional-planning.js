@@ -5,7 +5,6 @@
  * simplement.
  */
 import { apiFetch } from '../../core/api.js';
-import { initTornPaper } from '../../ui/tornpaper-init.js';
 
 /**
  * Recharge uniquement le carrousel des créneaux exceptionnels depuis /api/planning/exceptional après une acceptation réussie
@@ -19,7 +18,6 @@ export async function refreshExceptionalPlanning(root = document) {
 
   const { html, count } = await apiFetch('/api/planning/exceptional');
   track.innerHTML = html;
-  initTornPaper(track);
 
   const counter = root.querySelector('[data-planning-tab-count]');
   if (counter) {

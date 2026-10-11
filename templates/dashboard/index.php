@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/assets/css/pages/messages.css">
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/tornpaper-filters.php'; ?>
     <?php // Barre du haut : invisible au repos, elle apparaît quand le logo y migre en descendant (logo-migration.js). ?>
     <div class="rb-topbar" data-topbar aria-hidden="true"></div>
     <span class="rb-page-bg-text" data-logo data-text="#B27" aria-hidden="true">#B27</span>
