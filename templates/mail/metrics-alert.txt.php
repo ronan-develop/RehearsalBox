@@ -1,7 +1,7 @@
 <?php
 /**
  * @var list<string> $messages
- * @var string $link
+ * @var list<string> $links
  */
 ?>
 Alerte de mesures
@@ -13,7 +13,9 @@ Un seuil critique a été franchi :
 
 <?php endforeach; ?>
 
-Tableau de bord : <?= $link ?>
+<?php foreach ($links as $link): ?>
+Page concernée : <?= $link ?>
+<?php endforeach; ?>
 
 
 Une alerte de même type n'est pas renvoyée avant plusieurs heures.

@@ -41,7 +41,7 @@ final class MetricsMaintenanceTest extends TestCase
     public function testASnapshotReadsDiskDatabaseBackupCronReleaseAndPhp(): void
     {
         $clock = new MockClock('2026-10-07 12:00:00 UTC');
-        touch($this->dir . '/backups/dump.sql.gz', $clock->now()->getTimestamp() - 5 * 3600 - 120);
+        touch($this->dir . '/backups/db-20261007065800.sql.gz', $clock->now()->getTimestamp() - 5 * 3600 - 120);
         touch($this->dir . '/cron.log', $clock->now()->getTimestamp() - 600);
         file_put_contents($this->dir . '/RELEASE', "20261007120000-abc1234\n");
 
@@ -53,6 +53,25 @@ final class MetricsMaintenanceTest extends TestCase
         self::assertSame('2026-10-07 11:50:00', $snapshot->lastCronAt?->format('Y-m-d H:i:s'));
         self::assertSame('20261007120000-abc1234', $snapshot->releaseMarker);
         self::assertSame(PHP_VERSION, $snapshot->phpVersion);
+    }
+
+    #[Test]
+    public function testOnlyDailyDumpsCountSoARecentPreDeployDumpNeverHidesABrokenDailyBackup(): void
+    {
+        $clock = new MockClock('2026-10-07 12:00:00 UTC');
+        touch($this->dir . '/backups/db-20261004030000.sql.gz', $clock->now()->getTimestamp() - 80 * 3600);
+        touch($this->dir . '/backups/pre-20261007115900-20261007115800-abc1234.sql.gz', $clock->now()->getTimestamp() - 60);
+        touch($this->dir . '/backups/db-20261007115900.sql.gz.partial', $clock->now()->getTimestamp() - 30);
+
+        self::assertSame(80, $this->probe(new InMemoryMetricsRepository(), $clock, $this->dir . '/backups')->snapshot()->backupAgeHours);
+    }
+
+    #[Test]
+    public function testOnlyPreDeployDumpsMeansNoDailyBackupKnown(): void
+    {
+        touch($this->dir . '/backups/pre-20261007115900-20261007115800-abc1234.sql.gz');
+
+        self::assertNull($this->probe(new InMemoryMetricsRepository(), new MockClock(), $this->dir . '/backups')->snapshot()->backupAgeHours);
     }
 
     #[Test]

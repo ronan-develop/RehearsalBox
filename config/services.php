@@ -27,6 +27,7 @@ use App\Metrics\Controller\MetricsPageController;
 use App\Operations\Backup\BackupHealthBuilder;
 use App\Operations\Backup\Declarations;
 use App\Operations\Backup\KeyFileProbe;
+use App\Operations\Backup\OpsAlerts;
 use App\Operations\Backup\ProtectionHealthBuilder;
 use App\Operations\Controller\OpsPageController;
 use App\Operations\OpsPaths;
@@ -277,6 +278,7 @@ return static function (array $config): Container {
                     stuffingMinutes: (int) ($anomalies['stuffing_minutes'] ?? 60),
                 ),
                 $c->get(ClockInterface::class),
+                fn (): array => (new OpsAlerts($c->get(ProtectionHealthBuilder::class)))->alerts(),
             ),
             new MysqlAlertRepository($c->get(PDO::class)),
             $c->get(Mailbox::class),
@@ -854,32 +856,42 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
     ));
 
-    // Exploitation (#375) : même propriétaire que les mesures, lecture seule.
-    $container->set(OpsPageController::class, function ($c) use ($config) {
-        $clock = $c->get(ClockInterface::class);
-        $timezone = new \DateTimeZone($config['app']['timezone']);
-        $thresholds = new Thresholds($config['metrics']['thresholds']);
-        $paths = new OpsPaths($config['ops']['base_dir']);
-        $catalog = new BackupCatalog((string) ($config['restore']['backup_dir'] ?? ''));
+    // Exploitation (#375) : même propriétaire que les mesures, lecture seule. Les relevés servent la page ET les alertes.
+    $container->set(BackupHealthBuilder::class, function ($c) use ($config) {
         $scratch = $config['restore']['scratch_schema'] ?? null;
 
-        return new OpsPageController(
-            $c->get(TemplateRendererInterface::class),
-            $c->get(AuthGuard::class),
-            new MetricsAccess((string) $config['metrics']['viewer_email']),
-            new BackupHealthBuilder(
-                $catalog,
-                new RestoreStatus((string) $config['restore']['state_dir'], $clock),
-                $scratch === null ? null : new SchemaTools($c->get(PDO::class)),
-                $scratch,
-                $thresholds,
-                $clock,
-                $timezone,
-            ),
-            new ProtectionHealthBuilder(new KeyFileProbe((string) $config['messages']['key_file']), new Declarations($paths->declarations(), $clock), $paths, $catalog, $thresholds, $clock, $timezone),
-            $timezone,
+        return new BackupHealthBuilder(
+            new BackupCatalog((string) ($config['restore']['backup_dir'] ?? '')),
+            new RestoreStatus((string) $config['restore']['state_dir'], $c->get(ClockInterface::class)),
+            $scratch === null ? null : new SchemaTools($c->get(PDO::class)),
+            $scratch,
+            new Thresholds($config['metrics']['thresholds']),
+            $c->get(ClockInterface::class),
+            new \DateTimeZone($config['app']['timezone']),
         );
     });
+    $container->set(ProtectionHealthBuilder::class, function ($c) use ($config) {
+        $clock = $c->get(ClockInterface::class);
+        $paths = new OpsPaths($config['ops']['base_dir']);
+
+        return new ProtectionHealthBuilder(
+            new KeyFileProbe((string) $config['messages']['key_file']),
+            new Declarations($paths->declarations(), $clock),
+            $paths,
+            new BackupCatalog((string) ($config['restore']['backup_dir'] ?? '')),
+            new Thresholds($config['metrics']['thresholds']),
+            $clock,
+            new \DateTimeZone($config['app']['timezone']),
+        );
+    });
+    $container->set(OpsPageController::class, fn ($c) => new OpsPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(AuthGuard::class),
+        new MetricsAccess((string) $config['metrics']['viewer_email']),
+        $c->get(BackupHealthBuilder::class),
+        $c->get(ProtectionHealthBuilder::class),
+        new \DateTimeZone($config['app']['timezone']),
+    ));
 
     // Restauration de la base depuis la page d'administration (#241) : propriétaire seulement, processus détaché (bin/restore-db.php).
     $container->set(RestoreController::class, function ($c) use ($config) {

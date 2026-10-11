@@ -118,4 +118,18 @@ final class AlertEvaluatorTest extends TestCase
         self::assertStringNotContainsString('cafebabe', $text);
         self::assertStringNotContainsString('@', $text);
     }
+
+    #[Test]
+    public function testExtraAlertsAreAppendedAndOptional(): void
+    {
+        $extra = static fn (): array => [new \App\Metrics\Alert\Alert(AlertType::KeyFile, 'Clé à corriger.', '/admin/ops')];
+        $evaluator = new AlertEvaluator($this->reader, new Thresholds(), new DegradationDetector(), new AnomalyDetector(), new MockClock('2026-10-07 12:30:00 UTC'), $extra);
+
+        $alerts = $evaluator->evaluate();
+
+        self::assertCount(1, $alerts);
+        self::assertSame(AlertType::KeyFile, $alerts[0]->type);
+        self::assertSame('/admin/ops', $alerts[0]->page);
+        self::assertSame('/admin/metrics', (new \App\Metrics\Alert\Alert(AlertType::DiskLow, 'x'))->page, 'par défaut : les mesures');
+    }
 }
