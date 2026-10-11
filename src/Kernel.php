@@ -10,6 +10,7 @@ use App\Metrics\Collection\NullMetrics;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use App\Container\ContainerInterface;
+use App\Http\CrossSiteGuard;
 use App\Http\ErrorPage;
 use App\Http\ExceptionTranslator;
 use App\Http\JsonResponse;
@@ -85,6 +86,13 @@ final class Kernel
             $this->csrfRefused = true;
 
             return $this->errorResponse($request, 403, 'Token CSRF invalide ou manquant.');
+        }
+
+        // Défense en profondeur (#426) : une mutation d'API venue d'un autre site est refusée même avec un jeton valide.
+        if ($this->isMutatingApiRequest($request) && CrossSiteGuard::isCrossSite($request)) {
+            $this->csrfRefused = true;
+
+            return $this->errorResponse($request, 403, 'Requête refusée.');
         }
 
         [$serviceId, $method] = $matched->handler;

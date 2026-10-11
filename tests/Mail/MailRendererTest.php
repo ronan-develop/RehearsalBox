@@ -196,6 +196,21 @@ final class MailRendererTest extends TestCase
         self::assertStringNotContainsString('<img src=x', $html);
     }
 
+    #[Test]
+    public function testRestoreStartedAlertNamesTheBackupAndTheTimeAndEscapesThem(): void
+    {
+        $mail = $this->renderer->render('restore-started', ['file' => 'db-20261019030000.sql.gz', 'when' => '20/10/2026 à 10:00']);
+
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('db-20261019030000.sql.gz', $body);
+            self::assertStringContainsString('20/10/2026 à 10:00', $body);
+            self::assertStringContainsString('administrateur', $body, 'recours si ce n\'est pas la personne');
+        }
+        $html = $this->renderer->render('restore-started', ['file' => '"><img src=x onerror=alert(1)>', 'when' => '<script>1</script>'])['html'];
+        self::assertStringNotContainsString('<img src=x', $html);
+        self::assertStringNotContainsString('<script>1</script>', $html);
+    }
+
     // --- E-mails de mention (#178) --------------------------------------------------------------------
 
     #[Test]

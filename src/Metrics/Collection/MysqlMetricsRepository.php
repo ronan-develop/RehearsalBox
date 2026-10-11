@@ -21,6 +21,16 @@ final class MysqlMetricsRepository implements MetricsRepositoryInterface
             ->execute(['type' => $type->value, 'route' => $route, 'status' => $status, 'ip' => $ipHash, 'at' => $at->format(self::DATE_FORMAT)]);
     }
 
+    public function countEventsSince(?string $ipHash, \DateTimeImmutable $since): int
+    {
+        $statement = $ipHash === null
+            ? $this->pdo->prepare('SELECT COUNT(*) FROM metric_events WHERE created_at >= :since')
+            : $this->pdo->prepare('SELECT COUNT(*) FROM metric_events WHERE ip_hash = :ip AND created_at >= :since');
+        $statement->execute($ipHash === null ? ['since' => $since->format(self::DATE_FORMAT)] : ['ip' => $ipHash, 'since' => $since->format(self::DATE_FORMAT)]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb, array $durationBuckets = [0, 0, 0, 0, 0, 0]): void
     {
         $this->pdo->prepare(

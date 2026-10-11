@@ -14,7 +14,10 @@ use App\Backup\BackupException;
 use App\Backup\Controller\RestoreController;
 use App\Backup\Restore\BackupCatalog;
 use App\Backup\Restore\DocumentOrphanReport;
+use App\Backup\Restore\RestoreSafeguard;
 use App\Backup\Restore\RestoreStatus;
+use App\Tests\Doubles\RecordingMailer;
+use App\Tests\Scenarios\TestMailbox;
 use App\Group\Repository\MysqlGroupDocumentRepository;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Http\Request;
@@ -65,8 +68,11 @@ final class RestoreControllerTest extends RepositoryTestCase
         return $this->users->save(new User(0, $email, (new FastPasswordHasher())->hash('le-bon-mot-de-passe'), 'Test', $role, $active, 0, null));
     }
 
-    private function controller(?User $current, ?\Closure $launch = null): RestoreController
+    private RecordingMailer $mailer;
+
+    private function controller(?User $current, ?\Closure $launch = null, bool $enabled = true): RestoreController
     {
+        $this->mailer = new RecordingMailer();
         $auth = new class ($current) implements AuthServiceInterface {
             public function __construct(private readonly ?User $user)
             {
@@ -115,6 +121,7 @@ final class RestoreControllerTest extends RepositoryTestCase
             $this->logger,
             new \DateTimeZone('Europe/Paris'),
             new \App\Security\CsrfTokenManager(new \App\Tests\Doubles\InMemorySession()),
+            new RestoreSafeguard($enabled, TestMailbox::of($this->mailer)),
         );
     }
 
@@ -332,5 +339,46 @@ final class RestoreControllerTest extends RepositoryTestCase
         $response = $this->controller($this->user(self::OWNER))->page(new Request('GET', '/admin/restore', [], [], []));
 
         self::assertStringContainsString('<a href="/admin/ops" class="rb-back-link" aria-label="Retour à l&#039;exploitation">', $response->body());
+    }
+
+    #[Test]
+    public function testWhileRestoringFromTheWebIsDisabledNothingIsLaunchedNotEvenForTheOwner(): void
+    {
+        $response = $this->controller($this->user(self::OWNER), enabled: false)->start($this->post($this->valid()));
+
+        self::assertSame(403, $response->statusCode());
+        self::assertStringContainsString('désactivée', $response->body());
+        self::assertSame([], $this->launched);
+        self::assertSame([], $this->mailer->sent, 'pas de demande acceptée : pas d\'alerte');
+    }
+
+    #[Test]
+    public function testTheDisabledStateIsCheckedBeforeThePasswordSoItCostsAnAttackerNothingToLearn(): void
+    {
+        $owner = $this->user(self::OWNER);
+        $response = $this->controller($owner, enabled: false)->start($this->post(['password' => 'faux'] + $this->valid()));
+
+        self::assertSame(403, $response->statusCode());
+        self::assertSame(0, $this->users->findById($owner->id())->failedLoginAttempts(), 'aucun échec compté sur le compte');
+    }
+
+    #[Test]
+    public function testThePageExplainsThatRestoringIsDisabledAndOffersNoForm(): void
+    {
+        $response = $this->controller($this->user(self::OWNER), enabled: false)->page(new Request('GET', '/admin/restore', [], [], []));
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('désactivée', $response->body());
+        self::assertStringNotContainsString('data-restore-dialog', $response->body());
+    }
+
+    #[Test]
+    public function testAnAcceptedRequestAlertsTheOwnerByEmail(): void
+    {
+        $response = $this->controller($this->user(self::OWNER))->start($this->post($this->valid()));
+
+        self::assertSame(202, $response->statusCode());
+        self::assertCount(1, $this->mailer->sent);
+        self::assertSame(self::OWNER, $this->mailer->sent[0]->getTo()[0]->getAddress());
     }
 }
