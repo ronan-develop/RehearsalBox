@@ -77,6 +77,14 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - Les assets servis directement par Apache (CSS, JS) reçoivent `nosniff` via `public/.htaccess`.
 - JS : tout HTML construit côté client échappe ses données avec `escapeHtml` de `assets/js/html.js` (module unique).
 
+## Limites par personne et bornes de stockage (#428, #442, #443)
+
+- **`UserActionLimit`** (`Account\Service\Throttle`, sur `SubjectThrottle`) : N actions par personne connectée dans une fenêtre, sinon `RateLimitedException` → **423** + `Retry-After` (voir « 423, jamais 429 »). Une action refusée n'est pas comptée. En place : recherche de membres (120 par minute), envoi de documents (20 par heure). Branchement : paramètre optionnel du contrôleur, câblé dans `services.php` (`limit.*`).
+- **Pas de limite** sur le signal « écrit… » (déjà coalescé à 2 s en base) ni sur le sondage des mises à jour : lecture authentifiée par construction, la limiter coûterait une écriture par sondage ; surveillé par le tableau de bord « Charge ».
+- **Annuaire (#429)** : tout membre connecté peut chercher les comptes actifs par nom (mentions, messages directs) et voit leurs groupes. Voulu : communauté de groupes qui se parlent. Borné par la limite ci-dessus ; aucune adresse e-mail n'est jamais renvoyée.
+- **Mesures (#442)** : `MetricsRecorder` n'écrit qu'au plus 30 événements par adresse hachée et par heure, 20 000 par jour (au-delà, la requête reste comptée dans l'agrégat horaire) : une inondation de 404 anonymes ne remplit pas la base.
+- **Réservations libres (#443)** : `BookingDateLockInterface` offre deux verrous nommés, **groupe** puis **date** (ordre fixe, pas d'impasse) ; la limite de réservations à venir est relue une fois le verrou du groupe tenu.
+
 ## Connexion : verrou, limite par adresse, temps de réponse (#218)
 
 - **Verrou par compte** : 20 échecs → 15 minutes (`AuthService::MAX_FAILED_ATTEMPTS`, seuil HAUT depuis #441 : l'acharnement d'une adresse est arrêté bien avant, par le couple adresse/identifiant, et ne peut pas verrouiller la personne visée ; `CurrentPasswordVerifier`, déjà connecté, garde 5). Le compteur est incrémenté **en SQL, en une seule requête** (`UserRepositoryInterface::recordFailedLogin`) : jamais « lire, calculer en PHP, réécrire la ligne » (des tentatives simultanées s'écraseraient et le verrou serait contournable). Le compteur est plafonné (colonne étroite). Remise à zéro atomique aussi (`resetFailedLogins`, utilisée par la connexion réussie et le déblocage administrateur).
