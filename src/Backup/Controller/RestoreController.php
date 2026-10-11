@@ -8,6 +8,7 @@ use App\Account\Service\CurrentPasswordVerifier;
 use App\Backup\BackupException;
 use App\Backup\Restore\BackupCatalog;
 use App\Backup\Restore\DocumentOrphanReport;
+use App\Backup\Restore\RestoreSafeguard;
 use App\Backup\Restore\RestoreStatus;
 use App\Http\ErrorPage;
 use App\Http\JsonResponse;
@@ -44,6 +45,7 @@ final class RestoreController
         private readonly LoggerInterface $logger,
         private readonly \DateTimeZone $localTimezone,
         private readonly CsrfTokenManager $csrfTokenManager,
+        private readonly RestoreSafeguard $safeguard,
     ) {
     }
 
@@ -61,6 +63,7 @@ final class RestoreController
             'missingFiles' => $this->documents->missingFiles(),
             'orphanFiles' => $this->documents->orphanFiles(),
             'confirmWord' => self::CONFIRM_WORD,
+            'restoreEnabled' => $this->safeguard->isEnabled(),
             'csrfToken' => $this->csrfTokenManager->getToken(),
             'currentUserRole' => $user->role(),
             'localTimezone' => $this->localTimezone,
@@ -72,6 +75,11 @@ final class RestoreController
         $user = $this->authGuard->currentUserOrNull();
         if ($user === null || !$this->access->allows($user)) {
             return new JsonResponse(['error' => 'Introuvable.'], 404);
+        }
+
+        // Fermée par défaut (#424) : refus avant tout autre contrôle, donc sans compter d'échec de mot de passe ni rien révéler.
+        if (!$this->safeguard->isEnabled()) {
+            return new JsonResponse(['error' => 'La restauration par le web est désactivée sur ce serveur.'], 403);
         }
 
         $file = $request->body('file');
@@ -92,6 +100,7 @@ final class RestoreController
 
         // Journal de l'action : qui et quelle sauvegarde (aucun mot de passe, aucune donnée de la base).
         $this->logger->warning('Restauration de la base demandée.', ['user_id' => $user->id(), 'backup' => $entry->file]);
+        $this->safeguard->announce($user, $entry->file, \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->localTimezone));
         try {
             ($this->launch)($entry->file);
         } catch (BackupException $e) {
