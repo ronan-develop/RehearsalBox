@@ -7,6 +7,7 @@ use App\Account\Controller\Api\AuthApiController;
 use App\Planning\Controller\Api\AvailabilityApiController;
 use App\Backup\Controller\RestoreController;
 use App\Metrics\Controller\MetricsPageController;
+use App\Operations\Controller\OpsPageController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
@@ -44,6 +45,7 @@ return [
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
         ['GET', '/admin/restore', [RestoreController::class, 'page']],
+        ['GET', '/admin/ops', [OpsPageController::class, 'backups']],
         ['GET', '/admin/metrics', [MetricsPageController::class, 'index']],
         ['GET', '/admin/metrics/security', [MetricsPageController::class, 'security']],
         ['GET', '/admin/metrics/load', [MetricsPageController::class, 'load']],

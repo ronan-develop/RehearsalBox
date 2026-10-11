@@ -16,6 +16,7 @@ use App\Backup\Restore\BackupCatalog;
 use App\Backup\Restore\DocumentOrphanReport;
 use App\Backup\Restore\RestoreLauncher;
 use App\Backup\Restore\RestoreStatus;
+use App\Backup\Restore\SchemaTools;
 use App\Container\Container;
 use App\Logging\FileLogger;
 use App\Metrics\Alert\AlertEvaluator;
@@ -23,6 +24,12 @@ use App\Metrics\Alert\MetricsAlerter;
 use App\Metrics\Alert\MysqlAlertRepository;
 use App\Metrics\Collection\HealthProbe;
 use App\Metrics\Controller\MetricsPageController;
+use App\Operations\Backup\BackupHealthBuilder;
+use App\Operations\Backup\Declarations;
+use App\Operations\Backup\KeyFileProbe;
+use App\Operations\Backup\ProtectionHealthBuilder;
+use App\Operations\Controller\OpsPageController;
+use App\Operations\OpsPaths;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\MetricsReaderInterface;
@@ -845,6 +852,33 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(AuthGuard::class),
     ));
+
+    // Exploitation (#375) : même propriétaire que les mesures, lecture seule.
+    $container->set(OpsPageController::class, function ($c) use ($config) {
+        $clock = $c->get(ClockInterface::class);
+        $timezone = new \DateTimeZone($config['app']['timezone']);
+        $thresholds = new Thresholds($config['metrics']['thresholds']);
+        $paths = new OpsPaths($config['ops']['base_dir']);
+        $catalog = new BackupCatalog((string) ($config['restore']['backup_dir'] ?? ''));
+        $scratch = $config['restore']['scratch_schema'] ?? null;
+
+        return new OpsPageController(
+            $c->get(TemplateRendererInterface::class),
+            $c->get(AuthGuard::class),
+            new MetricsAccess((string) $config['metrics']['viewer_email']),
+            new BackupHealthBuilder(
+                $catalog,
+                new RestoreStatus((string) $config['restore']['state_dir'], $clock),
+                $scratch === null ? null : new SchemaTools($c->get(PDO::class)),
+                $scratch,
+                $thresholds,
+                $clock,
+                $timezone,
+            ),
+            new ProtectionHealthBuilder(new KeyFileProbe((string) $config['messages']['key_file']), new Declarations($paths->declarations(), $clock), $paths, $catalog, $thresholds, $clock, $timezone),
+            $timezone,
+        );
+    });
 
     // Restauration de la base depuis la page d'administration (#241) : propriétaire seulement, processus détaché (bin/restore-db.php).
     $container->set(RestoreController::class, function ($c) use ($config) {
