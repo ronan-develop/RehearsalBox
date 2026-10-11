@@ -162,6 +162,9 @@ Deux voies pour la restauration COMPLÈTE (A) : la **page d'administration** ou 
 
 **Réglages à poser UNE fois** dans `shared/config.local.php` (jamais dans le dépôt) : `restore.backup_dir` (le dossier `backups/`), `restore.scratch_schema` (`<compte>_restore`, laissée vide en permanence), `restore.php_binary` si ce n'est pas `/usr/local/bin/php`. Sans `scratch_schema`, l'essai à blanc est sauté (et la commande le dit). `metrics.viewer_email` désigne le propriétaire, seul à voir la page.
 
+**Restauration fermée par défaut (#424)** : la restauration lancée depuis le web est **désactivée** (`restore.enabled` = false) ; la page `/admin/restore` liste les sauvegardes mais n'offre aucun bouton, et `POST /api/admin/restore` répond 403 avant tout autre contrôle. Pour restaurer : ajouter `'restore' => ['enabled' => true]` dans `shared/config.local.php` (fusionné avec les autres réglages `restore.*` de ce fichier : garder `backup_dir` etc.), restaurer, **puis retirer la ligne**. Chaque demande acceptée envoie un e-mail d'alerte au compte propriétaire (sauvegarde choisie, heure) : un e-mail reçu sans l'avoir demandé = compte compromis, désactiver et changer le mot de passe.
+
+
 **A. Restauration complète (la base de production revient à l'état du dump)**
 1. **Lancer** :
    - **Page** : `/admin/restore` (connecté en propriétaire), « Restaurer » sur la ligne voulue, mot de passe + mot `RESTAURER`. La page rend la main aussitôt ; l'application peut être indisponible quelques instants (les sessions reviennent avec le dump : il faut parfois se reconnecter), puis recharger la page pour lire le résultat (étape, dump de sécurité, notes).

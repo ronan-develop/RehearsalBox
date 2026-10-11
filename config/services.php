@@ -15,6 +15,7 @@ use App\Backup\Controller\RestoreController;
 use App\Backup\Restore\BackupCatalog;
 use App\Backup\Restore\DocumentOrphanReport;
 use App\Backup\Restore\RestoreLauncher;
+use App\Backup\Restore\RestoreSafeguard;
 use App\Backup\Restore\RestoreStatus;
 use App\Backup\Restore\SchemaTools;
 use App\Container\Container;
@@ -956,6 +957,7 @@ return static function (array $config): Container {
             $c->get(LoggerInterface::class),
             new \DateTimeZone($config['app']['timezone']),
             $c->get(CsrfTokenManager::class),
+            new RestoreSafeguard((bool) ($restore['enabled'] ?? false), $c->get(Mailbox::class)),
         );
     });
 
