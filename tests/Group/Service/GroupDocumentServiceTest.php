@@ -534,4 +534,17 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
 
         self::assertCount(1, $this->storedFiles());
     }
+
+    #[Test]
+    public function testAStoredDocumentIsReadableByTheOwnerOnly(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe Droits', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'droits@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+
+        $document = $service->upload($group->id(), $manager->id(), $this->fakeUploadedFile('%PDF-1.4 x', 'a.pdf'), 'a.pdf', 10);
+
+        self::assertSame('0600', substr(sprintf('%o', fileperms($service->pathOf($document))), -4));
+    }
 }
