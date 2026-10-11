@@ -45,7 +45,7 @@ final class MetricsAlerter
         $delivered = $this->mailbox->sendSafely(
             fn () => $this->mailbox->compose(
                 $this->recipient,
-                count($due) === 1 ? 'Alerte de mesures' : 'Alertes de mesures (' . count($due) . ')',
+                $this->subject($due),
                 'metrics-alert',
                 ['messages' => array_map(static fn (Alert $a): string => $a->message, $due), 'links' => $this->links($due)],
             ),
@@ -62,14 +62,38 @@ final class MetricsAlerter
     }
 
     /**
-     * Un lien par page concernée (mesures, exploitation), sans doublon.
+     * Le sujet nomme l'indicateur (« Alerte : fichier de clés de chiffrement ») ; à plusieurs, le nombre puis les deux premiers.
+     *
+     * @param list<Alert> $due
+     */
+    private function subject(array $due): string
+    {
+        $labels = array_map(static fn (Alert $a): string => $a->type->label(), $due);
+        if (count($labels) === 1) {
+            return 'Alerte : ' . $labels[0];
+        }
+
+        return 'Alertes (' . count($labels) . ') : ' . implode(', ', array_slice($labels, 0, 2)) . (count($labels) > 2 ? '…' : '');
+    }
+
+    /**
+     * Un lien par page concernée, sans doublon. Il passe par la connexion (`/login?next=`) : les pages réservées au propriétaire
+     * répondent 404 à un visiteur, le lien direct n'aboutirait donc jamais sans session. Après connexion on arrive sur la bonne page.
      *
      * @param list<Alert> $due
      *
-     * @return list<string>
+     * @return list<array{label: string, url: string}>
      */
     private function links(array $due): array
     {
-        return array_map($this->mailbox->url(...), array_values(array_unique(array_map(static fn (Alert $a): string => $a->page, $due))));
+        $links = [];
+        foreach (array_unique(array_map(static fn (Alert $a): string => $a->page, $due)) as $page) {
+            $links[] = [
+                'label' => str_starts_with($page, '/admin/ops') ? 'Voir l\'exploitation' : 'Voir le tableau de bord',
+                'url' => $this->mailbox->url('/login?next=' . rawurlencode($page)),
+            ];
+        }
+
+        return $links;
     }
 }
