@@ -40,12 +40,12 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         parent::tearDown();
     }
 
-    private function makeService(int $maxDocuments = 20): array
+    private function makeService(int $maxDocuments = 20, int $maxBytes = 100 * 1024 * 1024): array
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
         $documentRepository = new MysqlGroupDocumentRepository($this->pdo);
-        $service = new GroupDocumentService($documentRepository, $groupRepository, new TransactionRunner($this->pdo), $this->storagePath, $maxDocuments);
+        $service = new GroupDocumentService($documentRepository, $groupRepository, new TransactionRunner($this->pdo), $this->storagePath, $maxDocuments, $maxBytes);
 
         return [$service, $groupRepository, $userRepository, $documentRepository];
     }
@@ -325,6 +325,11 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
                 $this->inner->lockGroupQuota($groupId);
             }
 
+            public function totalBytesByGroup(int $groupId): int
+            {
+                return $this->inner->totalBytesByGroup($groupId);
+            }
+
             public function save(GroupDocument $document): GroupDocument
             {
                 throw new \PDOException('SQLSTATE : base indisponible');
@@ -405,5 +410,128 @@ final class GroupDocumentServiceTest extends RepositoryTestCase
         self::assertSame([], $this->storedFiles());
         $service->remove(['/inexistant/fichier.pdf']); // best effort : un fichier déjà absent n'est jamais une erreur
         self::addToAssertionCount(1);
+    }
+
+    /** Un PNG de $width × $height fabriqué avec GD, plus d'éventuels octets parasites à la suite. */
+    private function pngBytes(int $width = 4, int $height = 3, string $trailing = ''): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean() . $trailing;
+    }
+
+    /** Un JPEG de $width × $height fabriqué avec GD ; `$segments` : segments (marqueur + contenu) insérés juste après l'en-tête SOI. */
+    private function jpegBytes(int $width = 4, int $height = 3, string $segments = ''): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        ob_start();
+        imagejpeg($image);
+        $jpeg = (string) ob_get_clean();
+
+        return substr($jpeg, 0, 2) . $segments . substr($jpeg, 2);
+    }
+
+    /** Segment de commentaire JPEG (FFFE) : un endroit où des données parasites ou personnelles se cachent. */
+    private function jpegComment(string $text): string
+    {
+        return "\xFF\xFE" . pack('n', strlen($text) + 2) . $text;
+    }
+
+    /** Segment EXIF (APP1) portant l'orientation $orientation (6 = à tourner de 90° dans le sens horaire). */
+    private function exifOrientation(int $orientation): string
+    {
+        $tiff = "MM\x00\x2A\x00\x00\x00\x08" . pack('n', 1) . pack('nnN', 0x0112, 3, 1) . pack('n', $orientation) . "\x00\x00" . "\x00\x00\x00\x00";
+        $body = "Exif\x00\x00" . $tiff;
+
+        return "\xFF\xE1" . pack('n', strlen($body) + 2) . $body;
+    }
+
+    private function uploadAsManager(GroupDocumentService $service, string $content, string $name): GroupDocument
+    {
+        [, $groupRepository, $userRepository] = $this->makeService();
+        $group = $groupRepository->save(new Group(0, 'Groupe ' . uniqid(), null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, uniqid('m') . '@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+
+        return $service->upload($group->id(), $manager->id(), $this->fakeUploadedFile($content, $name), $name, strlen($content));
+    }
+
+    #[Test]
+    public function testAPictureIsReEncodedSoTrailingBytesAndHiddenSegmentsAreDropped(): void
+    {
+        [$service] = $this->makeService();
+
+        $png = $this->uploadAsManager($service, $this->pngBytes(4, 3, '<script>alert(1)</script>'), 'p.png');
+        $jpeg = $this->uploadAsManager($service, $this->jpegBytes(4, 3, $this->jpegComment('POSITION-GPS-SECRETE')), 'p.jpg');
+
+        foreach ([$png, $jpeg] as $document) {
+            $stored = (string) file_get_contents($service->pathOf($document));
+            self::assertStringNotContainsString('<script>', $stored);
+            self::assertStringNotContainsString('POSITION-GPS-SECRETE', $stored);
+            self::assertSame(['image/' . ($document === $png ? 'png' : 'jpeg'), 4, 3], [getimagesizefromstring($stored)['mime'], getimagesizefromstring($stored)[0], getimagesizefromstring($stored)[1]]);
+            self::assertSame(strlen($stored), $document->sizeBytes(), 'la taille enregistrée est celle du fichier réellement stocké');
+        }
+    }
+
+    #[Test]
+    public function testThePhoneOrientationIsAppliedBeforeTheMetadataIsDropped(): void
+    {
+        [$service] = $this->makeService();
+
+        $document = $this->uploadAsManager($service, $this->jpegBytes(4, 2, $this->exifOrientation(6)), 'portrait.jpg');
+
+        $size = getimagesizefromstring((string) file_get_contents($service->pathOf($document)));
+        self::assertSame([2, 4], [$size[0], $size[1]], 'une photo prise « debout » reste debout une fois l\'EXIF retiré');
+    }
+
+    #[Test]
+    public function testAnImageWithAHugeDeclaredSizeIsRefusedWithoutBeingDecoded(): void
+    {
+        [$service] = $this->makeService();
+        $header = "\x89PNG\r\n\x1a\n" . pack('N', 13) . 'IHDR' . pack('NNCCCCC', 30000, 30000, 8, 2, 0, 0, 0) . pack('N', 0);
+
+        $this->expectException(InvalidUploadException::class);
+        $this->uploadAsManager($service, $header, 'bombe.png');
+    }
+
+    #[Test]
+    public function testAnImageThatCannotBeDecodedIsRefused(): void
+    {
+        [$service] = $this->makeService();
+
+        $this->expectException(InvalidUploadException::class);
+        $this->uploadAsManager($service, substr($this->pngBytes(), 0, 40), 'coupe.png');
+    }
+
+    #[Test]
+    public function testAPdfIsStoredUntouched(): void
+    {
+        [$service] = $this->makeService();
+
+        $document = $this->uploadAsManager($service, "%PDF-1.4\nbonjour", 'f.pdf');
+
+        self::assertSame("%PDF-1.4\nbonjour", file_get_contents($service->pathOf($document)));
+    }
+
+    #[Test]
+    public function testTheTotalVolumeOfAGroupIsCappedAndARefusedFileLeavesNothingOnDisk(): void
+    {
+        [$service, $groupRepository, $userRepository] = $this->makeService(20, 1500);
+        $group = $groupRepository->save(new Group(0, 'Groupe Volume', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'vol@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $pdf = '%PDF-1.4 ' . str_repeat('x', 800);
+
+        $service->upload($group->id(), $manager->id(), $this->fakeUploadedFile($pdf, 'a.pdf'), 'a.pdf', strlen($pdf));
+        try {
+            $service->upload($group->id(), $manager->id(), $this->fakeUploadedFile($pdf, 'b.pdf'), 'b.pdf', strlen($pdf));
+            self::fail('le deuxième fichier dépasse le volume du groupe');
+        } catch (StorageQuotaExceededException $e) {
+            self::assertStringContainsString('volume', $e->getMessage());
+        }
+
+        self::assertCount(1, $this->storedFiles());
     }
 }
