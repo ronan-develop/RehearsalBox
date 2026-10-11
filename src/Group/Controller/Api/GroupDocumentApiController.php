@@ -35,7 +35,10 @@ final class GroupDocumentApiController
 
         // `tmp_name` est le chemin que PHP a attribué au fichier reçu, jamais une valeur du client ; le nom d'origine, lui, ne sert qu'à
         // l'affichage (GroupDocumentService::safeName) et la destination est un nom aléatoire.
-        /** @psalm-taint-escape file */
+        /**
+         * @psalm-taint-escape file
+         * @psalm-taint-escape ssrf
+         */
         $temporaryPath = $file['tmp_name'];
 
         $document = $this->documentService->upload(
