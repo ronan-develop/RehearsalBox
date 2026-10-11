@@ -26,9 +26,9 @@ final class MetricsRecorderTest extends TestCase
         $this->logger = new RecordingLogger();
     }
 
-    private function recorder(string $secret = 'secret'): MetricsRecorder
+    private function recorder(string $secret = 'secret', int $maxEventsPerDay = MetricsRecorder::MAX_EVENTS_PER_DAY): MetricsRecorder
     {
-        return new MetricsRecorder($this->repository, new IpPseudonymizer($secret), $this->clock, $this->logger);
+        return new MetricsRecorder($this->repository, new IpPseudonymizer($secret), $this->clock, $this->logger, $maxEventsPerDay);
     }
 
     #[Test]
@@ -131,5 +131,77 @@ final class MetricsRecorderTest extends TestCase
         $recorder->flush();
 
         self::assertCount(1, $this->repository->hourly);
+    }
+
+    /** Une requête = un enregistreur : l'inondation vient de requêtes successives, chacune écrivant son événement. */
+    private function floodFrom(string $ip, int $requests, string $route = '/.env'): void
+    {
+        for ($i = 0; $i < $requests; ++$i) {
+            $recorder = $this->recorder();
+            $recorder->request('(inconnue)', 404, 3, 1024);
+            $recorder->event(MetricEventType::NotFound, $route . $i, 404, $ip);
+            $recorder->flush();
+        }
+    }
+
+    #[Test]
+    public function testOneAddressCannotFillTheEventTableWithinAnHour(): void
+    {
+        $this->floodFrom('203.0.113.7', MetricsRecorder::MAX_EVENTS_PER_ADDRESS_PER_HOUR + 40);
+
+        self::assertCount(MetricsRecorder::MAX_EVENTS_PER_ADDRESS_PER_HOUR, $this->repository->events);
+        $requests = array_sum(array_column($this->repository->hourly, 'requests'));
+        self::assertSame(MetricsRecorder::MAX_EVENTS_PER_ADDRESS_PER_HOUR + 40, $requests, 'le volume reste compté dans l\'agrégat horaire');
+    }
+
+    #[Test]
+    public function testAnotherAddressIsNotAffectedByTheFlood(): void
+    {
+        $this->floodFrom('203.0.113.7', MetricsRecorder::MAX_EVENTS_PER_ADDRESS_PER_HOUR + 5);
+        $this->floodFrom('198.51.100.9', 3);
+
+        $other = array_values(array_filter($this->repository->events, fn (array $e): bool => $e['ip'] === (new IpPseudonymizer('secret'))->of('198.51.100.9')));
+        self::assertCount(3, $other);
+    }
+
+    #[Test]
+    public function testTheAddressBudgetStartsAgainTheNextHour(): void
+    {
+        $this->floodFrom('203.0.113.7', MetricsRecorder::MAX_EVENTS_PER_ADDRESS_PER_HOUR + 5);
+        $this->clock->modify('+1 hour');
+        $this->floodFrom('203.0.113.7', 2);
+
+        self::assertCount(MetricsRecorder::MAX_EVENTS_PER_ADDRESS_PER_HOUR + 2, $this->repository->events);
+    }
+
+    #[Test]
+    public function testTheTableHasADailyCeilingWhateverTheNumberOfAddresses(): void
+    {
+        // Une adresse différente par requête : seul le plafond global peut les arrêter.
+        for ($i = 0; $i < 60; ++$i) {
+            $recorder = $this->recorder(maxEventsPerDay: 50);
+            $recorder->event(MetricEventType::NotFound, '/x' . $i, 404, '10.' . intdiv($i, 65025) . '.' . intdiv($i % 65025, 255) . '.' . ($i % 255 + 1));
+            $recorder->flush();
+        }
+
+        self::assertCount(50, $this->repository->events);
+    }
+
+    #[Test]
+    public function testTheDefaultDailyCeilingIsBoundedForASharedHost(): void
+    {
+        self::assertLessThanOrEqual(50000, MetricsRecorder::MAX_EVENTS_PER_DAY);
+    }
+
+    #[Test]
+    public function testAnEventWithoutAddressIsStillSubjectToTheDailyCeiling(): void
+    {
+        for ($i = 0; $i < 25; ++$i) {
+            $recorder = $this->recorder(maxEventsPerDay: 20);
+            $recorder->event(MetricEventType::NotFound, '/y' . $i, 404, '');
+            $recorder->flush();
+        }
+
+        self::assertCount(20, $this->repository->events);
     }
 }

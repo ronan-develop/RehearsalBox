@@ -74,4 +74,21 @@ final class MysqlMetricsRepositoryTest extends RepositoryTestCase
         self::assertSame(['/new'], $this->pdo->query('SELECT route FROM metric_events')->fetchAll(\PDO::FETCH_COLUMN));
         self::assertSame(1, (int) $this->pdo->query('SELECT COUNT(*) FROM metric_hourly')->fetchColumn());
     }
+
+    #[Test]
+    public function testEventsAreCountedPerAddressAndOverall(): void
+    {
+        $repository = new MysqlMetricsRepository($this->pdo);
+        $at = new \DateTimeImmutable('2026-10-07 10:20:00');
+        $repository->addEvent(MetricEventType::NotFound, '/a', 404, 'aaaaaaaaaaaaaaaa', $at);
+        $repository->addEvent(MetricEventType::NotFound, '/b', 404, 'aaaaaaaaaaaaaaaa', $at->modify('-2 hours'));
+        $repository->addEvent(MetricEventType::NotFound, '/c', 404, 'bbbbbbbbbbbbbbbb', $at);
+        $repository->addEvent(MetricEventType::NotFound, '/d', 404, null, $at);
+
+        $since = new \DateTimeImmutable('2026-10-07 10:00:00');
+        self::assertSame(1, $repository->countEventsSince('aaaaaaaaaaaaaaaa', $since), 'l\'événement de 2 heures plus tôt ne compte pas');
+        self::assertSame(1, $repository->countEventsSince('bbbbbbbbbbbbbbbb', $since));
+        self::assertSame(3, $repository->countEventsSince(null, $since), 'sans adresse : tous les événements de la période');
+        self::assertSame(0, $repository->countEventsSince('cccccccccccccccc', $since));
+    }
 }

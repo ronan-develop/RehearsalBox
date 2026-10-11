@@ -11,6 +11,7 @@ use App\Http\FileResponse;
 use App\Http\JsonResponse;
 use App\Http\Request;
 use App\Http\Response;
+use App\Account\Service\Throttle\UserActionLimit;
 use App\Security\AuthGuard;
 use App\Group\Service\GroupDocumentService;
 use App\Support\StrictId;
@@ -21,22 +22,32 @@ final class GroupDocumentApiController
         private readonly GroupDocumentService $documentService,
         private readonly AuthGuard $authGuard,
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly ?UserActionLimit $uploadLimit = null,
     ) {
     }
 
     public function store(Request $request, string $groupId): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
+        $this->uploadLimit?->hit($user->id());
 
         $file = $request->file('document');
         if ($file === null || $file['error'] !== UPLOAD_ERR_OK) {
             return new JsonResponse(['error' => 'Fichier manquant ou invalide.'], 422);
         }
 
+        // `tmp_name` est le chemin que PHP a attribué au fichier reçu, jamais une valeur du client ; le nom d'origine, lui, ne sert qu'à
+        // l'affichage (GroupDocumentService::safeName) et la destination est un nom aléatoire.
+        /**
+         * @psalm-taint-escape file
+         * @psalm-taint-escape ssrf
+         */
+        $temporaryPath = $file['tmp_name'];
+
         $document = $this->documentService->upload(
             StrictId::orDenied($groupId),
             $user->id(),
-            $file['tmp_name'],
+            $temporaryPath,
             $file['name'],
             $file['size'],
         );

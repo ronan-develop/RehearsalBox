@@ -20,6 +20,15 @@ final class MetricsRecorder implements MetricsRecorderInterface
 {
     private const ROUTE_MAX_LENGTH = 120;
 
+    /**
+     * Bornes de la table des événements (#442) : sans elles, des requêtes anonymes en boucle (un scanner de passage suffit) y
+     * ajouteraient une ligne chacune pendant 30 jours. Au-delà, l'événement n'est plus écrit, mais la requête reste comptée dans
+     * l'agrégat horaire : le volume reste visible, le détail est plafonné.
+     */
+    public const MAX_EVENTS_PER_ADDRESS_PER_HOUR = 30;
+
+    public const MAX_EVENTS_PER_DAY = 20000;
+
     /** @var list<array{MetricEventType, string, ?int, ?string, \DateTimeImmutable}> */
     private array $events = [];
 
@@ -31,6 +40,7 @@ final class MetricsRecorder implements MetricsRecorderInterface
         private readonly IpPseudonymizer $ips,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly int $maxEventsPerDay = self::MAX_EVENTS_PER_DAY,
     ) {
     }
 
@@ -65,7 +75,9 @@ final class MetricsRecorder implements MetricsRecorderInterface
 
         try {
             foreach ($events as [$type, $route, $status, $ipHash, $at]) {
-                $this->repository->addEvent($type, $route, $status, $ipHash, $at);
+                if ($this->withinBudget($ipHash, $at)) {
+                    $this->repository->addEvent($type, $route, $status, $ipHash, $at);
+                }
             }
             foreach ($hourly as $h) {
                 $this->repository->addHourly($h['hour'], $h['route'], $h['class'], $h['requests'], $h['total'], $h['max'], $h['memory'], $h['buckets']);
@@ -73,6 +85,15 @@ final class MetricsRecorder implements MetricsRecorderInterface
         } catch (\Throwable $e) {
             $this->logger->warning('Mesures : écriture impossible', ['exception' => $e::class]);
         }
+    }
+
+    private function withinBudget(?string $ipHash, \DateTimeImmutable $at): bool
+    {
+        if ($ipHash !== null && $this->repository->countEventsSince($ipHash, $at->setTime((int) $at->format('G'), 0, 0)) >= self::MAX_EVENTS_PER_ADDRESS_PER_HOUR) {
+            return false;
+        }
+
+        return $this->repository->countEventsSince(null, $at->setTime(0, 0, 0)) < $this->maxEventsPerDay;
     }
 
     private static function route(string $route): string

@@ -72,11 +72,16 @@ final class FileLogger extends AbstractLogger
     private function write(string $line): void
     {
         $dir = dirname($this->file);
-        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
+        // Dossier et fichier réservés au propriétaire (#440) : un journal peut citer des identifiants d'utilisateurs.
+        if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
             return;
         }
         $this->rotateIfNeeded();
+        $created = !is_file($this->file);
         @file_put_contents($this->file, $line, \FILE_APPEND | \LOCK_EX);
+        if ($created) {
+            @chmod($this->file, 0600);
+        }
     }
 
     private function rotateIfNeeded(): void

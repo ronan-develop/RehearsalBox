@@ -31,4 +31,24 @@ final class MysqlBookingDateLockTest extends TestCase
         self::assertTrue($second->acquire($day, 0), 'libéré : le second passe');
         $second->release($day);
     }
+
+    #[Test]
+    public function testTwoRequestsOfTheSameGroupWaitForEachOtherWhateverTheirDates(): void
+    {
+        $first = new MysqlBookingDateLock(TestDatabase::connection());
+        $second = new MysqlBookingDateLock(TestDatabase::connection());
+
+        self::assertTrue($first->acquireGroup(7));
+        try {
+            self::assertFalse($second->acquireGroup(7, 0), 'même groupe : il doit attendre, quelle que soit la date');
+            self::assertTrue($second->acquireGroup(8, 0), 'un autre groupe n\'est jamais gêné');
+            $second->releaseGroup(8);
+            self::assertTrue($second->acquire(new \DateTimeImmutable('2026-10-07'), 0), 'le verrou du groupe n\'est pas celui d\'un jour');
+            $second->release(new \DateTimeImmutable('2026-10-07'));
+        } finally {
+            $first->releaseGroup(7);
+        }
+        self::assertTrue($second->acquireGroup(7, 0), 'libéré : le second passe');
+        $second->releaseGroup(7);
+    }
 }

@@ -34,10 +34,7 @@ final class FileResponse extends Response
 
     public function send(): void
     {
-        http_response_code($this->statusCode);
-        foreach ($this->headers as $name => $value) {
-            header("{$name}: {$value}");
-        }
+        $this->sendHeaders();
         readfile($this->path);
     }
 }
