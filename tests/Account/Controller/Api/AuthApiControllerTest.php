@@ -32,7 +32,7 @@ final class AuthApiControllerTest extends RepositoryTestCase
         $hasher = new FastPasswordHasher();
         $session = new InMemorySession();
         $authService = new AuthService($userRepository, $hasher, $session, $groupRepository);
-        $controller = new AuthApiController($authService, new \App\Account\Service\Throttle\LoginThrottle(new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'login', self::THROTTLE_LIMIT, '-15 minutes'), new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'login-id', 5, '-15 minutes')));
+        $controller = new AuthApiController($authService, new \App\Account\Service\Throttle\LoginThrottle(new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'login', self::THROTTLE_LIMIT, '-15 minutes'), new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'login-id', 30, '-15 minutes'), new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'login-pair', 5, '-15 minutes')));
 
         return [$controller, $userRepository, $session, $groupRepository];
     }

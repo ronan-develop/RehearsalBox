@@ -11,6 +11,9 @@ interface MetricsRepositoryInterface
 {
     public function addEvent(MetricEventType $type, string $route, ?int $status, ?string $ipHash, \DateTimeImmutable $at): void;
 
+    /** Événements écrits depuis `$since` : ceux d'une adresse (hachée), ou tous si `$ipHash` est null (plafonds de l'enregistreur, #442). */
+    public function countEventsSince(?string $ipHash, \DateTimeImmutable $since): int;
+
     /**
      * Ajoute à l'agrégat de l'heure (UPSERT) : les compteurs s'additionnent, durée et mémoire gardent leur maximum.
      *

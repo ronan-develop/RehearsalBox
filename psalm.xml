@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!-- Analyse de teinte (#433) : suit les données non fiables (requête HTTP) jusqu'au SQL, au HTML, aux commandes et aux fichiers.
+     Uniquement le suivi de teinte ; les types sont l'affaire de PHPStan. Lancer : composer taint -->
+<psalm
+    errorLevel="8"
+    findUnusedCode="false"
+    findUnusedBaselineEntry="false"
+    ensureArrayStringOffsetsExist="false"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="src"/>
+        <directory name="templates"/>
+        <ignoreFiles>
+            <directory name="vendor"/>
+        </ignoreFiles>
+    </projectFiles>
+    <stubs>
+        <file name="tools/psalm/pdo.phpstub"/>
+    </stubs>
+</psalm>

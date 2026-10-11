@@ -26,12 +26,12 @@ REMOTE_COMPOSER="${RB_REMOTE_COMPOSER:-/usr/local/bin/composer}"
 KEEP_RELEASES=3
 
 rb_ssh() { ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@"; }
-# Étapes numérotées avec barre de progression (#277) : 12 étapes au total, celles qu'on saute comptent quand même.
+# Étapes numérotées avec barre de progression (#277) : 13 étapes au total, celles qu'on saute comptent quand même.
 source "$(dirname "$0")/lib/progress.sh"
 source "$(dirname "$0")/lib/ci-status.sh"
 # Journal des déploiements (#396) : une ligne par déploiement dans shared/deployments.jsonl, sans jamais bloquer le déploiement.
 source "$(dirname "$0")/lib/deploy-log.sh"
-progress_init 12
+progress_init 13
 
 secret() {
     local value
@@ -77,6 +77,31 @@ rb_ssh "mkdir -p \"\$HOME/$BASE/releases\" \"\$HOME/$BASE/shared/storage/group-d
 # Jamais le seed (script destructif, comptes au mot de passe connu) : il n'a rien à faire en production.
 git archive --format=tar HEAD -- bin config database public src templates composer.json composer.lock ':(exclude)database/seed.php' \
     | rb_ssh "tar -x -C \"\$HOME/$BASE/releases/$release\""
+
+# --- 2b. Droits des fichiers du serveur (#440) ------------------------------
+# Tout ce qui est sous shared/ (secrets, documents, journaux) et backups/ est réservé au propriétaire ; seul well-known (défis du
+# certificat) reste lisible par le serveur web. Corrige l'existant à chaque déploiement, puis CONTRÔLE : un fichier de shared/ resté
+# accessible au groupe ou aux autres arrête le déploiement avant la bascule.
+progress_step "Droits des fichiers du serveur"
+rb_ssh bash -s -- "$BASE" <<'REMOTE'
+set -euo pipefail
+cd "$HOME/$1"
+chmod 700 shared backups
+chmod -R go-rwx shared/storage backups
+chmod 755 shared/well-known
+find shared -maxdepth 1 -type f -exec chmod 600 {} +
+leaks=$(find shared -path shared/well-known -prune -o -perm /077 -print)
+if [ -n "$leaks" ]; then
+    echo "ÉCHEC : fichiers de shared/ accessibles au groupe ou aux autres :" >&2
+    echo "$leaks" >&2
+    exit 1
+fi
+backups=$(find shared -maxdepth 1 -name 'config.local.php.bak*' -print)
+if [ -n "$backups" ]; then
+    echo "ATTENTION : copie de la configuration (contient les secrets) à supprimer une fois la vérification faite :" >&2
+    echo "$backups" >&2
+fi
+REMOTE
 
 # --- 3. Dépendances et liens vers les éléments partagés -------------------
 progress_step "composer install --no-dev (PHP CLI explicite)"

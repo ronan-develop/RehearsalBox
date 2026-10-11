@@ -58,6 +58,9 @@ $defaults = [
         'php_binary' => '/usr/local/bin/php',
         // État de la restauration en cours (fichier, hors base : elle est remplacée pendant l'opération).
         'state_dir' => __DIR__ . '/../storage/restore',
+        // FERMÉE par défaut (#424) : la restauration lancée depuis le web remplace toute la base. À passer à true dans config.local.php du
+        // serveur le temps d'une restauration, puis à retirer ; chaque demande alerte le compte par e-mail.
+        'enabled' => false,
     ],
     'messages' => [
         // Clés de chiffrement du texte de la messagerie (#171) : hors dépôt et hors base, créé UNE fois par `php bin/message-keys.php init`.

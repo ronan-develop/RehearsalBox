@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Security;
 
 use App\Security\NativeSession;
+use App\Security\SessionPolicy;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -49,5 +50,14 @@ final class NativeSessionTest extends TestCase
         self::assertCount(1, $parameters);
         self::assertSame('secure', $parameters[0]->getName());
         self::assertSame('bool', (string) $parameters[0]->getType());
+    }
+
+    #[Test]
+    public function testTheServerKeepsAnIdleSessionAsLongAsThePolicyAllowsIt(): void
+    {
+        // Sans cela, le ramasse-miettes de l'hébergeur (24 minutes par défaut) déconnecterait bien avant la limite d'inactivité.
+        foreach ([true, false] as $secure) {
+            self::assertSame(SessionPolicy::IDLE_SECONDS, NativeSession::cookieOptions($secure)['gc_maxlifetime']);
+        }
     }
 }

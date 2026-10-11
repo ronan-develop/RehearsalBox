@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Jeton en lecture seule pour tous les travaux (#436) : aucun n'écrit dans le dépôt.
+permissions:
+  contents: read
+
 jobs:
   php:
     runs-on: ubuntu-latest
@@ -24,10 +28,10 @@ jobs:
           --health-retries=5
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: "8.4"
           coverage: pcov
@@ -37,6 +41,11 @@ jobs:
 
       - name: Audit dependencies
         run: composer audit
+
+      # Suivi des données non fiables (#433) : une valeur de la requête qui atteint SQL, HTML, commande ou fichier sans être
+      # neutralisée fait échouer la CI. Sources : Request (annotations `@psalm-taint-source`), puits SQL : tools/psalm/pdo.phpstub.
+      - name: Taint analysis (Psalm)
+        run: ./vendor/bin/psalm --taint-analysis --no-cache --threads=2 --no-progress
 
       - name: Static analysis (PHPStan)
         run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
@@ -69,10 +78,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "22"
 
@@ -84,3 +93,19 @@ jobs:
 
       - name: Run JS tests
         run: npm test
+
+  # Analyse de secrets (#422) : tout l'historique, valeurs masquées (--redact) dans le journal. L'image est épinglée par empreinte
+  # (gitleaks v8.30.1) ; Dependabot ne la met pas à jour, la changer à la main avec le numéro de version.
+  secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan secrets (gitleaks)
+        run: >-
+          docker run --rm -v "$PWD":/repo:ro
+          ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git /repo --redact --exit-code 1

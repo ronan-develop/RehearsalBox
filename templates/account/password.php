@@ -64,6 +64,28 @@
                 <button type="submit" class="rb-btn-primary">Changer le mot de passe</button>
             </form></rb-async-form>
         </div>
+        <div class="rb-auth-card rb-card">
+            <h2 class="rb-account-section-title">Mes données</h2>
+            <p class="rb-auth-intro">Téléchargez ce que RehearsalBox garde de vous : votre profil, vos groupes, les messages que vous avez écrits et vos demandes de réservation.</p>
+            <a class="rb-btn" href="/api/account/export" download>Télécharger mes données (JSON)</a>
+        </div>
+        <div class="rb-auth-card rb-card" data-account-deletion>
+            <h2 class="rb-account-section-title">Supprimer mon compte</h2>
+            <p class="rb-auth-intro">Votre nom, votre adresse e-mail et votre mot de passe sont <strong>effacés</strong> et vous quittez vos groupes. Les messages que vous avez envoyés restent dans les conversations des autres, sous le nom « Ancien membre ». <strong>Cette action est définitive.</strong> Un gestionnaire seul dans son groupe, ou un administrateur, doit d'abord passer la main.</p>
+            <rb-async-form endpoint="/api/account" method="DELETE"><form>
+                <div class="rb-field">
+                    <label for="deletionPassword">Votre mot de passe</label>
+                    <input type="password" id="deletionPassword" name="password" class="rb-input" required autocomplete="current-password">
+                    <span class="rb-field-error" data-field-error="currentPassword"></span>
+                </div>
+                <div class="rb-field">
+                    <label for="deletionConfirmation">Tapez SUPPRIMER pour confirmer</label>
+                    <input type="text" id="deletionConfirmation" name="confirmation" class="rb-input" required autocomplete="off" autocapitalize="characters">
+                    <span class="rb-field-error" data-field-error="confirmation"></span>
+                </div>
+                <button type="submit" class="rb-btn rb-btn-danger">Supprimer mon compte</button>
+            </form></rb-async-form>
+        </div>
         </div>
     </div>
     <?php require __DIR__ . '/../partials/nav.php'; ?>

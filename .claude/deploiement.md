@@ -55,6 +55,10 @@ RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> admin  #
 
 Le mot de passe, s'il y en a un, passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. **Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Les groupes sont créés depuis l'écran Groupes.
 
+## Droits des fichiers du serveur (#440)
+
+Chaque déploiement (étape « Droits des fichiers du serveur », avant la bascule) referme `shared/` (700), `backups/` (700), tout `shared/storage/` (dossiers 700, fichiers 600) et les fichiers de `shared/` (600) ; seul `shared/well-known` (défis du certificat) reste en 755. Il CONTRÔLE ensuite : un fichier de `shared/` encore accessible au groupe ou aux autres arrête le déploiement. Une copie `config.local.php.bak*` laissée par une manipulation manuelle est signalée (elle contient les secrets) : la supprimer une fois la vérification faite. Côté application : les journaux (dossier 700, fichier 600) et les documents (600) sont créés fermés par le code.
+
 ## Tâche planifiée : relances de la messagerie (#180, #178)
 
 `bin/send-reminders.php` envoie, **en deux temps** (relances de groupe puis relances de mention, deux lignes de bilan, puis une ligne sur l'oubli des anciennes versions de messages corrigés, #225), à l'adresse de contact d'un groupe **une relance** quand un message de l'autre côté est resté **24 h sans lecture** par ce groupe (jamais le contenu du message), seulement entre 9 h et 20 h (heure locale `app.timezone`) ; hors plage il ne fait rien et les relances dues partent le matin. Un message de plus de 7 jours n'est plus relancé. La **relance de mention** (#178) part à l'adresse du compte d'une personne taguée qui n'a pas lu la conversation 24 h après l'e-mail de mention (une seule par e-mail de mention, jamais le contenu) ; la même plage de jour s'applique. Le script s'arrête en erreur (code 1) si l'un des deux envois échoue. Idempotent : peut être relancé sans doublon.
@@ -160,7 +164,10 @@ Deux voies pour la restauration COMPLÈTE (A) : la **page d'administration** ou 
 - **La clé est-elle là ?** `php bin/message-keys.php check` doit répondre « Clés vérifiées » sur la base actuelle. Sur un **serveur neuf**, restaure d'abord la clé depuis KeePass : `php bin/message-keys.php import < sauvegarde-cles.json`.
 - **Ce dump est-il d'avant ou d'après le chiffrement des messages (mise en service du 10/10/2026, ticket #171) ?** Les dumps `db-*` à venir sont tous chiffrés ; les `pre-20261010120354…`, `pre-20261010124228…` et `pre-20261010134000…` sont **d'avant** (messages en clair). Cela change l'étape 3.
 
-**Réglages à poser UNE fois** dans `shared/config.local.php` (jamais dans le dépôt) : `restore.backup_dir` (le dossier `backups/`), `restore.scratch_schema` (`sc2ron2cuba_restore`, laissée vide en permanence), `restore.php_binary` si ce n'est pas `/usr/local/bin/php`. Sans `scratch_schema`, l'essai à blanc est sauté (et la commande le dit). `metrics.viewer_email` désigne le propriétaire, seul à voir la page.
+**Réglages à poser UNE fois** dans `shared/config.local.php` (jamais dans le dépôt) : `restore.backup_dir` (le dossier `backups/`), `restore.scratch_schema` (`<compte>_restore`, laissée vide en permanence), `restore.php_binary` si ce n'est pas `/usr/local/bin/php`. Sans `scratch_schema`, l'essai à blanc est sauté (et la commande le dit). `metrics.viewer_email` désigne le propriétaire, seul à voir la page.
+
+**Restauration fermée par défaut (#424)** : la restauration lancée depuis le web est **désactivée** (`restore.enabled` = false) ; la page `/admin/restore` liste les sauvegardes mais n'offre aucun bouton, et `POST /api/admin/restore` répond 403 avant tout autre contrôle. Pour restaurer : ajouter `'restore' => ['enabled' => true]` dans `shared/config.local.php` (fusionné avec les autres réglages `restore.*` de ce fichier : garder `backup_dir` etc.), restaurer, **puis retirer la ligne**. Chaque demande acceptée envoie un e-mail d'alerte au compte propriétaire (sauvegarde choisie, heure) : un e-mail reçu sans l'avoir demandé = compte compromis, désactiver et changer le mot de passe.
+
 
 **A. Restauration complète (la base de production revient à l'état du dump)**
 1. **Lancer** :
@@ -175,11 +182,11 @@ Deux voies pour la restauration COMPLÈTE (A) : la **page d'administration** ou 
 4. **Vérifier le site** : se connecter, ouvrir une conversation, envoyer un message ; `php bin/send-reminders.php` ne doit rien envoyer d'absurde (les relances reposent sur des dates : vérifier qu'aucune rafale ne part). OPcache : aucune purge nécessaire (le code n'a pas changé).
 5. **Si ça tourne mal** : si l'import échoue après le vidage, le message nomme le dump de sécurité (`pre-…-avant-restauration`) : le restaurer de la même façon. Si le processus a été interrompu (page : « restauration interrompue »), relancer avec la sauvegarde voulue ou avec le dump de sécurité.
 
-**B. Récupérer des lignes précises, sans toucher à la production** (base temporaire `sc2ron2cuba_restore`, même utilisateur, tous droits)
+**B. Récupérer des lignes précises, sans toucher à la production** (base temporaire `<compte>_restore`, même utilisateur, tous droits)
 1. S'assurer qu'elle est **vide** (elle contient de vraies données dès qu'on y importe : à vider après usage).
-2. `gunzip -c <dump> | mariadb --defaults-extra-file=<options> sc2ron2cuba_restore` (la base temporaire est en latin1 par défaut, sans importance : les tables du dump portent leur propre jeu de caractères utf8mb4).
+2. `gunzip -c <dump> | mariadb --defaults-extra-file=<options> <compte>_restore` (la base temporaire est en latin1 par défaut, sans importance : les tables du dump portent leur propre jeu de caractères utf8mb4).
 3. Vérifier : même nombre de tables que le dump (`CREATE TABLE` compté par `gunzip -c <dump> | grep -c '^CREATE TABLE'`), effectifs plausibles.
-4. Copier les lignes voulues d'une base à l'autre dans UNE connexion (l'utilisateur voit les deux) : `INSERT INTO sc2ron2cuba_rehearsalbox.<table> SELECT * FROM sc2ron2cuba_restore.<table> WHERE <condition>;` — respecter l'ordre des clés étrangères (parent avant enfant : groupe avant ses membres, conversation avant ses messages) et ne jamais écraser une ligne existante (`INSERT IGNORE` ou condition explicite). Les messages se recopient **tels quels (chiffrés)** : la même clé les lit.
+4. Copier les lignes voulues d'une base à l'autre dans UNE connexion (l'utilisateur voit les deux) : `INSERT INTO <compte>_rehearsalbox.<table> SELECT * FROM <compte>_restore.<table> WHERE <condition>;` — respecter l'ordre des clés étrangères (parent avant enfant : groupe avant ses membres, conversation avant ses messages) et ne jamais écraser une ligne existante (`INSERT IGNORE` ou condition explicite). Les messages se recopient **tels quels (chiffrés)** : la même clé les lit.
 5. **Vider la base temporaire** (supprimer ses tables) : elle contient des données personnelles.
 
 **Ce qu'on ne fait jamais** : restaurer par-dessus la production sans le dump de l'étape A1 ; utiliser une clé de chiffrement autre que celle des messages pour un dump (elle n'y est pas) ; supprimer une ancienne clé du fichier tant qu'un dump qui l'utilise est conservé ; lancer `bin/encrypt-messages.php` avant d'avoir sous la main la sauvegarde de la clé.
@@ -225,6 +232,17 @@ Boîte de réception chez Gmail (c'était le spam avant l'ajout de DMARC). **SPF
 Vérifier après une modification DNS ou un changement d'hébergeur :
 1. `dig +short TXT _dmarc.<domaine>` et `dig +short TXT <domaine>` (un seul enregistrement SPF).
 2. Demander une réinitialisation vers une adresse Gmail de contrôle, puis ⋮ → « Afficher l'original » : DKIM et DMARC doivent être **PASS**. Ne jamais partager le corps du message (lien de connexion valable 1 heure) ; la limite est de 3 demandes par heure et par compte.
+
+### Durcir DMARC : de `p=none` à `quarantine` puis `reject` (#430)
+
+`p=none` n'empêche pas l'usurpation du domaine (un faux « réinitialisez votre mot de passe » arrive en boîte de réception). Passage progressif, à faire par le propriétaire dans la zone DNS :
+
+1. **Observer** : ajouter `rua=mailto:<adresse de rapports>` à l'enregistrement (`v=DMARC1; p=none; rua=mailto:…`) et lire les rapports agrégés pendant 2 à 4 semaines. Les envois légitimes (Exim de l'hébergeur) doivent tous sortir **alignés par DKIM** ; repérer toute autre source qui envoie au nom du domaine.
+2. **Quarantaine progressive** : `p=quarantine; pct=10`, puis `pct=50`, puis `pct=100` à une semaine d'intervalle, en refaisant le test Gmail ci-dessus à chaque palier (DKIM et DMARC PASS, boîte de réception).
+3. **Rejet** : `p=reject` seulement après plusieurs semaines propres à `quarantine; pct=100`. Retour arrière : repasser à `quarantine` (le DNS se propage en quelques minutes à quelques heures).
+4. **SPF** : demander au support de l'hébergeur l'`include:` SPF officiel pour l'envoi sortant et remplacer l'IP fixe ; ne jamais autoriser une plage d'IP entière (voir plus haut). Garder `~all` tant que l'alignement DKIM n'est pas la seule garantie observée.
+
+Attention : un DKIM qui casse (clé retirée du cPanel, domaine d'envoi changé) fait rejeter TOUS les e-mails de l'application dès `p=reject` : ne jamais toucher à la clé sans refaire le test.
 
 ## Cache des assets (#150)
 

@@ -1,0 +1,33 @@
+# Données personnelles et durées de conservation (#431)
+
+Ce qu'RehearsalBox garde d'une personne, pourquoi, combien de temps, et ce que la personne peut faire elle-même. À tenir à jour à chaque nouvelle donnée personnelle (nouvelle colonne, nouveau journal, nouvel e-mail).
+
+## Inventaire et durées
+
+| Donnée | Où | Pourquoi | Durée de conservation |
+|---|---|---|---|
+| Nom affiché, adresse e-mail, rôle, état du compte | `users` | identifier la personne, la joindre, contrôler l'accès | tant que le compte existe ; **anonymisés à la suppression** (la ligne reste, « Ancien membre », adresse inutilisable) |
+| Empreinte du mot de passe, compteur d'échecs, version de session | `users` | connexion sécurisée | idem ; l'empreinte est remplacée par un secret aléatoire à la suppression |
+| Appartenance aux groupes et rôle | `group_user` | droits d'accès | supprimée avec le compte |
+| Messages (texte), titres de conversation, anciennes versions corrigées | `conversation_*` | la messagerie entre groupes | texte **chiffré en base** (#171). Conservés tant que la conversation existe (ils appartiennent aussi aux autres participants) ; corbeille : 30 jours avant effacement définitif ; anciennes versions corrigées : 30 jours |
+| Réservations libres, demandes d'échange de créneau | `free_slot_bookings`, `slot_exceptions` | gérer l'occupation du local | tant que le groupe existe ; rattachées à la ligne anonymisée après suppression du compte |
+| Jetons de réinitialisation / changement d'adresse | `password_resets`, `email_changes` | opérations sécurisées | usage unique, 1 heure ; révoqués à la suppression du compte |
+| Évènements de limitation (empreintes d'adresse IP et d'identifiant) | `throttle_events` | freiner les essais de connexion | 24 heures, empreintes seulement, jamais d'adresse en clair |
+| Mesures d'exploitation (adresse IP **hachée** avec un secret, route, statut) | `metric_events`, `metric_hourly` | santé du site, détection d'abus | événements 30 jours (plafonnés par adresse et par jour, #442) ; agrégats 90 jours ; aucune adresse en clair |
+| Journal d'erreurs applicatif | `storage/logs` (hors base) | diagnostic | rotation par taille (voir `logging` dans `config/config.php`), fichier réservé au propriétaire ; jamais de mot de passe ni de jeton |
+| Documents des groupes (PDF, images) | `storage/group-documents` | partage de fiches techniques | tant que le groupe les garde ; images ré-encodées sans métadonnées (#432) |
+| Sauvegardes de la base | `backups/` (hors racine web) | reprise après incident | 14 quotidiennes + 7 d'avant déploiement, puis effacées ; **une suppression de compte n'y est appliquée qu'à leur expiration** |
+
+## Droits exercés par la personne, depuis « Mon compte »
+
+- **Accès / portabilité** : « Télécharger mes données (JSON) » (`GET /api/account/export`) : profil, groupes, messages écrits (texte déchiffré), réservations et demandes. Aucun secret, aucune donnée d'autrui.
+- **Effacement** : « Supprimer mon compte » (`DELETE /api/account`, mot de passe + mot SUPPRIMER). Voir `AccountDeletionService` : anonymisation, sortie des groupes, révocation des liens et des sessions, e-mail de confirmation à l'ancienne adresse. Refusé tant qu'un compte est administrateur ou dernier gestionnaire d'un groupe (il passe la main d'abord).
+- **Rectification** : nom et adresse modifiables dans « Mon compte ».
+
+## Limites connues et décisions
+
+- Les messages envoyés **restent** dans les conversations des autres sous « Ancien membre » : ils font partie de leurs échanges. Une demande d'effacement des messages eux-mêmes se traite à la main (administrateur) : pas de fonction libre-service.
+- Les mentions et libellés (`message_mentions.label`) gardent le nom tel qu'il était au moment du message.
+- L'annuaire interne (recherche de membres, messages directs) est visible de tout membre connecté par construction ; aucune adresse e-mail n'y figure (#429).
+- Les sauvegardes ne sont pas réécrites : un compte supprimé peut y subsister jusqu'à 14 jours (quotidiennes). À mentionner à la personne qui le demande.
+- Aucun traceur ni service tiers côté navigateur (CSP `default-src 'self'`) ; le lieu d'hébergement et le contrat de sous-traitance relèvent du propriétaire (hors dépôt public).

@@ -10,12 +10,17 @@ use App\Account\Service\Throttle\LoginThrottle;
 use App\Tests\Database\RepositoryTestCase;
 use PHPUnit\Framework\Attributes\Test;
 
-/** #236 : le blocage de connexion (par adresse IP ET par identifiant saisi) annonce une durée, la même pour un compte réel et pour une adresse inventée. */
+/**
+ * #236 : le blocage de connexion annonce une durée, la même pour un compte réel et pour une adresse inventée. #441 : il se compte par
+ * adresse, par COUPLE (adresse, identifiant) et par identifiant (limite haute), pour qu'une seule adresse ne puisse pas bloquer
+ * la connexion d'une autre personne.
+ */
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class LoginThrottleTest extends RepositoryTestCase
 {
-    private const IP_LIMIT = 6;
-    private const ID_LIMIT = 3;
+    private const IP_LIMIT = 20;
+    private const ID_LIMIT = 10;
+    private const PAIR_LIMIT = 2;
 
     private LoginThrottle $throttle;
     private \DateTimeImmutable $now;
@@ -27,6 +32,7 @@ final class LoginThrottleTest extends RepositoryTestCase
         $this->throttle = new LoginThrottle(
             new SubjectThrottle($events, 'login', self::IP_LIMIT, '-15 minutes'),
             new SubjectThrottle($events, 'login-id', self::ID_LIMIT, '-15 minutes'),
+            new SubjectThrottle($events, 'login-pair', self::PAIR_LIMIT, '-15 minutes'),
         );
         $this->now = new \DateTimeImmutable('2026-01-01 10:00:00');
     }
@@ -41,33 +47,52 @@ final class LoginThrottleTest extends RepositoryTestCase
     #[Test]
     public function testNothingIsAnnouncedBeforeTheLimit(): void
     {
-        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::ID_LIMIT - 1);
+        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::PAIR_LIMIT - 1);
 
         self::assertSame(0, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $this->now));
     }
 
     #[Test]
-    public function testAnIdentifierThatKeepsFailingIsBlockedWithTheRemainingTimeWhateverTheAddress(): void
+    public function testAnAddressThatKeepsFailingOnOneIdentifierIsBlockedForThatIdentifierOnly(): void
     {
-        foreach (['203.0.113.1', '203.0.113.2', '203.0.113.3'] as $ip) {
-            $this->failures($ip, 'alice@rehearsalbox.test');
+        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::PAIR_LIMIT);
+
+        self::assertSame(900, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $this->now));
+        self::assertSame(540, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $this->now->modify('+6 minutes')));
+        self::assertSame(0, $this->throttle->remainingSeconds('203.0.113.7', 'bob@rehearsalbox.test', $this->now), 'un autre identifiant depuis la même adresse reste libre');
+    }
+
+    #[Test]
+    public function testOneAddressCannotLockAnotherPersonOutOfTheirAccount(): void
+    {
+        // L'attaquant s'acharne sur l'adresse e-mail de la victime : lui seul est bloqué (#441).
+        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::PAIR_LIMIT + 3);
+
+        self::assertGreaterThan(0, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $this->now));
+        self::assertSame(0, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now), 'la victime, depuis son adresse, se connecte');
+    }
+
+    #[Test]
+    public function testAnIdentifierHammeredFromManyAddressesIsBlockedWhateverTheAddress(): void
+    {
+        for ($i = 1; $i <= self::ID_LIMIT; ++$i) {
+            $this->failures("203.0.113.{$i}", 'alice@rehearsalbox.test');
         }
 
-        self::assertSame(900, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now), 'depuis une autre adresse aussi');
-        self::assertSame(540, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now->modify('+6 minutes')));
+        self::assertSame(900, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now), 'attaque répartie : tout le monde attend');
     }
 
     #[Test]
     public function testAKnownAccountAndAnInventedAddressGetExactlyTheSameAnswer(): void
     {
-        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::ID_LIMIT);
-        $this->failures('203.0.113.8', 'personne-ne-porte-ce-nom@rehearsalbox.test', self::ID_LIMIT);
+        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::PAIR_LIMIT);
+        $this->failures('203.0.113.7', 'personne-ne-porte-ce-nom@rehearsalbox.test', self::PAIR_LIMIT);
 
         foreach ([0, 120, 600] as $seconds) {
             $at = $this->now->modify("+{$seconds} seconds");
             self::assertSame(
-                $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $at),
-                $this->throttle->remainingSeconds('198.51.100.9', 'personne-ne-porte-ce-nom@rehearsalbox.test', $at),
+                $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $at),
+                $this->throttle->remainingSeconds('203.0.113.7', 'personne-ne-porte-ce-nom@rehearsalbox.test', $at),
                 "même durée à +{$seconds} s : rien ne révèle quel identifiant existe",
             );
         }
@@ -76,19 +101,10 @@ final class LoginThrottleTest extends RepositoryTestCase
     #[Test]
     public function testTheIdentifierIsNormalizedSoCaseAndSpacesCannotDodgeTheLimit(): void
     {
-        $this->failures('203.0.113.1', 'Alice@Rehearsalbox.test');
-        $this->failures('203.0.113.2', '  alice@rehearsalbox.test ');
-        $this->failures('203.0.113.3', 'ALICE@REHEARSALBOX.TEST');
+        $this->failures('203.0.113.7', 'Alice@Rehearsalbox.test');
+        $this->failures('203.0.113.7', '  alice@rehearsalbox.test ');
 
-        self::assertSame(900, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now));
-    }
-
-    #[Test]
-    public function testAnotherIdentifierIsNotAffected(): void
-    {
-        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::ID_LIMIT);
-
-        self::assertSame(0, $this->throttle->remainingSeconds('198.51.100.9', 'bob@rehearsalbox.test', $this->now));
+        self::assertSame(900, $this->throttle->remainingSeconds('203.0.113.7', 'ALICE@REHEARSALBOX.TEST', $this->now));
     }
 
     #[Test]
@@ -103,30 +119,44 @@ final class LoginThrottleTest extends RepositoryTestCase
     }
 
     #[Test]
-    public function testWhenBothLimitsBlockTheLongerWaitIsAnnounced(): void
+    public function testWhenSeveralLimitsBlockTheLongestWaitIsAnnounced(): void
     {
-        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::ID_LIMIT); // identifiant bloqué à 10:00
+        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::PAIR_LIMIT); // couple bloqué à 10:00
         $later = $this->now->modify('+10 minutes');
         for ($i = 0; $i < self::IP_LIMIT; ++$i) {
-            $this->throttle->recordFailure('203.0.113.9', "autre{$i}@rehearsalbox.test", $later); // adresse bloquée à 10:10
+            $this->throttle->recordFailure('203.0.113.7', "autre{$i}@rehearsalbox.test", $later); // adresse bloquée à 10:10
         }
 
-        // À 10:10 : l'identifiant a encore 5 min, l'adresse 15 min.
-        self::assertSame(900, $this->throttle->remainingSeconds('203.0.113.9', 'alice@rehearsalbox.test', $later));
+        // À 10:10 : le couple a encore 5 min, l'adresse 15 min.
+        self::assertSame(900, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $later));
     }
 
     #[Test]
-    public function testForgettingAnIdentifierLiftsItsBlockButNotTheAddressOne(): void
+    public function testForgettingAnIdentifierLiftsItsBlocksButNotTheAddressOne(): void
     {
         for ($i = 0; $i < self::IP_LIMIT; ++$i) {
             $this->failures('203.0.113.7', 'alice@rehearsalbox.test');
         }
         self::assertGreaterThan(0, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now));
 
-        $this->throttle->forgetIdentifier('ALICE@rehearsalbox.test');
+        $this->throttle->forgetIdentifier('ALICE@rehearsalbox.test', '203.0.113.7');
 
         self::assertSame(0, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now), 'autre adresse : libre');
         self::assertGreaterThan(0, $this->throttle->remainingSeconds('203.0.113.7', 'bob@rehearsalbox.test', $this->now), 'l\'adresse reste bloquée');
+    }
+
+    #[Test]
+    public function testAnAdministratorUnlockWithoutAnAddressLiftsEveryLimitOfThatIdentifier(): void
+    {
+        for ($i = 1; $i <= self::ID_LIMIT; ++$i) {
+            $this->failures("203.0.113.{$i}", 'alice@rehearsalbox.test');
+        }
+        $this->failures('203.0.113.7', 'alice@rehearsalbox.test', self::PAIR_LIMIT);
+
+        $this->throttle->forgetIdentifier('alice@rehearsalbox.test');
+
+        self::assertSame(0, $this->throttle->remainingSeconds('198.51.100.9', 'alice@rehearsalbox.test', $this->now), 'limite par identifiant levée');
+        self::assertSame(0, $this->throttle->remainingSeconds('203.0.113.7', 'alice@rehearsalbox.test', $this->now), 'et celle de son couple, sans connaître l\'adresse');
     }
 
     #[Test]

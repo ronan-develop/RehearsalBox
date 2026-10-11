@@ -6,7 +6,7 @@ namespace App\Security;
 
 final class CsrfTokenManager
 {
-    private const SESSION_KEY = 'csrf_token';
+    public const SESSION_KEY = 'csrf_token';
 
     public function __construct(private readonly SessionInterface $session)
     {
