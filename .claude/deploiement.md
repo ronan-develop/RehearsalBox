@@ -138,6 +138,8 @@ Le journal ne contient que des noms de fichiers. Un code de sortie 1 (« Sauvega
 
 **Copie hors serveur** : `RB_SSH_CONFIG=<chemin> ./bin/fetch-backup.sh` (depuis le poste de dev) rapatrie le dernier dump quotidien (`--pre` : le dernier d'avant déploiement) dans `~/rehearsalbox-backups` (0700, **jamais dans le dépôt**, vérifié par `gzip -t`, 30 gardés ; `RB_BACKUP_LOCAL_DIR` / `RB_BACKUP_LOCAL_KEEP` pour changer). À lancer régulièrement : seule une copie hors du serveur protège d'une perte du compte d'hébergement.
 
+**Déclarations hors serveur (#375)** : le serveur ne peut pas voir ce qui se passe sur ton poste. `bin/fetch-backup.sh` déclare tout seul la copie d'un dump **quotidien** (`php bin/ops-declare.php offsite --base=$HOME/rehearsalbox`, lancé par SSH ; un échec n'est qu'un avertissement, `RB_REMOTE_PHP` change le programme PHP distant). La sauvegarde de la clé dans KeePass se déclare à la main, après l'avoir rangée : `ssh <serveur> 'php ~/rehearsalbox/current/bin/ops-declare.php key-saved --base=$HOME/rehearsalbox'`. Seule l'horloge du serveur est enregistrée (`shared/ops-declarations.json`, 0600) ; aucune écriture n'est possible depuis le web.
+
 **Un dump seul ne suffit pas à relire les messages** : le texte de la messagerie y est chiffré (#171) et **la clé n'est pas dans le dump**. Il faut aussi la sauvegarde de la clé (KeePass, à part, voir « Chiffrement des messages »).
 
 ## Restaurer la base — mode opératoire (#167, #171)
