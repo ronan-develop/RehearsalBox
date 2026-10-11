@@ -81,10 +81,28 @@ final class KeyFileProbeTest extends TestCase
         }
     }
 
-    public function testSymlinkIsTreatedAsMissing(): void
+    public function testTheDeploymentSymlinkToTheSharedKeyFileIsFollowedLikeTheApplicationDoes(): void
     {
-        $real = $this->write($this->validJson());
+        $real = $this->write($this->validJson(true));
         symlink($real, $this->dir . '/link.json');
+
+        $result = (new KeyFileProbe($this->dir . '/link.json'))->inspect();
+
+        self::assertSame(KeyFileState::Ok, $result['state']);
+        self::assertSame(2, $result['keys']);
+    }
+
+    public function testASymlinkToATooOpenFileIsReportedAsTooOpen(): void
+    {
+        $real = $this->write($this->validJson(), 0o644);
+        symlink($real, $this->dir . '/link.json');
+
+        self::assertSame(KeyFileState::TooOpen, (new KeyFileProbe($this->dir . '/link.json'))->inspect()['state']);
+    }
+
+    public function testADanglingSymlinkIsMissing(): void
+    {
+        symlink($this->dir . '/n-existe-pas.json', $this->dir . '/link.json');
 
         self::assertSame(KeyFileState::Missing, (new KeyFileProbe($this->dir . '/link.json'))->inspect()['state']);
     }

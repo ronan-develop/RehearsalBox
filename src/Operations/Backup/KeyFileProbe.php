@@ -9,8 +9,9 @@ use App\Messaging\Crypto\MessageKeyFile;
 
 /**
  * Sonde du fichier de clés (#171) pour la page d'exploitation (#375) : dit s'il est présent, aux droits stricts et lisible, et
- * combien de clés il porte. N'expose AUCUNE valeur ni aucun nom de clé : seul un état et un nombre sortent d'ici. Les droits sont
- * testés avant toute lecture du contenu.
+ * combien de clés il porte. Le lien symbolique posé par le déploiement (config/ vers shared/) est suivi, exactement comme le lit
+ * l'application ; un lien cassé vaut « absent ». N'expose AUCUNE valeur ni aucun nom de clé : seul un état et un nombre sortent
+ * d'ici. Les droits sont testés avant toute lecture du contenu.
  */
 final class KeyFileProbe
 {
@@ -22,7 +23,7 @@ final class KeyFileProbe
     public function inspect(): array
     {
         $none = ['keys' => 0, 'transition' => false];
-        if ($this->keyFile === '' || is_link($this->keyFile) || !is_file($this->keyFile)) {
+        if ($this->keyFile === '' || !is_file($this->keyFile)) {
             return ['state' => KeyFileState::Missing] + $none;
         }
         $permissions = @fileperms($this->keyFile);
