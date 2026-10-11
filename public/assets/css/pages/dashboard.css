@@ -823,16 +823,26 @@ rb-tabs {
 @media (min-width: 960px) { /* timeline fluide (#252)
    Sur bureau les 7 jours tiennent toujours dans la largeur de l'écran : les cartes se partagent la place (une rangée), plafonnées à
    leur largeur d'origine, et leur texte suit leur largeur. Seule la timeline des créneaux fixes est concernée : le carrousel des
-   exceptionnels garde ses cartes fixes et se parcourt à la main ; sous 960 px, l'existant (liste sur mobile, carrousel à la main). */
+   exceptionnels garde ses cartes fixes et se parcourt à la main ; sous 960 px, l'existant (liste sur mobile, carrousel à la main).
+   Trop de créneaux (#352) : une colonne ne descend pas sous 120 à 160 px selon l'écran (largeur de l'horaire et du remplissage de
+   la carte) ; passé ce seuil la piste déborde, le conteneur défile à la main et un fondu aux deux bords (2rem, soit le remplissage latéral minimal de la piste : rien n'est masqué
+   au repos) signale qu'il y en a d'autres. */
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) {
+    --rb-planning-gutter: max(2rem, 3vw);
+    padding-inline: var(--rb-planning-gutter);
+    scroll-padding-inline: var(--rb-planning-gutter);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 2rem, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 2rem, #000 calc(100% - 2rem), transparent);
+  }
+
   .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-track {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 204px);
-    justify-content: center;
+    grid-auto-columns: minmax(clamp(120px, 10vw, 160px), 204px);
+    justify-content: safe center;
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    padding-inline: max(2rem, 3vw);
   }
 
   .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card {

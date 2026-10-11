@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * #252 : sur bureau, la timeline des 7 jours tient toujours dans la largeur de l'écran (cartes fluides plafonnées). Le carrousel
+ * #252 : sur bureau, la timeline des créneaux fixes tient dans la largeur de l'écran (cartes fluides plafonnées) tant que les colonnes restent lisibles ; au-delà (#352), elle défile à la main. Le carrousel
  * des créneaux exceptionnels et le mobile (liste) ne changent pas.
  */
 final class PlanningFluidTimelineCssTest extends TestCase
@@ -54,9 +54,9 @@ final class PlanningFluidTimelineCssTest extends TestCase
 
         self::assertStringContainsString('display: grid', $track);
         self::assertStringContainsString('grid-auto-flow: column', $track);
-        self::assertStringContainsString('grid-auto-columns: minmax(0, 204px)', $track, 'les colonnes rétrécissent, jamais au-delà de 204 px');
+        self::assertStringContainsString('grid-auto-columns: minmax(clamp(120px, 10vw, 160px), 204px)', $track, 'les colonnes rétrécissent jusqu\'à 120-160 px (selon l\'écran), jamais au-delà de 204 px');
         self::assertStringContainsString('width: 100%', $track);
-        self::assertStringContainsString('justify-content: center', $track);
+        self::assertStringContainsString('justify-content: safe center', $track, 'centré, mais jamais rogné à gauche quand ça déborde');
     }
 
     #[Test]
@@ -79,11 +79,22 @@ final class PlanningFluidTimelineCssTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/(?<!:not\()\.rb-planning-slider--exceptional/', $this->desktopBlock());
     }
 
+    /** #352 : trop de créneaux pour la largeur → la timeline défile à la main (colonne jamais sous 120 px) et un fondu aux bords le signale. */
+    #[Test]
+    public function testTooManySlotsScrollByHandAndFadeAtBothEdges(): void
+    {
+        $slider = $this->rule($this->desktopBlock(), '.rb-planning-slider:not(.rb-planning-slider--exceptional)');
+
+        self::assertStringContainsString('mask-image: linear-gradient(to right', $slider);
+        self::assertStringContainsString('-webkit-mask-image: linear-gradient(to right', $slider);
+        self::assertStringContainsString('2rem', $slider, 'le fondu tient dans le remplissage latéral de la piste (min. 2rem) : il ne masque jamais une carte au repos');
+    }
+
     #[Test]
     public function testNoFluidRuleLeaksOutsideTheDesktopQuery(): void
     {
         $outside = str_replace($this->desktopBlock(), '', $this->css);
 
-        self::assertStringNotContainsString('grid-auto-columns: minmax(0, 204px)', $outside, 'mobile et tablette inchangés');
+        self::assertStringNotContainsString('grid-auto-columns: minmax(clamp(120px, 10vw, 160px), 204px)', $outside, 'mobile et tablette inchangés');
     }
 }
