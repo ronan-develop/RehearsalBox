@@ -23,7 +23,12 @@ final class AuthService implements AuthServiceInterface
     private const SESSION_KEY_SESSION_VERSION = 'session_version';
     private const SESSION_KEY_STARTED_AT = 'session_started_at';
     private const SESSION_KEY_LAST_SEEN_AT = 'session_last_seen_at';
-    public const MAX_FAILED_ATTEMPTS = 5;
+    /**
+     * Échecs de mot de passe avant le verrou DU COMPTE (15 minutes). Seuil haut (#441) : l'acharnement d'une seule adresse est arrêté bien
+     * avant (5 par couple adresse/identifiant, LoginThrottle) et ne peut donc pas verrouiller la personne visée ; le verrou ne
+     * sert plus qu'à une attaque répartie sur de nombreuses adresses.
+     */
+    public const MAX_FAILED_ATTEMPTS = 20;
     public const LOCK_DURATION = '+15 minutes';
 
     public function __construct(

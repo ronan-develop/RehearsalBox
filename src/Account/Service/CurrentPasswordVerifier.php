@@ -16,6 +16,13 @@ use App\Account\Exception\UserValidationException;
  */
 final class CurrentPasswordVerifier
 {
+    /**
+     * Seuil strict : ici la personne est DÉJÀ connectée (changement de mot de passe, d'adresse, restauration). Une session volée ne
+     * doit pas pouvoir deviner le mot de passe à loisir, et aucun tiers ne peut verrouiller le compte de cette façon (il lui faudrait
+     * la session) : le seuil bas du login (#441) n'a pas lieu d'être relevé ici.
+     */
+    public const MAX_FAILED_ATTEMPTS = 5;
+
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordHasherInterface $passwordHasher,
@@ -30,7 +37,7 @@ final class CurrentPasswordVerifier
         }
 
         if (!$this->passwordHasher->verify($currentPassword, $user->passwordHash())) {
-            $this->userRepository->recordFailedLogin($user->id(), AuthService::MAX_FAILED_ATTEMPTS, $now, AuthService::LOCK_DURATION);
+            $this->userRepository->recordFailedLogin($user->id(), self::MAX_FAILED_ATTEMPTS, $now, AuthService::LOCK_DURATION);
 
             throw new UserValidationException(['currentPassword' => 'Mot de passe actuel incorrect.']);
         }

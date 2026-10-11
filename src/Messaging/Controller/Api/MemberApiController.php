@@ -6,6 +6,7 @@ namespace App\Messaging\Controller\Api;
 
 use App\Http\JsonResponse;
 use App\Http\Request;
+use App\Account\Service\Throttle\UserActionLimit;
 use App\Security\AuthGuard;
 use App\Security\Exception\AccessDeniedException;
 use App\Messaging\Service\Mention\MemberSearchService;
@@ -20,12 +21,15 @@ final class MemberApiController
     public function __construct(
         private readonly MemberSearchService $search,
         private readonly AuthGuard $authGuard,
+        private readonly ?UserActionLimit $searchLimit = null,
     ) {
     }
 
     public function search(Request $request): JsonResponse
     {
         $user = $this->authGuard->requireLogin();
+        // Une recherche par frappe est normale ; une rafale ne l'est pas : l'annuaire ne se lit pas à la chaîne (#428).
+        $this->searchLimit?->hit($user->id());
         $query = $request->query('q', '');
         $query = is_string($query) ? $query : '';
 
