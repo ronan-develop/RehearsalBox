@@ -41,6 +41,9 @@ final class MetricsAlerterTest extends TestCase
         $this->reader->snapshot = new HealthSnapshot(new \DateTimeImmutable('2026-10-07 12:00:00 UTC'), 100 * 1024 * 1024, 1, 60, null, null, '8.4', null);
     }
 
+    /** @var list<\App\Metrics\Alert\Alert> */
+    private array $extra = [];
+
     private function alerter(?MailerInterface $mailer = null, string $recipient = 'owner@rehearsalbox.test', ?RecordingLogger $logger = null): MetricsAlerter
     {
         $repository = new class ($this->sentAt) implements AlertRepositoryInterface {
@@ -62,7 +65,7 @@ final class MetricsAlerterTest extends TestCase
         $mailbox = $logger === null ? TestMailbox::of($mailer ?? $this->mailer) : new Mailbox($mailer ?? $this->mailer, TestMailbox::FROM, TestMailbox::BASE_URL, logger: $logger);
 
         return new MetricsAlerter(
-            new AlertEvaluator($this->reader, new Thresholds(), new DegradationDetector(), new AnomalyDetector(), $this->clock),
+            new AlertEvaluator($this->reader, new Thresholds(), new DegradationDetector(), new AnomalyDetector(), $this->clock, fn (): array => $this->extra),
             $repository,
             $mailbox,
             $this->clock,
@@ -132,5 +135,34 @@ final class MetricsAlerterTest extends TestCase
         self::assertStringNotContainsString('owner@', $logger->text());
 
         self::assertSame(2, $this->alerter()->run(), 'la collecte suivante réessaie');
+    }
+
+    #[Test]
+    public function testAnOperationsAlertLinksToTheOperationsPageAndEachLinkAppearsOnce(): void
+    {
+        $this->extra = [
+            new \App\Metrics\Alert\Alert(AlertType::KeyFile, 'Le fichier de clés est à corriger.', '/admin/ops'),
+            new \App\Metrics\Alert\Alert(AlertType::OffsiteOld, 'Aucune copie hors serveur récente.', '/admin/ops'),
+        ];
+
+        self::assertSame(4, $this->alerter()->run());
+
+        $text = (string) $this->mailer->sent[0]->getTextBody();
+        self::assertSame(1, substr_count($text, 'https://rehearsalbox.example/admin/ops'));
+        self::assertSame(1, substr_count($text, 'https://rehearsalbox.example/admin/metrics'));
+        self::assertStringContainsString('clés', $text);
+    }
+
+    #[Test]
+    public function testAnOperationsAlertAloneDoesNotLinkToTheMetrics(): void
+    {
+        $this->reader->snapshot = new HealthSnapshot(new \DateTimeImmutable('2026-10-07 12:00:00 UTC'), 5000 * 1024 * 1024, 1, 5, null, null, '8.4', null);
+        $this->extra = [new \App\Metrics\Alert\Alert(AlertType::BackupTask, 'Le dernier passage de la sauvegarde a échoué.', '/admin/ops')];
+
+        self::assertSame(1, $this->alerter()->run());
+
+        $text = (string) $this->mailer->sent[0]->getTextBody();
+        self::assertStringContainsString('/admin/ops', $text);
+        self::assertStringNotContainsString('/admin/metrics', $text);
     }
 }

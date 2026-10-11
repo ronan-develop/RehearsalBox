@@ -47,7 +47,7 @@ final class MetricsAlerter
                 $this->recipient,
                 count($due) === 1 ? 'Alerte de mesures' : 'Alertes de mesures (' . count($due) . ')',
                 'metrics-alert',
-                ['messages' => array_map(static fn (Alert $a): string => $a->message, $due), 'link' => $this->mailbox->url('/admin/metrics')],
+                ['messages' => array_map(static fn (Alert $a): string => $a->message, $due), 'links' => $this->links($due)],
             ),
             'Alertes de mesures : envoi impossible',
         );
@@ -59,5 +59,17 @@ final class MetricsAlerter
         }
 
         return count($due);
+    }
+
+    /**
+     * Un lien par page concernée (mesures, exploitation), sans doublon.
+     *
+     * @param list<Alert> $due
+     *
+     * @return list<string>
+     */
+    private function links(array $due): array
+    {
+        return array_map($this->mailbox->url(...), array_values(array_unique(array_map(static fn (Alert $a): string => $a->page, $due))));
     }
 }

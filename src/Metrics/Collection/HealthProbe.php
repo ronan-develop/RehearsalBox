@@ -16,7 +16,7 @@ final class HealthProbe
 {
     /**
      * @param string  $diskPath      dossier dont on mesure l'espace libre
-     * @param ?string $backupDir     dossier des sauvegardes (fichiers *.sql*), null si non configuré
+     * @param ?string $backupDir     dossier des sauvegardes (dumps quotidiens `db-*.sql.gz` seuls), null si non configuré
      * @param string  $cronLogPath   journal du cron : sa date de modification est le dernier passage
      * @param string  $releaseFile   marqueur de release écrit par le déploiement
      */
@@ -53,7 +53,7 @@ final class HealthProbe
             return null;
         }
         $newest = 0;
-        foreach (glob(rtrim($this->backupDir, '/') . '/*.sql*') ?: [] as $file) {
+        foreach (glob(rtrim($this->backupDir, '/') . '/db-*.sql.gz') ?: [] as $file) {
             $newest = max($newest, (int) filemtime($file));
         }
 
