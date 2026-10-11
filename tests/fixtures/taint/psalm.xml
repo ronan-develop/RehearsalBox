@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="8"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config ../../../vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <file name="TaintedFlows.php"/>
+        <directory name="../../../src/Http"/>
+    </projectFiles>
+    <stubs>
+        <file name="../../../tools/psalm/pdo.phpstub"/>
+    </stubs>
+</psalm>
