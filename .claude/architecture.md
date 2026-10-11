@@ -77,6 +77,13 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - Les assets servis directement par Apache (CSS, JS) reçoivent `nosniff` via `public/.htaccess`.
 - JS : tout HTML construit côté client échappe ses données avec `escapeHtml` de `assets/js/html.js` (module unique).
 
+## Sessions, CSRF et en-têtes de réponse (#425, #426, #427)
+
+- **Durée de session** (`Security\SessionPolicy`) : 7 jours d'inactivité, 30 jours au plus depuis la connexion ; vérifiées dans `AuthService::currentUser` (horloge injectée). Une session ouverte avant l'introduction des limites est datée du premier contrôle (pas de déconnexion générale). `session.gc_maxlifetime` est aligné sur l'inactivité (`NativeSession::cookieOptions`).
+- **Jeton CSRF** : renouvelé à chaque connexion (`AuthService::attempt`). Pas au changement de mot de passe : la page déjà ouverte garde son jeton.
+- **Origine** (`Http\CrossSiteGuard`, appelé par le Kernel) : en plus du jeton, une mutation d'API dont `Sec-Fetch-Site` vaut `cross-site`, ou dont `Origin` ne désigne pas l'hôte servi (`Host`), est refusée (403). Sans ces en-têtes (outil en ligne de commande), seule l'exigence du jeton s'applique.
+- **`X-Powered-By`** retiré à l'envoi de toute réponse (`Response::sendHeaders`).
+
 ## Connexion : verrou, limite par adresse, temps de réponse (#218)
 
 - **Verrou par compte** : 5 échecs → 15 minutes. Le compteur est incrémenté **en SQL, en une seule requête** (`UserRepositoryInterface::recordFailedLogin`) : jamais « lire, calculer en PHP, réécrire la ligne » (des tentatives simultanées s'écraseraient et le verrou serait contournable). Le compteur est plafonné (colonne étroite). Remise à zéro atomique aussi (`resetFailedLogins`, utilisée par la connexion réussie et le déblocage administrateur).
