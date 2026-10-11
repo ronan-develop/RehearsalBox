@@ -44,6 +44,14 @@ final class MysqlGroupDocumentRepository implements GroupDocumentRepositoryInter
         return (int) $statement->fetchColumn();
     }
 
+    public function totalBytesByGroup(int $groupId): int
+    {
+        $statement = $this->pdo->prepare('SELECT COALESCE(SUM(size_bytes), 0) FROM group_documents WHERE group_id = :group_id');
+        $statement->execute(['group_id' => $groupId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function save(GroupDocument $document): GroupDocument
     {
         $statement = $this->pdo->prepare(

@@ -17,6 +17,8 @@ use App\Group\Exception\StorageQuotaExceededException;
 final class GroupDocumentService implements GroupFilesPurgerInterface
 {
     private const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+    /** Volume total par groupe (#432) : le nombre de fichiers seul laisserait 20 × 10 Mo sur un hébergement au disque compté. */
+    public const MAX_BYTES_PER_GROUP = 100 * 1024 * 1024;
     /** Longueur maximale du nom d'origine conservé (la colonne en accepte 255) : borné avant la base, jamais une erreur SQL. */
     private const MAX_NAME_LENGTH = 150;
 
@@ -33,6 +35,8 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
         private readonly TransactionRunner $transactions,
         private readonly string $storagePath,
         private readonly int $maxDocumentsPerGroup,
+        private readonly int $maxBytesPerGroup = self::MAX_BYTES_PER_GROUP,
+        private readonly ImageSanitizer $images = new ImageSanitizer(),
     ) {
     }
 
@@ -51,6 +55,9 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
             throw new InvalidUploadException('Type de fichier non autorisé (PDF, JPEG, PNG uniquement).');
         }
 
+        // Avant toute écriture sur le disque : un groupe déjà plein ne fait pas copier un fichier pour rien (verdict définitif plus bas).
+        $this->assertRoomFor($groupId, $declaredSize);
+
         $storedName = bin2hex(random_bytes(16)) . '.' . self::ALLOWED_MIME_TYPES[$realMimeType];
         $destinationPath = $this->storagePath . '/' . $storedName;
 
@@ -58,8 +65,18 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
             throw new InvalidUploadException('Impossible de préparer le stockage des documents.');
         }
 
-        if (!copy($tmpFilePath, $destinationPath)) {
-            throw new InvalidUploadException("Échec de l'enregistrement du fichier.");
+        try {
+            if ($realMimeType === 'application/pdf') {
+                if (!copy($tmpFilePath, $destinationPath)) {
+                    throw new InvalidUploadException("Échec de l'enregistrement du fichier.");
+                }
+            } else {
+                $this->images->reencode($tmpFilePath, $realMimeType, $destinationPath);
+            }
+        } catch (\Throwable $e) {
+            @unlink($destinationPath);
+
+            throw $e;
         }
 
         try {
@@ -67,9 +84,7 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
             // simultanés ne peuvent pas dépasser le quota.
             return $this->transactions->run(function () use ($groupId, $actorUserId, $originalName, $storedName, $realMimeType, $destinationPath): GroupDocument {
                 $this->documentRepository->lockGroupQuota($groupId);
-                if ($this->documentRepository->countByGroup($groupId) >= $this->maxDocumentsPerGroup) {
-                    throw new StorageQuotaExceededException('Nombre maximum de documents atteint pour ce groupe.');
-                }
+                $this->assertRoomFor($groupId, filesize($destinationPath));
 
                 return $this->documentRepository->save(new GroupDocument(
                     0,
@@ -86,6 +101,22 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
             @unlink($destinationPath);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Place pour un document de $bytes octets : nombre ET volume du groupe. Appelé une première fois avant d'écrire, puis dans la
+     * transaction qui verrouille le groupe (c'est ce second contrôle qui fait foi face à des envois simultanés).
+     *
+     * @throws StorageQuotaExceededException
+     */
+    private function assertRoomFor(int $groupId, int $bytes): void
+    {
+        if ($this->documentRepository->countByGroup($groupId) >= $this->maxDocumentsPerGroup) {
+            throw new StorageQuotaExceededException('Nombre maximum de documents atteint pour ce groupe.');
+        }
+        if ($this->documentRepository->totalBytesByGroup($groupId) + $bytes > $this->maxBytesPerGroup) {
+            throw new StorageQuotaExceededException('Le volume maximal de documents est atteint pour ce groupe.');
         }
     }
 
