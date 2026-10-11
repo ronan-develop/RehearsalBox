@@ -2,9 +2,9 @@
 /**
  * En-tête de l'exploitation (#375) : titre, onglets et liens vers les pages voisines (mesures, restauration).
  *
- * @var string $section 'backups'
+ * @var string $section 'backups' ou 'production'
  */
-$sections = ['backups' => ['/admin/ops', 'Sauvegardes']];
+$sections = ['backups' => ['/admin/ops', 'Sauvegardes'], 'production' => ['/admin/ops/production', 'Production']];
 ?>
 <a href="/" class="rb-back-link" aria-label="Retour aux disponibilités"><?php require __DIR__ . '/../../partials/icon-back.php'; ?></a>
 <h1>Exploitation</h1>

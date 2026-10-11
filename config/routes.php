@@ -46,6 +46,7 @@ return [
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
         ['GET', '/admin/restore', [RestoreController::class, 'page']],
         ['GET', '/admin/ops', [OpsPageController::class, 'backups']],
+        ['GET', '/admin/ops/production', [OpsPageController::class, 'production']],
         ['GET', '/admin/metrics', [MetricsPageController::class, 'index']],
         ['GET', '/admin/metrics/security', [MetricsPageController::class, 'security']],
         ['GET', '/admin/metrics/load', [MetricsPageController::class, 'load']],

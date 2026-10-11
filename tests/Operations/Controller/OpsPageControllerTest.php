@@ -18,6 +18,10 @@ use App\Operations\Backup\KeyFileProbe;
 use App\Operations\Backup\ProtectionHealthBuilder;
 use App\Operations\Controller\OpsPageController;
 use App\Operations\OpsPaths;
+use App\Operations\Production\DeploymentLog;
+use App\Operations\Production\MigrationStatus;
+use App\Operations\Production\ProductionReportBuilder;
+use App\Operations\Production\ReleaseInventory;
 use App\Security\AuthGuard;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
@@ -93,6 +97,7 @@ final class OpsPageControllerTest extends TestCase
             new MetricsAccess($viewerEmail),
             new BackupHealthBuilder($catalog, new RestoreStatus($this->base . '/shared', $clock), null, null, new Thresholds(), $clock, $zone),
             new ProtectionHealthBuilder(new KeyFileProbe($this->base . '/shared/keys.json'), new Declarations($paths->declarations(), $clock), $paths, $catalog, new Thresholds(), $clock, $zone),
+            new ProductionReportBuilder(new DeploymentLog($paths->deploymentsLog()), new ReleaseInventory($paths->releasesDir(), '', $zone), new MigrationStatus(null, $this->base), $catalog, '', $zone),
             $zone,
         );
     }
@@ -105,6 +110,11 @@ final class OpsPageControllerTest extends TestCase
     private function get(OpsPageController $controller): \App\Http\Response
     {
         return $controller->backups(new Request('GET', '/admin/ops', [], [], []));
+    }
+
+    private function production(OpsPageController $controller): \App\Http\Response
+    {
+        return $controller->production(new Request('GET', '/admin/ops/production', [], [], []));
     }
 
     #[Test]
@@ -157,6 +167,50 @@ final class OpsPageControllerTest extends TestCase
             self::assertSame(404, $response->statusCode(), $name);
             self::assertSame($unknown->body(), $response->body(), $name);
             self::assertStringNotContainsString('Exploitation', $response->body(), $name);
+        }
+    }
+
+    #[Test]
+    public function testTheOwnerSeesTheProductionTabWithItsJournalAndNoServerPath(): void
+    {
+        file_put_contents($this->base . '/shared/deployments.jsonl', (string) json_encode(['v' => 1, 'release' => '20261011093000-abc1234', 'commit' => 'abc1234', 'startedAt' => '2026-10-11T09:30:00Z', 'durationS' => 184, 'outcome' => 'ok', 'switched' => true, 'checks' => 'ci']) . "\n"
+            . (string) json_encode(['v' => 1, 'release' => '<script>alert(1)</script>', 'commit' => 'abc1234', 'startedAt' => '2026-10-11T09:30:00Z', 'durationS' => 1, 'outcome' => 'ok', 'switched' => true, 'checks' => 'ci']) . "\n");
+
+        $response = $this->production($this->controller($this->user('owner@rehearsalbox.test')));
+        $body = $response->body();
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('aria-current="page">Production', $body);
+        self::assertStringContainsString('20261011093000-abc1234', $body);
+        self::assertStringContainsString('CI verte', $body);
+        self::assertStringNotContainsString('<script>', $body, 'une ligne de journal forgée est ignorée');
+        self::assertStringNotContainsString('OPSCANARY', $body);
+        self::assertStringNotContainsString($this->base, $body);
+    }
+
+    #[Test]
+    public function testProductionTabWithoutAnyJournalSaysSoNeutrally(): void
+    {
+        $body = $this->production($this->controller($this->user('owner@rehearsalbox.test')))->body();
+
+        self::assertStringContainsString('Aucun déploiement journalisé', $body);
+    }
+
+    #[Test]
+    public function testTheProductionTabFollowsTheSameUniform404(): void
+    {
+        $unknown = $this->get($this->controller($this->user('owner@rehearsalbox.test'), ''));
+        $cases = [
+            'visiteur' => $this->controller(null),
+            'musicien' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Musicien)),
+            'autre admin' => $this->controller($this->user('other@rehearsalbox.test')),
+            'adresse non configurée' => $this->controller($this->user('owner@rehearsalbox.test'), ''),
+        ];
+
+        foreach ($cases as $name => $controller) {
+            $response = $this->production($controller);
+            self::assertSame(404, $response->statusCode(), $name);
+            self::assertSame($unknown->body(), $response->body(), $name);
         }
     }
 }
