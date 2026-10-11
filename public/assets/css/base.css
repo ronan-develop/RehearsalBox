@@ -450,6 +450,16 @@ button:active::after, .rb-btn:active::after {
   color: var(--rb-accent-2);
 }
 
+/* Six entrées pour le propriétaire (lien « Ops », #400) : chaque libellé garde la largeur de son texte, sans rien couper. */
+@media (max-width: 430px) {
+  .rb-bottom-nav-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-inline: 4px;
+    font-size: 0.75rem;
+  }
+}
+
 .rb-logout-only {
   gap: var(--rb-space-3);
   position: fixed;

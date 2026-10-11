@@ -30,6 +30,7 @@ use App\Operations\Backup\KeyFileProbe;
 use App\Operations\Backup\ProtectionHealthBuilder;
 use App\Operations\Controller\OpsPageController;
 use App\Operations\OpsPaths;
+use App\Operations\View\OpsLinkRenderer;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\MetricsReaderInterface;
@@ -393,7 +394,7 @@ return static function (array $config): Container {
         Transport::fromDsn($config['mailer']['dsn']),
     ));
 
-    $container->set(TemplateRendererInterface::class, fn () => new PhpTemplateRenderer(__DIR__ . '/../templates'));
+    $container->set(TemplateRendererInterface::class, fn ($c) => new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../templates'), $c->get(AuthGuard::class), new MetricsAccess((string) $config['metrics']['viewer_email'])));
 
     $container->set(PageController::class, fn ($c) => new PageController(
         $c->get(TemplateRendererInterface::class),
