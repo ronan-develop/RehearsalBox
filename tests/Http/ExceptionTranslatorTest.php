@@ -9,6 +9,7 @@ use App\Group\Exception\DuplicateGroupNameException;
 use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
 use App\Messaging\Exception\ConversationRateLimitException;
+use App\Security\Exception\RateLimitedException;
 use App\Messaging\Exception\ConversationValidationException;
 use App\Planning\Exception\FreeSlotBookingConflictException;
 use App\Group\Exception\GroupValidationException;
@@ -36,6 +37,7 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'groupe invalide' => [new GroupValidationException(['name' => 'Nom requis.', 'colorHex' => 'Couleur invalide.']), 422, ['error' => 'Nom requis. Couleur invalide.', 'fields' => ['name' => 'Nom requis.', 'colorHex' => 'Couleur invalide.']]];
         yield 'demande de créneau invalide' => [new AvailabilityValidationException(['occurrenceDate' => 'Passé.']), 422, ['error' => 'Validation échouée', 'fields' => ['occurrenceDate' => 'Passé.']]];
         yield 'trop de messages' => [new ConversationRateLimitException('Trop de messages envoyés.'), 423, ['error' => 'Trop de messages envoyés.']];
+        yield 'trop d\'actions' => [new RateLimitedException('Trop de recherches.', 42), 423, ['error' => 'Trop de recherches.']];
         yield 'jeton de réinitialisation' => [new InvalidResetTokenException(), 422, ['error' => (new InvalidResetTokenException())->getMessage()]];
         yield 'changement d\'adresse' => [new InvalidEmailChangeException(), 422, ['error' => (new InvalidEmailChangeException())->getMessage()]];
         yield 'fichier refusé' => [new InvalidUploadException('Type non autorisé.'), 422, ['error' => 'Type non autorisé.']];
@@ -77,5 +79,13 @@ final class ExceptionTranslatorTest extends TestCase
         self::assertNull($translator->translate(new \RuntimeException('boum')));
         self::assertNull($translator->translate(new \PDOException('SQLSTATE')));
         self::assertNull($translator->translate(new \InvalidArgumentException('contextuel : 404 ou 422 selon le contrôleur')));
+    }
+
+    #[Test]
+    public function testARateLimitedActionTellsHowLongToWait(): void
+    {
+        $response = (new ExceptionTranslator())->translate(new RateLimitedException('Trop de recherches.', 42));
+
+        self::assertSame('42', $response?->headers()['Retry-After']);
     }
 }
