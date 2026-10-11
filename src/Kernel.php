@@ -13,6 +13,7 @@ use App\Container\ContainerInterface;
 use App\Http\ErrorPage;
 use App\Http\ExceptionTranslator;
 use App\Http\JsonResponse;
+use App\Http\RedirectResponse;
 use App\Http\Request;
 use App\Http\Response;
 use App\Routing\Exception\MethodNotAllowedException;
@@ -98,7 +99,7 @@ final class Kernel
             // Une page de la messagerie ouverte depuis un e-mail : on y revient après la connexion (liste blanche stricte).
             $next = $request->method() === 'GET' ? SafeRedirect::afterLogin($request->path()) : null;
 
-            return new Response(statusCode: 302, headers: ['Location' => $next === null ? '/login' : '/login?next=' . rawurlencode($next)]);
+            return new RedirectResponse($next === null ? '/login' : '/login?next=' . rawurlencode($next));
         } catch (AccessDeniedException $e) {
             return $this->errorResponse($request, 403, $e->getMessage());
         } catch (\Throwable $e) {
