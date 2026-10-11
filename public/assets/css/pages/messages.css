@@ -162,18 +162,31 @@ rb-composer {
   font-weight: 700;
 }
 
-/* Pastille « initiateur » (#385) : petit drapeau discret à la suite du titre, couleur secondaire ; jamais en absolu (pas de chevauchement
-   avec la date, le « @ », le point « non lu », la cloche ni la corbeille). */
+/* Pastille « Initiateur » (#385, #387) : petit libellé arrondi à contour d'accent à la suite du titre ; il passe à la ligne avec un titre
+   long. Jamais en absolu (pas de chevauchement avec la date, le « @ », le point « non lu », la cloche ni la corbeille). La phrase complète
+   est lue par les lecteurs d'écran (texte masqué visuellement) et visible en infobulle. */
 .rb-chat-item-owner {
-  display: inline-flex;
-  vertical-align: -2px;
-  margin-left: var(--rb-space-1);
-  color: var(--rb-text-3);
+  display: inline-block;
+  margin-left: var(--rb-space-2);
+  padding: 1px 8px;
+  color: var(--rb-accent);
+  border: 1px solid var(--rb-accent);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  vertical-align: 2px;
+  white-space: nowrap;
 }
 
-.rb-chat-item--active .rb-chat-item-owner,
-.rb-chat-item--unread .rb-chat-item-owner {
-  color: var(--rb-accent);
+.rb-chat-item-owner-more {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .rb-chat-item-date {
