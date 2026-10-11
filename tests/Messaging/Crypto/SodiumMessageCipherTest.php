@@ -18,6 +18,18 @@ final class SodiumMessageCipherTest extends TestCase
         return hash('sha256', $seed, true);
     }
 
+    /**
+     * Altère un caractère du MILIEU du texte chiffré : tous ses bits sont des données. Le dernier caractère du base64 sans remplissage
+     * porte des bits inutilisés que le décodage ignore : l'altérer ne changeait parfois aucun octet (≈ 6 % des exécutions, test instable).
+     */
+    private function tampered(string $stored): string
+    {
+        $position = intdiv(strlen($stored) + strpos($stored, ':') + 1, 2);
+        $replacement = $stored[$position] === 'A' ? 'Q' : 'A';
+
+        return substr($stored, 0, $position) . $replacement . substr($stored, $position + 1);
+    }
+
     private function cipher(bool $allowPlaintext = false): SodiumMessageCipher
     {
         return new SodiumMessageCipher(['k1' => $this->key('un')], 'k1', $allowPlaintext);
@@ -63,12 +75,17 @@ final class SodiumMessageCipherTest extends TestCase
     public function testATamperedValueIsRefused(): void
     {
         $cipher = $this->cipher();
-        $stored = $cipher->encrypt('Message');
-        $last = substr($stored, -1);
-        $tampered = substr($stored, 0, -1) . ($last === 'A' ? 'B' : 'A');
 
-        $this->expectException(MessageCipherException::class);
-        $cipher->decrypt($tampered);
+        // Le nonce change à chaque chiffrement : on essaie beaucoup de valeurs, AUCUNE altération ne doit passer.
+        for ($i = 0; $i < 200; ++$i) {
+            $tampered = $this->tampered($cipher->encrypt('Message'));
+            try {
+                $cipher->decrypt($tampered);
+                self::fail('Une valeur altérée a été acceptée : ' . $tampered);
+            } catch (MessageCipherException) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
     #[Test]
@@ -110,11 +127,16 @@ final class SodiumMessageCipherTest extends TestCase
     public function testATamperedValueIsStillRefusedDuringTheTransition(): void
     {
         $cipher = $this->cipher(allowPlaintext: true);
-        $stored = $cipher->encrypt('Message');
-        $last = substr($stored, -1);
 
-        $this->expectException(MessageCipherException::class);
-        $cipher->decrypt(substr($stored, 0, -1) . ($last === 'A' ? 'B' : 'A'));
+        for ($i = 0; $i < 200; ++$i) {
+            $tampered = $this->tampered($cipher->encrypt('Message'));
+            try {
+                $cipher->decrypt($tampered);
+                self::fail('Une valeur altérée a été acceptée pendant la transition : ' . $tampered);
+            } catch (MessageCipherException) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
     #[Test]
