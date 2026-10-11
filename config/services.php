@@ -501,10 +501,12 @@ return static function (array $config): Container {
     // Limites par adresse : une instance par route sensible, chacune avec son étiquette (#218, #219).
     $container->set(ThrottleEventRepositoryInterface::class, fn ($c) => new MysqlThrottleEventRepository($c->get(PDO::class)));
     $container->set('throttle.login', fn ($c) => new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
-    // Connexion (#236) : 20 échecs par adresse OU 5 par identifiant saisi (réel ou inventé) en 15 minutes ; durée restante annoncée.
+    // Connexion (#236, #441) : 20 échecs par adresse, OU 5 par couple (adresse, identifiant), OU 30 par identifiant saisi (réel ou
+    // inventé) en 15 minutes ; durée restante annoncée. Le couple arrête un acharnement sans bloquer la personne visée.
     $container->set(LoginThrottle::class, fn ($c) => new LoginThrottle(
         $c->get('throttle.login'),
-        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-id', 5, '-15 minutes'),
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-id', 30, '-15 minutes'),
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-pair', 5, '-15 minutes'),
     ));
     $container->set('throttle.password-reset', fn ($c) => new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
 

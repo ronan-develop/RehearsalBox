@@ -84,12 +84,12 @@ final class AuthServiceTest extends RepositoryTestCase
 
     #[Test]
 
-    public function testAttemptLocksAccountAfterFiveFailedAttempts(): void
+    public function testAttemptLocksAccountAfterTheMaximumOfFailedAttempts(): void
     {
         [$service, $userRepository] = $this->makeService();
         $created = $this->createUser($userRepository, 'chris@rehearsalbox.test', 'password123');
 
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < AuthService::MAX_FAILED_ATTEMPTS; $i++) {
             $service->attempt('chris@rehearsalbox.test', 'mauvais');
         }
 
