@@ -10,6 +10,7 @@
 </head>
 <body>
     <div class="rb-admin-page">
+        <?php $backHref = '/'; $backLabel = 'Retour aux disponibilités'; require __DIR__ . '/../../partials/back-button.php'; ?>
         <?php $adminTab = 'groups'; require __DIR__ . '/../../partials/admin-tabs.php'; ?>
         <h1>Groupes</h1>
         <p class="rb-admin-subtitle">Création et gestion des membres.</p>

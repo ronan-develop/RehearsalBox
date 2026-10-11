@@ -20,6 +20,7 @@
 </head>
 <body>
     <div class="rb-admin-page">
+        <?php $backHref = '/'; $backLabel = 'Retour aux disponibilités'; require __DIR__ . '/../../partials/back-button.php'; ?>
         <?php $adminTab = 'bookings'; require __DIR__ . '/../../partials/admin-tabs.php'; ?>
         <h1>Réservations</h1>
         <p class="rb-admin-subtitle">Les groupes réservent une plage libre du local ; le premier administrateur qui répond tranche.</p>

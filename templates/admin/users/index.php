@@ -19,6 +19,7 @@
 </head>
 <body>
     <div class="rb-admin-page">
+        <?php $backHref = '/'; $backLabel = 'Retour aux disponibilités'; require __DIR__ . '/../../partials/back-button.php'; ?>
         <?php $adminTab = 'users'; require __DIR__ . '/../../partials/admin-tabs.php'; ?>
         <h1>Utilisateurs</h1>
         <p class="rb-admin-subtitle">Comptes, accès et déblocage.</p>
