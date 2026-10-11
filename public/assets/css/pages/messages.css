@@ -162,6 +162,20 @@ rb-composer {
   font-weight: 700;
 }
 
+/* Pastille « initiateur » (#385) : petit drapeau discret à la suite du titre, couleur secondaire ; jamais en absolu (pas de chevauchement
+   avec la date, le « @ », le point « non lu », la cloche ni la corbeille). */
+.rb-chat-item-owner {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-left: var(--rb-space-1);
+  color: var(--rb-text-3);
+}
+
+.rb-chat-item--active .rb-chat-item-owner,
+.rb-chat-item--unread .rb-chat-item-owner {
+  color: var(--rb-accent);
+}
+
 .rb-chat-item-date {
   flex-shrink: 0;
   color: var(--rb-text-3);

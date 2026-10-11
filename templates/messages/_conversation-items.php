@@ -9,7 +9,9 @@ foreach ($items as $item): ?>
 <li class="rb-chat-item<?= $item['unread'] ? ' rb-chat-item--unread' : '' ?><?= $item['active'] ? ' rb-chat-item--active' : '' ?><?= !empty($item['muted']) ? ' rb-chat-item--muted' : '' ?>"<?= !empty($item['canDelete']) ? ' data-can-delete' : '' ?>>
     <a class="rb-chat-item-link" href="<?= e($item['url']) ?>" data-conversation-id="<?= e((string) $item['id']) ?>">
         <span class="rb-chat-item-head">
-            <span class="rb-chat-item-title"><?= e($item['title']) ?></span>
+            <span class="rb-chat-item-title"><?= e($item['title']) ?><?php if (!empty($item['canDelete'])): ?><?php /* Initiateur (#385) : la personne qui a ouvert la conversation est la seule à pouvoir la supprimer ; un drapeau discret plutôt qu'un texte. Libellé fixe. */ ?><span class="rb-chat-item-owner" role="img" aria-label="Vous avez ouvert cette conversation : vous seul(e) pouvez la supprimer" title="Vous avez ouvert cette conversation : vous seul(e) pouvez la supprimer">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></svg>
+            </span><?php endif; ?></span>
             <span class="rb-chat-item-date"><?= e($item['date']) ?></span>
         </span>
         <span class="rb-chat-item-preview"><?= e($item['preview']) ?></span>
