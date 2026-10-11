@@ -19,9 +19,12 @@ final class DatabaseBackup
     public const DAILY = 'daily';
     public const PRE_DEPLOY = 'pre-deploy';
 
+    /** Nombre de sauvegardes gardées par type. */
+    public const RETENTION = [self::DAILY => 14, self::PRE_DEPLOY => 7];
+
     private const KINDS = [
-        self::DAILY => ['prefix' => 'db', 'keep' => 14],
-        self::PRE_DEPLOY => ['prefix' => 'pre', 'keep' => 7],
+        self::DAILY => ['prefix' => 'db', 'keep' => self::RETENTION[self::DAILY]],
+        self::PRE_DEPLOY => ['prefix' => 'pre', 'keep' => self::RETENTION[self::PRE_DEPLOY]],
     ];
 
     /** @param \Closure(string): void $dumper écrit le dump compressé dans le fichier reçu (ProcessDumper) ; lève BackupException en cas d'échec */

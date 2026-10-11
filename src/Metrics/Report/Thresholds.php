@@ -24,6 +24,9 @@ final class Thresholds
         'access_denied' => [10, 50],
         'csrf_failures' => [3, 20],
         'rate_limited' => [1, 10],
+        'backup_task_hours' => [26, 50],
+        'offsite_days' => [8, 31],
+        'collect_minutes' => [90, 180],
     ];
 
     /** @var array<string, array{0: float|int, 1: float|int}> */
