@@ -155,7 +155,7 @@ final class MetricsPageControllerTest extends TestCase
         foreach (['index' => '/admin/metrics', 'security' => '/admin/metrics/security', 'load' => '/admin/metrics/load'] as $method => $path) {
             $body = $controller->$method(new Request('GET', $path, [], [], []))->body();
 
-            self::assertStringContainsString('<a href="/admin/ops" class="rb-back-link" aria-label="Retour à l\'exploitation">', $body, $path);
+            self::assertStringContainsString('<a href="/admin/ops" class="rb-back-link" aria-label="Retour à l&#039;exploitation">', $body, $path);
         }
     }
 }
