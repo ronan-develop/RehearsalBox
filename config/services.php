@@ -106,6 +106,8 @@ use App\Planning\Service\AvailabilityServiceInterface;
 use App\Group\Service\GroupServiceInterface;
 use App\Http\AfterResponseInterface;
 use App\Http\DeferredAfterResponse;
+use App\Account\Service\Announcement\AnnouncementLedger;
+use App\Account\Service\Announcement\AnnouncementService;
 use App\Mail\Mailbox;
 use App\Mail\MailRenderer;
 use App\Account\Service\UserAdminServiceInterface;
@@ -394,6 +396,12 @@ return static function (array $config): Container {
         $c->get(MailRenderer::class),
         $c->get(LoggerInterface::class),
         $c->get(MetricsRecorderInterface::class),
+    ));
+
+    $container->set(AnnouncementService::class, fn ($c) => new AnnouncementService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(Mailbox::class),
+        new AnnouncementLedger(__DIR__ . '/../storage/announcement-sent.txt'),
     ));
 
     $container->set(MailerInterface::class, fn () => new \Symfony\Component\Mailer\Mailer(
