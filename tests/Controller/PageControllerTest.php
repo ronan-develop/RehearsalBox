@@ -737,4 +737,40 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString(';top:0;', $body, 'du CSS venu de la base n\'arrive jamais dans la page');
         self::assertStringContainsString('--group-color: var(--rb-accent);', $body, 'repli sur la couleur du thème');
     }
+
+    #[Test]
+    public function testALoggedInVisitorFollowingAnEmailLinkGoesStraightToThePage(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        $response = $controller->login(new \App\Http\Request('GET', '/login', ['next' => '/admin/ops'], [], []));
+
+        self::assertSame(302, $response->statusCode());
+        self::assertSame('/admin/ops', $response->headers()['Location']);
+    }
+
+    #[Test]
+    public function testALoggedInVisitorWithAnUnsafeNextStaysOnTheLoginPage(): void
+    {
+        [$controller, , , $userRepository, $authService] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+
+        foreach (['https://evil.example/', '//evil.example', '/admin/users', '/api/auth/logout'] as $next) {
+            $response = $controller->login(new \App\Http\Request('GET', '/login', ['next' => $next], [], []));
+
+            self::assertSame(200, $response->statusCode(), $next);
+        }
+    }
+
+    #[Test]
+    public function testAVisitorNotLoggedInSeesTheLoginFormWithTheNextPage(): void
+    {
+        [$controller] = $this->makeController();
+
+        $response = $controller->login(new \App\Http\Request('GET', '/login', ['next' => '/admin/ops/production'], [], []));
+
+        self::assertSame(200, $response->statusCode());
+        self::assertStringContainsString('data-next="/admin/ops/production"', $response->body());
+    }
 }
