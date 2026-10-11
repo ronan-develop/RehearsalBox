@@ -20,6 +20,11 @@ final class SafeRedirectTest extends TestCase
         yield 'conversation' => ['/messages/12'];
         yield 'conversation à dix chiffres' => ['/messages/2147483647'];
         yield 'nouvelle conversation' => ['/messages/new/7'];
+        yield 'exploitation' => ['/admin/ops'];
+        yield 'exploitation, production' => ['/admin/ops/production'];
+        yield 'mesures' => ['/admin/metrics'];
+        yield 'mesures, sécurité' => ['/admin/metrics/security'];
+        yield 'mesures, charge' => ['/admin/metrics/load'];
     }
 
     #[Test]
@@ -37,6 +42,13 @@ final class SafeRedirectTest extends TestCase
         yield 'schéma javascript' => ['javascript:alert(1)'];
         yield 'antislash' => ['/\\evil.example'];
         yield 'autre page du site' => ['/admin/users'];
+        yield 'restauration, jamais depuis un lien' => ['/admin/restore'];
+        yield 'exploitation avec barre finale' => ['/admin/ops/'];
+        yield 'exploitation, préfixe seulement' => ['/admin/opsevil'];
+        yield 'exploitation en majuscules' => ['/ADMIN/OPS'];
+        yield 'exploitation avec saut de ligne' => ["/admin/ops\n"];
+        yield 'exploitation avec paramètre' => ['/admin/ops?x=1'];
+        yield 'exploitation hors dossier' => ['/admin/ops/../users'];
         yield 'API' => ['/api/conversations'];
         yield 'préfixe seulement' => ['/messagesevil'];
         yield 'identifiant zéro' => ['/messages/0'];
