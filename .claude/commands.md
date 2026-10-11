@@ -52,6 +52,8 @@ Config de test attendue par PHPUnit (`tests/TestDatabase.php`) : hôte `127.0.0.
 
 Config de dev attendue par `config/config.local.php` (gitignored) : host `127.0.0.1`, port `3308`, base `rehearsalbox_dev`, user `root`, password `root`.
 
+La base de **test** vit en mémoire (`tmpfs`, #389) : plus rapide, et **vide après un redémarrage** du conteneur (PHPUnit recrée le schéma à chaque exécution : rien à faire). Après une modification de `docker-compose.test.yml` : `docker compose -f docker-compose.test.yml up -d --force-recreate`. La base de dev garde ses données sur disque.
+
 Les deux peuvent tourner en même temps (ports différents) — `docker compose ... up -d` sans argument supplémentaire ne démarre que le fichier compose ciblé, pas les deux.
 
 Arrêter/nettoyer : `docker compose -f docker-compose.test.yml down -v` (idem avec `.dev.yml`).
