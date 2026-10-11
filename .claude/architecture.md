@@ -77,6 +77,10 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - Les assets servis directement par Apache (CSS, JS) reçoivent `nosniff` via `public/.htaccess`.
 - JS : tout HTML construit côté client échappe ses données avec `escapeHtml` de `assets/js/html.js` (module unique).
 
+## Analyse de teinte (#433)
+
+`composer taint` (Psalm, `psalm.xml`, en CI) suit les valeurs de la requête jusqu'aux puits SQL, HTML, commande et fichier. **Sources** : `Request::query/body/allBody/header/path/file` (annotation `@psalm-taint-source input`) ; **puits SQL** : PDO (`tools/psalm/pdo.phpstub`, Psalm ne les marque pas seul) ; HTML : `echo` et `htmlspecialchars` (donc `e()`) comme échappement. Un nouvel accès aux données de la requête doit passer par `Request` (sinon la source n'est pas vue). Faux positif légitime : `@psalm-suppress Tainted…` AVEC la raison, jamais de baseline. `tests/Tools/PsalmTaintTest` pose des flux tachés (fixture) et vérifie que l'outil les détecte : si Psalm ou les annotations se dégradent, il échoue.
+
 ## Connexion : verrou, limite par adresse, temps de réponse (#218)
 
 - **Verrou par compte** : 5 échecs → 15 minutes. Le compteur est incrémenté **en SQL, en une seule requête** (`UserRepositoryInterface::recordFailedLogin`) : jamais « lire, calculer en PHP, réécrire la ligne » (des tentatives simultanées s'écraseraient et le verrou serait contournable). Le compteur est plafonné (colonne étroite). Remise à zéro atomique aussi (`resetFailedLogins`, utilisée par la connexion réussie et le déblocage administrateur).
