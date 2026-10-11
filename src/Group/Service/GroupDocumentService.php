@@ -61,6 +61,8 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
         if (!copy($tmpFilePath, $destinationPath)) {
             throw new InvalidUploadException("Échec de l'enregistrement du fichier.");
         }
+        // Lisible du seul propriétaire (#440) : le serveur web n'a pas à servir ce fichier, seul le téléchargement contrôlé le fait.
+        @chmod($destinationPath, 0600);
 
         try {
             // « Compter puis ajouter » est ATOMIQUE : le groupe est verrouillé le temps de la transaction, donc des envois
