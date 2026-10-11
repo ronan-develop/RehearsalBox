@@ -8,6 +8,7 @@ use App\Group\Exception\DuplicateGroupNameException;
 use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
 use App\Messaging\Exception\ConversationRateLimitException;
+use App\Security\Exception\RateLimitedException;
 use App\Messaging\Exception\ConversationValidationException;
 use App\Planning\Exception\FreeSlotBookingConflictException;
 use App\Group\Exception\GroupValidationException;
@@ -39,6 +40,7 @@ final class ExceptionTranslator
             $e instanceof UserValidationException,
             $e instanceof AvailabilityValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
             $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED),
+            $e instanceof RateLimitedException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED, ['Retry-After' => (string) $e->retryAfterSeconds()]),
             $e instanceof InvalidResetTokenException,
             $e instanceof InvalidEmailChangeException,
             $e instanceof InvalidUploadException,

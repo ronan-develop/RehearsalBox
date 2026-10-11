@@ -36,14 +36,21 @@ final class SubjectThrottle
         return $this->events->countSince($this->hashOf($ip), $now->modify($this->window)) >= $this->maxEvents;
     }
 
-    public function record(string $ip, \DateTimeImmutable $now): void
+    /** @param string|null $scopeHash empreinte (`subjectHash()` d'une autre limite) à laquelle rattacher l'évènement : l'oublier l'oublie aussi */
+    public function record(string $ip, \DateTimeImmutable $now, ?string $scopeHash = null): void
     {
         if ($ip === '') {
             return;
         }
 
         $this->events->purgeBefore($now->modify(self::RETENTION));
-        $this->events->record($this->hashOf($ip), $now);
+        $this->events->record($this->hashOf($ip), $now, $scopeHash);
+    }
+
+    /** Empreinte d'un sujet de CETTE limite (jamais le sujet en clair), à passer comme portée à une autre limite. */
+    public function subjectHash(string $subject): string
+    {
+        return $this->hashOf($subject);
     }
 
     /** Durée de la fenêtre en secondes : le blocage le plus long possible (juste après l'évènement qui a atteint la limite). */

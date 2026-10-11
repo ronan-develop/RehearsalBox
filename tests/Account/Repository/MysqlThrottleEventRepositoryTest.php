@@ -69,4 +69,21 @@ final class MysqlThrottleEventRepositoryTest extends RepositoryTestCase
         self::assertSame(0, $repository->countSince(str_repeat('a', 64), new \DateTimeImmutable('2026-01-01 00:00:00')));
         self::assertSame(1, $repository->countSince(str_repeat('b', 64), new \DateTimeImmutable('2026-01-01 00:00:00')));
     }
+
+    #[Test]
+    public function testForgettingASubjectAlsoForgetsTheEventsLinkedToItAsTheirScope(): void
+    {
+        $repository = new MysqlThrottleEventRepository($this->pdo);
+        $identifier = str_repeat('a', 64);
+        $now = new \DateTimeImmutable(self::NOW);
+        $repository->record($identifier, $now);
+        $repository->record(str_repeat('b', 64), $now, $identifier); // un couple (adresse, identifiant) rattaché à l'identifiant
+        $repository->record(str_repeat('c', 64), $now, str_repeat('d', 64)); // couple d'un autre identifiant
+
+        $repository->forget($identifier);
+
+        self::assertSame(0, $repository->countSince($identifier, new \DateTimeImmutable('2026-01-01 00:00:00')));
+        self::assertSame(0, $repository->countSince(str_repeat('b', 64), new \DateTimeImmutable('2026-01-01 00:00:00')), 'le couple rattaché est oublié');
+        self::assertSame(1, $repository->countSince(str_repeat('c', 64), new \DateTimeImmutable('2026-01-01 00:00:00')), 'l\'autre identifiant est intact');
+    }
 }

@@ -22,7 +22,11 @@ use App\Tests\Database\RepositoryTestCase;
 use App\Tests\Doubles\InMemorySession;
 use App\Tests\Scenarios\KernelTranslation;
 use App\Security\Exception\AccessDeniedException;
+use App\Account\Repository\MysqlThrottleEventRepository;
+use App\Account\Service\Throttle\SubjectThrottle;
+use App\Account\Service\Throttle\UserActionLimit;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\Clock\Clock;
 
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class GroupDocumentApiControllerTest extends RepositoryTestCase
@@ -43,7 +47,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         parent::tearDown();
     }
 
-    private function makeController(): array
+    private function makeController(?UserActionLimit $uploadLimit = null): array
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
@@ -54,7 +58,7 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $authService = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository);
         $authGuard = new AuthGuard($authService);
 
-        $controller = new KernelTranslation(new GroupDocumentApiController($documentService, $authGuard));
+        $controller = new KernelTranslation(new GroupDocumentApiController($documentService, $authGuard, uploadLimit: $uploadLimit));
 
         return [$controller, $groupRepository, $userRepository, $authService, $documentService];
     }
@@ -98,6 +102,30 @@ final class GroupDocumentApiControllerTest extends RepositoryTestCase
         $response = $controller->store($request, (string) $group->id());
 
         self::assertSame(201, $response->statusCode());
+    }
+
+    #[Test]
+
+    public function testUploadsArePerPersonLimitedAndTheRefusalSaysHowLongToWait(): void
+    {
+        $limit = new UserActionLimit(new SubjectThrottle(new MysqlThrottleEventRepository($this->pdo), 'document-upload', 2, '-1 hour'), new Clock(), 'Trop de documents envoyés.');
+        [$controller, $groupRepository, $userRepository, $authService] = $this->makeController($limit);
+        $group = $groupRepository->save(new Group(0, 'Groupe Test', null, null, 'contact@example.test'));
+        $manager = $this->createUser($userRepository, 'dora@rehearsalbox.test');
+        $groupRepository->addMember($group->id(), $manager->id(), GroupUserRole::Gestionnaire);
+        $authService->attempt('dora@rehearsalbox.test', 'password');
+        $send = function () use ($controller, $group) {
+            $files = ['document' => ['name' => 'fiche.pdf', 'type' => 'application/pdf', 'tmp_name' => $this->uploadedTmpFile('%PDF-1.4 contenu test'), 'error' => UPLOAD_ERR_OK, 'size' => 20]];
+
+            return $controller->store(new Request('POST', "/api/groups/{$group->id()}/documents", [], [], [], $files), (string) $group->id());
+        };
+
+        self::assertSame(201, $send()->statusCode());
+        self::assertSame(201, $send()->statusCode());
+        $refused = $send();
+
+        self::assertSame(423, $refused->statusCode());
+        self::assertGreaterThan(0, (int) $refused->headers()['Retry-After']);
     }
 
     #[Test]

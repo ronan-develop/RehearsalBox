@@ -187,6 +187,7 @@ use App\Group\Service\GroupDocumentService;
 use App\Group\Service\GroupService;
 use App\Account\Service\Throttle\SubjectThrottle;
 use App\Account\Service\Throttle\LoginThrottle;
+use App\Account\Service\Throttle\UserActionLimit;
 use App\Account\Service\PasswordChangeService;
 use App\Account\Repository\EmailChangeRepositoryInterface;
 use App\Account\Repository\MysqlEmailChangeRepository;
@@ -501,10 +502,12 @@ return static function (array $config): Container {
     // Limites par adresse : une instance par route sensible, chacune avec son étiquette (#218, #219).
     $container->set(ThrottleEventRepositoryInterface::class, fn ($c) => new MysqlThrottleEventRepository($c->get(PDO::class)));
     $container->set('throttle.login', fn ($c) => new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login', 20, '-15 minutes'));
-    // Connexion (#236) : 20 échecs par adresse OU 5 par identifiant saisi (réel ou inventé) en 15 minutes ; durée restante annoncée.
+    // Connexion (#236, #441) : 20 échecs par adresse, OU 5 par couple (adresse, identifiant), OU 30 par identifiant saisi (réel ou
+    // inventé) en 15 minutes ; durée restante annoncée. Le couple arrête un acharnement sans bloquer la personne visée.
     $container->set(LoginThrottle::class, fn ($c) => new LoginThrottle(
         $c->get('throttle.login'),
-        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-id', 5, '-15 minutes'),
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-id', 30, '-15 minutes'),
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'login-pair', 5, '-15 minutes'),
     ));
     $container->set('throttle.password-reset', fn ($c) => new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'password-reset', 10, '-1 hour'));
 
@@ -850,9 +853,22 @@ return static function (array $config): Container {
         $c->get(ConversationGuestRepositoryInterface::class),
     ));
 
+    // Limites par personne (#428) : 120 recherches de membres par minute (une par frappe), 20 documents envoyés par heure.
+    $container->set('limit.member-search', fn ($c) => new UserActionLimit(
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'member-search', 120, '-1 minute'),
+        $c->get(ClockInterface::class),
+        'Trop de recherches : patientez un instant.',
+    ));
+    $container->set('limit.document-upload', fn ($c) => new UserActionLimit(
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'document-upload', 20, '-1 hour'),
+        $c->get(ClockInterface::class),
+        'Trop de documents envoyés : réessayez plus tard.',
+    ));
+
     $container->set(MemberApiController::class, fn ($c) => new MemberApiController(
         $c->get(MemberSearchService::class),
         $c->get(AuthGuard::class),
+        $c->get('limit.member-search'),
     ));
 
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(
@@ -959,6 +975,7 @@ return static function (array $config): Container {
         $c->get(GroupDocumentService::class),
         $c->get(AuthGuard::class),
         $c->get(LoggerInterface::class),
+        $c->get('limit.document-upload'),
     ));
 
     return $container;
