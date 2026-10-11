@@ -68,6 +68,7 @@
 .rb-metrics-card-hint {
   font-size: 0.8125rem;
   color: var(--rb-text-2);
+  overflow-wrap: anywhere;
 }
 
 .rb-metrics-card[data-status='critical'] .rb-metrics-card-status { color: var(--rb-text); font-weight: 600; }

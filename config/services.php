@@ -31,6 +31,10 @@ use App\Operations\Backup\OpsAlerts;
 use App\Operations\Backup\ProtectionHealthBuilder;
 use App\Operations\Controller\OpsPageController;
 use App\Operations\OpsPaths;
+use App\Operations\Production\DeploymentLog;
+use App\Operations\Production\MigrationStatus;
+use App\Operations\Production\ProductionReportBuilder;
+use App\Operations\Production\ReleaseInventory;
 use App\Operations\View\OpsLinkRenderer;
 use App\Metrics\MetricsAccess;
 use App\Metrics\Report\HealthReportBuilder;
@@ -884,12 +888,27 @@ return static function (array $config): Container {
             new \DateTimeZone($config['app']['timezone']),
         );
     });
+    $container->set(ProductionReportBuilder::class, function ($c) use ($config) {
+        $paths = new OpsPaths($config['ops']['base_dir']);
+        $release = ReleaseInventory::markerIn(__DIR__ . '/../RELEASE');
+        $zone = new \DateTimeZone($config['app']['timezone']);
+
+        return new ProductionReportBuilder(
+            new DeploymentLog($paths->deploymentsLog()),
+            new ReleaseInventory($paths->releasesDir(), $release, $zone),
+            new MigrationStatus($c->get(PDO::class), __DIR__ . '/../database/migrations'),
+            new BackupCatalog((string) ($config['restore']['backup_dir'] ?? '')),
+            $release,
+            $zone,
+        );
+    });
     $container->set(OpsPageController::class, fn ($c) => new OpsPageController(
         $c->get(TemplateRendererInterface::class),
         $c->get(AuthGuard::class),
         new MetricsAccess((string) $config['metrics']['viewer_email']),
         $c->get(BackupHealthBuilder::class),
         $c->get(ProtectionHealthBuilder::class),
+        $c->get(ProductionReportBuilder::class),
         new \DateTimeZone($config['app']['timezone']),
     ));
 
