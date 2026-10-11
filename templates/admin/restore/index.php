@@ -10,6 +10,7 @@
  * @var list<array{id: int, groupId: int, originalName: string}> $missingFiles
  * @var list<string> $orphanFiles
  * @var string $confirmWord
+ * @var bool $restoreEnabled faux : la restauration par le web est désactivée (config `restore.enabled`, #424) : aucune action proposée
  * @var \App\Account\Entity\UserRole $currentUserRole
  * @var \DateTimeZone $localTimezone
  * @var string|null $csrfToken
@@ -38,6 +39,12 @@
                 <li>L'application peut être indisponible quelques instants.</li>
             </ul>
         </div>
+
+        <?php if (!$restoreEnabled): ?>
+            <div class="rb-card rb-restore-status" data-restore-disabled role="status">
+                <p><strong>La restauration par le web est désactivée sur ce serveur.</strong> Les sauvegardes restent listées ci-dessous. Pour restaurer, activez-la le temps de l'opération (réglage <code>restore.enabled</code> du fichier de configuration du serveur), puis désactivez-la de nouveau.</p>
+            </div>
+        <?php endif; ?>
 
         <?php if ($state !== null): ?>
             <?php if ($state['state'] === 'running' && $running): ?>
@@ -74,7 +81,7 @@
             <?php endif; ?>
         <?php endif; ?>
 
-        <rb-restore endpoint="/api/admin/restore" confirm-word="<?= e($confirmWord) ?>">
+        <?php if ($restoreEnabled): ?><rb-restore endpoint="/api/admin/restore" confirm-word="<?= e($confirmWord) ?>"><?php else: ?><div><?php endif; ?>
             <section class="rb-restore-section" aria-labelledby="restore-backups-title">
                 <h2 id="restore-backups-title">Sauvegardes</h2>
                 <?php if ($backups === []): ?>
@@ -103,8 +110,12 @@
                                         <td><?= e($backup->file) ?></td>
                                         <td><?= e(\App\Metrics\Report\HumanSize::of($backup->bytes)) ?></td>
                                         <td>
-                                            <button type="button" class="rb-btn rb-btn-danger" data-restore-file="<?= e($backup->file) ?>"
-                                                    data-restore-label="<?= e($when) ?>"<?= $running ? ' disabled' : '' ?>>Restaurer</button>
+                                            <?php if ($restoreEnabled): ?>
+                                                <button type="button" class="rb-btn rb-btn-danger" data-restore-file="<?= e($backup->file) ?>"
+                                                        data-restore-label="<?= e($when) ?>"<?= $running ? ' disabled' : '' ?>>Restaurer</button>
+                                            <?php else: ?>
+                                                —
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -114,6 +125,7 @@
                 <?php endif; ?>
             </section>
 
+            <?php if ($restoreEnabled): ?>
             <dialog class="rb-modal rb-card" role="alertdialog" aria-labelledby="restore-dialog-title" aria-describedby="restore-dialog-target" data-restore-dialog>
                 <h2 class="rb-modal-title" id="restore-dialog-title">Restaurer la base ?</h2>
                 <p class="rb-modal-text" id="restore-dialog-target" data-restore-target></p>
@@ -133,9 +145,10 @@
                     </div>
                 </form>
             </dialog>
+            <?php endif; ?>
 
             <p class="rb-admin-note" data-restore-done role="status" hidden></p>
-        </rb-restore>
+        <?php if ($restoreEnabled): ?></rb-restore><?php else: ?></div><?php endif; ?>
 
         <section class="rb-card rb-restore-section" aria-labelledby="restore-documents-title">
             <h2 id="restore-documents-title">Documents de groupes après restauration</h2>

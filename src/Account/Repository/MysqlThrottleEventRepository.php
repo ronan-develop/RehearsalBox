@@ -14,10 +14,10 @@ final class MysqlThrottleEventRepository implements ThrottleEventRepositoryInter
     {
     }
 
-    public function record(string $subjectHash, \DateTimeImmutable $occurredAt): void
+    public function record(string $subjectHash, \DateTimeImmutable $occurredAt, ?string $scopeHash = null): void
     {
-        $this->pdo->prepare('INSERT INTO throttle_events (subject_hash, occurred_at) VALUES (:subject_hash, :occurred_at)')
-            ->execute(['subject_hash' => $subjectHash, 'occurred_at' => $occurredAt->format(self::DATE_FORMAT)]);
+        $this->pdo->prepare('INSERT INTO throttle_events (subject_hash, scope_hash, occurred_at) VALUES (:subject_hash, :scope_hash, :occurred_at)')
+            ->execute(['subject_hash' => $subjectHash, 'scope_hash' => $scopeHash, 'occurred_at' => $occurredAt->format(self::DATE_FORMAT)]);
     }
 
     public function countSince(string $subjectHash, \DateTimeImmutable $since): int
@@ -42,7 +42,8 @@ final class MysqlThrottleEventRepository implements ThrottleEventRepositoryInter
 
     public function forget(string $subjectHash): void
     {
-        $this->pdo->prepare('DELETE FROM throttle_events WHERE subject_hash = :subject_hash')->execute(['subject_hash' => $subjectHash]);
+        $this->pdo->prepare('DELETE FROM throttle_events WHERE subject_hash = :subject_hash OR scope_hash = :scope_hash')
+            ->execute(['subject_hash' => $subjectHash, 'scope_hash' => $subjectHash]);
     }
 
     public function purgeBefore(\DateTimeImmutable $before): void

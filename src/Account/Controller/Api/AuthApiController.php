@@ -43,8 +43,8 @@ final class AuthApiController
             return new JsonResponse(['error' => 'Identifiants invalides.'], 401);
         }
 
-        // Une connexion réussie remet à zéro le compteur de cet identifiant (celui de l'adresse reste).
-        $this->loginThrottle->forgetIdentifier($email);
+        // Une connexion réussie remet à zéro les compteurs de cet identifiant et de ce couple (celui de l'adresse reste).
+        $this->loginThrottle->forgetIdentifier($email, $ip);
 
         $groupsToSelect = $this->authService->groupsRequiringSelection();
         if ($groupsToSelect !== []) {
