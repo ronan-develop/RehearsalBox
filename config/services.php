@@ -186,6 +186,7 @@ use App\Group\Service\GroupDocumentService;
 use App\Group\Service\GroupService;
 use App\Account\Service\Throttle\SubjectThrottle;
 use App\Account\Service\Throttle\LoginThrottle;
+use App\Account\Service\Throttle\UserActionLimit;
 use App\Account\Service\PasswordChangeService;
 use App\Account\Repository\EmailChangeRepositoryInterface;
 use App\Account\Repository\MysqlEmailChangeRepository;
@@ -849,9 +850,22 @@ return static function (array $config): Container {
         $c->get(ConversationGuestRepositoryInterface::class),
     ));
 
+    // Limites par personne (#428) : 120 recherches de membres par minute (une par frappe), 20 documents envoyés par heure.
+    $container->set('limit.member-search', fn ($c) => new UserActionLimit(
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'member-search', 120, '-1 minute'),
+        $c->get(ClockInterface::class),
+        'Trop de recherches : patientez un instant.',
+    ));
+    $container->set('limit.document-upload', fn ($c) => new UserActionLimit(
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'document-upload', 20, '-1 hour'),
+        $c->get(ClockInterface::class),
+        'Trop de documents envoyés : réessayez plus tard.',
+    ));
+
     $container->set(MemberApiController::class, fn ($c) => new MemberApiController(
         $c->get(MemberSearchService::class),
         $c->get(AuthGuard::class),
+        $c->get('limit.member-search'),
     ));
 
     $container->set(GroupSpaceApiController::class, fn ($c) => new GroupSpaceApiController(
@@ -957,6 +971,7 @@ return static function (array $config): Container {
         $c->get(GroupDocumentService::class),
         $c->get(AuthGuard::class),
         $c->get(LoggerInterface::class),
+        $c->get('limit.document-upload'),
     ));
 
     return $container;
