@@ -12,6 +12,7 @@
     <div class="rb-auth-page rb-account-page">
         <div class="rb-account-stack">
         <div class="rb-auth-card rb-card">
+            <?php $backHref = '/'; $backLabel = 'Retour aux disponibilités'; require __DIR__ . '/../partials/back-button.php'; ?>
             <h1 class="rb-auth-title">Mon compte</h1>
             <h2 class="rb-account-section-title">Mes informations</h2>
             <p class="rb-auth-intro">Votre adresse e-mail est votre identifiant de connexion : <strong><?= e($email) ?></strong>.</p>

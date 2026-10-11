@@ -5,6 +5,11 @@
   padding-bottom: calc(var(--rb-space-6) * 2 + env(safe-area-inset-bottom));
 }
 
+/* Bouton retour en tête de page (#404) : un peu d'air avant les onglets ou le titre. */
+.rb-admin-page > .rb-back-link {
+  margin-bottom: var(--rb-space-3);
+}
+
 .rb-admin-page h1 {
   margin-bottom: var(--rb-space-1);
 }

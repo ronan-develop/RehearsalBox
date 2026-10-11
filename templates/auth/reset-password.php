@@ -19,6 +19,7 @@
             <?php if (($token ?? '') === ''): ?>
                 <p class="rb-auth-intro">Ce lien de réinitialisation est invalide ou incomplet.</p>
                 <p class="rb-auth-link"><a href="/forgot-password">Demander un nouveau lien</a></p>
+                <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
             <?php else: ?>
                 <p class="rb-auth-intro">Choisissez un nouveau mot de passe (10 caractères minimum).</p>
                 <rb-async-form endpoint="/api/auth/reset-password" method="POST"><form>
@@ -31,6 +32,7 @@
                     <button type="submit" class="rb-btn-primary">Enregistrer</button>
                 </form></rb-async-form>
                 <p class="rb-auth-link"><a href="/forgot-password">Demander un nouveau lien</a></p>
+                <p class="rb-auth-link"><a href="/login">Retour à la connexion</a></p>
             <?php endif; ?>
         </div>
     </div>

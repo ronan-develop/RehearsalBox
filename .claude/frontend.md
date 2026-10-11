@@ -87,6 +87,7 @@ Améliorations d'usage qui respectent « serveur d'abord » (aucun routage ni re
 - **Position de la liste** (`messaging/chat/thread/scroll-memory.js`) : `sessionStorage`, un nombre de pixels par liste (actives / archivées), restaurée à l'affichage. Le rafraîchissement automatique de la liste ne remplace pas une ligne ouverte ou en cours de glissement.
 - **« ↓ Nouveaux messages »** : quand des messages arrivent pendant qu'on relit l'historique, le fil n'est pas forcé vers le bas ; un bouton le signale (zone tactile de 44 px) et ramène en bas.
 - **Transitions de page natives** : `@view-transition { navigation: auto }` dans `@media (prefers-reduced-motion: no-preference)` ; ignoré par les navigateurs qui ne le gèrent pas.
+- **Bouton retour (#404)** : toute page qui n'est pas une racine (disponibilités, connexion) a un moyen de revenir à sa page PARENTE, jamais l'historique du navigateur (la page peut venir d'un e-mail). Composant `templates/partials/back-button.php` (`$backHref`, `$backLabel`) = lien `.rb-back-link` + icône `partials/icon-back.php` ; en tête de page, au-dessus des onglets. Les pages d'authentification gardent leur lien texte « Retour à la connexion », la page d'erreur son « Retour à l'accueil ». Garde-fou : `tests/View/BackButtonTemplatesTest.php` (liste des pages et de leur destination) : une page ajoutée sans retour doit y être déclarée.
 - **Mobile** : `enterkeyhint="send"`, focus conservé dans le champ après l'envoi (le clavier reste ouvert), hauteurs en `dvh`.
 
 ## Organisation de `public/assets/js/` (même logique que `src/`)
