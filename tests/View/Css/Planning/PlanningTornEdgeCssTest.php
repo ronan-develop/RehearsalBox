@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\View\Css;
+namespace App\Tests\View\Css\Planning;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class PlanningTornEdgeCssTest extends TestCase
 {
-    private const ROOT = __DIR__ . '/../../../';
+    private const ROOT = __DIR__ . '/../../../../';
 
     private function css(): string
     {
