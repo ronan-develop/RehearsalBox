@@ -173,6 +173,21 @@ final class MessageRowsTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testOnlyConversationsOpenedByTheViewerCarryTheInitiatorBadgeWithAFixedAccessibleName(): void
+    {
+        $html = $this->renderer->render('messages/_conversation-items', ['items' => [
+            ['id' => 7, 'url' => '/messages/7', 'title' => '<b>Concert</b>', 'date' => '09:05', 'preview' => 'x', 'unread' => false, 'active' => false, 'canDelete' => true],
+            ['id' => 8, 'url' => '/messages/8', 'title' => 'Fil', 'date' => 'Hier', 'preview' => 'y', 'unread' => false, 'active' => false, 'canDelete' => false],
+            ['id' => 9, 'url' => '/messages/9', 'title' => 'Sans drapeau', 'date' => 'Hier', 'preview' => 'z', 'unread' => false, 'active' => false],
+        ]]);
+
+        self::assertSame(1, substr_count($html, 'class="rb-chat-item-owner"'), 'une seule pastille, sur la conversation ouverte par la personne');
+        self::assertMatchesRegularExpression('/<span class="rb-chat-item-owner" role="img" aria-label="Vous avez ouvert cette conversation : vous seul\(e\) pouvez la supprimer" title="Vous avez ouvert cette conversation : vous seul\(e\) pouvez la supprimer">\s*<svg[^>]*aria-hidden="true"/', $html);
+        // Dans le lien, avant la date, jamais en dehors : la ligne reste un vrai lien et la pastille ne chevauche ni la cloche ni la corbeille.
+        self::assertMatchesRegularExpression('#<span class="rb-chat-item-title">&lt;b&gt;Concert&lt;/b&gt;<span class="rb-chat-item-owner".*?</span></span>\s*<span class="rb-chat-item-date">#s', $html);
+    }
+
+    #[Test]
     public function testEveryRowHasAMuteToggleOutsideTheLinkWithItsStateAndAnEscapedAccessibleName(): void
     {
         $html = $this->renderer->render('messages/_conversation-items', ['items' => [
