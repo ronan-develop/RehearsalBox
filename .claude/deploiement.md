@@ -55,6 +55,10 @@ RB_USER_PASSWORD='<mot-de-passe>' php bin/create-user.php <email> <nom> admin  #
 
 Le mot de passe, s'il y en a un, passe par l'environnement (jamais en argument). La connexion se fait avec l'**e-mail**. **Pas d'inscription publique** (#137) : `/register` et `POST /api/auth/register` n'existent plus. Les groupes sont créés depuis l'écran Groupes.
 
+## Droits des fichiers du serveur (#440)
+
+Chaque déploiement (étape « Droits des fichiers du serveur », avant la bascule) referme `shared/` (700), `backups/` (700), tout `shared/storage/` (dossiers 700, fichiers 600) et les fichiers de `shared/` (600) ; seul `shared/well-known` (défis du certificat) reste en 755. Il CONTRÔLE ensuite : un fichier de `shared/` encore accessible au groupe ou aux autres arrête le déploiement. Une copie `config.local.php.bak*` laissée par une manipulation manuelle est signalée (elle contient les secrets) : la supprimer une fois la vérification faite. Côté application : les journaux (dossier 700, fichier 600) et les documents (600) sont créés fermés par le code.
+
 ## Tâche planifiée : relances de la messagerie (#180, #178)
 
 `bin/send-reminders.php` envoie, **en deux temps** (relances de groupe puis relances de mention, deux lignes de bilan, puis une ligne sur l'oubli des anciennes versions de messages corrigés, #225), à l'adresse de contact d'un groupe **une relance** quand un message de l'autre côté est resté **24 h sans lecture** par ce groupe (jamais le contenu du message), seulement entre 9 h et 20 h (heure locale `app.timezone`) ; hors plage il ne fait rien et les relances dues partent le matin. Un message de plus de 7 jours n'est plus relancé. La **relance de mention** (#178) part à l'adresse du compte d'une personne taguée qui n'a pas lu la conversation 24 h après l'e-mail de mention (une seule par e-mail de mention, jamais le contenu) ; la même plage de jour s'applique. Le script s'arrête en erreur (code 1) si l'un des deux envois échoue. Idempotent : peut être relancé sans doublon.
