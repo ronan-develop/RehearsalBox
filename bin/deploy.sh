@@ -29,6 +29,8 @@ rb_ssh() { ssh -F "$SSH_CONFIG" -o BatchMode=yes "$SSH_HOST" "$@"; }
 # Étapes numérotées avec barre de progression (#277) : 12 étapes au total, celles qu'on saute comptent quand même.
 source "$(dirname "$0")/lib/progress.sh"
 source "$(dirname "$0")/lib/ci-status.sh"
+# Journal des déploiements (#396) : une ligne par déploiement dans shared/deployments.jsonl, sans jamais bloquer le déploiement.
+source "$(dirname "$0")/lib/deploy-log.sh"
 progress_init 12
 
 secret() {
@@ -42,6 +44,7 @@ if ! git diff --quiet HEAD -- bin config database public src templates composer.
     echo "Des modifications non commitées touchent les fichiers déployés : seul HEAD est envoyé." >&2
 fi
 commit=$(git rev-parse --short HEAD)
+checks_mode=skipped
 
 if [ "${RB_SKIP_CHECKS:-0}" != "1" ]; then
     # CI verte sur ce commit (#300) : phpunit et npm test ont déjà tourné, on ne les rejoue pas ; au moindre doute, contrôles complets.
@@ -49,6 +52,7 @@ if [ "${RB_SKIP_CHECKS:-0}" != "1" ]; then
     if [ "${RB_FORCE_LOCAL_CHECKS:-0}" != "1" ] && ci_green_for_commit "$(git rev-parse HEAD)"; then
         ci_label="Contrôles : CI verte sur ${commit}, tests non rejoués (composer audit)"
     fi
+    checks_mode=$([ -n "$ci_label" ] && echo ci || echo local)
     progress_step "${ci_label:-Contrôles locaux (phpunit, npm test, composer audit)}"
     if [ -z "$ci_label" ]; then
         ./vendor/bin/phpunit
@@ -60,6 +64,12 @@ else
 fi
 
 release="$(date +%Y%m%d%H%M%S)-${commit}"
+
+# Journal (#396) : posé une fois la release connue, il note l'issue même si le déploiement s'arrête en route (avant la bascule,
+# `switched` reste à 0 : la production n'a pas changé). L'écriture ne change jamais le code de sortie du déploiement.
+deploy_started=$(date +%s)
+switched=0
+trap 'deploy_log_finish $?' EXIT
 
 # --- 2. Envoi du code (fichiers suivis par git uniquement) ----------------
 progress_step "Envoi de la release ${release}"
@@ -162,6 +172,7 @@ fi
 ls -1d releases/*/ | sort | head -n -"$keep" | xargs -r rm -rf --
 echo "Release active : $(basename "$(readlink current)")"
 REMOTE
+switched=1
 
 # --- 7. Purge d'OPcache puis contrôle de la release servie ----------------
 # L'hébergeur valide OPcache sur le chemin du lien symbolique (qui ne change pas) :
