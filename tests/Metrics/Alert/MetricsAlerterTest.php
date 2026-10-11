@@ -83,10 +83,11 @@ final class MetricsAlerterTest extends TestCase
         self::assertCount(1, $this->mailer->sent, 'un résumé, jamais une rafale');
         $mail = $this->mailer->sent[0];
         self::assertSame('owner@rehearsalbox.test', $mail->getTo()[0]->getAddress());
-        self::assertStringContainsString('Alertes de mesures (2)', (string) $mail->getSubject());
+        self::assertStringContainsString('Alertes (2) : sauvegarde de la base trop ancienne, espace disque faible', (string) $mail->getSubject());
         self::assertStringContainsString('sauvegarde', (string) $mail->getTextBody());
         self::assertStringContainsString('disque', (string) $mail->getTextBody());
-        self::assertStringContainsString('https://rehearsalbox.example/admin/metrics', (string) $mail->getTextBody());
+        self::assertStringContainsString('https://rehearsalbox.example/login?next=%2Fadmin%2Fmetrics', (string) $mail->getTextBody());
+        self::assertStringContainsString('connecter avec le compte propriétaire', (string) $mail->getTextBody());
         self::assertStringContainsString('aucune donnée personnelle', (string) $mail->getTextBody());
     }
 
@@ -111,7 +112,7 @@ final class MetricsAlerterTest extends TestCase
         $this->reader->snapshot = new HealthSnapshot(new \DateTimeImmutable('2026-10-08 01:00:00 UTC'), 5000 * 1024 * 1024, 1, 60, null, null, '8.4', null);
 
         self::assertSame(1, $this->alerter()->run(), 'le disque est revenu à la normale, seule la sauvegarde reste');
-        self::assertStringContainsString('Alerte de mesures', (string) $this->mailer->sent[1]->getSubject());
+        self::assertStringContainsString('Alerte :', (string) $this->mailer->sent[1]->getSubject());
         self::assertStringNotContainsString('(', (string) $this->mailer->sent[1]->getSubject());
     }
 
@@ -148,8 +149,8 @@ final class MetricsAlerterTest extends TestCase
         self::assertSame(4, $this->alerter()->run());
 
         $text = (string) $this->mailer->sent[0]->getTextBody();
-        self::assertSame(1, substr_count($text, 'https://rehearsalbox.example/admin/ops'));
-        self::assertSame(1, substr_count($text, 'https://rehearsalbox.example/admin/metrics'));
+        self::assertSame(1, substr_count($text, 'https://rehearsalbox.example/login?next=%2Fadmin%2Fops'));
+        self::assertSame(1, substr_count($text, 'https://rehearsalbox.example/login?next=%2Fadmin%2Fmetrics'));
         self::assertStringContainsString('clés', $text);
     }
 
@@ -162,7 +163,35 @@ final class MetricsAlerterTest extends TestCase
         self::assertSame(1, $this->alerter()->run());
 
         $text = (string) $this->mailer->sent[0]->getTextBody();
-        self::assertStringContainsString('/admin/ops', $text);
-        self::assertStringNotContainsString('/admin/metrics', $text);
+        self::assertStringContainsString('/login?next=%2Fadmin%2Fops', $text);
+        self::assertStringNotContainsString('metrics', $text);
+    }
+
+    #[Test]
+    public function testTheSubjectNamesTheAlertAndEveryLinkGoesThroughTheLogin(): void
+    {
+        $this->reader->snapshot = new HealthSnapshot(new \DateTimeImmutable('2026-10-07 12:00:00 UTC'), 5000 * 1024 * 1024, 1, 5, null, null, '8.4', null);
+        $this->extra = [new \App\Metrics\Alert\Alert(AlertType::KeyFile, 'Le fichier de clés est à corriger.', '/admin/ops')];
+
+        $this->alerter()->run();
+
+        $mail = $this->mailer->sent[0];
+        self::assertStringContainsString('Alerte : fichier de clés de chiffrement', (string) $mail->getSubject());
+        self::assertStringContainsString('href="https://rehearsalbox.example/login?next=%2Fadmin%2Fops"', (string) $mail->getHtmlBody());
+        self::assertStringContainsString('Voir l\'exploitation : https://rehearsalbox.example/login?next=%2Fadmin%2Fops', (string) $mail->getTextBody());
+        self::assertStringNotContainsString('href="https://rehearsalbox.example/admin/', (string) $mail->getHtmlBody(), 'jamais un lien direct qui donnerait 404 sans session');
+    }
+
+    #[Test]
+    public function testManyAlertsKeepTheSubjectShort(): void
+    {
+        $this->extra = [
+            new \App\Metrics\Alert\Alert(AlertType::KeyFile, 'a', '/admin/ops'),
+            new \App\Metrics\Alert\Alert(AlertType::BackupTask, 'b', '/admin/ops'),
+        ];
+
+        $this->alerter()->run();
+
+        self::assertSame('RehearsalBox — Alertes (4) : sauvegarde de la base trop ancienne, espace disque faible…', (string) $this->mailer->sent[0]->getSubject());
     }
 }

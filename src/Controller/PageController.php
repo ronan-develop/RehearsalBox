@@ -11,6 +11,7 @@ use App\Account\Entity\UserRole;
 use App\Planning\Entity\RecurringSlot;
 use App\Planning\Entity\SlotException;
 use App\Http\Request;
+use App\Http\RedirectResponse;
 use App\Http\Response;
 use App\Group\Repository\GroupDocumentRepositoryInterface;
 use App\Group\Repository\GroupRepositoryInterface;
@@ -42,12 +43,20 @@ final class PageController
     ) {
     }
 
-    /** `next` : retour après connexion (lien d'un e-mail), accepté seulement s'il désigne une page de la messagerie. */
+    /**
+     * `next` : retour après connexion (lien d'un e-mail), accepté seulement s'il désigne une page de la liste blanche (SafeRedirect).
+     * Déjà connecté, on va directement à cette page au lieu de redemander le mot de passe.
+     */
     public function login(Request $request): Response
     {
+        $next = SafeRedirect::afterLogin($request->query('next'));
+        if ($next !== null && $this->authGuard->currentUserOrNull() !== null) {
+            return new RedirectResponse($next);
+        }
+
         return new Response($this->renderer->render('auth/login', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
-            'next' => SafeRedirect::afterLogin($request->query('next')),
+            'next' => $next,
         ]));
     }
 
