@@ -84,6 +84,12 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - **Annuaire (#429)** : tout membre connecté peut chercher les comptes actifs par nom (mentions, messages directs) et voit leurs groupes. Voulu : communauté de groupes qui se parlent. Borné par la limite ci-dessus ; aucune adresse e-mail n'est jamais renvoyée.
 - **Mesures (#442)** : `MetricsRecorder` n'écrit qu'au plus 30 événements par adresse hachée et par heure, 20 000 par jour (au-delà, la requête reste comptée dans l'agrégat horaire) : une inondation de 404 anonymes ne remplit pas la base.
 - **Réservations libres (#443)** : `BookingDateLockInterface` offre deux verrous nommés, **groupe** puis **date** (ordre fixe, pas d'impasse) ; la limite de réservations à venir est relue une fois le verrou du groupe tenu.
+## Sessions, CSRF et en-têtes de réponse (#425, #426, #427)
+
+- **Durée de session** (`Security\SessionPolicy`) : 7 jours d'inactivité, 30 jours au plus depuis la connexion ; vérifiées dans `AuthService::currentUser` (horloge injectée). Une session ouverte avant l'introduction des limites est datée du premier contrôle (pas de déconnexion générale). `session.gc_maxlifetime` est aligné sur l'inactivité (`NativeSession::cookieOptions`).
+- **Jeton CSRF** : renouvelé à chaque connexion (`AuthService::attempt`). Pas au changement de mot de passe : la page déjà ouverte garde son jeton.
+- **Origine** (`Http\CrossSiteGuard`, appelé par le Kernel) : en plus du jeton, une mutation d'API dont `Sec-Fetch-Site` vaut `cross-site`, ou dont `Origin` ne désigne pas l'hôte servi (`Host`), est refusée (403). Sans ces en-têtes (outil en ligne de commande), seule l'exigence du jeton s'applique.
+- **`X-Powered-By`** retiré à l'envoi de toute réponse (`Response::sendHeaders`).
 
 ## Connexion : verrou, limite par adresse, temps de réponse (#218)
 

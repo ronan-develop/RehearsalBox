@@ -160,7 +160,7 @@ Deux voies pour la restauration COMPLÈTE (A) : la **page d'administration** ou 
 - **La clé est-elle là ?** `php bin/message-keys.php check` doit répondre « Clés vérifiées » sur la base actuelle. Sur un **serveur neuf**, restaure d'abord la clé depuis KeePass : `php bin/message-keys.php import < sauvegarde-cles.json`.
 - **Ce dump est-il d'avant ou d'après le chiffrement des messages (mise en service du 10/10/2026, ticket #171) ?** Les dumps `db-*` à venir sont tous chiffrés ; les `pre-20261010120354…`, `pre-20261010124228…` et `pre-20261010134000…` sont **d'avant** (messages en clair). Cela change l'étape 3.
 
-**Réglages à poser UNE fois** dans `shared/config.local.php` (jamais dans le dépôt) : `restore.backup_dir` (le dossier `backups/`), `restore.scratch_schema` (`sc2ron2cuba_restore`, laissée vide en permanence), `restore.php_binary` si ce n'est pas `/usr/local/bin/php`. Sans `scratch_schema`, l'essai à blanc est sauté (et la commande le dit). `metrics.viewer_email` désigne le propriétaire, seul à voir la page.
+**Réglages à poser UNE fois** dans `shared/config.local.php` (jamais dans le dépôt) : `restore.backup_dir` (le dossier `backups/`), `restore.scratch_schema` (`<compte>_restore`, laissée vide en permanence), `restore.php_binary` si ce n'est pas `/usr/local/bin/php`. Sans `scratch_schema`, l'essai à blanc est sauté (et la commande le dit). `metrics.viewer_email` désigne le propriétaire, seul à voir la page.
 
 **A. Restauration complète (la base de production revient à l'état du dump)**
 1. **Lancer** :
@@ -175,11 +175,11 @@ Deux voies pour la restauration COMPLÈTE (A) : la **page d'administration** ou 
 4. **Vérifier le site** : se connecter, ouvrir une conversation, envoyer un message ; `php bin/send-reminders.php` ne doit rien envoyer d'absurde (les relances reposent sur des dates : vérifier qu'aucune rafale ne part). OPcache : aucune purge nécessaire (le code n'a pas changé).
 5. **Si ça tourne mal** : si l'import échoue après le vidage, le message nomme le dump de sécurité (`pre-…-avant-restauration`) : le restaurer de la même façon. Si le processus a été interrompu (page : « restauration interrompue »), relancer avec la sauvegarde voulue ou avec le dump de sécurité.
 
-**B. Récupérer des lignes précises, sans toucher à la production** (base temporaire `sc2ron2cuba_restore`, même utilisateur, tous droits)
+**B. Récupérer des lignes précises, sans toucher à la production** (base temporaire `<compte>_restore`, même utilisateur, tous droits)
 1. S'assurer qu'elle est **vide** (elle contient de vraies données dès qu'on y importe : à vider après usage).
-2. `gunzip -c <dump> | mariadb --defaults-extra-file=<options> sc2ron2cuba_restore` (la base temporaire est en latin1 par défaut, sans importance : les tables du dump portent leur propre jeu de caractères utf8mb4).
+2. `gunzip -c <dump> | mariadb --defaults-extra-file=<options> <compte>_restore` (la base temporaire est en latin1 par défaut, sans importance : les tables du dump portent leur propre jeu de caractères utf8mb4).
 3. Vérifier : même nombre de tables que le dump (`CREATE TABLE` compté par `gunzip -c <dump> | grep -c '^CREATE TABLE'`), effectifs plausibles.
-4. Copier les lignes voulues d'une base à l'autre dans UNE connexion (l'utilisateur voit les deux) : `INSERT INTO sc2ron2cuba_rehearsalbox.<table> SELECT * FROM sc2ron2cuba_restore.<table> WHERE <condition>;` — respecter l'ordre des clés étrangères (parent avant enfant : groupe avant ses membres, conversation avant ses messages) et ne jamais écraser une ligne existante (`INSERT IGNORE` ou condition explicite). Les messages se recopient **tels quels (chiffrés)** : la même clé les lit.
+4. Copier les lignes voulues d'une base à l'autre dans UNE connexion (l'utilisateur voit les deux) : `INSERT INTO <compte>_rehearsalbox.<table> SELECT * FROM <compte>_restore.<table> WHERE <condition>;` — respecter l'ordre des clés étrangères (parent avant enfant : groupe avant ses membres, conversation avant ses messages) et ne jamais écraser une ligne existante (`INSERT IGNORE` ou condition explicite). Les messages se recopient **tels quels (chiffrés)** : la même clé les lit.
 5. **Vider la base temporaire** (supprimer ses tables) : elle contient des données personnelles.
 
 **Ce qu'on ne fait jamais** : restaurer par-dessus la production sans le dump de l'étape A1 ; utiliser une clé de chiffrement autre que celle des messages pour un dump (elle n'y est pas) ; supprimer une ancienne clé du fichier tant qu'un dump qui l'utilise est conservé ; lancer `bin/encrypt-messages.php` avant d'avoir sous la main la sauvegarde de la clé.

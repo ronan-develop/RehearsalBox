@@ -10,6 +10,8 @@ use App\Account\Entity\User;
 use App\Group\Repository\MysqlGroupRepository;
 use App\Account\Repository\MysqlUserRepository;
 use App\Security\CsrfTokenManager;
+use App\Security\SessionPolicy;
+use Symfony\Component\Clock\MockClock;
 use App\Security\Exception\AccessDeniedException;
 use App\Tests\Doubles\CountingPasswordHasher;
 use App\Tests\Doubles\FastPasswordHasher;
@@ -340,5 +342,75 @@ final class AuthServiceTest extends RepositoryTestCase
             self::assertSame($verifications, $hasher->verifications, "{$label} : vérifications");
             self::assertSame($simulations, $hasher->simulations, "{$label} : simulations");
         }
+    }
+
+    #[Test]
+    public function testASessionIdleBeyondThePolicyIsTreatedAsLoggedOut(): void
+    {
+        $clock = new MockClock('2026-10-11 10:00:00 UTC');
+        [$service, $userRepository, $session] = $this->makeServiceWithClock($clock);
+        $this->createUser($userRepository, 'idle@rehearsalbox.test', 'password123');
+        $service->attempt('idle@rehearsalbox.test', 'password123');
+        self::assertNotNull($service->currentUser());
+
+        $clock->modify('+' . (SessionPolicy::IDLE_SECONDS + 1) . ' seconds');
+
+        self::assertNull($service->currentUser());
+        self::assertNull($session->get('user_id'), 'la session périmée ne garde plus d\'identité');
+    }
+
+    #[Test]
+    public function testActivityKeepsASessionAliveUntilTheAbsoluteLimit(): void
+    {
+        $clock = new MockClock('2026-10-11 10:00:00 UTC');
+        [$service, $userRepository] = $this->makeServiceWithClock($clock);
+        $this->createUser($userRepository, 'busy@rehearsalbox.test', 'password123');
+        $service->attempt('busy@rehearsalbox.test', 'password123');
+
+        // Une visite par jour : jamais inactive plus que la limite d'inactivité.
+        for ($day = 0; $day < 20; ++$day) {
+            $clock->modify('+1 day');
+            self::assertNotNull($service->currentUser(), "jour {$day}");
+        }
+
+        $clock->modify('+' . SessionPolicy::ABSOLUTE_SECONDS . ' seconds');
+        self::assertNull($service->currentUser(), 'la durée absolue met fin à la session même active');
+    }
+
+    #[Test]
+    public function testASessionOpenedBeforeThePolicyExistedIsKeptAndTimedFromNow(): void
+    {
+        $clock = new MockClock('2026-10-11 10:00:00 UTC');
+        [$service, $userRepository, $session] = $this->makeServiceWithClock($clock);
+        $user = $this->createUser($userRepository, 'old@rehearsalbox.test', 'password123');
+        $session->set('user_id', $user->id());
+        $session->set('session_version', $user->sessionVersion());
+
+        self::assertNotNull($service->currentUser(), 'pas de déconnexion générale au déploiement');
+        $clock->modify('+' . (SessionPolicy::IDLE_SECONDS + 1) . ' seconds');
+        self::assertNull($service->currentUser());
+    }
+
+    #[Test]
+    public function testALoginRotatesTheCsrfToken(): void
+    {
+        [$service, $userRepository, $session] = $this->makeService();
+        $this->createUser($userRepository, 'csrf@rehearsalbox.test', 'password123');
+        $csrf = new CsrfTokenManager($session);
+        $before = $csrf->getToken();
+
+        $service->attempt('csrf@rehearsalbox.test', 'password123');
+
+        self::assertNotSame($before, $csrf->getToken(), 'le jeton d\'avant la connexion ne vaut plus après');
+    }
+
+    private function makeServiceWithClock(MockClock $clock): array
+    {
+        $userRepository = new MysqlUserRepository($this->pdo);
+        $groupRepository = new MysqlGroupRepository($this->pdo);
+        $session = new InMemorySession();
+        $service = new AuthService($userRepository, new FastPasswordHasher(), $session, $groupRepository, $clock);
+
+        return [$service, $userRepository, $session, $groupRepository];
     }
 }
