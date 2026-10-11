@@ -1,0 +1,21 @@
+<?php
+
+// Puits SQL de l'analyse de teinte (#433) : Psalm ne marque pas PDO comme puits. Toute valeur teintée (requête HTTP) qui arrive ici
+// sans être passée en paramètre lié est une injection SQL.
+class PDO
+{
+    /** @psalm-taint-sink sql $query */
+    public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false
+    {
+    }
+
+    /** @psalm-taint-sink sql $statement */
+    public function exec(string $statement): int|false
+    {
+    }
+
+    /** @psalm-taint-sink sql $query */
+    public function prepare(string $query, array $options = []): PDOStatement|false
+    {
+    }
+}
