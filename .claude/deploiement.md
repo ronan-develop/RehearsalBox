@@ -226,6 +226,17 @@ Vérifier après une modification DNS ou un changement d'hébergeur :
 1. `dig +short TXT _dmarc.<domaine>` et `dig +short TXT <domaine>` (un seul enregistrement SPF).
 2. Demander une réinitialisation vers une adresse Gmail de contrôle, puis ⋮ → « Afficher l'original » : DKIM et DMARC doivent être **PASS**. Ne jamais partager le corps du message (lien de connexion valable 1 heure) ; la limite est de 3 demandes par heure et par compte.
 
+### Durcir DMARC : de `p=none` à `quarantine` puis `reject` (#430)
+
+`p=none` n'empêche pas l'usurpation du domaine (un faux « réinitialisez votre mot de passe » arrive en boîte de réception). Passage progressif, à faire par le propriétaire dans la zone DNS :
+
+1. **Observer** : ajouter `rua=mailto:<adresse de rapports>` à l'enregistrement (`v=DMARC1; p=none; rua=mailto:…`) et lire les rapports agrégés pendant 2 à 4 semaines. Les envois légitimes (Exim de l'hébergeur) doivent tous sortir **alignés par DKIM** ; repérer toute autre source qui envoie au nom du domaine.
+2. **Quarantaine progressive** : `p=quarantine; pct=10`, puis `pct=50`, puis `pct=100` à une semaine d'intervalle, en refaisant le test Gmail ci-dessus à chaque palier (DKIM et DMARC PASS, boîte de réception).
+3. **Rejet** : `p=reject` seulement après plusieurs semaines propres à `quarantine; pct=100`. Retour arrière : repasser à `quarantine` (le DNS se propage en quelques minutes à quelques heures).
+4. **SPF** : demander au support de l'hébergeur l'`include:` SPF officiel pour l'envoi sortant et remplacer l'IP fixe ; ne jamais autoriser une plage d'IP entière (voir plus haut). Garder `~all` tant que l'alignement DKIM n'est pas la seule garantie observée.
+
+Attention : un DKIM qui casse (clé retirée du cPanel, domaine d'envoi changé) fait rejeter TOUS les e-mails de l'application dès `p=reject` : ne jamais toucher à la clé sans refaire le test.
+
 ## Cache des assets (#150)
 
 `public/.htaccess` envoie `Cache-Control: no-cache` sur `*.css`, `*.js` et `*.mjs` : le navigateur revalide à chaque chargement (`Last-Modified` change à chaque release : 200 avec le nouveau fichier, sinon 304). Pas de `?v=` : `app.js` importe 13 modules par chemin relatif, que l'on ne peut pas versionner un par un sans build. Vérification après déploiement : `curl -sI https://<domaine>/assets/js/app.js | grep -i cache-control` doit afficher `no-cache`. Un navigateur qui avait déjà mis un fichier en cache **avant** ce réglage le garde jusqu'à l'expiration de sa fraîcheur heuristique (rechargement forcé une fois).
