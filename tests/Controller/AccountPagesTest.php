@@ -257,4 +257,19 @@ final class AccountPagesTest extends RepositoryTestCase
         self::assertStringContainsString('invalide ou incomplet', $response->body());
         self::assertStringNotContainsString('<form', $response->body());
     }
+
+    #[Test]
+    public function testTheAccountPageOffersTheExportAndTheAsyncDeletionOfTheAccount(): void
+    {
+        $controller = $this->controller();
+        $this->logIn(UserRole::Musicien);
+
+        $html = $controller->accountPassword()->body();
+
+        self::assertStringContainsString('href="/api/account/export"', $html);
+        self::assertStringContainsString('<rb-async-form endpoint="/api/account" method="DELETE">', $html, 'suppression en XHR, jamais un formulaire natif');
+        self::assertStringContainsString('name="confirmation"', $html);
+        self::assertStringContainsString('SUPPRIMER', $html);
+        self::assertStringContainsString('data-field-error="currentPassword"', $html);
+    }
 }
