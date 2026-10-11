@@ -211,6 +211,20 @@ final class MailRendererTest extends TestCase
         self::assertStringNotContainsString('<script>1</script>', $html);
     }
 
+    #[Test]
+    public function testAccountDeletedMailConfirmsTheErasureAndOffersARecourseWithoutAnyLink(): void
+    {
+        $mail = $this->renderer->render('account-deleted', []);
+
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('supprimé', $body);
+            self::assertStringContainsString('Ancien membre', $body);
+            self::assertStringContainsString('administrateur', $body);
+            self::assertStringNotContainsString('token=', $body);
+        }
+        self::assertStringNotContainsString('<a href', $mail['html']);
+    }
+
     // --- E-mails de mention (#178) --------------------------------------------------------------------
 
     #[Test]

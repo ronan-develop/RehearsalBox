@@ -75,6 +75,14 @@ export function initAuth() {
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
   });
 
+  document.querySelectorAll('rb-async-form[endpoint="/api/account"]').forEach((form) => {
+    form.addEventListener('async-success', () => {
+      clearAllDrafts(); // plus aucun brouillon de message lisible sur cet appareil
+      window.location.href = '/login';
+    });
+    form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));
+  });
+
   document.querySelectorAll('rb-async-form[endpoint*="/auth/secure-account"]').forEach((form) => {
     form.addEventListener('async-success', () => revealConfirmation(form));
     form.addEventListener('async-error', (event) => showToast(event.detail.message, 'error'));

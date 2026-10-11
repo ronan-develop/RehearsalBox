@@ -54,6 +54,11 @@ use App\Metrics\Collection\MetricsRepositoryInterface;
 use App\Metrics\Collection\MysqlMetricsRepository;
 use Psr\Log\LoggerInterface;
 use App\Account\Controller\Api\AccountApiController;
+use App\Account\Controller\Api\AccountDataApiController;
+use App\Account\Repository\AccountDataRepositoryInterface;
+use App\Account\Repository\MysqlAccountDataRepository;
+use App\Account\Service\Data\AccountDataExporter;
+use App\Account\Service\Data\AccountDeletionService;
 use App\Account\Controller\Api\AuthApiController;
 use App\Planning\Controller\Api\AvailabilityApiController;
 use App\Planning\Controller\AdminBookingPageController;
@@ -479,6 +484,32 @@ return static function (array $config): Container {
         $c->get(AccountSecurityService::class),
         $c->get(ProfileService::class),
         $c->get(EmailChangeService::class),
+    ));
+
+    // Mes données (#431) : export et suppression de MON compte (le compte est celui de la session).
+    $container->set(AccountDataRepositoryInterface::class, fn ($c) => new MysqlAccountDataRepository($c->get(PDO::class), $c->get(MessageCipher::class)));
+    $container->set(AccountDataExporter::class, fn ($c) => new AccountDataExporter(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(AccountDataRepositoryInterface::class),
+        $c->get(ClockInterface::class),
+    ));
+    $container->set(AccountDeletionService::class, fn ($c) => new AccountDeletionService(
+        $c->get(UserRepositoryInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        new GroupManagerService($c->get(GroupRepositoryInterface::class), $c->get(GroupManagerRepositoryInterface::class)),
+        new CurrentPasswordVerifier($c->get(UserRepositoryInterface::class), $c->get(PasswordHasherInterface::class)),
+        $c->get(PasswordResetRepositoryInterface::class),
+        $c->get(EmailChangeRepositoryInterface::class),
+        $c->get(PasswordHasherInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(Mailbox::class),
+        $c->get(ClockInterface::class),
+    ));
+    $container->set(AccountDataApiController::class, fn ($c) => new AccountDataApiController(
+        $c->get(AuthGuard::class),
+        $c->get(AuthServiceInterface::class),
+        $c->get(AccountDataExporter::class),
+        $c->get(AccountDeletionService::class),
     ));
 
     $container->set(EmailChangeRepositoryInterface::class, fn ($c) => new MysqlEmailChangeRepository($c->get(PDO::class)));

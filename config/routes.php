@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Account\Controller\Api\AccountApiController;
+use App\Account\Controller\Api\AccountDataApiController;
 use App\Account\Controller\Api\AuthApiController;
 use App\Planning\Controller\Api\AvailabilityApiController;
 use App\Backup\Controller\RestoreController;
@@ -68,6 +69,8 @@ return [
         ['PATCH', '/api/account/email', [AccountApiController::class, 'requestEmailChange']],
         ['POST', '/api/account/email/confirm', [AccountApiController::class, 'confirmEmailChange']],
         ['POST', '/api/auth/change-password', [AccountApiController::class, 'changePassword']],
+        ['GET',  '/api/account/export', [AccountDataApiController::class, 'export']],
+        ['DELETE', '/api/account', [AccountDataApiController::class, 'delete']],
         ['POST', '/api/auth/secure-account', [AccountApiController::class, 'secureAccount']],
         ['POST', '/api/auth/logout', [AuthApiController::class, 'logout']],
         ['POST', '/api/auth/select-group', [AuthApiController::class, 'selectGroup']],
