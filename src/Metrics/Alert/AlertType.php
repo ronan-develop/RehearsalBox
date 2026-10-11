@@ -12,4 +12,7 @@ enum AlertType: string
     case ServerErrors = 'server_errors';
     case Degradation = 'degradation';
     case Attack = 'attack';
+    case KeyFile = 'key_file';
+    case BackupTask = 'backup_task';
+    case OffsiteOld = 'offsite_old';
 }

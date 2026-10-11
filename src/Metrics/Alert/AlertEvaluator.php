@@ -26,10 +26,15 @@ final class AlertEvaluator
         private readonly DegradationDetector $degradation,
         private readonly AnomalyDetector $anomalies,
         private readonly ClockInterface $clock,
+        private readonly ?\Closure $extra = null,
     ) {
     }
 
-    /** @return list<Alert> */
+    /**
+     * Les alertes des mesures, puis celles que fournit `$extra` (sauvegardes de l'exploitation, #375).
+     *
+     * @return list<Alert>
+     */
     public function evaluate(): array
     {
         $now = $this->clock->now();
@@ -69,7 +74,7 @@ final class AlertEvaluator
             $alerts[] = new Alert(AlertType::Attack, sprintf('%d rafale(s) ou série(s) d\'échecs de connexion repérée(s) sur la dernière heure.', count($attacks)));
         }
 
-        return $alerts;
+        return $this->extra === null ? $alerts : [...$alerts, ...($this->extra)()];
     }
 
     private function red(string $metric, int|float|null $value, bool $higherIsWorse): bool
