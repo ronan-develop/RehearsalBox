@@ -21,6 +21,7 @@ Sommaire de référence. Lire avant toute intervention — suivre les liens pour
 | Layout CSS, mobile-first                | [.claude/layout.md](.claude/layout.md)                   |
 | CI/CD, suivi                            | [.claude/cicd.md](.claude/cicd.md)                       |
 | Déploiement (WIP, hébergeur non choisi) | [.claude/deploiement.md](.claude/deploiement.md)         |
+| Données personnelles, durées, droits    | [.claude/rgpd.md](.claude/rgpd.md)                       |
 
 ---
 

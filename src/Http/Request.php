@@ -65,27 +65,35 @@ final class Request
         return $this->method;
     }
 
+    /** @psalm-taint-source input */
     public function path(): string
     {
         return $this->path;
     }
 
+    /** @psalm-taint-source input */
     public function query(string $key, mixed $default = null): mixed
     {
         return $this->query[$key] ?? $default;
     }
 
+    /** @psalm-taint-source input */
     public function body(string $key, mixed $default = null): mixed
     {
         return $this->body[$key] ?? $default;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @psalm-taint-source input
+     *
+     * @return array<string, mixed>
+     */
     public function allBody(): array
     {
         return $this->body;
     }
 
+    /** @psalm-taint-source input */
     public function header(string $name, ?string $default = null): ?string
     {
         return $this->headers[strtoupper($name)] ?? $this->headers[$name] ?? $default;
@@ -103,7 +111,11 @@ final class Request
         return false;
     }
 
-    /** @return array{name: string, type: string, tmp_name: string, error: int, size: int}|null */
+    /**
+     * @psalm-taint-source input
+     *
+     * @return array{name: string, type: string, tmp_name: string, error: int, size: int}|null
+     */
     public function file(string $key): ?array
     {
         return $this->files[$key] ?? null;

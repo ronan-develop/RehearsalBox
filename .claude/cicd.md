@@ -5,6 +5,7 @@
 |Job|Déclencheur|Détail|
 |-|-|-|
 |PHPUnit + MariaDB|push / PR sur `main`|PHP 8.4, MariaDB 10.11 ; avant les tests : `composer audit`, PHPStan (niveau 6), style PSR-12 (PHP-CS-Fixer), budget de taille des classes (`bin/check-size.php`), plafond de classes par dossier (`bin/check-folders.php`, #287) ; PHPUnit tourne avec **PCOV** et publie un résumé de couverture par dossier et par couche (`bin/coverage-summary.php`, #129) ; **bloquant sous 90 % de couverture totale** (`--min=90`, #365 ; le seuil n'est écrit que dans `.github/workflows/ci.yml`, pas de seuil par dossier au départ : View, Http, Controller et Security racine sont sous 90 %)|
+|Secrets (gitleaks)|push / PR sur `main`|Historique complet (`fetch-depth: 0`), valeurs masquées (`--redact`), échec si une fuite est trouvée (#422). Image épinglée par empreinte (v8.30.1) : changer l'empreinte à la main avec la version, Dependabot ne suit pas les images|
 |Tests JS|push / PR sur `main`|Node.js 22, `npm audit`, `node --test` sur `assets/js/*`|
 
 Défini dans [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
