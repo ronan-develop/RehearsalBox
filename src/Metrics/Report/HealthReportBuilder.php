@@ -90,20 +90,11 @@ final class HealthReportBuilder
             new StatusCard('Erreurs serveur (5xx)', (string) $errors, $this->thresholds->status('errors_5xx', $requests > 0 ? $errors : null, true), 'sur la période'),
             new StatusCard('Temps de réponse moyen', $average === null ? '—' : round($average) . ' ms', $this->thresholds->status('response_ms', $average, true), 'côté serveur'),
             new StatusCard('E-mails en échec', (string) $failed, $this->thresholds->status('mail_failures', $sent + $failed > 0 ? $failed : null, true), $sent . ' envoyé(s) sur la période'),
-            new StatusCard('Cron des relances', $cronMinutes === null ? '—' : 'il y a ' . $this->duration($cronMinutes), $this->thresholds->status('cron_minutes', $cronMinutes, true), 'dernier passage connu'),
-            new StatusCard('Dernière sauvegarde', $backupHours === null ? '—' : 'il y a ' . $this->duration($backupHours * 60), $this->thresholds->status('backup_hours', $backupHours, true), $taken),
+            new StatusCard('Cron des relances', $cronMinutes === null ? '—' : 'il y a ' . HumanDuration::ofMinutes($cronMinutes), $this->thresholds->status('cron_minutes', $cronMinutes, true), 'dernier passage connu'),
+            new StatusCard('Dernière sauvegarde', $backupHours === null ? '—' : 'il y a ' . HumanDuration::ofMinutes($backupHours * 60), $this->thresholds->status('backup_hours', $backupHours, true), $taken),
             new StatusCard('Espace disque libre', $disk === null ? '—' : HumanSize::of($disk), $this->thresholds->status('disk_free_mb', $diskMb, false), $taken),
             new StatusCard('Taille de la base', $database === null ? '—' : HumanSize::of($database), null, $taken),
             new StatusCard('Version servie', $release ?? '—', null, 'PHP ' . $php),
         ];
-    }
-
-    private function duration(int $minutes): string
-    {
-        return match (true) {
-            $minutes < 60 => max(0, $minutes) . ' min',
-            $minutes < 48 * 60 => intdiv($minutes, 60) . ' h',
-            default => intdiv($minutes, 1440) . ' j',
-        };
     }
 }
