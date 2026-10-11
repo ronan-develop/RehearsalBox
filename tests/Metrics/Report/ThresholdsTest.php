@@ -33,6 +33,16 @@ final class ThresholdsTest extends TestCase
     }
 
     #[Test]
+    public function testTheOffsiteBackupAgeTurnsOrangeAtEightDaysAndRedAtThirtyOne(): void
+    {
+        $thresholds = new Thresholds();
+
+        self::assertSame(HealthStatus::Ok, $thresholds->status('offsite_days', 5, true));
+        self::assertSame(HealthStatus::Warning, $thresholds->status('offsite_days', 8, true));
+        self::assertSame(HealthStatus::Critical, $thresholds->status('offsite_days', 31, true));
+    }
+
+    #[Test]
     public function testAMissingValueIsUnknownNeverGreen(): void
     {
         self::assertSame(HealthStatus::Unknown, (new Thresholds())->status('backup_hours', null, true));

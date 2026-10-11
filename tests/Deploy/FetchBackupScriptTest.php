@@ -94,4 +94,15 @@ final class FetchBackupScriptTest extends TestCase
 
         self::assertSame(0, $code, implode("\n", $output));
     }
+
+    #[Test]
+    public function testScriptDeclaresTheCopyForTheDailyDumpWithoutEverFailingBecauseOfIt(): void
+    {
+        $script = $this->script();
+
+        self::assertStringContainsString('bin/ops-declare.php offsite', $script, 'la copie est déclarée au tableau de bord (#375)');
+        self::assertStringContainsString('[ "$PREFIX" = db ] || return 0', $script, 'le dump d\'avant déploiement ne compte pas comme copie quotidienne');
+        self::assertStringContainsString('|| echo "Avertissement', $script, 'un échec de déclaration n\'est qu\'un avertissement');
+        self::assertSame(2, substr_count($script, "\n    declare_offsite\n") + substr_count($script, "\ndeclare_offsite\n"), 'déclarée après une copie neuve et quand elle est déjà présente');
+    }
 }

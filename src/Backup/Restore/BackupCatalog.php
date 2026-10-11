@@ -17,6 +17,12 @@ final class BackupCatalog
     {
     }
 
+    /** Faux si le dossier n'existe pas (ou n'est pas configuré) : on ne confond alors pas « rien configuré » et « aucune sauvegarde ». */
+    public function exists(): bool
+    {
+        return is_dir($this->directory);
+    }
+
     /**
      * Plus récente d'abord (horodatage, puis nom décroissant). Dossier absent => liste vide.
      *

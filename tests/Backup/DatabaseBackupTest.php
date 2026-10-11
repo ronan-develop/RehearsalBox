@@ -87,6 +87,12 @@ final class DatabaseBackupTest extends TestCase
     }
 
     #[Test]
+    public function testTheRetentionDurationsArePublic(): void
+    {
+        self::assertSame(['daily' => 14, 'pre-deploy' => 7], DatabaseBackup::RETENTION);
+    }
+
+    #[Test]
     public function testBeforeDeployDumpsAreNamedAfterTheRelease(): void
     {
         $result = $this->backup()->run(DatabaseBackup::PRE_DEPLOY, '20261011033000-abc1234');

@@ -29,6 +29,14 @@ case "$KEEP" in
     ''|*[!0-9]*|0) echo "RB_BACKUP_LOCAL_KEEP doit être un entier supérieur ou égal à 1 (sinon la copie qu'on vient de récupérer serait supprimée)." >&2; exit 1 ;;
 esac
 
+# Déclare la copie hors serveur au tableau de bord (#375), pour le dump quotidien seulement. Un échec n'est qu'un avertissement.
+declare_offsite() {
+    [ "$PREFIX" = db ] || return 0
+    local remote_php="${RB_REMOTE_PHP:-/usr/local/bin/php}"
+    ssh -F "$SSH_CONFIG" -o BatchMode=yes -o ConnectTimeout=10 "$SSH_HOST" "cd \"\$HOME/$BASE/current\" && $remote_php bin/ops-declare.php offsite --base=\"\$HOME/$BASE\"" >/dev/null 2>&1 \
+        || echo "Avertissement : copie non déclarée au tableau de bord (la copie, elle, est bien faite)." >&2
+}
+
 # Dépôt = dossier parent de bin/ ; le dossier local ne doit jamais s'y trouver
 REPO="$(cd "$(dirname "$0")/.." && pwd -P)"
 
@@ -75,6 +83,7 @@ DEST="$LOCAL_DIR/$REMOTE_NAME"
 # Jamais d'écrasement : un dump déjà présent localement n'est pas retéléchargé
 if [ -e "$DEST" ]; then
     echo "Déjà présent localement : $DEST (rien à télécharger)."
+    declare_offsite
     exit 0
 fi
 
@@ -103,6 +112,8 @@ while IFS= read -r f; do
         rm -f -- "$f"
     fi
 done < <(ls -1 "$LOCAL_DIR/$PREFIX"-*.sql.gz 2>/dev/null | sort -r || true)
+
+declare_offsite
 
 echo "Sauvegarde récupérée : $REMOTE_NAME ($(du -h "$DEST" | cut -f1))"
 echo "Dossier local : $LOCAL_DIR"
