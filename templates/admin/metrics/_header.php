@@ -8,6 +8,7 @@
  */
 $sections = ['health' => ['/admin/metrics', 'Santé et e-mails'], 'load' => ['/admin/metrics/load', 'Charge'], 'security' => ['/admin/metrics/security', 'Sécurité']];
 ?>
+<a href="/admin/ops" class="rb-back-link" aria-label="Retour à l'exploitation"><?php require __DIR__ . '/../../partials/icon-back.php'; ?></a>
 <h1>Mesures</h1>
 <p class="rb-admin-subtitle">Aucune donnée personnelle n'est conservée dans ces mesures (adresses : empreintes tronquées seulement).</p>
 

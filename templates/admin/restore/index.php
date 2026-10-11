@@ -28,6 +28,7 @@
 </head>
 <body>
     <div class="rb-admin-page">
+        <a href="/admin/ops" class="rb-back-link" aria-label="Retour à l'exploitation"><?php require __DIR__ . '/../../partials/icon-back.php'; ?></a>
         <h1>Restauration de la base</h1>
         <div class="rb-card rb-restore-warning" role="note">
             <p><strong>Restaurer remplace toutes les données actuelles</strong> par celles de la sauvegarde choisie.</p>

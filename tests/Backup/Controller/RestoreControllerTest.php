@@ -325,4 +325,12 @@ final class RestoreControllerTest extends RepositoryTestCase
 
         self::assertMatchesRegularExpression('/<meta name="csrf-token" content="[^"]{16,}"/', $response->body());
     }
+
+    #[Test]
+    public function testThePageOffersABackButtonToTheOperationsPage(): void
+    {
+        $response = $this->controller($this->user(self::OWNER))->page(new Request('GET', '/admin/restore', [], [], []));
+
+        self::assertStringContainsString('<a href="/admin/ops" class="rb-back-link" aria-label="Retour à l\'exploitation">', $response->body());
+    }
 }

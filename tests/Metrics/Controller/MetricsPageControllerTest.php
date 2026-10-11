@@ -146,4 +146,16 @@ final class MetricsPageControllerTest extends TestCase
             self::assertSame(404, $this->controller($who)->load($request)->statusCode());
         }
     }
+
+    #[Test]
+    public function testEveryMetricsPageOffersABackButtonToTheOperationsPage(): void
+    {
+        $controller = $this->controller($this->user('owner@rehearsalbox.test'));
+
+        foreach (['index' => '/admin/metrics', 'security' => '/admin/metrics/security', 'load' => '/admin/metrics/load'] as $method => $path) {
+            $body = $controller->$method(new Request('GET', $path, [], [], []))->body();
+
+            self::assertStringContainsString('<a href="/admin/ops" class="rb-back-link" aria-label="Retour à l\'exploitation">', $body, $path);
+        }
+    }
 }
