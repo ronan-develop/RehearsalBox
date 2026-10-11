@@ -24,20 +24,7 @@
 
         <section aria-labelledby="metrics-cards-title">
             <h2 id="metrics-cards-title" class="rb-metrics-section">État</h2>
-            <div class="rb-metrics-cards">
-                <?php foreach ($report->cards as $card): ?>
-                    <div class="rb-metrics-card"<?= $card->status === null ? '' : ' data-status="' . e($card->status->value) . '"' ?>>
-                        <p class="rb-metrics-card-label"><?= e($card->label) ?></p>
-                        <p class="rb-metrics-card-value"><?= e($card->value) ?></p>
-                        <?php if ($card->status !== null): ?>
-                            <p class="rb-metrics-card-status"><span aria-hidden="true"><?= e($card->status->icon()) ?></span> <?= e($card->status->label()) ?></p>
-                        <?php endif; ?>
-                        <?php if ($card->hint !== ''): ?>
-                            <p class="rb-metrics-card-hint"><?= e($card->hint) ?></p>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+            <?php $cards = $report->cards; require __DIR__ . '/_cards.php'; ?>
         </section>
 
         <section aria-labelledby="metrics-charts-title">

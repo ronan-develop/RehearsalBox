@@ -46,6 +46,10 @@ $defaults = [
         // Alertes par e-mail au propriétaire du tableau de bord (viewer_email) : un résumé, pas avant min_gap_hours entre deux alertes d'un même type.
         'alerts' => ['enabled' => true, 'min_gap_hours' => 12],
     ],
+    'ops' => [
+        // Exploitation (#375), config.local.php en production : dossier de l'installation (ex. /home/<compte>/rehearsalbox) où vivent shared/ et releases/. null = pages sans données.
+        'base_dir' => null,
+    ],
     'restore' => [
         // Restauration de la base depuis une sauvegarde (#241), config.local.php en production : dossier des sauvegardes (backups/ hors racine web),
         // base temporaire pour l'essai à blanc (vide en permanence ; null = pas d'essai), programme PHP CLI qui lance bin/restore-db.php.
