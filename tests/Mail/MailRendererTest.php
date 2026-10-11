@@ -34,6 +34,7 @@ final class MailRendererTest extends TestCase
             ['mention-reminder', ['mentionerName' => 'Alice', 'link' => self::LINK]],
             ['booking-pending', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'link' => self::LINK]],
             ['booking-decided', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'accepted' => true, 'note' => null, 'link' => self::LINK]],
+            ['announcement', ['link' => self::LINK, 'forgotLink' => self::LINK]],
         ] as [$template, $data]) {
             $html = $this->renderer->render($template, $data)['html'];
 
@@ -54,8 +55,8 @@ final class MailRendererTest extends TestCase
     #[Test]
     public function testEveryMailHasABothHtmlAndPlainTextVersion(): void
     {
-        foreach (['password-reset', 'account-alert'] as $template) {
-            $mail = $this->renderer->render($template, ['link' => self::LINK]);
+        foreach (['password-reset', 'account-alert', 'announcement'] as $template) {
+            $mail = $this->renderer->render($template, ['link' => self::LINK, 'forgotLink' => self::LINK]);
 
             self::assertNotSame('', trim($mail['html']), $template);
             self::assertNotSame('', trim($mail['text']), $template);
@@ -88,6 +89,35 @@ final class MailRendererTest extends TestCase
 
         self::assertStringNotContainsString('<script>alert(1)</script>', $html);
         self::assertStringContainsString('&lt;script&gt;', $html);
+    }
+
+    // --- Annonce de mise à disposition (#444) -----------------------------------------------
+
+    #[Test]
+    public function testAnnouncementExplainsTheAimTheTwoWaysToLogInAndTheFourMainFeaturesInBothVersions(): void
+    {
+        $mail = $this->renderer->render('announcement', ['link' => 'https://b27.example/login', 'forgotLink' => 'https://b27.example/forgot-password']);
+
+        foreach ([$mail['html'], $mail['text']] as $body) {
+            self::assertStringContainsString('local est libre', $body, 'le but premier');
+            self::assertStringContainsString('Mot de passe oublié', $body, 'activation du compte');
+            self::assertStringContainsString('déjà', $body, 'compte déjà configuré : rien à refaire');
+            self::assertStringContainsString('créneau libre', $body, 'réservation');
+            self::assertStringContainsString('échange', $body, 'demande par contact du groupe');
+            self::assertStringContainsString('messagerie', $body);
+            self::assertStringContainsString('https://b27.example/forgot-password', $body);
+            self::assertStringContainsString('https://b27.example/login', $body);
+            self::assertStringContainsString('Activer mon compte', $body);
+            self::assertStringContainsString('Me connecter', $body);
+        }
+    }
+
+    #[Test]
+    public function testAnnouncementEscapesTheLinks(): void
+    {
+        $html = $this->renderer->render('announcement', ['link' => 'https://x.test/"><script>alert(1)</script>', 'forgotLink' => 'https://x.test/"><script>alert(2)</script>'])['html'];
+
+        self::assertStringNotContainsString('<script>alert', $html);
     }
 
     // --- Alerte « Ce n'est pas moi » --------------------------------------------------------
