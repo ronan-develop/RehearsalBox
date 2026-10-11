@@ -13,7 +13,6 @@ import { initAdminUsers } from './account/admin-users.js';
 import { initAdminBookings } from './planning/booking/admin-bookings.js';
 import { initBookingsBadge } from './planning/booking/bookings-badge.js';
 import { initBookings } from './planning/booking/bookings.js';
-import { initTornPaper } from './ui/tornpaper-init.js';
 import { initPlanningSearch } from './planning/dashboard/planning-search.js';
 import { initScrollHint } from './ui/scroll-hint.js';
 import { initExceptionDeck } from './planning/dashboard/exception-deck.js';
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminBookings();
   initBookingsBadge();
   initBookings();
-  initTornPaper();
   initPlanningSearch();
   initScrollHint();
   initExceptionDeck();
