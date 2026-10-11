@@ -9,6 +9,11 @@ services:
       MARIADB_DATABASE: rehearsalbox_test
     ports:
       - "3307:3306"
+    # Données en MÉMOIRE (#389) : la base de test est jetable (chaque exécution de PHPUnit supprime les tables et recrée le schéma),
+    # et les opérations de disque (TRUNCATE entre deux tests) coûtaient ~3 fois plus sur le disque virtuel de WSL. Vide après un
+    # redémarrage du conteneur : normal. La base de DEV (docker-compose.dev.yml) garde ses données sur disque.
+    tmpfs:
+      - /var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-proot"]
       interval: 5s
