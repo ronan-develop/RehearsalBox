@@ -233,23 +233,51 @@ body {
   color: #1c1a17;
   cursor: pointer;
   text-align: left;
-  /* Bord "déchiré" : filtre SVG TornPaper (feTurbulence + displacement),
-     instancié par carte avec un seed aléatoire — voir
-     assets/js/tornpaper.js et tornpaper-init.js. Ce clip-path est le repli
-     si JS est désactivé ou si le filtre ne charge pas ; une fois le filtre
-     appliqué en JS (style inline sur la carte), il s'efface via la règle
-     ci-dessous pour ne pas cumuler les deux découpes. */
-  clip-path: polygon(
-    0.0% 0.0%, 12.5% -5.3%, 25.0% -3.1%, 37.5% -2.8%, 50.0% -4.1%, 62.5% 4.3%, 75.0% -4.5%, 87.5% -4.4%,
-    100.0% 0.0%, 102.6% 12.5%, 107.9% 25.0%, 104.0% 37.5%, 95.5% 50.0%, 95.4% 62.5%, 90.7% 75.0%, 103.7% 87.5%,
-    100.0% 100.0%, 87.5% 96.9%, 75.0% 103.9%, 62.5% 96.2%, 50.0% 107.3%, 37.5% 97.5%, 25.0% 97.1%, 12.5% 97.3%,
-    0.0% 100.0%, 5.5% 87.5%, -8.7% 75.0%, 2.5% 62.5%, -7.7% 50.0%, -8.8% 37.5%, 4.8% 25.0%, -7.8% 12.5%
-  );
   transition: transform var(--rb-motion-standard);
 }
 
-.rb-planning-card[style*="filter"] {
-  clip-path: none;
+/* Les filtres SVG « papier déchiré » sont déclarés par le serveur (partials/tornpaper-filters.php, #268) : un SVG de taille nulle, hors du
+   flux, qui ne s'affiche pas. */
+.rb-tornpaper-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Ordinateur : bord papier déchiré, appliqué par CSS dès le premier affichage (une variante sur six, par position). Sur mobile (< 768 px)
+   la carte est une ligne à plat : aucun filtre (voir `clip-path: none` plus bas). */
+@media (min-width: 768px) {
+  .rb-planning-card {
+    /* Relief du papier : image tuilable pré-calculée (tools/paper-grain.mjs), multipliée avec la couleur de la carte. */
+    background-image: url("/assets/img/paper-grain.png");
+    background-size: 256px 256px;
+    background-blend-mode: multiply;
+  }
+
+  .rb-planning-card:nth-child(6n + 1) {
+    filter: url(#tornpaper-1);
+  }
+
+  .rb-planning-card:nth-child(6n + 2) {
+    filter: url(#tornpaper-2);
+  }
+
+  .rb-planning-card:nth-child(6n + 3) {
+    filter: url(#tornpaper-3);
+  }
+
+  .rb-planning-card:nth-child(6n + 4) {
+    filter: url(#tornpaper-4);
+  }
+
+  .rb-planning-card:nth-child(6n + 5) {
+    filter: url(#tornpaper-5);
+  }
+
+  .rb-planning-card:nth-child(6n + 6) {
+    filter: url(#tornpaper-6);
+  }
 }
 
 /* Carte non cliquable (#81) : pas d'effet hover, curseur normal. */
