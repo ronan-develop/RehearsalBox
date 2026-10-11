@@ -16,6 +16,9 @@ interface MetricsRepositoryInterface
      *
      * @param list<int> $durationBuckets effectifs des six tranches de durée (DurationHistogram)
      */
+    /** Événements écrits depuis `$since` : ceux d'une adresse (hachée), ou tous si `$ipHash` est null (plafonds de l'enregistreur, #442). */
+    public function countEventsSince(?string $ipHash, \DateTimeImmutable $since): int;
+
     public function addHourly(\DateTimeImmutable $hourStart, string $route, string $statusClass, int $requests, int $durationTotalMs, int $durationMaxMs, int $memoryPeakKb, array $durationBuckets = [0, 0, 0, 0, 0, 0]): void;
 
     public function saveSnapshot(HealthSnapshot $snapshot): void;
