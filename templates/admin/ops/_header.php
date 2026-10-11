@@ -6,6 +6,7 @@
  */
 $sections = ['backups' => ['/admin/ops', 'Sauvegardes']];
 ?>
+<a href="/" class="rb-back-link" aria-label="Retour aux disponibilités"><?php require __DIR__ . '/../../partials/icon-back.php'; ?></a>
 <h1>Exploitation</h1>
 <p class="rb-admin-subtitle">État de la production, en lecture seule. Aucun chemin du serveur, aucune clé ni donnée personnelle n'y est affiché.</p>
 

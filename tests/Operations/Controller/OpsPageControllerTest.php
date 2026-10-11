@@ -123,6 +123,14 @@ final class OpsPageControllerTest extends TestCase
     }
 
     #[Test]
+    public function testThePageOffersABackButtonToTheAvailabilities(): void
+    {
+        $body = $this->get($this->controller($this->user('owner@rehearsalbox.test')))->body();
+
+        self::assertStringContainsString('<a href="/" class="rb-back-link" aria-label="Retour aux disponibilités">', $body);
+    }
+
+    #[Test]
     public function testNoServerPathNorForgedFileNameLeaksIntoThePage(): void
     {
         $body = $this->get($this->controller($this->user('owner@rehearsalbox.test')))->body();
