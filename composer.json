@@ -12,7 +12,8 @@
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^13.4"
+        "phpunit/phpunit": "^13.4",
+        "vimeo/psalm": "^6.20"
     },
     "autoload": {
         "psr-4": {
@@ -26,7 +27,8 @@
         }
     },
     "scripts": {
-        "test:quick": "phpunit --exclude-group db"
+        "test:quick": "phpunit --exclude-group db",
+        "taint": "psalm --taint-analysis --no-cache --threads=2 --no-progress"
     },
     "config": {
         "sort-packages": true

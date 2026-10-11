@@ -77,6 +77,9 @@ Politique unique dans `App\Security\SecurityHeaders`, appliquée par le Kernel �
 - Les assets servis directement par Apache (CSS, JS) reçoivent `nosniff` via `public/.htaccess`.
 - JS : tout HTML construit côté client échappe ses données avec `escapeHtml` de `assets/js/html.js` (module unique).
 
+## Analyse de teinte (#433)
+
+`composer taint` (Psalm, `psalm.xml`, en CI) suit les valeurs de la requête jusqu'aux puits SQL, HTML, commande et fichier. **Sources** : `Request::query/body/allBody/header/path/file` (annotation `@psalm-taint-source input`) ; **puits SQL** : PDO (`tools/psalm/pdo.phpstub`, Psalm ne les marque pas seul) ; HTML : `echo` et `htmlspecialchars` (donc `e()`) comme échappement. Un nouvel accès aux données de la requête doit passer par `Request` (sinon la source n'est pas vue). Faux positif légitime : `@psalm-suppress Tainted…` AVEC la raison, jamais de baseline. `tests/Tools/PsalmTaintTest` pose des flux tachés (fixture) et vérifie que l'outil les détecte : si Psalm ou les annotations se dégradent, il échoue.
 ## Limites par personne et bornes de stockage (#428, #442, #443)
 
 - **`UserActionLimit`** (`Account\Service\Throttle`, sur `SubjectThrottle`) : N actions par personne connectée dans une fenêtre, sinon `RateLimitedException` → **423** + `Retry-After` (voir « 423, jamais 429 »). Une action refusée n'est pas comptée. En place : recherche de membres (120 par minute), envoi de documents (20 par heure). Branchement : paramètre optionnel du contrôleur, câblé dans `services.php` (`limit.*`).

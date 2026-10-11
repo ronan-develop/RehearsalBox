@@ -42,6 +42,11 @@ jobs:
       - name: Audit dependencies
         run: composer audit
 
+      # Suivi des données non fiables (#433) : une valeur de la requête qui atteint SQL, HTML, commande ou fichier sans être
+      # neutralisée fait échouer la CI. Sources : Request (annotations `@psalm-taint-source`), puits SQL : tools/psalm/pdo.phpstub.
+      - name: Taint analysis (Psalm)
+        run: ./vendor/bin/psalm --taint-analysis --no-cache --threads=2 --no-progress
+
       - name: Static analysis (PHPStan)
         run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
