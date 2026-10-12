@@ -140,16 +140,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
     public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId);
-        if ($exception === null) {
-            throw $this->accessDenied();
-        }
-
-        // IDOR : seul le groupe DEMANDEUR (A), déduit de l'exception en base
-        // et jamais d'un paramètre client, peut modifier sa propre demande.
-        if (!$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
-            throw $this->accessDenied();
-        }
+        $exception = $this->ownRequest($exceptionId, $userId);
 
         $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
         \assert($slot !== null);
@@ -168,18 +159,25 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
     public function cancelRequest(int $exceptionId, int $userId): void
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId);
-        if ($exception === null) {
-            throw $this->accessDenied();
-        }
-
-        if (!$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
-            throw $this->accessDenied();
-        }
+        $this->ownRequest($exceptionId, $userId);
 
         if (!$this->slotExceptionRepository->delete($exceptionId)) {
             throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
         }
+    }
+
+    /**
+     * IDOR : seul le groupe DEMANDEUR, déduit de l'exception en base et jamais d'un paramètre client, agit sur sa propre demande
+     * (la modifier, l'annuler). Demande inconnue ou d'un autre groupe : même refus.
+     */
+    private function ownRequest(int $exceptionId, int $userId): SlotException
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null || !$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
+            throw $this->accessDenied();
+        }
+
+        return $exception;
     }
 
     /**
