@@ -6,12 +6,12 @@ namespace App\Planning\Service;
 
 use App\Planning\Entity\RecurringSlot;
 use App\Planning\Entity\SlotException;
-use App\Planning\Entity\TimeRange;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Planning\Repository\RecurringSlotRepositoryInterface;
 use App\Planning\Repository\SlotExceptionRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
-use App\Planning\Service\AvailabilityServiceInterface;
+use App\Planning\Notification\NoSlotExchangeNotifier;
+use App\Planning\Notification\SlotExchangeNotifierInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
 use App\Planning\Exception\DuplicateOccurrenceException;
@@ -30,6 +30,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly RecurringSlotRepositoryInterface $recurringSlotRepository,
         private readonly ClockInterface $clock = new NativeClock(),
+        private readonly SlotExchangeNotifierInterface $notifier = new NoSlotExchangeNotifier(),
     ) {
     }
 
@@ -97,6 +98,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         $responded = $this->slotExceptionRepository->findById($exceptionId);
         \assert($responded !== null);
+        $this->notifier->decided($responded);
 
         return $responded;
     }
@@ -122,7 +124,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         $this->assertValidRequest($slot, $occurrenceDate, $reason, $startTime, $endTime);
 
-        return $this->slotExceptionRepository->createRequest(
+        $request = $this->slotExceptionRepository->createRequest(
             $recurringSlotId,
             $occurrenceDate,
             $requestedByGroupId,
@@ -131,20 +133,14 @@ final class AvailabilityService implements AvailabilityServiceInterface
             $startTime === null ? null : QuarterHour::normalise($startTime),
             $endTime === null ? null : QuarterHour::normalise($endTime),
         );
+        $this->notifier->requested($request);
+
+        return $request;
     }
 
     public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId);
-        if ($exception === null) {
-            throw $this->accessDenied();
-        }
-
-        // IDOR : seul le groupe DEMANDEUR (A), déduit de l'exception en base
-        // et jamais d'un paramètre client, peut modifier sa propre demande.
-        if (!$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
-            throw $this->accessDenied();
-        }
+        $exception = $this->ownRequest($exceptionId, $userId);
 
         $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
         \assert($slot !== null);
@@ -163,18 +159,25 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
     public function cancelRequest(int $exceptionId, int $userId): void
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId);
-        if ($exception === null) {
-            throw $this->accessDenied();
-        }
-
-        if (!$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
-            throw $this->accessDenied();
-        }
+        $this->ownRequest($exceptionId, $userId);
 
         if (!$this->slotExceptionRepository->delete($exceptionId)) {
             throw new RequestAlreadyRespondedException('Cette demande a déjà été traitée.');
         }
+    }
+
+    /**
+     * IDOR : seul le groupe DEMANDEUR, déduit de l'exception en base et jamais d'un paramètre client, agit sur sa propre demande
+     * (la modifier, l'annuler). Demande inconnue ou d'un autre groupe : même refus.
+     */
+    private function ownRequest(int $exceptionId, int $userId): SlotException
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null || !$this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
+            throw $this->accessDenied();
+        }
+
+        return $exception;
     }
 
     /**
@@ -184,7 +187,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
      */
     private function assertValidRequest(RecurringSlot $slot, \DateTimeImmutable $occurrenceDate, ?string $reason, ?string $startTime = null, ?string $endTime = null): void
     {
-        $errors = $this->rangeErrors($slot, $startTime, $endTime);
+        $errors = SlotRequestRange::errors($slot, $startTime, $endTime);
         if ((int) $occurrenceDate->format('N') - 1 !== $slot->weekday()->value) {
             $errors['occurrenceDate'] = 'La date ne correspond pas au jour de ce créneau.';
         } elseif ($occurrenceDate < $this->clock->now()->setTime(0, 0)) {
@@ -197,42 +200,6 @@ final class AvailabilityService implements AvailabilityServiceInterface
         if ($errors !== []) {
             throw new AvailabilityValidationException($errors);
         }
-    }
-
-    /**
-     * Plage partielle (#263) : les deux bornes ensemble, sur le quart d'heure, début avant fin, comprise dans le créneau du titulaire
-     * (le reste du créneau reste au titulaire). Sans borne, la demande vise tout le créneau.
-     *
-     * @return array<string, string> erreurs par champ
-     */
-    private function rangeErrors(RecurringSlot $slot, ?string $startTime, ?string $endTime): array
-    {
-        if ($startTime === null && $endTime === null) {
-            return [];
-        }
-        if ($startTime === null || $endTime === null) {
-            return ['startTime' => 'Indiquez l’heure de début et l’heure de fin, ou aucune des deux.'];
-        }
-
-        $errors = [];
-        foreach (['startTime' => $startTime, 'endTime' => $endTime] as $field => $time) {
-            if (!QuarterHour::isAligned($time)) {
-                $errors[$field] = 'L’heure doit tomber sur un quart d’heure (par exemple 18:30).';
-            }
-        }
-        if ($errors !== []) {
-            return $errors;
-        }
-
-        [$start, $end] = [QuarterHour::normalise($startTime), QuarterHour::normalise($endTime)];
-        if ($end <= $start) {
-            return ['endTime' => 'La fin doit être après le début.'];
-        }
-        if (!(new TimeRange($start, $end))->isWithin(new TimeRange($slot->startTime(), $slot->endTime()))) {
-            return ['startTime' => 'La plage doit rester dans le créneau du groupe titulaire.'];
-        }
-
-        return [];
     }
 
     /**

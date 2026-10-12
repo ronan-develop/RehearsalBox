@@ -35,6 +35,8 @@ final class MailRendererTest extends TestCase
             ['booking-pending', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'link' => self::LINK]],
             ['booking-decided', ['groupName' => 'Alpha', 'when' => 'mercredi 7 octobre 2026', 'range' => '09:00 – 14:00', 'accepted' => true, 'note' => null, 'link' => self::LINK]],
             ['announcement', ['link' => self::LINK, 'forgotLink' => self::LINK]],
+            ['exchange-requested', ['requesterGroup' => 'Office', 'holderGroup' => 'Depece', 'when' => 'mercredi 7 octobre 2026', 'range' => '19:00 – 20:30', 'link' => self::LINK]],
+            ['exchange-decided', ['requesterGroup' => 'Office', 'holderGroup' => 'Depece', 'accepted' => true, 'when' => 'mercredi 7 octobre 2026', 'range' => '19:00 – 20:30', 'link' => self::LINK]],
         ] as [$template, $data]) {
             $html = $this->renderer->render($template, $data)['html'];
 
@@ -118,6 +120,19 @@ final class MailRendererTest extends TestCase
         $html = $this->renderer->render('announcement', ['link' => 'https://x.test/"><script>alert(1)</script>', 'forgotLink' => 'https://x.test/"><script>alert(2)</script>'])['html'];
 
         self::assertStringNotContainsString('<script>alert', $html);
+    }
+
+    // --- Échange de créneau (#455) --------------------------------------------------------------------------------------
+
+    #[Test]
+    public function testExchangeMailsEscapeGroupNamesAndLinks(): void
+    {
+        $evil = '<script>alert(1)</script>';
+        foreach (['exchange-requested', 'exchange-decided'] as $template) {
+            $html = $this->renderer->render($template, ['requesterGroup' => $evil, 'holderGroup' => $evil, 'accepted' => false, 'when' => 'jour', 'range' => 'plage', 'link' => 'https://x.test/"><script>alert(2)</script>'])['html'];
+
+            self::assertStringNotContainsString('<script>alert', $html, $template);
+        }
     }
 
     // --- Alerte « Ce n'est pas moi » --------------------------------------------------------

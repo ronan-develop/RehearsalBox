@@ -235,7 +235,7 @@ final class FreeSlotBookingServiceTest extends RepositoryTestCase
     /** @return array{FreeSlotBookingService, object} le service et un notifieur espion (liste des appels) */
     private function withSpy(): array
     {
-        $spy = new class () implements \App\Planning\Service\BookingNotifierInterface {
+        $spy = new class () implements \App\Planning\Notification\BookingNotifierInterface {
             /** @var list<string> */
             public array $calls = [];
 

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Planning\Service;
+namespace App\Planning\Notification;
 
 use App\Planning\Entity\FreeSlotBooking;
-use App\Planning\Service\BookingNotifierInterface;
+use App\Planning\Notification\BookingNotifierInterface;
 
 /** Objet nul : scripts et tests qui n'envoient aucune notification. */
 final class NoBookingNotifier implements BookingNotifierInterface
