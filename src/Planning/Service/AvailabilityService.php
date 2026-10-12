@@ -6,7 +6,6 @@ namespace App\Planning\Service;
 
 use App\Planning\Entity\RecurringSlot;
 use App\Planning\Entity\SlotException;
-use App\Planning\Entity\TimeRange;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Planning\Repository\RecurringSlotRepositoryInterface;
 use App\Planning\Repository\SlotExceptionRepositoryInterface;
@@ -64,7 +63,10 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
     public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate): SlotException
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId) ?? throw $this->accessDenied();
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw $this->accessDenied();
+        }
 
         $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
         \assert($slot !== null);
@@ -185,7 +187,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
      */
     private function assertValidRequest(RecurringSlot $slot, \DateTimeImmutable $occurrenceDate, ?string $reason, ?string $startTime = null, ?string $endTime = null): void
     {
-        $errors = $this->rangeErrors($slot, $startTime, $endTime);
+        $errors = SlotRequestRange::errors($slot, $startTime, $endTime);
         if ((int) $occurrenceDate->format('N') - 1 !== $slot->weekday()->value) {
             $errors['occurrenceDate'] = 'La date ne correspond pas au jour de ce créneau.';
         } elseif ($occurrenceDate < $this->clock->now()->setTime(0, 0)) {
@@ -198,42 +200,6 @@ final class AvailabilityService implements AvailabilityServiceInterface
         if ($errors !== []) {
             throw new AvailabilityValidationException($errors);
         }
-    }
-
-    /**
-     * Plage partielle (#263) : les deux bornes ensemble, sur le quart d'heure, début avant fin, comprise dans le créneau du titulaire
-     * (le reste du créneau reste au titulaire). Sans borne, la demande vise tout le créneau.
-     *
-     * @return array<string, string> erreurs par champ
-     */
-    private function rangeErrors(RecurringSlot $slot, ?string $startTime, ?string $endTime): array
-    {
-        if ($startTime === null && $endTime === null) {
-            return [];
-        }
-        if ($startTime === null || $endTime === null) {
-            return ['startTime' => 'Indiquez l’heure de début et l’heure de fin, ou aucune des deux.'];
-        }
-
-        $errors = [];
-        foreach (['startTime' => $startTime, 'endTime' => $endTime] as $field => $time) {
-            if (!QuarterHour::isAligned($time)) {
-                $errors[$field] = 'L’heure doit tomber sur un quart d’heure (par exemple 18:30).';
-            }
-        }
-        if ($errors !== []) {
-            return $errors;
-        }
-
-        [$start, $end] = [QuarterHour::normalise($startTime), QuarterHour::normalise($endTime)];
-        if ($end <= $start) {
-            return ['endTime' => 'La fin doit être après le début.'];
-        }
-        if (!(new TimeRange($start, $end))->isWithin(new TimeRange($slot->startTime(), $slot->endTime()))) {
-            return ['startTime' => 'La plage doit rester dans le créneau du groupe titulaire.'];
-        }
-
-        return [];
     }
 
     /**
