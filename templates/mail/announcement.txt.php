@@ -21,5 +21,5 @@ SE CONNECTER
 À QUOI ÇA SERT
 1. Voir le planning. Les créneaux du local apparaissent dans l'appli : vous voyez d'un coup d'œil ce qui est pris et ce qui est libre.
 2. Réserver un créneau libre. Un créneau disponible se réserve directement depuis l'appli, et votre réservation y apparaît aussitôt.
-3. Demander un échange de créneau. Un créneau vous intéresse mais il est pris ? Contactez le groupe concerné depuis l'appli : la demande d'échange lui apparaît dans l'appli.
+3. Demander un échange de créneau. Un créneau vous intéresse mais il est pris ? Passez par « Réserver le local » : l'appli envoie une demande d'échange au groupe concerné, qui la voit dans l'appli et peut l'accepter ou la refuser.
 4. Écrire aux autres membres. La messagerie permet d'échanger entre membres directement dans l'appli.

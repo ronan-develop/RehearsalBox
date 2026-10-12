@@ -105,7 +105,9 @@ final class MailRendererTest extends TestCase
             self::assertStringContainsString('Mot de passe oublié', $body, 'activation du compte');
             self::assertStringContainsString('déjà', $body, 'compte déjà configuré : rien à refaire');
             self::assertStringContainsString('créneau libre', $body, 'réservation');
-            self::assertStringContainsString('échange', $body, 'demande par contact du groupe');
+            self::assertStringContainsString('demande d\'échange', $body);
+            self::assertStringContainsString('Réserver le local', $body, 'la demande passe par la réservation, pas par un message');
+            self::assertStringNotContainsString('Contactez le groupe', $body);
             self::assertStringContainsString('messagerie', $body);
             self::assertStringContainsString('https://b27.example/forgot-password', $body);
             self::assertStringContainsString('https://b27.example/login', $body);

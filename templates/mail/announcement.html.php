@@ -28,6 +28,6 @@
 <h2 style="margin:0 0 8px 0;font-size:17px;color:#1c1a17;">À quoi ça sert</h2>
 <p style="margin:0 0 8px 0;"><strong>1. Voir le planning.</strong> Les créneaux du local apparaissent dans l'appli : vous voyez d'un coup d'œil ce qui est pris et ce qui est libre.</p>
 <p style="margin:0 0 8px 0;"><strong>2. Réserver un créneau libre.</strong> Un créneau disponible se réserve directement depuis l'appli, et votre réservation y apparaît aussitôt.</p>
-<p style="margin:0 0 8px 0;"><strong>3. Demander un échange de créneau.</strong> Un créneau vous intéresse mais il est pris ? Contactez le groupe concerné depuis l'appli : la demande d'échange lui apparaît dans l'appli.</p>
+<p style="margin:0 0 8px 0;"><strong>3. Demander un échange de créneau.</strong> Un créneau vous intéresse mais il est pris ? Passez par « Réserver le local » : l'appli envoie une demande d'échange au groupe concerné, qui la voit dans l'appli et peut l'accepter ou la refuser.</p>
 <p style="margin:0;"><strong>4. Écrire aux autres membres.</strong> La messagerie permet d'échanger entre membres directement dans l'appli.</p>
 
