@@ -40,7 +40,7 @@
             $slot = $requestableSlot->slot();
             $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
             ?>
-            <rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="<?= e((string) $requestableSlot->groupId()) ?>" group-name="<?= e($requestableSlot->groupName()) ?>" group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" weekday="<?= e((string) $slot->weekday()->value) ?>"<?= $isToday ? ' data-today' : '' ?><?= $groupRole !== null ? ' member' : '' ?>>
+            <rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="<?= e((string) $requestableSlot->groupId()) ?>" group-name="<?= e($requestableSlot->groupName()) ?>" group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" weekday="<?= e((string) $slot->weekday()->value) ?>" start-time="<?= e(formatTime($slot->startTime())) ?>" end-time="<?= e(formatTime($slot->endTime())) ?>"<?= $isToday ? ' data-today' : '' ?><?= $currentUserGroupRoles !== [] ? ' can-book' : '' ?><?= $groupRole !== null ? ' member' : '' ?>>
                 <?php if ($isToday): ?><span class="rb-badge rb-planning-card-today">Aujourd’hui</span><?php endif; ?>
                 <h4 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h4>
                 <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
