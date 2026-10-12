@@ -7,6 +7,7 @@
  * @var list<array{id: int, name: string, bookings: list<array<string, mixed>>}> $groups
  * @var string $minDate
  * @var string $maxDate
+ * @var array{date: string, start: string, end: string}|null $prefill créneau d'un lien depuis le planning (#457), déjà validé
  * @var \App\Account\Entity\UserRole $currentUserRole
  */
 ?>
@@ -29,7 +30,7 @@
         <?php if ($groups === []): ?>
             <p class="rb-bookings-empty">Vous devez appartenir à un groupe pour réserver le local.</p>
         <?php else: ?>
-            <rb-booking-form class="rb-booking-form rb-card">
+            <rb-booking-form class="rb-booking-form rb-card"<?= $prefill !== null ? ' prefilled' : '' ?>>
                 <?php if (count($groups) === 1): ?>
                     <input type="hidden" name="groupId" value="<?= e((string) $groups[0]['id']) ?>">
                     <p class="rb-booking-form-group">Groupe : <strong><?= e($groups[0]['name']) ?></strong></p>
@@ -45,16 +46,16 @@
                 <?php endif; ?>
                 <div class="rb-field">
                     <label for="booking-date">Jour</label>
-                    <input type="date" id="booking-date" name="date" class="rb-input" min="<?= e($minDate) ?>" max="<?= e($maxDate) ?>" required>
+                    <input type="date" id="booking-date" name="date" class="rb-input" min="<?= e($minDate) ?>" max="<?= e($maxDate) ?>" value="<?= e($prefill['date'] ?? '') ?>" required>
                 </div>
                 <div class="rb-booking-form-times">
                     <div class="rb-field">
                         <label for="booking-start">De</label>
-                        <?php $id = 'booking-start'; $name = 'start'; $label = 'Début'; $min = '00:00'; $max = '23:45'; require __DIR__ . '/_time-select.php'; ?>
+                        <?php $id = 'booking-start'; $name = 'start'; $label = 'Début'; $min = '00:00'; $max = '23:45'; $value = $prefill['start'] ?? ''; require __DIR__ . '/_time-select.php'; ?>
                     </div>
                     <div class="rb-field">
                         <label for="booking-end">À</label>
-                        <?php $id = 'booking-end'; $name = 'end'; $label = 'Fin'; $min = '00:15'; $max = substr(\App\Planning\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5); require __DIR__ . '/_time-select.php'; ?>
+                        <?php $id = 'booking-end'; $name = 'end'; $label = 'Fin'; $min = '00:15'; $max = substr(\App\Planning\Service\FreeSlotBookingPolicy::MAX_END_TIME, 0, 5); $value = $prefill['end'] ?? ''; require __DIR__ . '/_time-select.php'; ?>
                     </div>
                 </div>
                 <div class="rb-field">

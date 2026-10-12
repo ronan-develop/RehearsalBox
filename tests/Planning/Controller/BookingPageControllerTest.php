@@ -76,7 +76,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
     {
         $this->expectException(UnauthenticatedException::class);
 
-        $this->controller->index();
+        $this->controller->index($this->request());
     }
 
     #[Test]
@@ -84,7 +84,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
     {
         $this->login('alice');
 
-        $html = $this->controller->index()->body();
+        $html = $this->controller->index($this->request())->body();
 
         self::assertStringContainsString('name="csrf-token"', $html);
         self::assertStringContainsString('<rb-booking-form', $html);
@@ -114,7 +114,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
         $this->groups->addMember($beta->id(), $this->aliceId);
         $this->login('alice');
 
-        $html = $this->controller->index()->body();
+        $html = $this->controller->index($this->request())->body();
 
         self::assertStringContainsString('<select', $html);
         self::assertStringContainsString('<option value="' . $beta->id() . '">Beta</option>', $html);
@@ -130,7 +130,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
         $this->bookings->decide($refused->id(), FreeSlotBookingStatus::Refusee, $adminId, 'Local fermé', new \DateTimeImmutable('2026-10-04 12:00:00'));
         $this->login('alice');
 
-        $html = $this->controller->index()->body();
+        $html = $this->controller->index($this->request())->body();
 
         self::assertSame(2, substr_count($html, '<rb-booking-item'));
         self::assertStringContainsString('mercredi 7 octobre 2026', $html);
@@ -149,7 +149,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
     {
         $this->login('seul');
 
-        $html = $this->controller->index()->body();
+        $html = $this->controller->index($this->request())->body();
 
         self::assertStringContainsString('appartenir à un groupe', $html);
         self::assertStringNotContainsString('<rb-booking-form', $html);
@@ -160,7 +160,7 @@ final class BookingPageControllerTest extends RepositoryTestCase
     {
         $this->login('alice');
 
-        $html = $this->controller->index()->body();
+        $html = $this->controller->index($this->request())->body();
 
         preg_match_all('/<rb-time-picker[^>]*>.*?<\/rb-time-picker>/s', $html, $pickers);
         self::assertCount(2, $pickers[0]);
@@ -184,5 +184,39 @@ final class BookingPageControllerTest extends RepositoryTestCase
         preg_match_all('/<option value="(\d\d)"/', $select, $found);
 
         return $found[1];
+    }
+
+    /** @param array<string, string> $query */
+    private function request(array $query = []): \App\Http\Request
+    {
+        return new \App\Http\Request('GET', '/bookings', $query, [], []);
+    }
+
+    #[Test]
+    public function testALinkFromThePlanningOpensTheFormFilledWithTheSlot(): void
+    {
+        $this->login('alice');
+        $date = (new \DateTimeImmutable('today'))->modify('+2 days')->format('Y-m-d');
+
+        $html = $this->controller->index($this->request(['date' => $date, 'start' => '18:30', 'end' => '22:45']))->body();
+
+        self::assertStringContainsString('value="' . $date . '"', $html);
+        self::assertStringContainsString('name="start" value="18:30"', $html);
+        self::assertStringContainsString('name="end" value="22:45"', $html);
+        self::assertStringContainsString('<option value="18" selected>', $html);
+        self::assertStringContainsString('<option value="45" selected>', $html);
+        self::assertStringContainsString('prefilled', $html, 'le formulaire demande aussitôt son plan');
+    }
+
+    #[Test]
+    public function testAnUntrustworthyLinkOpensAnEmptyFormAndNeverEchoesTheInput(): void
+    {
+        $this->login('alice');
+
+        $html = $this->controller->index($this->request(['date' => '2026-10-14"><script>alert(1)</script>', 'start' => '18:30', 'end' => '22:45']))->body();
+
+        self::assertStringNotContainsString('<script>alert', $html);
+        self::assertStringNotContainsString('prefilled', $html);
+        self::assertStringContainsString('name="start" value=""', $html);
     }
 }

@@ -9,6 +9,8 @@ use App\Planning\Presenter\MemberBookingsView;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
+use App\Http\Request;
+use App\Planning\Presenter\BookingPrefill;
 use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;
 use App\View\TemplateRendererInterface;
@@ -26,7 +28,7 @@ final class BookingPageController
     ) {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = $this->authGuard->requireLogin();
 
@@ -44,6 +46,7 @@ final class BookingPageController
             'minDate' => $today->format('Y-m-d'),
             'maxDate' => $today->modify('+' . FreeSlotBookingPolicy::MAX_DAYS_AHEAD . ' days')->format('Y-m-d'),
             'currentUserRole' => $user->role(),
+            'prefill' => BookingPrefill::from(['date' => $request->query('date'), 'start' => $request->query('start'), 'end' => $request->query('end')], $today),
         ]));
     }
 }
