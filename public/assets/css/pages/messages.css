@@ -391,6 +391,18 @@ rb-composer {
   text-align: center;
 }
 
+.rb-chat-hint {
+  margin: 0;
+  padding: var(--rb-space-2) var(--rb-space-3);
+  color: var(--rb-text-3);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.rb-chat-hint a {
+  color: var(--rb-accent);
+}
+
 .rb-chat-label {
   margin: 0;
   color: var(--rb-text-3);
