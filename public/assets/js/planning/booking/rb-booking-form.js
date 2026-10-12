@@ -30,6 +30,9 @@ export class RbBookingForm extends HTMLElement {
     this.addEventListener('input', this.#onInput);
     this.addEventListener('change', this.#onInput);
     this.addEventListener('click', this.#onClick);
+    if (this.hasAttribute('prefilled')) {
+      this.#onInput(); // lien depuis le planning (#457) : le formulaire arrive rempli, le plan s'affiche sans rien toucher
+    }
   }
 
   disconnectedCallback() {
