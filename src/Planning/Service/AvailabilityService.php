@@ -30,6 +30,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly RecurringSlotRepositoryInterface $recurringSlotRepository,
         private readonly ClockInterface $clock = new NativeClock(),
+        private readonly SlotExchangeNotifierInterface $notifier = new NoSlotExchangeNotifier(),
     ) {
     }
 
@@ -97,6 +98,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         $responded = $this->slotExceptionRepository->findById($exceptionId);
         \assert($responded !== null);
+        $this->notifier->decided($responded);
 
         return $responded;
     }
@@ -122,7 +124,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
         $this->assertValidRequest($slot, $occurrenceDate, $reason, $startTime, $endTime);
 
-        return $this->slotExceptionRepository->createRequest(
+        $request = $this->slotExceptionRepository->createRequest(
             $recurringSlotId,
             $occurrenceDate,
             $requestedByGroupId,
@@ -131,6 +133,9 @@ final class AvailabilityService implements AvailabilityServiceInterface
             $startTime === null ? null : QuarterHour::normalise($startTime),
             $endTime === null ? null : QuarterHour::normalise($endTime),
         );
+        $this->notifier->requested($request);
+
+        return $request;
     }
 
     public function updateRequest(int $exceptionId, \DateTimeImmutable $occurrenceDate, ?string $reason, int $userId): SlotException

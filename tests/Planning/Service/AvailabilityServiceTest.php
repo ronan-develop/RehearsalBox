@@ -25,14 +25,16 @@ use PHPUnit\Framework\Attributes\Test;
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class AvailabilityServiceTest extends RepositoryTestCase
 {
-    private function makeService(): array
+    private function makeService(?\App\Planning\Service\SlotExchangeNotifierInterface $notifier = null): array
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $slotRepository = new MysqlRecurringSlotRepository($this->pdo);
         $exceptionRepository = new MysqlSlotExceptionRepository($this->pdo);
         $userRepository = new MysqlUserRepository($this->pdo);
 
-        $service = new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository);
+        $service = $notifier === null
+            ? new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository)
+            : new AvailabilityService($exceptionRepository, $groupRepository, $slotRepository, notifier: $notifier);
 
         return [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository];
     }
@@ -568,5 +570,81 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
         $this->expectException(DuplicateOccurrenceException::class);
         $service->updateRequest($exception->id(), $this->tuesday(2), null, $requestingUserId);
+    }
+
+    // --- Notifications (#455) ------------------------------------------------------------------------------------------
+
+    private function exchangeSpy(): object
+    {
+        return new class () implements \App\Planning\Service\SlotExchangeNotifierInterface {
+            /** @var list<string> */
+            public array $calls = [];
+
+            public function requested(\App\Planning\Entity\SlotException $exception): void
+            {
+                $this->calls[] = 'requested:' . $exception->id();
+            }
+
+            public function decided(\App\Planning\Entity\SlotException $exception): void
+            {
+                $this->calls[] = 'decided:' . $exception->id() . ':' . $exception->status()->value;
+            }
+        };
+    }
+
+    #[Test]
+    public function testTheHolderGroupIsNotifiedOnceTheRequestExists(): void
+    {
+        $spy = $this->exchangeSpy();
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService($spy);
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+
+        $request = $service->createRequest($holderSlotId, $requestingGroupId, $this->tuesday(0), null, $requestingUserId);
+
+        self::assertSame(['requested:' . $request->id()], $spy->calls);
+    }
+
+    #[Test]
+    public function testNobodyIsNotifiedWhenTheRequestIsRefusedOrInvalid(): void
+    {
+        $spy = $this->exchangeSpy();
+        [$service, $groupRepository, $slotRepository, , $userRepository] = $this->makeService($spy);
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId] = $this->createRequester($groupRepository, $userRepository);
+
+        try {
+            $service->createRequest($holderSlotId, $requestingGroupId, $this->tuesday(0), null, $holderUserId); // pas membre du groupe demandeur
+            self::fail('accès interdit attendu');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame([], $spy->calls);
+    }
+
+    #[Test]
+    public function testTheRequesterIsNotifiedOfTheOutcomeButNotWhenTheResponseFails(): void
+    {
+        $spy = $this->exchangeSpy();
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService($spy);
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        try {
+            $service->respond($exception->id(), true, $requestingUserId, $exception->occurrenceDate()); // son propre groupe
+            self::fail('accès interdit attendu');
+        } catch (AccessDeniedException) {
+        }
+        self::assertSame([], $spy->calls);
+
+        $service->respond($exception->id(), false, $holderUserId, $exception->occurrenceDate());
+        self::assertSame(['decided:' . $exception->id() . ':refusee'], $spy->calls);
+
+        try {
+            $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate()); // déjà répondu
+        } catch (RequestAlreadyRespondedException) {
+        }
+        self::assertCount(1, $spy->calls, 'une réponse refusée ne prévient personne');
     }
 }

@@ -167,6 +167,8 @@ use App\Messaging\Service\ConversationMuteService;
 use App\Planning\Service\BookingNotifier;
 use App\Planning\Service\BookingPlanner;
 use App\Planning\Service\BookingNotifierInterface;
+use App\Planning\Service\SlotExchangeNotifier;
+use App\Planning\Service\SlotExchangeNotifierInterface;
 use App\Planning\Service\FreeSlotBookingPolicy;
 use App\Planning\Service\FreeSlotBookingService;
 use App\Messaging\Service\Mention\ConversationMentionService;
@@ -344,6 +346,17 @@ return static function (array $config): Container {
         $c->get(SlotExceptionRepositoryInterface::class),
         $c->get(GroupRepositoryInterface::class),
         $c->get(RecurringSlotRepositoryInterface::class),
+        $c->get(ClockInterface::class),
+        $c->get(SlotExchangeNotifierInterface::class),
+    ));
+
+    $container->set(SlotExchangeNotifierInterface::class, fn ($c) => new SlotExchangeNotifier(
+        $c->get(Mailbox::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(RecurringSlotRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(AfterResponseInterface::class),
+        $c->get(LoggerInterface::class),
     ));
 
     $container->set(FreeSlotBookingRepositoryInterface::class, fn ($c) => new MysqlFreeSlotBookingRepository($c->get(PDO::class)));
