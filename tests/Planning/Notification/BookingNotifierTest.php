@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Planning\Service;
+namespace App\Tests\Planning\Notification;
 
 use App\Planning\Entity\FreeSlotBookingStatus;
 use App\Account\Entity\UserRole;
@@ -10,7 +10,7 @@ use App\Planning\Entity\Requester;
 use App\Planning\Entity\TimeRange;
 use App\Account\Entity\User;
 use App\Planning\Repository\MysqlFreeSlotBookingRepository;
-use App\Planning\Service\BookingNotifier;
+use App\Planning\Notification\BookingNotifier;
 use App\Tests\Database\RepositoryTestCase;
 use App\Tests\Scenarios\MessagingScenario;
 use App\Tests\Doubles\RecordingAfterResponse;

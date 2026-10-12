@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Planning\Service;
+namespace App\Planning\Notification;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -13,7 +13,7 @@ use App\Http\AfterResponseInterface;
 use App\Mail\Mailbox;
 use App\Group\Repository\GroupRepositoryInterface;
 use App\Account\Repository\UserRepositoryInterface;
-use App\Planning\Service\BookingNotifierInterface;
+use App\Planning\Notification\BookingNotifierInterface;
 use App\Support\FrenchDate;
 use App\Support\HeaderText;
 use Symfony\Component\Mime\Email;

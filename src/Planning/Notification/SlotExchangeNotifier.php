@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Planning\Service;
+namespace App\Planning\Notification;
 
 use App\Account\Repository\UserRepositoryInterface;
 use App\Group\Repository\GroupRepositoryInterface;

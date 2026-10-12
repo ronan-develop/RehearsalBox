@@ -25,7 +25,7 @@ use PHPUnit\Framework\Attributes\Test;
 #[\PHPUnit\Framework\Attributes\Group('db')]
 final class AvailabilityServiceTest extends RepositoryTestCase
 {
-    private function makeService(?\App\Planning\Service\SlotExchangeNotifierInterface $notifier = null): array
+    private function makeService(?\App\Planning\Notification\SlotExchangeNotifierInterface $notifier = null): array
     {
         $groupRepository = new MysqlGroupRepository($this->pdo);
         $slotRepository = new MysqlRecurringSlotRepository($this->pdo);
@@ -576,7 +576,7 @@ final class AvailabilityServiceTest extends RepositoryTestCase
 
     private function exchangeSpy(): object
     {
-        return new class () implements \App\Planning\Service\SlotExchangeNotifierInterface {
+        return new class () implements \App\Planning\Notification\SlotExchangeNotifierInterface {
             /** @var list<string> */
             public array $calls = [];
 

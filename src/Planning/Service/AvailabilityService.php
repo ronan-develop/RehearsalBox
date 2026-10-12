@@ -11,7 +11,8 @@ use App\Group\Repository\GroupRepositoryInterface;
 use App\Planning\Repository\RecurringSlotRepositoryInterface;
 use App\Planning\Repository\SlotExceptionRepositoryInterface;
 use App\Security\Exception\AccessDeniedException;
-use App\Planning\Service\AvailabilityServiceInterface;
+use App\Planning\Notification\NoSlotExchangeNotifier;
+use App\Planning\Notification\SlotExchangeNotifierInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
 use App\Planning\Exception\DuplicateOccurrenceException;
@@ -63,10 +64,7 @@ final class AvailabilityService implements AvailabilityServiceInterface
 
     public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate): SlotException
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId);
-        if ($exception === null) {
-            throw $this->accessDenied();
-        }
+        $exception = $this->slotExceptionRepository->findById($exceptionId) ?? throw $this->accessDenied();
 
         $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
         \assert($slot !== null);

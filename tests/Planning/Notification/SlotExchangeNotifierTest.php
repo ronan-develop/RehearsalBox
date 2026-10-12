@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Planning\Service;
+namespace App\Tests\Planning\Notification;
 
 use App\Planning\Entity\RecurringSlot;
 use App\Planning\Entity\SlotException;
 use App\Planning\Entity\Weekday;
 use App\Planning\Repository\MysqlRecurringSlotRepository;
 use App\Planning\Repository\MysqlSlotExceptionRepository;
-use App\Planning\Service\SlotExchangeNotifier;
+use App\Planning\Notification\SlotExchangeNotifier;
 use App\Tests\Database\RepositoryTestCase;
 use App\Tests\Doubles\RecordingAfterResponse;
 use App\Tests\Doubles\RecordingLogger;
