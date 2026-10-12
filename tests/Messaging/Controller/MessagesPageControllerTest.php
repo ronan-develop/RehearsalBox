@@ -592,6 +592,36 @@ final class MessagesPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testDraftPagesRemindToGoThroughBookTheRoomForASlotExchangeButExistingThreadsDoNot(): void
+    {
+        $alice = $this->user('Alice');
+        $this->group('Alpha', $alice);
+        $target = $this->group('Beta Rockers');
+        $bob = $this->user('Bob');
+        $this->loginAs($alice);
+
+        foreach ([
+            $this->controller->compose($this->request(), (string) $target->id())->body(),
+            $this->controller->directCompose($this->request(), (string) $bob->id())->body(),
+        ] as $body) {
+            self::assertStringContainsString('Pour échanger un créneau', $body);
+            self::assertStringContainsString('<a href="/bookings">Réserver le local</a>', $body);
+        }
+
+        self::assertStringNotContainsString('Pour échanger un créneau', $this->controller->list($this->request())->body());
+    }
+
+    #[Test]
+    public function testTheExchangeReminderIsHiddenWhenThePersonCannotWriteFromAnyGroup(): void
+    {
+        $alice = $this->user('Alice');
+        $target = $this->group('Beta Rockers');
+        $this->loginAs($alice);
+
+        self::assertStringNotContainsString('Pour échanger un créneau', $this->controller->compose($this->request(), (string) $target->id())->body());
+    }
+
+    #[Test]
     public function testDirectComposeRefusesYourselfUnknownInactiveAndMalformedTargets(): void
     {
         $alice = $this->user('Alice');
