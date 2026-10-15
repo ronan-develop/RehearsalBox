@@ -307,12 +307,13 @@ body {
 }
 
 
-/* Mention « Cédé à… » (#461) : lisible sur le papier clair des cartes de bureau (encre foncée, pas d'italique). */
+/* Mention « Cédé à… » (#461) : elle doit se voir. Rouge profond sur le papier clair des cartes de bureau (contraste ~5:1) ; jaune de flamme sur
+   le fond sombre de la liste mobile (voir plus bas). */
 .rb-planning-card-ceded {
   margin: var(--rb-space-1) 0 0;
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: #3d3833;
+  font-weight: 700;
+  color: #b3261e;
 }
 
 .rb-planning-card-time {
@@ -811,7 +812,7 @@ rb-tabs {
   .rb-planning-card-ceded {
     grid-column: 2 / -1;
     margin: 2px 0 0;
-    color: var(--rb-text); /* fond sombre de la liste mobile */
+    color: var(--rb-stone-flame); /* fond sombre de la liste mobile */
   }
 
   .rb-planning-card--exceptional .rb-planning-card-weekday {
