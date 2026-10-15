@@ -11,6 +11,7 @@ Ce qu'RehearsalBox garde d'une personne, pourquoi, combien de temps, et ce que l
 | Appartenance aux groupes et rôle | `group_user` | droits d'accès | supprimée avec le compte |
 | Messages (texte), titres de conversation, anciennes versions corrigées | `conversation_*` | la messagerie entre groupes | texte **chiffré en base** (#171). Conservés tant que la conversation existe (ils appartiennent aussi aux autres participants) ; corbeille : 30 jours avant effacement définitif ; anciennes versions corrigées : 30 jours |
 | Réservations libres, demandes d'échange de créneau | `free_slot_bookings`, `slot_exceptions` | gérer l'occupation du local | tant que le groupe existe ; rattachées à la ligne anonymisée après suppression du compte |
+| Comptes rendus d'assemblée générale : noms du bureau, des présents, excusés et représentés (y compris non-inscrits saisis à la main), porteurs de pouvoir ; **votes anonymes** | `assemblies`, `assembly_*` | registre des délibérations de l'association | tant que l'association existe (archive : le nom est recopié, **non anonymisé** à la suppression d'un compte) ; un brouillon supprimé est effacé, mais subsiste dans les sauvegardes 14 jours ; lecture réservée aux administrateurs |
 | Jetons de réinitialisation / changement d'adresse | `password_resets`, `email_changes` | opérations sécurisées | usage unique, 1 heure ; révoqués à la suppression du compte |
 | Évènements de limitation (empreintes d'adresse IP et d'identifiant) | `throttle_events` | freiner les essais de connexion | 24 heures, empreintes seulement, jamais d'adresse en clair |
 | Mesures d'exploitation (adresse IP **hachée** avec un secret, route, statut) | `metric_events`, `metric_hourly` | santé du site, détection d'abus | événements 30 jours (plafonnés par adresse et par jour, #442) ; agrégats 90 jours ; aucune adresse en clair |
@@ -26,6 +27,7 @@ Ce qu'RehearsalBox garde d'une personne, pourquoi, combien de temps, et ce que l
 
 ## Limites connues et décisions
 
+- Comptes rendus d'AG (#361) : une demande d'effacement ou de rectification d'un nom se traite à la main, par une **version corrigée** (la version validée remplacée reste lisible). Les personnes non inscrites n'ont pas d'espace « Mon compte » : leurs demandes passent par un administrateur. L'export « Mes données » n'inclut pas les comptes rendus (à décider). Le PDF produit par « Imprimer → PDF » sort de l'application : il relève de l'administrateur qui l'imprime. Aucun motif d'absence n'est demandé.
 - Les messages envoyés **restent** dans les conversations des autres sous « Ancien membre » : ils font partie de leurs échanges. Une demande d'effacement des messages eux-mêmes se traite à la main (administrateur) : pas de fonction libre-service.
 - Les mentions et libellés (`message_mentions.label`) gardent le nom tel qu'il était au moment du message.
 - L'annuaire interne (recherche de membres, messages directs) est visible de tout membre connecté par construction ; aucune adresse e-mail n'y figure (#429).
