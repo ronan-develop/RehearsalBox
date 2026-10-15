@@ -9,6 +9,7 @@ src/
 ├── Account/         ← comptes : connexion, mots de passe, e-mail, profil, administration des utilisateurs, limitation de débit
 ├── Group/           ← groupes, documents, gestionnaires, effectif
 ├── Planning/        ← occupation du local : créneaux fixes, demandes d'échange, réservations libres (+ plan, notifications)
+├── Association/     ← textes de l'association (statuts…) : petit CRUD réservé aux administrateurs (#472)
 ├── Assembly/        ← comptes rendus d'assemblée générale : brouillon, validation figée, corrections versionnées, page imprimable (#361)
 ├── Messaging/       ← messagerie : conversations, mentions, sourdine, invités, relances (Repository/, Notification/, Service/Mention/…)
 ├── Dashboard/       ← composition du tableau de bord (DashboardView, éléments du bloc « Demandes de créneau »)
@@ -235,6 +236,16 @@ Un **seul balisage** rendu par le serveur, restylé par le CSS à 768 px (`core/
 - **Titulaires du bureau** : `assembly.board` (`president`, `tresorier`, `secretaire`) dans `config.local.php` = l'**adresse e-mail du compte** qui tient chaque poste (aucun nom ni adresse dans le dépôt public). `AssemblyBoardRoster` : la liste du poste ne propose que ce compte (présélectionné), et `AssemblyContentResolver` **refuse côté serveur** (422 `board.<poste>`) tout autre compte. Un poste non configuré reste libre (tous les comptes actifs, cas des tests et du développement) ; une adresse sans compte actif n'offre personne (échec fermé). Un ancien titulaire déjà enregistré dans le contenu reste accepté (une correction recopie le bureau d'une version validée) : changer de bureau = modifier `config.local.php`, sans redéployer, et les versions validées gardent leurs noms recopiés.
 - **Limites volontaires (YAGNI)** : pas d'e-mail ni de convocation, pas de reprise de l'historique, pas de lien avec un livre de comptes, pas de réordonnancement des points (retirer puis ajouter), pas de motif d'absence (risque de donnée de santé).
 - **À valider avec les statuts de l'association** : le gabarit et les phrases types ne s'appuient sur aucun document officiel.
+
+## Textes de l'association : statuts… (#472)
+
+- **Principe** : un petit CRUD de **textes** (statuts, règlement intérieur…) réservé aux administrateurs : un texte = un **titre unique** (insensible à la casse, `UNIQUE` en base) + un corps, **modifiable sur place**. Le contenu vit **en base** (migration 039, `MEDIUMTEXT`), jamais dans le dépôt public (adresse du siège, noms).
+- **Accès** : rôle `admin`, vérifié deux fois : `AuthGuard::requireRole(Admin)` dans le contrôleur et `AdminAccess::assertAdmin` (garde partagée avec les comptes rendus d'AG) dans chaque méthode du service. Identifiant mal formé : refus comme un accès interdit (`StrictId::orDenied`) ; identifiant inconnu : 404 pour un admin. Trois routes d'API et deux pages dans la **matrice IDOR**.
+- **Pas d'écrasement entre deux administrateurs** : `revision` lue par la page ; `UPDATE … WHERE id = ? AND revision = ?` en **une requête atomique** (pas de transaction à deux temps : rien à annuler). Écriture refusée → `find` : introuvable (404) ou révision changée (409 « rechargez la page », le texte saisi reste dans le formulaire). Pas de suppression silencieuse : confirmation côté page.
+- **Saisie** (`AssociationTextInputPolicy`) : titre 150 caractères (une ligne), texte 100 000 ; rognés, fins de ligne normalisées, caractères de contrôle refusés (`\n` et `\t` permis dans le texte) ; erreurs par champ (`title`, `body`). Le texte n'est **jamais transformé** : échappé (`e()`) à l'affichage, retours à la ligne conservés (`nl2br(e())`), ni HTML ni Markdown interprétés.
+- **Journal** : une ligne `info` par création, modification et suppression (identifiants seulement, jamais le titre ni le texte).
+- **Pas d'historique** (décision du propriétaire : modification sur place) : on garde le dernier modificateur et la date. Si un historique devient nécessaire, une table de versions s'ajoute sans casser le reste ; en attendant, une suppression est effective (le texte reste dans les sauvegardes 14 jours, voir `rgpd.md`).
+- **Pages** : `GET /admin/texts` (liste et création), `GET /admin/texts/{id}` (lecture, « Modifier » ouvre le formulaire). Écritures asynchrones : `POST /api/admin/texts`, `PUT /api/admin/texts/{id}`, `DELETE /api/admin/texts/{id}`. Lien depuis la page « Assemblées » (la rangée d'onglets mobile est pleine). JS : `admin/texts/` (requêtes pures testées, page `admin-texts.js`).
 
 ## Point clé — concurrence sur les créneaux libérés
 
