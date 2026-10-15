@@ -64,7 +64,7 @@ final class DashboardViewTest extends RepositoryTestCase
         $groups->addMember($alpha->id(), $alice->id());
         $groups->addMember($beta->id(), $bob->id());
         $slot = (new SlotService($slots, $groups, $exceptions))->create($alpha->id(), Weekday::Wednesday, '18:00:00', '22:00:00');
-        foreach (['2026-10-14', '2026-10-21', '2026-10-28'] as $date) {
+        foreach (['wednesday next week', 'wednesday +2 weeks', 'wednesday +3 weeks'] as $date) { // jamais une date en dur : une demande passée n'est plus listée
             $exceptions->createRequest($slot->id(), new \DateTimeImmutable($date), $beta->id(), $bob->id(), null);
         }
         $counting = new CountingGroupRepository($groups);
