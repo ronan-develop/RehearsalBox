@@ -10,6 +10,7 @@ import { initAvailability } from './planning/availability.js';
 import { initAdminSlots } from './planning/admin-slots.js';
 import { initAdminGroups } from './group/admin-groups.js';
 import { initAdminUsers } from './account/admin-users.js';
+import { initAdminAssemblies } from './admin/assembly/admin-assemblies.js';
 import { initAdminBookings } from './planning/booking/admin-bookings.js';
 import { initBookingsBadge } from './planning/booking/bookings-badge.js';
 import { initBookings } from './planning/booking/bookings.js';
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminGroups();
   initAdminUsers();
   initAdminBookings();
+  initAdminAssemblies();
   initBookingsBadge();
   initBookings();
   initPlanningSearch();
