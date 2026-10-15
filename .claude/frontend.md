@@ -28,6 +28,10 @@ Arimo pour tout texte lu/fonctionnel (titres h1/h2/h3 et corps). **Toujours self
 
 Exception circonscrite au logo/branding "#B27" : "A Dripping Marker" (`public/assets/fonts/a-dripping-marker.woff2`) sert le watermark décoratif du dashboard (`aria-hidden="true"`) et le logo `.rb-auth-logo` des pages login/register — toujours et uniquement pour le graffiti "#B27" lui-même, jamais pour un autre titre ou texte lu générique.
 
+## Favicon (#470)
+
+`public/favicon.ico` (16, 32 et 48 px) : le logo « #B27 » (celui de `mail-logo-b27.png`) recadré, sur un carré arrondi au fond du site. Aucun `<link rel="icon">` dans les gabarits : le navigateur demande `/favicon.ico` de lui-même, le serveur web le sert tel quel (règle `-f` de `public/.htaccess`, jamais PHP), ce qui supprime aussi les 404 de `/favicon.ico` du tableau de bord des mesures. Régénération : `CHROME=<chromium> node tools/favicon.mjs` (Playwright présent sur le poste, rien n'est ajouté au dépôt). Garde-fou : `tests/Assets/FaviconTest.php` (vrai ICO, trois tailles, PNG complets, léger, pas un aplat). Hors périmètre : icône d'écran d'accueil (apple-touch-icon), manifeste web.
+
 ## Règles
 
 - Toute surface (modale, card, toolbar) utilise `var(--rb-surface)` / `var(--rb-border)` / `var(--rb-shadow-lg)` — jamais de couleur en dur
