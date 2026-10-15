@@ -25,7 +25,15 @@
         <?php $adminTab = 'assemblies'; require __DIR__ . '/../../partials/admin-tabs.php'; ?>
         <h1>Assemblées</h1>
         <p class="rb-admin-subtitle">Comptes rendus des assemblées générales de l'association.</p>
-        <p class="rb-admin-note"><a href="/admin/texts">Statuts et textes de l'association</a></p>
+
+        <ul class="rb-assembly-list">
+            <li>
+                <a href="/admin/texts" class="rb-card rb-assembly-card">
+                    <span class="rb-assembly-card-title">Statuts et textes de l'association</span>
+                    <span class="rb-assembly-card-meta"><span>Consulter et modifier</span></span>
+                </a>
+            </li>
+        </ul>
 
         <ul class="rb-assembly-list" data-assembly-list>
             <?php foreach ($rows as $row): ?>
