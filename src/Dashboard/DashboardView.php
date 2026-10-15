@@ -73,9 +73,11 @@ final class DashboardView
         // Limite connue : avec plusieurs groupes, le premier (ordre alphabétique) est affiché dans l'en-tête ; pas de « groupe principal » en base.
         $primaryGroup = $groups[0] ?? null;
 
+        $occasional = $this->slots->findOccasionalPlanningSlots();
+
         return [
-            'planningDays' => $this->planning->fixedDays(),
-            'exceptionalPlanningSlots' => $this->slots->findOccasionalPlanningSlots(),
+            'planningDays' => $this->planning->days($occasional),
+            'exceptionalPlanningSlots' => $occasional,
             'receivedExceptions' => self::newestFirst($received),
             'sentExceptions' => self::newestFirst([...$sent, ...$bookingItems['sent']]),
             'archivedExceptions' => self::newestFirst([...$archived, ...$bookingItems['archived']]),
