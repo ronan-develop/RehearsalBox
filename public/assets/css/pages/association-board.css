@@ -1,0 +1,38 @@
+/* Bureau de l'association (#478) : un bloc par poste, une colonne, espacés. */
+.rb-board-post {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-board-post h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.rb-board-actions {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+.rb-board-actions > .rb-btn {
+  width: 100%;
+  text-align: center;
+}
+
+[data-field-error][hidden],
+[data-form-error][hidden],
+.rb-board-actions > [hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .rb-board-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .rb-board-actions > .rb-btn {
+    width: auto;
+  }
+}

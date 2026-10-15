@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Association\Controller\Api\AssociationBoardApiController;
 use App\Association\Controller\Api\AssociationTextApiController;
+use App\Association\Controller\AssociationBoardPageController;
 use App\Association\Controller\AssociationTextPageController;
+use App\Association\Presenter\AssociationBoardView;
 use App\Association\Presenter\AssociationTextView;
+use App\Association\Repository\AssociationBoardRepositoryInterface;
 use App\Association\Repository\AssociationTextRepositoryInterface;
+use App\Association\Repository\MysqlAssociationBoardRepository;
 use App\Association\Repository\MysqlAssociationTextRepository;
+use App\Association\Service\AssociationBoardService;
 use App\Association\Service\AssociationTextInputPolicy;
 use App\Association\Service\AssociationTextService;
 use App\Assembly\Controller\Api\AssemblyApiController;
@@ -643,6 +649,28 @@ return static function (array $config): Container {
         new MemberBookingsView(),
     ));
 
+    $container->set(AssociationBoardRepositoryInterface::class, fn ($c) => new MysqlAssociationBoardRepository($c->get(PDO::class)));
+
+    $container->set(AssociationBoardService::class, fn ($c) => new AssociationBoardService(
+        $c->get(AdminAccess::class),
+        $c->get(AssociationBoardRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(AssociationBoardApiController::class, fn ($c) => new AssociationBoardApiController(
+        $c->get(AssociationBoardService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(AssociationBoardPageController::class, fn ($c) => new AssociationBoardPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(AssociationBoardService::class),
+        new AssociationBoardView(),
+    ));
+
     $container->set(AssociationTextRepositoryInterface::class, fn ($c) => new MysqlAssociationTextRepository($c->get(PDO::class)));
 
     $container->set(AssociationTextService::class, fn ($c) => new AssociationTextService(
@@ -670,7 +698,7 @@ return static function (array $config): Container {
 
     $container->set(AdminAccess::class, fn () => new AdminAccess());
 
-    $container->set(AssemblyBoardRoster::class, fn () => new AssemblyBoardRoster((array) ($config['assembly']['board'] ?? []), (array) ($config['assembly']['board_names'] ?? [])));
+    $container->set(AssemblyBoardRoster::class, fn ($c) => new AssemblyBoardRoster($c->get(AssociationBoardRepositoryInterface::class)->all()));
 
     $container->set(AssemblyService::class, fn ($c) => new AssemblyService(
         $c->get(AdminAccess::class),

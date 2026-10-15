@@ -200,6 +200,9 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/admin/texts', ['title' => 'Piraté', 'body' => 'x'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['PUT', '/api/admin/texts/{txtA}', ['revision' => 0, 'title' => 'Piraté', 'body' => 'x'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['DELETE', '/api/admin/texts/{txtA}', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            // Bureau de l'association (#478) : administrateurs seulement
+            ['PUT', '/api/admin/board/president', ['userId' => 1, 'fullName' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['DELETE', '/api/admin/board/president', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             // Mon compte (#161) : seul l'utilisateur connecté, sur son propre compte
             ['PATCH', '/api/account/profile', ['displayName' => 'Intrus'], ['anon']],
             ['PATCH', '/api/account/email', ['email' => 'intrus@rehearsalbox.test', 'currentPassword' => 'x'], ['anon']],
@@ -426,6 +429,22 @@ final class IdorMatrixTest extends TestCase
         }
         self::assertSame(404, $this->call('admin', 'GET', '/admin/assemblies/' . self::MISSING_ID)[0]);
         self::assertSame(404, $this->call('admin', 'GET', '/admin/assemblies/' . self::MISSING_ID . '/print')[0]);
+    }
+
+    // --- Bureau de l'association (#478) : page et postes inconnus ---------------------------
+
+    #[Test]
+    public function testTheBoardPageIsForAdministratorsOnlyAndUnknownPostsAreNotFound(): void
+    {
+        self::assertSame(302, $this->call('anon', 'GET', '/admin/board')[0]);
+        foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
+            self::assertSame(403, $this->call($actor, 'GET', '/admin/board')[0], $actor);
+        }
+        self::assertSame(200, $this->call('admin', 'GET', '/admin/board')[0]);
+        foreach (['chef', 'PRESIDENT', '0', 'vice_president'] as $post) {
+            self::assertSame(404, $this->call('admin', 'DELETE', "/api/admin/board/{$post}")[0], "poste « {$post} »");
+            self::assertSame(404, $this->call('admin', 'PUT', "/api/admin/board/{$post}", ['userId' => 1, 'fullName' => 'X'])[0], "poste « {$post} » (PUT)");
+        }
     }
 
     // --- Textes de l'association (#472) : pages ---------------------------------------
