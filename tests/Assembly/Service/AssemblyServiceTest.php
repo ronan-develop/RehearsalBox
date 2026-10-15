@@ -13,6 +13,7 @@ use App\Assembly\Exception\AssemblyValidationException;
 use App\Assembly\Repository\MysqlAssemblyContentRepository;
 use App\Assembly\Repository\MysqlAssemblyRepository;
 use App\Assembly\Service\AssemblyAccess;
+use App\Assembly\Service\AssemblyBoardRoster;
 use App\Assembly\Service\AssemblyCompleteness;
 use App\Assembly\Service\AssemblyContentResolver;
 use App\Assembly\Service\AssemblyInputPolicy;
@@ -53,7 +54,7 @@ final class AssemblyServiceTest extends RepositoryTestCase
             new AssemblyCompleteness(),
             $this->assemblies,
             $this->contents,
-            new AssemblyContentResolver($this->users),
+            new AssemblyContentResolver($this->users, new AssemblyBoardRoster([])),
             new TransactionRunner($this->pdo),
             new NullLogger(),
         );
@@ -241,6 +242,52 @@ final class AssemblyServiceTest extends RepositoryTestCase
         self::assertSame('Pierre', $this->reader->minutes($this->admin, $id)['content']->board['president']->name);
     }
 
+    private function serviceWithRoster(AssemblyBoardRoster $roster): AssemblyService
+    {
+        return new AssemblyService(
+            new AssemblyAccess(),
+            new AssemblyInputPolicy(),
+            new AssemblyCompleteness(),
+            $this->assemblies,
+            $this->contents,
+            new AssemblyContentResolver($this->users, $roster),
+            new TransactionRunner($this->pdo),
+            new NullLogger(),
+        );
+    }
+
+    #[Test]
+    public function testARestrictedPostRefusesAnyOtherAccountServerSide(): void
+    {
+        $service = $this->serviceWithRoster(new AssemblyBoardRoster(['president' => $this->president->email(), 'tresorier' => $this->treasurer->email()]));
+        $id = $service->create($this->admin, ['kind' => 'ordinaire', 'heldOn' => '2026-10-10'], $this->now);
+        $input = $this->input(['board' => ['president' => $this->secretary->id(), 'tresorier' => $this->treasurer->id(), 'secretaire' => $this->president->id()]]);
+
+        try {
+            $service->saveDraft($this->admin, $id, 0, $input, $this->now);
+            self::fail('Le poste restreint doit refuser un autre compte');
+        } catch (AssemblyValidationException $e) {
+            self::assertSame(['board.president'], array_keys($e->fields()));
+        }
+        self::assertSame(0, $this->assemblies->find($id)?->revision);
+
+        self::assertSame(1, $service->saveDraft($this->admin, $id, 0, $this->input(), $this->now));
+    }
+
+    #[Test]
+    public function testACorrectionKeepsAFormerHolderOfARestrictedPost(): void
+    {
+        $id = $this->validatedId();
+        $service = $this->serviceWithRoster(new AssemblyBoardRoster(['president' => $this->secretary->email()]));
+        $correction = $service->correct($this->admin, $id, 'Motif', $this->now);
+
+        // Le président de la version validée n'est plus le titulaire configuré : il reste accepté, il figure déjà dans le contenu.
+        self::assertSame(1, $service->saveDraft($this->admin, $correction, 0, $this->input(), $this->now));
+        // Mais personne d'autre que le titulaire configuré ou l'ancien titulaire.
+        $this->expectException(AssemblyValidationException::class);
+        $service->saveDraft($this->admin, $correction, 1, $this->input(['board' => ['president' => $this->treasurer->id(), 'tresorier' => $this->treasurer->id() + 100, 'secretaire' => $this->secretary->id()]]), $this->now);
+    }
+
     #[Test]
     public function testAnUnknownOrInactiveAccountIsRefusedWithItsField(): void
     {
@@ -340,7 +387,7 @@ final class AssemblyServiceTest extends RepositoryTestCase
                 $this->inner->copy($fromId, $toId);
             }
         };
-        $service = new AssemblyService(new AssemblyAccess(), new AssemblyInputPolicy(), new AssemblyCompleteness(), $this->assemblies, $failing, new AssemblyContentResolver($this->users), new TransactionRunner($this->pdo), new NullLogger());
+        $service = new AssemblyService(new AssemblyAccess(), new AssemblyInputPolicy(), new AssemblyCompleteness(), $this->assemblies, $failing, new AssemblyContentResolver($this->users, new AssemblyBoardRoster([])), new TransactionRunner($this->pdo), new NullLogger());
 
         try {
             $service->saveDraft($this->admin, $id, 0, $this->input(), $this->now);

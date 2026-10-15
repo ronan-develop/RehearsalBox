@@ -35,6 +35,9 @@ $defaults = [
     'assembly' => [
         // Nom de l'association inscrit sur les comptes rendus d'assemblée générale (#361). config.local.php : jamais de nom réel dans le dépôt.
         'association_name' => '',
+        // Titulaire de chaque poste du bureau (#361) : adresse e-mail de son compte, config.local.php. La liste du formulaire ne propose que lui et le
+        // serveur refuse tout autre compte. Un poste vide reste libre (tout compte actif) ; une adresse sans compte actif n'offre personne.
+        'board' => ['president' => '', 'tresorier' => '', 'secretaire' => ''],
     ],
     'metrics' => [
         // Secret du serveur pour l'empreinte des adresses IP (config.local.php). Vide : aucune adresse n'est conservée, même sous forme d'empreinte.
