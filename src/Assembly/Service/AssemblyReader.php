@@ -67,4 +67,12 @@ final class AssemblyReader
 
         return $byPost;
     }
+
+    /** @return array<string, string> prénom et nom configurés des titulaires, par poste (valeur de BoardPost) */
+    public function boardNames(User $actor): array
+    {
+        $this->access->assertAdmin($actor);
+
+        return $this->roster->names();
+    }
 }

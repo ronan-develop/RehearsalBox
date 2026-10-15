@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Association\Exception\AssociationBoardNotFoundException;
+use App\Association\Exception\AssociationBoardValidationException;
 use App\Association\Exception\AssociationTextChangedException;
 use App\Association\Exception\AssociationTextNotFoundException;
 use App\Association\Exception\AssociationTextValidationException;
@@ -46,6 +48,7 @@ final class ExceptionTranslator
             $e instanceof UserValidationException,
             $e instanceof AssemblyValidationException,
             $e instanceof AssociationTextValidationException,
+            $e instanceof AssociationBoardValidationException,
             $e instanceof AvailabilityValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
             $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED),
             $e instanceof RateLimitedException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED, ['Retry-After' => (string) $e->retryAfterSeconds()]),
@@ -64,6 +67,7 @@ final class ExceptionTranslator
             $e instanceof StorageQuotaExceededException => new JsonResponse(['error' => $e->getMessage()], 409),
             // Le message nomme l'identifiant demandé : il n'est jamais renvoyé.
             $e instanceof UserNotFoundException => new JsonResponse(['error' => 'Utilisateur introuvable.'], 404),
+            $e instanceof AssociationBoardNotFoundException => new JsonResponse(['error' => 'Poste introuvable.'], 404),
             $e instanceof AssociationTextNotFoundException => new JsonResponse(['error' => 'Texte introuvable.'], 404),
             $e instanceof AssemblyNotFoundException => new JsonResponse(['error' => 'Compte rendu introuvable.'], 404),
             default => null,

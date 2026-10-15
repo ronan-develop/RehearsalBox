@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Http;
 
 use App\Association\Exception\AssociationTextChangedException;
+use App\Association\Exception\AssociationBoardNotFoundException;
+use App\Association\Exception\AssociationBoardValidationException;
 use App\Association\Exception\AssociationTextNotFoundException;
 use App\Association\Exception\AssociationTextValidationException;
 use App\Assembly\Exception\AssemblyLockedException;
@@ -52,6 +54,8 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'compte rendu validé ou modifié' => [new AssemblyLockedException(), 409, ['error' => (new AssemblyLockedException())->getMessage()]];
         yield 'texte de l\'association invalide' => [new AssociationTextValidationException(['title' => 'Un texte porte déjà ce titre.']), 422, ['error' => 'Validation échouée', 'fields' => ['title' => 'Un texte porte déjà ce titre.']]];
         yield 'texte modifié entre-temps' => [new AssociationTextChangedException(), 409, ['error' => (new AssociationTextChangedException())->getMessage()]];
+        yield 'poste du bureau refusé' => [new AssociationBoardValidationException(['userId' => 'Choisissez un compte actif.']), 422, ['error' => 'Validation échouée', 'fields' => ['userId' => 'Choisissez un compte actif.']]];
+        yield 'poste du bureau introuvable' => [new AssociationBoardNotFoundException(), 404, ['error' => 'Poste introuvable.']];
         yield 'texte introuvable' => [new AssociationTextNotFoundException(), 404, ['error' => 'Texte introuvable.']];
         yield 'compte rendu introuvable' => [new AssemblyNotFoundException(), 404, ['error' => 'Compte rendu introuvable.']];
         yield 'demande déjà traitée' => [new RequestAlreadyRespondedException('Déjà traitée.'), 409, ['error' => 'Déjà traitée.']];

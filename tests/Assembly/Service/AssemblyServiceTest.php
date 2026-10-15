@@ -13,7 +13,9 @@ use App\Assembly\Exception\AssemblyValidationException;
 use App\Assembly\Repository\MysqlAssemblyContentRepository;
 use App\Assembly\Repository\MysqlAssemblyRepository;
 use App\Security\AdminAccess;
+use App\Assembly\Entity\BoardPost;
 use App\Assembly\Service\AssemblyBoardRoster;
+use App\Association\Entity\BoardHolder;
 use App\Assembly\Service\AssemblyCompleteness;
 use App\Assembly\Service\AssemblyContentResolver;
 use App\Assembly\Service\AssemblyInputPolicy;
@@ -257,9 +259,19 @@ final class AssemblyServiceTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheConfiguredFullNameOfTheHolderIsStoredInsteadOfTheAccountName(): void
+    {
+        $service = $this->serviceWithRoster(new AssemblyBoardRoster([new BoardHolder(BoardPost::President, $this->president->id(), 'Pierre Dupont')]));
+        $id = $service->create($this->admin, ['kind' => 'ordinaire', 'heldOn' => '2026-10-10'], $this->now);
+        $service->saveDraft($this->admin, $id, 0, $this->input(['board' => ['president' => $this->president->id()]]), $this->now);
+
+        self::assertSame('Pierre Dupont', $this->reader->minutes($this->admin, $id)['content']->board['president']->name);
+    }
+
+    #[Test]
     public function testARestrictedPostRefusesAnyOtherAccountServerSide(): void
     {
-        $service = $this->serviceWithRoster(new AssemblyBoardRoster(['president' => $this->president->email(), 'tresorier' => $this->treasurer->email()]));
+        $service = $this->serviceWithRoster(new AssemblyBoardRoster([new BoardHolder(BoardPost::President, $this->president->id(), 'Pierre'), new BoardHolder(BoardPost::Tresorier, $this->treasurer->id(), 'Thomas')]));
         $id = $service->create($this->admin, ['kind' => 'ordinaire', 'heldOn' => '2026-10-10'], $this->now);
         $input = $this->input(['board' => ['president' => $this->secretary->id(), 'tresorier' => $this->treasurer->id(), 'secretaire' => $this->president->id()]]);
 
@@ -278,7 +290,7 @@ final class AssemblyServiceTest extends RepositoryTestCase
     public function testACorrectionKeepsAFormerHolderOfARestrictedPost(): void
     {
         $id = $this->validatedId();
-        $service = $this->serviceWithRoster(new AssemblyBoardRoster(['president' => $this->secretary->email()]));
+        $service = $this->serviceWithRoster(new AssemblyBoardRoster([new BoardHolder(BoardPost::President, $this->secretary->id(), 'Sophie')]));
         $correction = $service->correct($this->admin, $id, 'Motif', $this->now);
 
         // Le président de la version validée n'est plus le titulaire configuré : il reste accepté, il figure déjà dans le contenu.

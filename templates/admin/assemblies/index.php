@@ -33,6 +33,12 @@
                     <span class="rb-assembly-card-meta"><span>Consulter et modifier</span></span>
                 </a>
             </li>
+            <li>
+                <a href="/admin/board" class="rb-card rb-assembly-card">
+                    <span class="rb-assembly-card-title">Bureau de l'association</span>
+                    <span class="rb-assembly-card-meta"><span>Président, trésorier, secrétaire</span></span>
+                </a>
+            </li>
         </ul>
 
         <ul class="rb-assembly-list" data-assembly-list>

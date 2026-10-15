@@ -39,7 +39,7 @@ final class AssemblyContentResolver
         }
 
         $errors = [];
-        $name = function (int $userId, string $field) use ($already, &$errors): string {
+        $name = function (int $userId, string $field, ?BoardPost $post = null) use ($already, &$errors): string {
             $user = $this->users->findById($userId);
             if ($user === null || (!$user->isActive() && !isset($already[$userId]))) {
                 $errors[$field] = 'Ce compte n\'existe pas ou n\'est plus actif.';
@@ -47,7 +47,9 @@ final class AssemblyContentResolver
                 return '';
             }
 
-            return mb_substr($user->displayName(), 0, self::NAME_MAX);
+            $configured = $post !== null ? $this->roster->nameFor($post, $user) : null;
+
+            return mb_substr($configured ?? $user->displayName(), 0, self::NAME_MAX);
         };
 
         $board = [];
@@ -55,7 +57,7 @@ final class AssemblyContentResolver
             $userId = $draft->boardUserIds[$post->value] ?? null;
             if ($userId !== null) {
                 $field = 'board.' . $post->value;
-                $board[$post->value] = new BoardMember($post, $userId, $name($userId, $field));
+                $board[$post->value] = new BoardMember($post, $userId, $name($userId, $field, $post));
                 if (!isset($errors[$field]) && !$this->mayHold($post, $userId, $current)) {
                     $errors[$field] = 'Ce poste est tenu par un autre compte.';
                 }
