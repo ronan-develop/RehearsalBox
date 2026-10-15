@@ -32,6 +32,10 @@ $defaults = [
         'max_bytes' => 1_000_000,
         'keep' => 5,
     ],
+    'assembly' => [
+        // Nom de l'association inscrit sur les comptes rendus d'assemblée générale (#361). config.local.php : jamais de nom réel dans le dépôt.
+        'association_name' => '',
+    ],
     'metrics' => [
         // Secret du serveur pour l'empreinte des adresses IP (config.local.php). Vide : aucune adresse n'est conservée, même sous forme d'empreinte.
         'secret' => '',

@@ -3,7 +3,7 @@
  * Onglets des pages admin « Groupes » / « Utilisateurs » (#155) : deux pages distinctes
  * (navigation serveur, simples liens), l'onglet courant est marqué aria-current="page".
  *
- * @var string $adminTab 'groups', 'users' ou 'bookings'
+ * @var string $adminTab 'groups', 'users', 'bookings' ou 'assemblies'
  */
 ?>
 <nav class="rb-admin-tabs" aria-label="Administration">
@@ -15,5 +15,8 @@
     </a>
     <a href="/admin/users" class="rb-admin-tab"<?= $adminTab === 'users' ? ' aria-current="page"' : '' ?>>
         Utilisateurs
+    </a>
+    <a href="/admin/assemblies" class="rb-admin-tab"<?= $adminTab === 'assemblies' ? ' aria-current="page"' : '' ?>>
+        Assemblées
     </a>
 </nav>

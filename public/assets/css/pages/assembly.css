@@ -1,0 +1,173 @@
+/* Comptes rendus d'assemblée générale (#361) : une colonne, mobile d'abord. Les boutons passent pleine largeur sur mobile ; à partir de
+   768 px ils reprennent leur taille naturelle et les votes se rangent sur une ligne. Les couleurs viennent des jetons de base.css. */
+
+/* Liste des comptes rendus : chaque entrée est une carte cliquable. */
+.rb-assembly-list {
+  display: grid;
+  gap: var(--rb-space-2);
+  list-style: none;
+  margin: 0 0 var(--rb-space-3);
+  padding: 0;
+}
+
+.rb-assembly-card {
+  display: grid;
+  gap: var(--rb-space-1);
+  color: var(--rb-text);
+  text-decoration: none;
+  transition: background-color var(--rb-motion-standard), box-shadow var(--rb-motion-standard);
+}
+
+.rb-assembly-card:hover {
+  box-shadow: var(--rb-shadow-lg);
+}
+
+.rb-assembly-card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rb-assembly-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-1) var(--rb-space-3);
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+/* Bloc de création : une colonne, le bouton occupe la largeur. */
+.rb-assembly-create {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-bottom: var(--rb-space-5);
+}
+
+/* Sections du brouillon : espacées, filet fin entre elles. */
+.rb-assembly-section {
+  display: grid;
+  gap: var(--rb-space-3);
+  min-width: 0;
+  margin: 0 0 var(--rb-space-4);
+  padding: var(--rb-space-3);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-md);
+  background: var(--rb-surface);
+}
+
+.rb-assembly-section legend {
+  padding: 0 var(--rb-space-1);
+  color: var(--rb-text);
+  font-weight: 600;
+}
+
+.rb-assembly-section > .rb-field,
+.rb-assembly-section > .rb-admin-note {
+  margin: 0;
+}
+
+.rb-assembly-section > .rb-btn {
+  width: 100%;
+}
+
+/* Lignes de liste (présences, ordre du jour, résolutions) : une carte par ligne. */
+.rb-assembly-rows {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-assembly-row {
+  display: grid;
+  gap: var(--rb-space-2);
+  padding: var(--rb-space-3);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  background: var(--rb-bg-2);
+}
+
+.rb-assembly-row .rb-field label span {
+  display: block;
+  margin-bottom: var(--rb-space-1);
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-assembly-row > .rb-btn {
+  width: 100%;
+}
+
+/* Trois cases de votes : une colonne sur mobile. */
+.rb-assembly-votes {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+/* Pied du formulaire : pile verticale sur mobile, la barre d'actions reste lisible. */
+.rb-assembly-actions {
+  display: grid;
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-assembly-actions .rb-btn {
+  width: 100%;
+  text-align: center;
+}
+
+.rb-assembly-readonly,
+.rb-assembly-correct-panel {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-assembly-readonly {
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-assembly-readonly > .rb-btn,
+.rb-assembly-correct-panel > .rb-btn,
+.rb-assembly-correct > .rb-btn {
+  width: 100%;
+  text-align: center;
+}
+
+/* Les attributs hidden doivent gagner contre display: grid / block. */
+.rb-assembly-correct-panel[hidden],
+[data-field-error][hidden],
+[data-form-error][hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .rb-assembly-create {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .rb-assembly-create > .rb-btn,
+  .rb-assembly-create > .rb-field-error {
+    grid-column: 1 / -1;
+  }
+
+  .rb-assembly-create > .rb-btn {
+    width: auto;
+    justify-self: start;
+  }
+
+  .rb-assembly-votes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .rb-assembly-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .rb-assembly-actions .rb-btn {
+    width: auto;
+  }
+
+  .rb-assembly-actions .rb-field-error {
+    flex-basis: 100%;
+  }
+}
