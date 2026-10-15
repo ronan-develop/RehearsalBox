@@ -57,7 +57,7 @@ final class AssemblyPageController
 
         return new Response($this->renderer->render('admin/assemblies/edit', [
             'csrfToken' => $this->csrfTokenManager->getToken(),
-            'form' => $this->form->build($found['assembly'], $found['content'], $this->reader->candidates($admin), $found['successor']),
+            'form' => $this->form->build($found['assembly'], $found['content'], $this->reader->candidates($admin), $this->reader->boardCandidates($admin), $found['successor']),
             'currentUserRole' => $admin->role(),
         ]));
     }

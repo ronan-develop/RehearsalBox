@@ -16,8 +16,10 @@ final class AssemblyContentResolver
 {
     private const NAME_MAX = 120;
 
-    public function __construct(private readonly UserRepositoryInterface $users)
-    {
+    public function __construct(
+        private readonly UserRepositoryInterface $users,
+        private readonly AssemblyBoardRoster $roster = new AssemblyBoardRoster([]),
+    ) {
     }
 
     /**
@@ -52,7 +54,11 @@ final class AssemblyContentResolver
         foreach (BoardPost::cases() as $post) {
             $userId = $draft->boardUserIds[$post->value] ?? null;
             if ($userId !== null) {
-                $board[$post->value] = new BoardMember($post, $userId, $name($userId, 'board.' . $post->value));
+                $field = 'board.' . $post->value;
+                $board[$post->value] = new BoardMember($post, $userId, $name($userId, $field));
+                if (!isset($errors[$field]) && !$this->mayHold($post, $userId, $current)) {
+                    $errors[$field] = 'Ce poste est tenu par un autre compte.';
+                }
             }
         }
         $attendees = [];
@@ -69,5 +75,16 @@ final class AssemblyContentResolver
         }
 
         return new AssemblyContent($board, $attendees, $draft->agenda, $draft->resolutions);
+    }
+
+    /** Le titulaire configuré du poste, ou celui déjà enregistré (une correction recopie le bureau de la version validée). */
+    private function mayHold(BoardPost $post, int $userId, AssemblyContent $current): bool
+    {
+        if (!$this->roster->isRestricted($post) || ($current->board[$post->value] ?? null)?->userId === $userId) {
+            return true;
+        }
+        $user = $this->users->findById($userId);
+
+        return $user !== null && $this->roster->allows($post, $user);
     }
 }

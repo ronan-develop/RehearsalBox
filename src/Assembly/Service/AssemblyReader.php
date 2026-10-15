@@ -8,6 +8,7 @@ use App\Account\Entity\User;
 use App\Account\Repository\UserRepositoryInterface;
 use App\Assembly\Entity\Assembly;
 use App\Assembly\Entity\AssemblyContent;
+use App\Assembly\Entity\BoardPost;
 use App\Assembly\Exception\AssemblyNotFoundException;
 use App\Assembly\Repository\AssemblyContentRepositoryInterface;
 use App\Assembly\Repository\AssemblyRepositoryInterface;
@@ -20,6 +21,7 @@ final class AssemblyReader
         private readonly AssemblyRepositoryInterface $assemblies,
         private readonly AssemblyContentRepositoryInterface $contents,
         private readonly UserRepositoryInterface $users,
+        private readonly AssemblyBoardRoster $roster = new AssemblyBoardRoster([]),
     ) {
     }
 
@@ -49,5 +51,19 @@ final class AssemblyReader
         $this->access->assertAdmin($actor);
 
         return array_values(array_filter($this->users->findAll(), static fn (User $user): bool => $user->isActive()));
+    }
+
+    /**
+     * @return array<string, list<User>> comptes proposés pour chaque poste du bureau (valeur de BoardPost) : le titulaire configuré, sinon tous les comptes actifs
+     */
+    public function boardCandidates(User $actor): array
+    {
+        $candidates = $this->candidates($actor);
+        $byPost = [];
+        foreach (BoardPost::cases() as $post) {
+            $byPost[$post->value] = $this->roster->candidates($post, $candidates);
+        }
+
+        return $byPost;
     }
 }

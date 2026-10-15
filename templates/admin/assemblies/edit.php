@@ -5,7 +5,7 @@
  * par les partiels ; le <template> de chaque liste sert à en ajouter une.
  *
  * @var string $csrfToken
- * @var array{id: int, revision: int, version: int, isDraft: bool, title: string, statusLabel: string, successorId: ?int, kind: string, heldOn: string, location: string, openedAt: string, closedAt: string, quorum: string, moralReport: string, financialReport: string, otherBusiness: string, board: array<string, array{label: string, userId: string}>, users: list<array{id: string, name: string}>, attendances: list<string>, attendees: list<array{userId: string, name: string, attendance: string, proxyHolder: string}>, agenda: list<array{title: string, discussion: string}>, resolutions: list<array{text: string, for: string, against: string, abstain: string, outcome: string}>} $form
+ * @var array{id: int, revision: int, version: int, isDraft: bool, title: string, statusLabel: string, successorId: ?int, kind: string, heldOn: string, location: string, openedAt: string, closedAt: string, quorum: string, moralReport: string, financialReport: string, otherBusiness: string, board: array<string, array{label: string, userId: string, options: list<array{id: string, name: string}>}>, users: list<array{id: string, name: string}>, attendances: list<string>, attendees: list<array{userId: string, name: string, attendance: string, proxyHolder: string}>, agenda: list<array{title: string, discussion: string}>, resolutions: list<array{text: string, for: string, against: string, abstain: string, outcome: string}>} $form
  * @var \App\Account\Entity\UserRole $currentUserRole
  */
 $assemblyId = (string) $form['id'];
@@ -94,7 +94,7 @@ $assemblyId = (string) $form['id'];
                             <label for="assembly-board-<?= e($post) ?>"><?= e($seat['label']) ?></label>
                             <select id="assembly-board-<?= e($post) ?>" name="board.<?= e($post) ?>" class="rb-input">
                                 <option value="">— Choisir —</option>
-                                <?php foreach ($form['users'] as $user): ?>
+                                <?php foreach ($seat['options'] as $user): ?>
                                     <option value="<?= e($user['id']) ?>"<?= $user['id'] === $seat['userId'] ? ' selected' : '' ?>><?= e($user['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
