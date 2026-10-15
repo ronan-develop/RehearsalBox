@@ -2,6 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Assembly\Controller\Api\AssemblyApiController;
+use App\Assembly\Controller\AssemblyPageController;
+use App\Assembly\Presenter\AssemblyFormView;
+use App\Assembly\Presenter\AssemblyListView;
+use App\Assembly\Presenter\AssemblyMinutesView;
+use App\Assembly\Repository\AssemblyContentRepositoryInterface;
+use App\Assembly\Repository\AssemblyRepositoryInterface;
+use App\Assembly\Repository\MysqlAssemblyContentRepository;
+use App\Assembly\Repository\MysqlAssemblyRepository;
+use App\Assembly\Service\AssemblyAccess;
+use App\Assembly\Service\AssemblyCompleteness;
+use App\Assembly\Service\AssemblyContentResolver;
+use App\Assembly\Service\AssemblyInputPolicy;
+use App\Assembly\Service\AssemblyReader;
+use App\Assembly\Service\AssemblyService;
 use App\Account\Security\DisplayNamePolicy;
 use App\Account\Security\LastAdminGuard;
 use App\Account\Service\CurrentPasswordVerifier;
@@ -618,6 +633,45 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(FreeSlotBookingService::class),
         new MemberBookingsView(),
+    ));
+
+    $container->set(AssemblyRepositoryInterface::class, fn ($c) => new MysqlAssemblyRepository($c->get(PDO::class)));
+    $container->set(AssemblyContentRepositoryInterface::class, fn ($c) => new MysqlAssemblyContentRepository($c->get(PDO::class)));
+
+    $container->set(AssemblyAccess::class, fn () => new AssemblyAccess());
+
+    $container->set(AssemblyService::class, fn ($c) => new AssemblyService(
+        $c->get(AssemblyAccess::class),
+        new AssemblyInputPolicy(),
+        new AssemblyCompleteness(),
+        $c->get(AssemblyRepositoryInterface::class),
+        $c->get(AssemblyContentRepositoryInterface::class),
+        new AssemblyContentResolver($c->get(UserRepositoryInterface::class)),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(AssemblyReader::class, fn ($c) => new AssemblyReader(
+        $c->get(AssemblyAccess::class),
+        $c->get(AssemblyRepositoryInterface::class),
+        $c->get(AssemblyContentRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+    ));
+
+    $container->set(AssemblyApiController::class, fn ($c) => new AssemblyApiController(
+        $c->get(AssemblyService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(AssemblyPageController::class, fn ($c) => new AssemblyPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(AssemblyReader::class),
+        new AssemblyListView(),
+        new AssemblyFormView(),
+        new AssemblyMinutesView(),
+        (string) ($config['assembly']['association_name'] ?? ''),
     ));
 
     $container->set(AdminBookingPageController::class, fn ($c) => new AdminBookingPageController(

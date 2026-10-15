@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Assembly\Controller\Api\AssemblyApiController;
+use App\Assembly\Controller\AssemblyPageController;
 use App\Account\Controller\Api\AccountApiController;
 use App\Account\Controller\Api\AccountDataApiController;
 use App\Account\Controller\Api\AuthApiController;
@@ -46,6 +48,9 @@ return [
         ['GET', '/admin/groups', [AdminGroupPageController::class, 'index']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],
         ['GET', '/admin/bookings', [AdminBookingPageController::class, 'index']],
+        ['GET', '/admin/assemblies', [AssemblyPageController::class, 'index']],
+        ['GET', '/admin/assemblies/{id}', [AssemblyPageController::class, 'edit']],
+        ['GET', '/admin/assemblies/{id}/print', [AssemblyPageController::class, 'print']],
         ['GET', '/admin/restore', [RestoreController::class, 'page']],
         ['GET', '/admin/ops', [OpsPageController::class, 'backups']],
         ['GET', '/admin/ops/production', [OpsPageController::class, 'production']],
@@ -98,6 +103,11 @@ return [
         ['GET',    '/api/admin/bookings', [FreeSlotBookingApiController::class, 'pending']],
         ['POST',   '/api/admin/bookings/{id}/approve', [FreeSlotBookingApiController::class, 'approve']],
         ['POST',   '/api/admin/bookings/{id}/refuse', [FreeSlotBookingApiController::class, 'refuse']],
+        ['POST',   '/api/admin/assemblies', [AssemblyApiController::class, 'store']],
+        ['PUT',    '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'update']],
+        ['POST',   '/api/admin/assemblies/{id}/validate', [AssemblyApiController::class, 'validate']],
+        ['POST',   '/api/admin/assemblies/{id}/corrections', [AssemblyApiController::class, 'correct']],
+        ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
         ['GET',    '/api/admin/users', [UserAdminApiController::class, 'index']],
         ['POST',   '/api/admin/users', [UserAdminApiController::class, 'store']],
         ['PATCH',  '/api/admin/users/{id}', [UserAdminApiController::class, 'update']],
