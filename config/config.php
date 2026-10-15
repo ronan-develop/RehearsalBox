@@ -38,6 +38,8 @@ $defaults = [
         // Titulaire de chaque poste du bureau (#361) : adresse e-mail de son compte, config.local.php. La liste du formulaire ne propose que lui et le
         // serveur refuse tout autre compte. Un poste vide reste libre (tout compte actif) ; une adresse sans compte actif n'offre personne.
         'board' => ['president' => '', 'tresorier' => '', 'secretaire' => ''],
+        // Prénom et nom de ces titulaires (config.local.php, jamais dans le dépôt) : affichés dans la liste et recopiés dans le compte rendu ; vide = nom du compte.
+        'board_names' => ['president' => '', 'tresorier' => '', 'secretaire' => ''],
     ],
     'metrics' => [
         // Secret du serveur pour l'empreinte des adresses IP (config.local.php). Vide : aucune adresse n'est conservée, même sous forme d'empreinte.

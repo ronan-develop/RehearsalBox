@@ -670,7 +670,7 @@ return static function (array $config): Container {
 
     $container->set(AdminAccess::class, fn () => new AdminAccess());
 
-    $container->set(AssemblyBoardRoster::class, fn () => new AssemblyBoardRoster((array) ($config['assembly']['board'] ?? [])));
+    $container->set(AssemblyBoardRoster::class, fn () => new AssemblyBoardRoster((array) ($config['assembly']['board'] ?? []), (array) ($config['assembly']['board_names'] ?? [])));
 
     $container->set(AssemblyService::class, fn ($c) => new AssemblyService(
         $c->get(AdminAccess::class),
