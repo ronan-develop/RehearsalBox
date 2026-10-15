@@ -12,6 +12,7 @@ use App\Assembly\Exception\AssemblyValidationException;
 use App\Assembly\Repository\AssemblyContentRepositoryInterface;
 use App\Assembly\Repository\AssemblyRepositoryInterface;
 use App\Database\TransactionRunner;
+use App\Security\AdminAccess;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -23,7 +24,7 @@ use Psr\Log\LoggerInterface;
 final class AssemblyService
 {
     public function __construct(
-        private readonly AssemblyAccess $access,
+        private readonly AdminAccess $access,
         private readonly AssemblyInputPolicy $policy,
         private readonly AssemblyCompleteness $completeness,
         private readonly AssemblyRepositoryInterface $assemblies,

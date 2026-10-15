@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Assembly\Service;
+namespace App\Security;
 
 use App\Account\Entity\User;
 use App\Account\Entity\UserRole;
 use App\Security\Exception\AccessDeniedException;
 
-/** Les comptes rendus d'AG (noms des présents) sont réservés aux administrateurs actifs, vérifié dans chaque service (#361). */
-final class AssemblyAccess
+/** Garde « administrateur actif » des services réservés aux administrateurs (comptes rendus d'AG #361, textes de l'association #472) : vérifiée dans chaque service, en plus de `AuthGuard` dans le contrôleur. */
+final class AdminAccess
 {
     /** @throws AccessDeniedException */
     public function assertAdmin(User $actor): void

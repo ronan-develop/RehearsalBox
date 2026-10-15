@@ -11,7 +11,7 @@ use App\Assembly\Repository\AssemblyContentRepositoryInterface;
 use App\Assembly\Repository\AssemblyRepositoryInterface;
 use App\Assembly\Repository\MysqlAssemblyContentRepository;
 use App\Assembly\Repository\MysqlAssemblyRepository;
-use App\Assembly\Service\AssemblyAccess;
+use App\Security\AdminAccess;
 use App\Assembly\Service\AssemblyBoardRoster;
 use App\Assembly\Service\AssemblyCompleteness;
 use App\Assembly\Service\AssemblyContentResolver;
@@ -639,12 +639,12 @@ return static function (array $config): Container {
     $container->set(AssemblyRepositoryInterface::class, fn ($c) => new MysqlAssemblyRepository($c->get(PDO::class)));
     $container->set(AssemblyContentRepositoryInterface::class, fn ($c) => new MysqlAssemblyContentRepository($c->get(PDO::class)));
 
-    $container->set(AssemblyAccess::class, fn () => new AssemblyAccess());
+    $container->set(AdminAccess::class, fn () => new AdminAccess());
 
     $container->set(AssemblyBoardRoster::class, fn () => new AssemblyBoardRoster((array) ($config['assembly']['board'] ?? [])));
 
     $container->set(AssemblyService::class, fn ($c) => new AssemblyService(
-        $c->get(AssemblyAccess::class),
+        $c->get(AdminAccess::class),
         new AssemblyInputPolicy(),
         new AssemblyCompleteness(),
         $c->get(AssemblyRepositoryInterface::class),
@@ -655,7 +655,7 @@ return static function (array $config): Container {
     ));
 
     $container->set(AssemblyReader::class, fn ($c) => new AssemblyReader(
-        $c->get(AssemblyAccess::class),
+        $c->get(AdminAccess::class),
         $c->get(AssemblyRepositoryInterface::class),
         $c->get(AssemblyContentRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),

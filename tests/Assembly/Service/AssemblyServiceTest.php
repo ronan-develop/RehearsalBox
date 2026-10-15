@@ -12,7 +12,7 @@ use App\Assembly\Exception\AssemblyNotFoundException;
 use App\Assembly\Exception\AssemblyValidationException;
 use App\Assembly\Repository\MysqlAssemblyContentRepository;
 use App\Assembly\Repository\MysqlAssemblyRepository;
-use App\Assembly\Service\AssemblyAccess;
+use App\Security\AdminAccess;
 use App\Assembly\Service\AssemblyBoardRoster;
 use App\Assembly\Service\AssemblyCompleteness;
 use App\Assembly\Service\AssemblyContentResolver;
@@ -47,7 +47,7 @@ final class AssemblyServiceTest extends RepositoryTestCase
         $this->setUpScenario();
         $this->assemblies = new MysqlAssemblyRepository($this->pdo);
         $this->contents = new MysqlAssemblyContentRepository($this->pdo);
-        $access = new AssemblyAccess();
+        $access = new AdminAccess();
         $this->service = new AssemblyService(
             $access,
             new AssemblyInputPolicy(),
@@ -245,7 +245,7 @@ final class AssemblyServiceTest extends RepositoryTestCase
     private function serviceWithRoster(AssemblyBoardRoster $roster): AssemblyService
     {
         return new AssemblyService(
-            new AssemblyAccess(),
+            new AdminAccess(),
             new AssemblyInputPolicy(),
             new AssemblyCompleteness(),
             $this->assemblies,
@@ -387,7 +387,7 @@ final class AssemblyServiceTest extends RepositoryTestCase
                 $this->inner->copy($fromId, $toId);
             }
         };
-        $service = new AssemblyService(new AssemblyAccess(), new AssemblyInputPolicy(), new AssemblyCompleteness(), $this->assemblies, $failing, new AssemblyContentResolver($this->users, new AssemblyBoardRoster([])), new TransactionRunner($this->pdo), new NullLogger());
+        $service = new AssemblyService(new AdminAccess(), new AssemblyInputPolicy(), new AssemblyCompleteness(), $this->assemblies, $failing, new AssemblyContentResolver($this->users, new AssemblyBoardRoster([])), new TransactionRunner($this->pdo), new NullLogger());
 
         try {
             $service->saveDraft($this->admin, $id, 0, $this->input(), $this->now);
