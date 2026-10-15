@@ -76,7 +76,8 @@ final class SlotExchangeNotifier implements SlotExchangeNotifierInterface
                 'accepted' => $accepted,
                 'when' => $when,
                 'range' => $range,
-                'link' => $this->mailbox->url('/'),
+                // La demande mène à sa page (#462) ; la réponse, au tableau de bord.
+                'link' => $this->mailbox->url($isRequest ? '/exchanges/' . $exception->id() : '/'),
                 'preheader' => $when . ', ' . $range,
             ]));
         } catch (\Throwable $e) {
