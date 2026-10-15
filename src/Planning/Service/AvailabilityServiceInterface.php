@@ -27,15 +27,21 @@ interface AvailabilityServiceInterface
     public function findArchivedForGroup(int $groupId, int $userId): array;
 
     /**
-     * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe titulaire du créneau
-     * @throws \App\Planning\Exception\RequestAlreadyRespondedException si l'exception est inconnue ou déjà répondue
+     * La demande d'échange que $userId peut voir pour y répondre : membre du groupe titulaire du créneau, ou administrateur.
+     *
+     * @throws \App\Security\Exception\AccessDeniedException demande inexistante ou interdite (même refus)
      */
+    public function findForResponse(int $exceptionId, int $userId, bool $asAdmin): SlotException;
+
     /**
      * @param \DateTimeImmutable $seenOccurrenceDate date que le titulaire a vue (#221) : l'acceptation ne vaut que pour elle
+     * @param bool $asAdmin rôle administrateur lu dans la SESSION par le contrôleur (jamais dans la requête) : lève les gardes de groupe
      *
+     * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe titulaire du créneau (hors administrateur)
+     * @throws \App\Planning\Exception\RequestAlreadyRespondedException si l'exception est déjà répondue
      * @throws \App\Planning\Exception\RequestChangedException le demandeur a changé la date entre-temps
      */
-    public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate): SlotException;
+    public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate, bool $asAdmin = false): SlotException;
 
     /**
      * @throws \App\Security\Exception\AccessDeniedException si $userId n'appartient pas au groupe demandeur de l'exception

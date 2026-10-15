@@ -12,6 +12,7 @@ use App\Operations\Controller\OpsPageController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
+use App\Planning\Controller\ExchangePageController;
 use App\Account\Controller\AdminUserPageController;
 use App\Messaging\Controller\Api\ConversationApiController;
 use App\Messaging\Controller\Api\DirectConversationApiController;
@@ -52,6 +53,7 @@ return [
         ['GET', '/admin/metrics/security', [MetricsPageController::class, 'security']],
         ['GET', '/admin/metrics/load', [MetricsPageController::class, 'load']],
         ['GET', '/bookings', [BookingPageController::class, 'index']],
+        ['GET', '/exchanges/{id}', [ExchangePageController::class, 'show']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],
         ['GET', '/messages/archives', [MessagesPageController::class, 'archives']],

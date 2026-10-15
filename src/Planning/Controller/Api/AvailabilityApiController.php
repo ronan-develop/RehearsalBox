@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Planning\Controller\Api;
 
+use App\Account\Entity\UserRole;
 use App\Planning\Entity\SlotException;
 use App\Http\JsonResponse;
 use App\Http\Request;
@@ -68,7 +69,7 @@ final class AvailabilityApiController
     /**
      * Répond à une demande. Le corps porte la réponse (`accepted`, booléen strict : « false » refuse, il n'accepte jamais) ET la
      * date que le titulaire a vue (`occurrenceDate`) : si le groupe demandeur l'a changée entre-temps, l'acceptation est refusée
-     * (409) et la demande reste en attente.
+     * (409) et la demande reste en attente. Un administrateur répond à toute demande (rôle lu dans la session, jamais dans le corps).
      */
     public function respond(Request $request, string $exceptionId): JsonResponse
     {
@@ -91,7 +92,7 @@ final class AvailabilityApiController
             throw new AvailabilityValidationException($errors);
         }
 
-        $responded = $this->availabilityService->respond(StrictId::orDenied($exceptionId), $accepted, $user->id(), $seenDate);
+        $responded = $this->availabilityService->respond(StrictId::orDenied($exceptionId), $accepted, $user->id(), $seenDate, $user->hasRole(UserRole::Admin));
 
         return new JsonResponse(self::toArray($responded));
     }

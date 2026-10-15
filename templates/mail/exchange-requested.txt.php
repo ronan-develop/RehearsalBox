@@ -13,6 +13,6 @@ Le groupe <?= $requesterGroup ?> demande à échanger le créneau de <?= $holder
 <?= $when ?>, <?= $range ?>
 
 
-Connectez-vous à l'appli : la demande est dans « Demandes de créneau », à l'onglet « Reçues ». Vous pouvez l'accepter ou la refuser :
+Voir et répondre à la demande (connexion requise) : vous pouvez l'accepter ou la refuser en un geste.
 
 <?= $link ?>

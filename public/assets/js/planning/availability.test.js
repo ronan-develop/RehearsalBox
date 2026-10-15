@@ -258,3 +258,21 @@ test('a request changed in the meantime answers 409: the card is removed so the 
 
   assert.deepEqual(removed, ['7']);
 });
+
+test('on the page of a request, answering shows the confirmation and the way back (#462)', async () => {
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ id: 7, status: 'refusee' }) });
+  globalThis.document = fakeDocument();
+  const revealed = [];
+  const root = {
+    querySelector: (selector) => {
+      if (selector === '[data-exchange-done]') {
+        return { removeAttribute: (name) => revealed.push(name) };
+      }
+      return /\[exception-id="(.+)"\]/.test(selector) ? { remove() {}, closest: () => null } : null;
+    },
+  };
+
+  await handleRespond(fakeButton('7', false), root);
+
+  assert.deepEqual(revealed, ['hidden']);
+});

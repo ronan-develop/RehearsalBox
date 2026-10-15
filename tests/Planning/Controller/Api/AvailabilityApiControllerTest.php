@@ -354,6 +354,52 @@ final class AvailabilityApiControllerTest extends RepositoryTestCase
         self::assertSame(409, $response->statusCode());
     }
 
+    // --- Droit administrateur (#462) -------------------------------------------------------------------
+
+    #[Test]
+    public function testAnAdminRespondsToAnyRequestAndTheDecisionIsInHisName(): void
+    {
+        [$controller, $exception, , , $exceptionRepository, $authService] = $this->pending();
+        $authService->logout();
+        $admin = $this->makeAdmin();
+        $authService->attempt('admin@rehearsalbox.test', 'password');
+
+        $response = $controller->respond(new Request('POST', '/x', [], ['accepted' => true, 'occurrenceDate' => $exception->occurrenceDate()->format('Y-m-d')], []), (string) $exception->id());
+
+        self::assertSame(200, $response->statusCode());
+        self::assertSame($admin->id(), $exceptionRepository->findById($exception->id())->respondedByUserId());
+    }
+
+    #[Test]
+    public function testTheRoleComesFromTheSessionNeverFromTheRequestBody(): void
+    {
+        [$controller, $exception, , , $exceptionRepository, $authService] = $this->pending();
+        $authService->logout();
+        $authService->attempt('bob@rehearsalbox.test', 'password'); // musicien, groupe demandeur
+        $body = ['accepted' => true, 'occurrenceDate' => $exception->occurrenceDate()->format('Y-m-d'), 'asAdmin' => true, 'role' => 'admin'];
+
+        try {
+            $controller->respond(new Request('POST', '/x', [], $body, []), (string) $exception->id());
+            self::fail('Un musicien ne devient pas administrateur en le disant.');
+        } catch (\App\Security\Exception\AccessDeniedException) {
+            self::assertTrue($exceptionRepository->findById($exception->id())->isEnAttente());
+        }
+    }
+
+    private function makeAdmin(): User
+    {
+        return (new MysqlUserRepository($this->pdo))->save(new User(
+            id: 0,
+            email: 'admin@rehearsalbox.test',
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
+            displayName: 'Admin',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ));
+    }
+
     // --- Réponse stricte et date épinglée (#221) -------------------------------------------------------
 
     /** @return array{0: KernelTranslation, 1: \App\Planning\Entity\SlotException, 2: User, 3: User, 4: MysqlSlotExceptionRepository, 5: AuthService} contrôleur, demande, titulaire (connecté), demandeur, dépôt, authentification */

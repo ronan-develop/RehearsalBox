@@ -129,6 +129,7 @@ final class IdorMatrixTest extends TestCase
             'excBA' => $exceptionBA->id(),
             'docA' => $document->id(),
             'userMemberA' => $memberA->id(),
+            'userOutsiderB' => $outsiderB->id(),
             'convAB' => $conversationAB->id(),
             'groupB' => $groupB->id(),
             'bkA' => $bookingA->id(),
@@ -154,7 +155,7 @@ final class IdorMatrixTest extends TestCase
             ['GET', '/api/availability/pending/{groupA}', [], ['anon', 'stranger', 'outsiderB', 'admin']],
             ['GET', '/api/availability/requested/{groupA}', [], ['anon', 'stranger', 'outsiderB', 'admin']],
             // (#221) la réponse porte la date vue : un corps complet, pour que ce soit bien le contrôle d'accès qui refuse
-            ['POST', '/api/availability/{excBA}/respond', ['accepted' => true, 'occurrenceDate' => '2026-01-06'], ['anon', 'stranger', 'outsiderB', 'admin', 'dual']],
+            ['POST', '/api/availability/{excBA}/respond', ['accepted' => true, 'occurrenceDate' => '2026-01-06'], ['anon', 'stranger', 'outsiderB', 'dual']], // l'administrateur répond (#462) : testAnAdministratorAnswersAnyExchange…
             ['PATCH', '/api/availability/{excBA}', ['occurrenceDate' => $future], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             ['DELETE', '/api/availability/{excBA}', [], ['anon', 'stranger', 'memberA', 'managerA', 'admin']],
             // Demande d'échange (#263) : A détient le créneau, la demande est faite au nom de B — seuls les membres de B peuvent la faire
@@ -337,6 +338,50 @@ final class IdorMatrixTest extends TestCase
         [, $strangerBody] = $this->call('stranger', 'GET', "/messages/new/{$groupA}");
         self::assertStringContainsString('data-draft-blocked', $strangerBody, 'sans groupe, on ne peut pas écrire (le serveur refusera aussi à l\'envoi)');
         self::assertSame(1, $this->conversationCount(), 'aucune page de démarrage ne crée de conversation');
+    }
+
+    // --- Droit administrateur et page d'une demande (#462) ---------------------------
+
+    #[Test]
+    public function testAnAdministratorAnswersAnyExchangeButNoMusicianGainsTheRightByAskingForIt(): void
+    {
+        $exceptions = new MysqlSlotExceptionRepository(TestDatabase::connection());
+        $forAdmin = $exceptions->createRequest((int) self::$ids['slotA'], new \DateTimeImmutable('+40 days'), (int) self::$ids['groupB'], (int) self::$ids['userOutsiderB'], null);
+        $forDual = $exceptions->createRequest((int) self::$ids['slotA'], new \DateTimeImmutable('+41 days'), (int) self::$ids['groupB'], (int) self::$ids['userOutsiderB'], null);
+
+        $forged = ['accepted' => true, 'asAdmin' => true, 'role' => 'admin', 'occurrenceDate' => $forDual->occurrenceDate()->format('Y-m-d')];
+        foreach (['stranger', 'outsiderB', 'dual'] as $actor) {
+            self::assertSame(403, $this->call($actor, 'POST', "/api/availability/{$forDual->id()}/respond", $forged)[0], $actor);
+        }
+        self::assertTrue($exceptions->findById($forDual->id())?->isEnAttente(), 'aucune réponse ne passe');
+
+        [$status] = $this->call('admin', 'POST', "/api/availability/{$forAdmin->id()}/respond", ['accepted' => true, 'occurrenceDate' => $forAdmin->occurrenceDate()->format('Y-m-d')]);
+        self::assertSame(200, $status);
+        self::assertFalse($exceptions->findById($forAdmin->id())?->isEnAttente());
+    }
+
+    #[Test]
+    public function testTheExchangePageIsForTheHolderGroupAndAdministratorsAndHidesEverythingElse(): void
+    {
+        $path = '/exchanges/' . self::$ids['excBA'];
+
+        [$anonStatus, $anonBody] = $this->call('anon', 'GET', $path);
+        self::assertSame(302, $anonStatus, 'anonyme : redirigé vers la connexion — ' . $anonBody);
+
+        $missing = $this->call('stranger', 'GET', '/exchanges/' . self::MISSING_ID);
+        self::assertSame(404, $missing[0]);
+        foreach (['stranger', 'outsiderB', 'dual'] as $actor) {
+            self::assertSame($missing, $this->call($actor, 'GET', $path), "{$actor} : interdit et inexistant indiscernables");
+        }
+        foreach (['0', '-1', 'abc', '1e0', '007', '99999999999999999999', '%00'] as $malformed) {
+            self::assertSame($missing, $this->call('admin', 'GET', "/exchanges/{$malformed}"), "identifiant « {$malformed} »");
+        }
+
+        foreach (['memberA', 'managerA', 'admin'] as $actor) {
+            [$status, $body] = $this->call($actor, 'GET', $path);
+            self::assertSame(200, $status, $actor);
+            self::assertStringContainsString('exception-id="' . self::$ids['excBA'] . '"', $body, $actor);
+        }
     }
 
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------

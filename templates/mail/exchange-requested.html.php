@@ -7,18 +7,18 @@
  * @var string $holderGroup    groupe titulaire du créneau
  * @var string $when           jour lisible
  * @var string $range          plage lisible
- * @var string $link           lien vers l'appli (connexion requise)
+ * @var string $link           lien vers la page de la demande (connexion requise)
  */
 ?>
 <h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.3;color:#1c1a17;">Une demande d'échange de créneau</h1>
 <p style="margin:0 0 16px 0;">Bonjour,</p>
 <p style="margin:0 0 16px 0;">Le groupe <strong><?= e($requesterGroup) ?></strong> demande à échanger le créneau de <strong><?= e($holderGroup) ?></strong> :</p>
 <p style="margin:0 0 24px 0;font-size:18px;"><strong><?= e($when) ?></strong><br><?= e($range) ?></p>
-<p style="margin:0 0 24px 0;">Connectez-vous à l'appli : la demande est dans « Demandes de créneau », à l'onglet « Reçues ». Vous pouvez l'accepter ou la refuser.</p>
+<p style="margin:0 0 24px 0;">Vous pouvez l'accepter ou la refuser en un geste, depuis la page de la demande (connexion requise).</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
     <tr>
         <td style="background:#b5654a;border-radius:4px;">
-            <a href="<?= e($link) ?>" style="display:inline-block;padding:14px 24px;font-weight:bold;font-size:16px;color:#ffffff;text-decoration:none;">Voir la demande</a>
+            <a href="<?= e($link) ?>" style="display:inline-block;padding:14px 24px;font-weight:bold;font-size:16px;color:#ffffff;text-decoration:none;">Voir et répondre à la demande</a>
         </td>
     </tr>
 </table>

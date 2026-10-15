@@ -68,7 +68,8 @@ final class SlotExchangeNotifierTest extends RepositoryTestCase
     {
         $mailer = new RecordingMailer();
 
-        $this->notifier($mailer)->requested($this->request());
+        $exception = $this->request();
+        $this->notifier($mailer)->requested($exception);
 
         self::assertSame([], $mailer->sent, 'rien ne part avant la fin de la réponse');
         $this->later->runAll();
@@ -79,7 +80,10 @@ final class SlotExchangeNotifierTest extends RepositoryTestCase
         self::assertStringContainsString('Office', $body);
         self::assertStringContainsString('mercredi 7 octobre 2026', $body);
         self::assertStringContainsString('19:00 – 20:30', $body);
-        self::assertStringContainsString('https://rehearsalbox.example/', (string) $email->getTextBody());
+        $link = 'https://rehearsalbox.example/exchanges/' . $exception->id();
+        self::assertStringContainsString($link, (string) $email->getTextBody(), 'le lien mène à la page de la demande (#462)');
+        self::assertStringContainsString('href="' . $link . '"', (string) $email->getHtmlBody());
+        self::assertStringNotContainsStringIgnoringCase('onglet', $body, 'plus de consigne de chercher la demande dans le tableau de bord');
     }
 
     #[Test]
@@ -113,6 +117,7 @@ final class SlotExchangeNotifierTest extends RepositoryTestCase
         self::assertStringContainsStringIgnoringCase('accepté', (string) $mailer->sent[0]->getTextBody());
         self::assertStringContainsStringIgnoringCase('refusé', (string) $mailer->sent[1]->getTextBody());
         self::assertStringContainsString('Depece', (string) $mailer->sent[0]->getTextBody(), 'le groupe qui a répondu');
+        self::assertStringNotContainsString('/exchanges/', (string) $mailer->sent[0]->getTextBody(), 'la réponse mène toujours au tableau de bord');
     }
 
     #[Test]
