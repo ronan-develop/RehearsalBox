@@ -35,22 +35,6 @@
             </div>
         <?php endif; ?>
 
-        <?php
-        $renderPlanningCard = static function ($requestableSlot, bool $isToday = false) use ($currentUserGroupRoles) {
-            $slot = $requestableSlot->slot();
-            $groupRole = $currentUserGroupRoles[$requestableSlot->groupId()] ?? null;
-            ?>
-            <rb-planning-card class="rb-planning-card" role="button" tabindex="0" group-id="<?= e((string) $requestableSlot->groupId()) ?>" group-name="<?= e($requestableSlot->groupName()) ?>" group-slug="<?= e(\App\Support\Slug::from($requestableSlot->groupName())) ?>" weekday="<?= e((string) $slot->weekday()->value) ?>" start-time="<?= e(formatTime($slot->startTime())) ?>" end-time="<?= e(formatTime($slot->endTime())) ?>"<?= $isToday ? ' data-today' : '' ?><?= $currentUserGroupRoles !== [] ? ' can-book' : '' ?><?= $groupRole !== null ? ' member' : '' ?>>
-                <?php if ($isToday): ?><span class="rb-badge rb-planning-card-today">Aujourd’hui</span><?php endif; ?>
-                <h4 class="rb-planning-card-group"><?= e($requestableSlot->groupName()) ?></h4>
-                <p class="rb-planning-card-weekday"><?= e(formatWeekday($slot->weekday())) ?></p>
-                <p class="rb-planning-card-time"><?= e(formatTime($slot->startTime())) ?> – <?= e(formatTime($slot->endTime())) ?></p>
-            </rb-planning-card>
-            <?php
-        };
-
-        ?>
-
         <?php // Mobile (< 768 px) : deux onglets, une liste à la fois ; bureau : les deux sections côte à côte, en carrousels (#201). Un seul balisage, restylé par le CSS. ?>
         <rb-tabs class="rb-planning" persist="rb-planning-tab">
             <div class="rb-planning-tabs" role="tablist" aria-label="Type de créneau">
@@ -65,15 +49,7 @@
                 <?php else: ?>
                     <div class="rb-planning-slider" data-planning-slider>
                         <div class="rb-planning-track" data-planning-track>
-                            <?php foreach ($planningDays as $day): ?>
-                                <h3 class="rb-planning-day" data-planning-day="<?= e((string) $day->weekday()->value) ?>"<?= $day->isToday() ? ' data-today' : '' ?>>
-                                    <?= e(formatWeekday($day->weekday())) ?>
-                                    <?php if ($day->isToday()): ?><span class="rb-planning-day-today">Aujourd’hui</span><?php endif; ?>
-                                </h3>
-                                <?php foreach ($day->slots() as $requestableSlot): ?>
-                                    <?php $renderPlanningCard($requestableSlot, $day->isToday()); ?>
-                                <?php endforeach; ?>
-                            <?php endforeach; ?>
+                            <?php require __DIR__ . '/_planning-track.php'; ?>
                         </div>
                     </div>
                 <?php endif; ?>

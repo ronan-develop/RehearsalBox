@@ -306,10 +306,13 @@ body {
   color: #6b6660;
 }
 
-.rb-planning-card-date {
-  margin: 0 0 2px;
+
+/* Mention « Cédé à… » (#461) : lisible sur le papier clair des cartes de bureau (encre foncée, pas d'italique). */
+.rb-planning-card-ceded {
+  margin: var(--rb-space-1) 0 0;
   font-size: 0.8125rem;
-  color: #6b6660;
+  font-weight: 600;
+  color: #3d3833;
 }
 
 .rb-planning-card-time {
@@ -320,9 +323,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Label "Occasionnel" (#34) : signale qu'un créneau n'est pas un fixe
-   récurrent mais une occurrence ponctuelle (exception acceptée cette
-   semaine). */
+/* Pastille de DATE (#34, #461) : signale qu'un créneau n'est pas un fixe récurrent mais une occurrence ponctuelle (échange accepté ou
+   réservation validée cette semaine), et dit quel jour. */
 .rb-planning-card--exceptional .rb-badge {
   position: absolute;
   top: 14px;
@@ -336,6 +338,20 @@ body {
 
 .rb-planning-card--exceptional .rb-planning-card-group {
   padding-right: var(--rb-space-4);
+}
+
+/* Dans le planning (#461) les cartes du carrousel sont étroites : la pastille de date se pose dans le flux, au-dessus du nom, au lieu de
+   le recouvrir en coin (même principe que la pastille « Aujourd'hui »). */
+@media (min-width: 768px) {
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card--exceptional .rb-badge {
+    position: static;
+    display: inline-block;
+    margin-bottom: var(--rb-space-1);
+  }
+
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card--exceptional .rb-planning-card-group {
+    padding-right: 0;
+  }
 }
 
 /* Jour courant (#271) : la pastille « Aujourd'hui » est un .rb-badge (fond, bordure, couleur et taille viennent de .rb-badge, plus bas
@@ -643,13 +659,7 @@ rb-tabs {
   font-size: 0.75rem;
 }
 
-.rb-planning-card-when {
-  margin: 0;
-}
 
-.rb-planning-card-when span {
-  display: block;
-}
 
 .rb-planning-day,
 [data-planning-empty] {
@@ -770,6 +780,15 @@ rb-tabs {
     grid-template-areas: "time group badge" "time when when";
   }
 
+  /* Dans le planning, le titre du jour donne déjà le jour : pas de deuxième ligne (l'onglet « Exceptionnels » la garde). */
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card--exceptional {
+    grid-template-areas: "time group badge";
+  }
+
+  .rb-planning-slider:not(.rb-planning-slider--exceptional) .rb-planning-card--exceptional .rb-planning-card-weekday {
+    display: none;
+  }
+
   .rb-planning-card:not(.rb-planning-card--exceptional):hover,
   .rb-planning-card:not(.rb-planning-card--exceptional):focus-visible {
     transform: none;
@@ -788,18 +807,18 @@ rb-tabs {
     font-size: 0.9375rem;
   }
 
-  .rb-planning-card-when {
+  /* La mention « Cédé à… » passe sous le nom du groupe, sur la largeur utile, au lieu d'écraser le nom dans la colonne de droite. */
+  .rb-planning-card-ceded {
+    grid-column: 2 / -1;
+    margin: 2px 0 0;
+    color: var(--rb-text); /* fond sombre de la liste mobile */
+  }
+
+  .rb-planning-card--exceptional .rb-planning-card-weekday {
     grid-area: when;
     margin: 0;
     color: var(--rb-text-2);
     font-size: 0.8125rem;
-  }
-
-  .rb-planning-card-when span {
-    display: inline;
-    margin: 0;
-    color: inherit;
-    font-size: inherit;
     text-transform: none;
     letter-spacing: normal;
   }
