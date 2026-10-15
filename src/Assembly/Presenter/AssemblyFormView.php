@@ -23,9 +23,10 @@ final class AssemblyFormView
     /**
      * @param list<User> $candidates comptes actifs (présences)
      * @param array<string, list<User>> $boardCandidates comptes proposés par poste ; un poste absent propose tous les comptes actifs
+     * @param array<string, string> $boardNames prénom et nom configurés du titulaire, par poste ; remplace le nom du compte dans la liste
      * @return array<string, mixed>
      */
-    public function build(Assembly $assembly, AssemblyContent $content, array $candidates, array $boardCandidates, ?Assembly $successor): array
+    public function build(Assembly $assembly, AssemblyContent $content, array $candidates, array $boardCandidates, ?Assembly $successor, array $boardNames = []): array
     {
         $users = self::options($candidates);
         $known = array_column($users, 'name', 'id');
@@ -45,7 +46,7 @@ final class AssemblyFormView
 
         $board = [];
         foreach (BoardPost::cases() as $post) {
-            $offered = self::options($boardCandidates[$post->value] ?? $candidates);
+            $offered = self::options($boardCandidates[$post->value] ?? $candidates, isset($boardCandidates[$post->value]) ? ($boardNames[$post->value] ?? null) : null);
             $held = isset($content->board[$post->value]) ? (string) $content->board[$post->value]->userId : '';
             if ($held !== '' && !in_array($held, array_column($offered, 'id'), true)) {
                 $offered[] = ['id' => $held, 'name' => $content->board[$post->value]->name]; // un ancien titulaire reste sélectionnable
@@ -96,10 +97,11 @@ final class AssemblyFormView
 
     /**
      * @param list<User> $users
+     * @param string|null $name remplace le nom des comptes (liste restreinte à son titulaire)
      * @return list<array{id: string, name: string}>
      */
-    private static function options(array $users): array
+    private static function options(array $users, ?string $name = null): array
     {
-        return array_map(static fn (User $user): array => ['id' => (string) $user->id(), 'name' => $user->displayName()], $users);
+        return array_map(static fn (User $user): array => ['id' => (string) $user->id(), 'name' => $name ?? $user->displayName()], $users);
     }
 }

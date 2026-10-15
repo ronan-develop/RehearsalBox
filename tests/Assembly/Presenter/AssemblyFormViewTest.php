@@ -115,6 +115,16 @@ final class AssemblyFormViewTest extends TestCase
     }
 
     #[Test]
+    public function testAConfiguredFullNameReplacesTheAccountNameInTheBoardList(): void
+    {
+        $alice = $this->user(7, 'Alice');
+
+        $board = (new AssemblyFormView())->build($this->assembly(), AssemblyContent::empty(), [$alice], ['president' => [$alice]], null, ['president' => 'Alice Martin'])['board'];
+
+        self::assertSame([['id' => '7', 'name' => 'Alice Martin']], $board['president']['options']);
+    }
+
+    #[Test]
     public function testAStoredHolderStaysSelectableEvenWhenNoLongerOffered(): void
     {
         $content = new AssemblyContent([BoardPost::President->value => new BoardMember(BoardPost::President, 9, 'Ancien titulaire')], [], [], []);
