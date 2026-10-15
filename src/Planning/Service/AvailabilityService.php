@@ -61,29 +61,14 @@ final class AvailabilityService implements AvailabilityServiceInterface
         return $this->slotExceptionRepository->findArchivedForGroup($groupId);
     }
 
-    public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate): SlotException
+    public function findForResponse(int $exceptionId, int $userId, bool $asAdmin): SlotException
     {
-        $exception = $this->slotExceptionRepository->findById($exceptionId);
-        if ($exception === null) {
-            throw $this->accessDenied();
-        }
+        return $this->findAnswerable($exceptionId, $userId, $asAdmin);
+    }
 
-        $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
-        \assert($slot !== null);
-
-        // IDOR inversé par rapport à l'ancien claim() : c'est le groupe
-        // TITULAIRE du créneau (déduit du recurring_slot serveur, jamais
-        // d'un paramètre client) qui répond à la demande du groupe
-        // demandeur — pas l'inverse.
-        if (!$this->groupRepository->isMember($slot->groupId(), $userId)) {
-            throw $this->accessDenied();
-        }
-
-        // Un membre du groupe demandeur ne répond pas à sa propre demande, même
-        // s'il appartient aussi au groupe titulaire : c'est un échange entre deux groupes.
-        if ($this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
-            throw $this->accessDenied();
-        }
+    public function respond(int $exceptionId, bool $accepted, int $userId, \DateTimeImmutable $seenOccurrenceDate, bool $asAdmin = false): SlotException
+    {
+        $this->findAnswerable($exceptionId, $userId, $asAdmin);
 
         // La date que le titulaire a vue fait partie de la condition atomique : si le demandeur l'a changée entre-temps,
         // l'acceptation ne vaut pas pour une autre date que celle affichée.
@@ -200,6 +185,38 @@ final class AvailabilityService implements AvailabilityServiceInterface
         if ($errors !== []) {
             throw new AvailabilityValidationException($errors);
         }
+    }
+
+    /**
+     * La demande à laquelle $userId a le droit de répondre, sinon le refus unique (inexistante ou interdite : indiscernables).
+     * IDOR inversé par rapport à l'ancien claim() : c'est le groupe TITULAIRE du créneau (déduit du recurring_slot serveur,
+     * jamais d'un paramètre client) qui répond, pas le demandeur. Un administrateur (rôle lu par le contrôleur dans la session)
+     * répond à toute demande, la sienne comprise ; la décision reste à son nom.
+     */
+    private function findAnswerable(int $exceptionId, int $userId, bool $asAdmin): SlotException
+    {
+        $exception = $this->slotExceptionRepository->findById($exceptionId);
+        if ($exception === null) {
+            throw $this->accessDenied();
+        }
+        if ($asAdmin) {
+            return $exception;
+        }
+
+        $slot = $this->recurringSlotRepository->findById($exception->recurringSlotId());
+        \assert($slot !== null);
+
+        if (!$this->groupRepository->isMember($slot->groupId(), $userId)) {
+            throw $this->accessDenied();
+        }
+
+        // Un membre du groupe demandeur ne répond pas à sa propre demande, même s'il appartient aussi au groupe titulaire :
+        // c'est un échange entre deux groupes.
+        if ($this->groupRepository->isMember($exception->requester()->groupId(), $userId)) {
+            throw $this->accessDenied();
+        }
+
+        return $exception;
     }
 
     /**

@@ -278,6 +278,176 @@ final class AvailabilityServiceTest extends RepositoryTestCase
         $service->respond(9999, true, $holderUserId, new \DateTimeImmutable("today"));
     }
 
+    private function createAdmin(MysqlUserRepository $userRepository, string $email = 'admin@rehearsalbox.test'): int
+    {
+        return $userRepository->save(new User(
+            id: 0,
+            email: $email,
+            passwordHash: password_hash('password', PASSWORD_BCRYPT, ['cost' => 4]),
+            displayName: 'Admin',
+            role: UserRole::Admin,
+            isActive: true,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+        ))->id();
+    }
+
+    #[Test]
+    public function testAnAdminOutsideBothGroupsAcceptsAndTheDecisionIsInHisName(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        $responded = $service->respond($exception->id(), true, $adminId, $exception->occurrenceDate(), true);
+
+        self::assertFalse($responded->isEnAttente());
+        self::assertSame($adminId, $responded->respondedByUserId());
+    }
+
+    #[Test]
+    public function testAnAdminRefuses(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        $responded = $service->respond($exception->id(), false, $adminId, $exception->occurrenceDate(), true);
+
+        self::assertSame(\App\Planning\Entity\SlotExceptionStatus::Refusee, $responded->status());
+    }
+
+    #[Test]
+    public function testAnAdminMemberOfTheRequestingGroupAnswersHisOwnRequest(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $groupRepository->addMember($requestingGroupId, $adminId);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $adminId, null);
+
+        $responded = $service->respond($exception->id(), true, $adminId, $exception->occurrenceDate(), true);
+
+        self::assertSame($adminId, $responded->respondedByUserId());
+    }
+
+    #[Test]
+    public function testAnAdminMemberOfBothGroupsAnswers(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, $holderGroupId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $groupRepository->addMember($requestingGroupId, $adminId);
+        $groupRepository->addMember($holderGroupId, $adminId);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $adminId, null);
+
+        self::assertFalse($service->respond($exception->id(), true, $adminId, $exception->occurrenceDate(), true)->isEnAttente());
+    }
+
+    #[Test]
+    public function testWithoutTheAdminFlagTheGuardsAreUnchanged(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->respond($exception->id(), true, $adminId, $exception->occurrenceDate());
+    }
+
+    #[Test]
+    public function testAnAdminOnAnUnknownRequestIsRefused(): void
+    {
+        [$service, , , , $userRepository] = $this->makeService();
+        $adminId = $this->createAdmin($userRepository);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->respond(9999, true, $adminId, new \DateTimeImmutable('today'), true);
+    }
+
+    #[Test]
+    public function testTwoAnswersOnlyTheFirstWinsEvenForAnAdmin(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+        $service->respond($exception->id(), true, $holderUserId, $exception->occurrenceDate());
+
+        $this->expectException(RequestAlreadyRespondedException::class);
+
+        $service->respond($exception->id(), false, $adminId, $exception->occurrenceDate(), true);
+    }
+
+    #[Test]
+    public function testAnAdminSeeingAnOldDateGetsRequestChanged(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        $this->expectException(RequestChangedException::class);
+
+        $service->respond($exception->id(), true, $adminId, $exception->occurrenceDate()->modify('+7 days'), true);
+    }
+
+    #[Test]
+    public function testFindForResponseIsOpenToTheHolderGroupAndToAdmins(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId, , $holderUserId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $adminId = $this->createAdmin($userRepository);
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        self::assertSame($exception->id(), $service->findForResponse($exception->id(), $holderUserId, false)->id());
+        self::assertSame($exception->id(), $service->findForResponse($exception->id(), $adminId, true)->id());
+    }
+
+    #[Test]
+    public function testFindForResponseRefusesEveryoneElseWithTheSameAnswerAsAnUnknownRequest(): void
+    {
+        [$service, $groupRepository, $slotRepository, $exceptionRepository, $userRepository] = $this->makeService();
+        [$holderSlotId] = $this->createHolder($groupRepository, $slotRepository, $userRepository);
+        [$requestingGroupId, $requestingUserId] = $this->createRequester($groupRepository, $userRepository);
+        $stranger = $this->createAdmin($userRepository, 'stranger@rehearsalbox.test');
+        $exception = $exceptionRepository->createRequest($holderSlotId, new \DateTimeImmutable('+7 days'), $requestingGroupId, $requestingUserId, null);
+
+        $denied = 0;
+        foreach ([[$exception->id(), $requestingUserId], [$exception->id(), $stranger], [9999, $stranger]] as [$id, $userId]) {
+            try {
+                $service->findForResponse($id, $userId, false);
+            } catch (AccessDeniedException $e) {
+                ++$denied;
+            }
+        }
+
+        self::assertSame(3, $denied);
+    }
+
+    #[Test]
+    public function testFindForResponseOnAnUnknownRequestIsRefusedEvenForAnAdmin(): void
+    {
+        [$service, , , , $userRepository] = $this->makeService();
+
+        $this->expectException(AccessDeniedException::class);
+
+        $service->findForResponse(9999, $this->createAdmin($userRepository), true);
+    }
+
     #[Test]
 
     public function testFindPendingForHolderGroupDelegatesToRepositoryAfterMembershipCheck(): void
