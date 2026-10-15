@@ -93,7 +93,7 @@ final class IdorMatrixTest extends TestCase
         $memberA = $makeUser('memberA', UserRole::Musicien);
         $managerA = $makeUser('managerA', UserRole::Musicien);
         $dual = $makeUser('dual', UserRole::Musicien);
-        $makeUser('admin', UserRole::Admin);
+        $admin = $makeUser('admin', UserRole::Admin);
 
         $groupA = $groups->save(new Group(0, 'Groupe A', null, null, 'a@example.test'));
         $groupB = $groups->save(new Group(0, 'Groupe B', null, null, 'b@example.test'));
@@ -119,6 +119,9 @@ final class IdorMatrixTest extends TestCase
         // Réservation libre du groupe A (#263) : seuls les membres de A l'annulent, seuls les administrateurs la tranchent.
         $bookingA = (new MysqlFreeSlotBookingRepository($pdo))->create(new \App\Planning\Entity\Requester($groupA->id(), $memberA->id()), new \DateTimeImmutable('+20 days'), new \App\Planning\Entity\TimeRange('09:00:00', '10:00:00'), null);
 
+        // Compte rendu d'AG (#361) : réservé aux administrateurs, noms des présents.
+        $assemblyA = (new \App\Assembly\Repository\MysqlAssemblyRepository($pdo))->insert(\App\Assembly\Entity\AssemblyKind::Ordinaire, new \DateTimeImmutable('2026-10-10'), $admin->id(), new \DateTimeImmutable());
+
         self::$storagePath = sys_get_temp_dir() . '/rb-idor-' . bin2hex(random_bytes(4));
         mkdir(self::$storagePath);
 
@@ -133,6 +136,7 @@ final class IdorMatrixTest extends TestCase
             'convAB' => $conversationAB->id(),
             'groupB' => $groupB->id(),
             'bkA' => $bookingA->id(),
+            'asmA' => $assemblyA,
         ];
     }
 
@@ -184,6 +188,12 @@ final class IdorMatrixTest extends TestCase
             ['PUT', '/api/admin/users/{userMemberA}/groups/{groupA}', ['role' => 'gestionnaire'], ['anon', 'stranger', 'memberA', 'managerA']],
             ['DELETE', '/api/admin/users/{userMemberA}/groups/{groupA}', [], ['anon', 'stranger', 'memberA', 'managerA']],
             ['POST', '/api/admin/users/{userMemberA}/groups/{groupA}/move', ['toGroupId' => 1], ['anon', 'stranger', 'memberA', 'managerA']],
+            // Comptes rendus d'AG (#361) : administrateurs seulement (aucun rôle de groupe n'y donne accès)
+            ['POST', '/api/admin/assemblies', ['kind' => 'ordinaire', 'heldOn' => '2026-10-10'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['PUT', '/api/admin/assemblies/{asmA}', ['revision' => 0, 'kind' => 'ordinaire', 'heldOn' => '2026-10-10', 'location' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/assemblies/{asmA}/validate', ['revision' => 0], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/assemblies/{asmA}/corrections', ['reason' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['DELETE', '/api/admin/assemblies/{asmA}', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             // Mon compte (#161) : seul l'utilisateur connecté, sur son propre compte
             ['PATCH', '/api/account/profile', ['displayName' => 'Intrus'], ['anon']],
             ['PATCH', '/api/account/email', ['email' => 'intrus@rehearsalbox.test', 'currentPassword' => 'x'], ['anon']],
@@ -249,6 +259,10 @@ final class IdorMatrixTest extends TestCase
             ['DELETE', '/api/bookings/{id}', [], 'bkA'],
             ['POST', '/api/admin/bookings/{id}/approve', [], 'bkA'],
             ['POST', '/api/admin/bookings/{id}/refuse', [], 'bkA'],
+            ['PUT', '/api/admin/assemblies/{id}', ['revision' => 0, 'kind' => 'ordinaire', 'heldOn' => '2026-10-10'], 'asmA'],
+            ['POST', '/api/admin/assemblies/{id}/validate', ['revision' => 0], 'asmA'],
+            ['POST', '/api/admin/assemblies/{id}/corrections', ['reason' => 'Piraté'], 'asmA'],
+            ['DELETE', '/api/admin/assemblies/{id}', [], 'asmA'],
             ['PATCH', '/api/admin/users/{id}', ['active' => false], 'userMemberA'],
             ['POST', '/api/admin/users/{id}/unlock', [], 'userMemberA'],
             ['PUT', '/api/admin/users/{id}/identity', ['displayName' => 'Piraté', 'email' => 'pirate@rehearsalbox.test'], 'userMemberA'],
@@ -382,6 +396,28 @@ final class IdorMatrixTest extends TestCase
             self::assertSame(200, $status, $actor);
             self::assertStringContainsString('exception-id="' . self::$ids['excBA'] . '"', $body, $actor);
         }
+    }
+
+    // --- Comptes rendus d'AG (#361) : pages et lecture ---------------------------------
+
+    #[Test]
+    public function testAssemblyPagesAreForAdministratorsOnlyAndMalformedIdsAreRefused(): void
+    {
+        $id = self::$ids['asmA'];
+        foreach (['/admin/assemblies', "/admin/assemblies/{$id}", "/admin/assemblies/{$id}/print"] as $path) {
+            self::assertSame(302, $this->call('anon', 'GET', $path)[0], "anonyme {$path}");
+            foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
+                self::assertSame(403, $this->call($actor, 'GET', $path)[0], "{$actor} {$path}");
+            }
+            self::assertSame(200, $this->call('admin', 'GET', $path)[0], "admin {$path}");
+        }
+        foreach (['0', '-1', 'abc', '1e0', '007', '99999999999999999999', '%00'] as $malformed) {
+            self::assertSame(403, $this->call('admin', 'GET', "/admin/assemblies/{$malformed}")[0], "identifiant « {$malformed} »");
+            self::assertSame(403, $this->call('admin', 'GET', "/admin/assemblies/{$malformed}/print")[0], "identifiant « {$malformed} » (impression)");
+            self::assertSame(403, $this->call('admin', 'DELETE', "/api/admin/assemblies/{$malformed}")[0], "identifiant « {$malformed} » (API)");
+        }
+        self::assertSame(404, $this->call('admin', 'GET', '/admin/assemblies/' . self::MISSING_ID)[0]);
+        self::assertSame(404, $this->call('admin', 'GET', '/admin/assemblies/' . self::MISSING_ID . '/print')[0]);
     }
 
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------
