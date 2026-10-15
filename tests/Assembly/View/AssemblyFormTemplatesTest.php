@@ -43,9 +43,9 @@ final class AssemblyFormTemplatesTest extends TestCase
             'financialReport' => '',
             'otherBusiness' => '',
             'board' => [
-                'president' => ['label' => 'Président', 'userId' => '1'],
-                'tresorier' => ['label' => 'Trésorier', 'userId' => ''],
-                'secretaire' => ['label' => 'Secrétaire', 'userId' => ''],
+                'president' => ['label' => 'Président', 'userId' => '1', 'options' => [['id' => '1', 'name' => 'Alice']]],
+                'tresorier' => ['label' => 'Trésorier', 'userId' => '', 'options' => [['id' => '2', 'name' => 'Bob']]],
+                'secretaire' => ['label' => 'Secrétaire', 'userId' => '', 'options' => [['id' => '1', 'name' => 'Alice'], ['id' => '2', 'name' => 'Bob']]],
             ],
             'users' => [['id' => '1', 'name' => 'Alice']],
             'attendances' => ['present', 'excuse', 'represente'],
@@ -76,6 +76,24 @@ final class AssemblyFormTemplatesTest extends TestCase
         self::assertStringContainsString('data-action="save"', $html);
         self::assertStringContainsString('&lt;script&gt;x&lt;/script&gt;', $html);
         self::assertStringNotContainsString('<script>x</script>', $html);
+    }
+
+    #[Test]
+    public function testEachBoardSelectOffersOnlyItsOwnAccountsAndPreselectsTheHolder(): void
+    {
+        $html = $this->renderEdit($this->draft());
+
+        preg_match_all('#<select id="assembly-board-(\w+)"[^>]*>(.*?)</select>#s', $html, $selects, PREG_SET_ORDER);
+        $options = [];
+        foreach ($selects as [, $post, $inner]) {
+            preg_match_all('#<option value="(\d*)"( selected)?>#', $inner, $found, PREG_SET_ORDER);
+            $options[$post] = array_map(static fn (array $o): string => $o[1] . (isset($o[2]) ? '*' : ''), $found);
+        }
+
+        self::assertSame(['', '1*'], $options['president']);
+        self::assertSame(['', '2'], $options['tresorier']);
+        self::assertSame(['', '1', '2'], $options['secretaire']);
+        self::assertStringNotContainsString('>Bob</option>', substr($html, (int) strpos($html, 'assembly-board-president'), 300));
     }
 
     #[Test]

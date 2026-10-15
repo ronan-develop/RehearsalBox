@@ -40,7 +40,7 @@ final class AssemblyFormViewTest extends TestCase
     #[Test]
     public function testAnEmptyDraftGivesEmptyStringsAndTheActiveAccounts(): void
     {
-        $form = (new AssemblyFormView())->build($this->assembly(), AssemblyContent::empty(), [$this->user(7, 'Alice')], null);
+        $form = (new AssemblyFormView())->build($this->assembly(), AssemblyContent::empty(), [$this->user(7, 'Alice')], [], null);
 
         self::assertSame(5, $form['id']);
         self::assertSame(3, $form['revision']);
@@ -53,7 +53,7 @@ final class AssemblyFormViewTest extends TestCase
         self::assertSame('', $form['moralReport']);
         self::assertSame('Rapport', $form['financialReport']);
         self::assertSame([['id' => '7', 'name' => 'Alice']], $form['users']);
-        self::assertSame(['label' => 'Président', 'userId' => ''], $form['board']['president']);
+        self::assertSame(['label' => 'Président', 'userId' => '', 'options' => [['id' => '7', 'name' => 'Alice']]], $form['board']['president']);
         self::assertSame([], $form['attendees']);
         self::assertNull($form['successorId']);
     }
@@ -63,7 +63,7 @@ final class AssemblyFormViewTest extends TestCase
     {
         $assembly = new Assembly(5, AssemblyKind::Ordinaire, new \DateTimeImmutable('2026-10-10'), null, null, null, null, null, null, null, AssemblyStatus::Brouillon, 1, null, null, 0, new \DateTimeImmutable('2026-10-01'), null);
 
-        self::assertSame('', (new AssemblyFormView())->build($assembly, AssemblyContent::empty(), [], null)['quorum']);
+        self::assertSame('', (new AssemblyFormView())->build($assembly, AssemblyContent::empty(), [], [], null)['quorum']);
     }
 
     #[Test]
@@ -76,7 +76,7 @@ final class AssemblyFormViewTest extends TestCase
             [new Resolution('Approuver', 3, 1, 0, ResolutionOutcome::Adoptee), new Resolution('Refuser', 0, 0, 0, null)],
         );
 
-        $form = (new AssemblyFormView())->build($this->assembly(), $content, [$this->user(7, 'Alice')], null);
+        $form = (new AssemblyFormView())->build($this->assembly(), $content, [$this->user(7, 'Alice')], [], null);
 
         self::assertSame('9', $form['board']['president']['userId']);
         self::assertContains(['id' => '9', 'name' => 'Ancien titulaire'], $form['users']);
@@ -91,11 +91,39 @@ final class AssemblyFormViewTest extends TestCase
     #[Test]
     public function testAValidatedAssemblyShowsItsDateAndItsSuccessor(): void
     {
-        $form = (new AssemblyFormView())->build($this->assembly(AssemblyStatus::Valide), AssemblyContent::empty(), [], $this->assembly(AssemblyStatus::Brouillon, 2, 5, 6));
+        $form = (new AssemblyFormView())->build($this->assembly(AssemblyStatus::Valide), AssemblyContent::empty(), [], [], $this->assembly(AssemblyStatus::Brouillon, 2, 5, 6));
 
         self::assertFalse($form['isDraft']);
         self::assertSame('Validé le lundi 12 octobre 2026', $form['statusLabel']);
         self::assertSame(6, $form['successorId']);
+    }
+
+    #[Test]
+    public function testEachPostOffersItsOwnCandidatesAndPreselectsASoleHolder(): void
+    {
+        $alice = $this->user(7, 'Alice');
+        $bob = $this->user(8, 'Bob');
+        $boardCandidates = ['president' => [$alice], 'tresorier' => [$alice, $bob]];
+
+        $board = (new AssemblyFormView())->build($this->assembly(), AssemblyContent::empty(), [$alice, $bob], $boardCandidates, null)['board'];
+
+        self::assertSame([['id' => '7', 'name' => 'Alice']], $board['president']['options']);
+        self::assertSame('7', $board['president']['userId'], 'un seul titulaire possible : présélectionné');
+        self::assertCount(2, $board['tresorier']['options']);
+        self::assertSame('', $board['tresorier']['userId']);
+        self::assertSame([['id' => '7', 'name' => 'Alice'], ['id' => '8', 'name' => 'Bob']], $board['secretaire']['options'], 'poste libre : tous les comptes actifs');
+    }
+
+    #[Test]
+    public function testAStoredHolderStaysSelectableEvenWhenNoLongerOffered(): void
+    {
+        $content = new AssemblyContent([BoardPost::President->value => new BoardMember(BoardPost::President, 9, 'Ancien titulaire')], [], [], []);
+
+        $board = (new AssemblyFormView())->build($this->assembly(), $content, [], ['president' => [$this->user(7, 'Alice')]], null)['board'];
+
+        self::assertSame('9', $board['president']['userId']);
+        self::assertContains(['id' => '9', 'name' => 'Ancien titulaire'], $board['president']['options']);
+        self::assertContains(['id' => '7', 'name' => 'Alice'], $board['president']['options']);
     }
 
     #[Test]

@@ -21,12 +21,13 @@ use App\Support\FrenchDate;
 final class AssemblyFormView
 {
     /**
-     * @param list<User> $candidates
+     * @param list<User> $candidates comptes actifs (présences)
+     * @param array<string, list<User>> $boardCandidates comptes proposés par poste ; un poste absent propose tous les comptes actifs
      * @return array<string, mixed>
      */
-    public function build(Assembly $assembly, AssemblyContent $content, array $candidates, ?Assembly $successor): array
+    public function build(Assembly $assembly, AssemblyContent $content, array $candidates, array $boardCandidates, ?Assembly $successor): array
     {
-        $users = array_map(static fn (User $user): array => ['id' => (string) $user->id(), 'name' => $user->displayName()], $candidates);
+        $users = self::options($candidates);
         $known = array_column($users, 'name', 'id');
         foreach ($content->board as $member) {
             $known[(string) $member->userId] ??= $member->name;
@@ -44,7 +45,16 @@ final class AssemblyFormView
 
         $board = [];
         foreach (BoardPost::cases() as $post) {
-            $board[$post->value] = ['label' => $post->label(), 'userId' => isset($content->board[$post->value]) ? (string) $content->board[$post->value]->userId : ''];
+            $offered = self::options($boardCandidates[$post->value] ?? $candidates);
+            $held = isset($content->board[$post->value]) ? (string) $content->board[$post->value]->userId : '';
+            if ($held !== '' && !in_array($held, array_column($offered, 'id'), true)) {
+                $offered[] = ['id' => $held, 'name' => $content->board[$post->value]->name]; // un ancien titulaire reste sélectionnable
+            }
+            $board[$post->value] = [
+                'label' => $post->label(),
+                'userId' => $held !== '' ? $held : (isset($boardCandidates[$post->value]) && count($offered) === 1 ? $offered[0]['id'] : ''),
+                'options' => $offered,
+            ];
         }
 
         return [
@@ -82,5 +92,14 @@ final class AssemblyFormView
                 'outcome' => $r->outcome === null ? '' : $r->outcome->value,
             ], $content->resolutions),
         ];
+    }
+
+    /**
+     * @param list<User> $users
+     * @return list<array{id: string, name: string}>
+     */
+    private static function options(array $users): array
+    {
+        return array_map(static fn (User $user): array => ['id' => (string) $user->id(), 'name' => $user->displayName()], $users);
     }
 }
