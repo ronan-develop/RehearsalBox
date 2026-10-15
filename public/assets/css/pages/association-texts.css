@@ -1,0 +1,99 @@
+/* Textes de l'association (#472) : une colonne, mobile d'abord. Les boutons passent pleine largeur sur mobile ; à partir de 768 px ils
+   reprennent leur taille naturelle. Les couleurs viennent des jetons de base.css. */
+
+/* Liste des textes : chaque entrée est une carte cliquable. */
+.rb-text-list {
+  display: grid;
+  gap: var(--rb-space-2);
+  list-style: none;
+  margin: 0 0 var(--rb-space-3);
+  padding: 0;
+}
+
+.rb-text-card {
+  display: grid;
+  gap: var(--rb-space-1);
+  color: var(--rb-text);
+  text-decoration: none;
+  transition: background-color var(--rb-motion-standard), box-shadow var(--rb-motion-standard);
+}
+
+.rb-text-card:hover {
+  box-shadow: var(--rb-shadow-lg);
+}
+
+.rb-text-card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rb-text-card-meta,
+.rb-text-meta {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+/* Bloc de création et panneau de modification : une colonne, espacés. */
+.rb-text-create,
+.rb-text-edit,
+.rb-text-view {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-text-view > .rb-btn,
+.rb-text-create > .rb-btn {
+  width: 100%;
+  text-align: center;
+}
+
+/* Corps du texte : retours à la ligne conservés, longs mots coupés pour tenir dans la colonne, interligne confortable. */
+.rb-text-body {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+  color: var(--rb-text);
+}
+
+.rb-text-edit textarea {
+  min-height: 12rem;
+  resize: vertical;
+}
+
+/* Pied du panneau de modification : pile verticale sur mobile. */
+.rb-text-actions {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+.rb-text-actions .rb-btn {
+  width: 100%;
+  text-align: center;
+}
+
+/* Les attributs hidden doivent gagner contre display: grid. */
+.rb-text-edit[hidden],
+.rb-text-view[hidden],
+[data-field-error][hidden],
+[data-form-error][hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .rb-text-create > .rb-btn,
+  .rb-text-view > .rb-btn {
+    width: auto;
+    justify-self: start;
+  }
+
+  .rb-text-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .rb-text-actions .rb-btn {
+    width: auto;
+  }
+}

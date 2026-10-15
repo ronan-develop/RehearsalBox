@@ -131,6 +131,7 @@ final class AssemblyFormTemplatesTest extends TestCase
         self::assertStringContainsString('href="/admin/assemblies/5"', $html);
         self::assertStringContainsString('data-action="create"', $html);
         self::assertStringContainsString('Aucun compte rendu.', $html);
+        self::assertStringContainsString('href="/admin/texts"', $html, 'accès aux statuts et textes de l\'association (#472)');
     }
 
     #[Test]

@@ -26,6 +26,8 @@ final class BackButtonTemplatesTest extends TestCase
         yield 'réservations' => ['admin/bookings/index.php', '/'];
         yield 'assemblées' => ['admin/assemblies/index.php', '/'];
         yield 'assemblée (page)' => ['admin/assemblies/edit.php', '/admin/assemblies'];
+        yield 'textes' => ['admin/texts/index.php', '/admin/assemblies'];
+        yield 'texte' => ['admin/texts/show.php', '/admin/texts'];
         yield 'créneaux' => ['admin/slots/index.php', '/'];
         yield 'mesures (en-tête)' => ['admin/metrics/_header.php', '/admin/ops'];
         yield 'exploitation (en-tête)' => ['admin/ops/_header.php', '/'];

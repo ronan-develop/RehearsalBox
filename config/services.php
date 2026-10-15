@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Association\Controller\Api\AssociationTextApiController;
+use App\Association\Controller\AssociationTextPageController;
+use App\Association\Presenter\AssociationTextView;
+use App\Association\Repository\AssociationTextRepositoryInterface;
+use App\Association\Repository\MysqlAssociationTextRepository;
+use App\Association\Service\AssociationTextInputPolicy;
+use App\Association\Service\AssociationTextService;
 use App\Assembly\Controller\Api\AssemblyApiController;
 use App\Assembly\Controller\AssemblyPageController;
 use App\Assembly\Presenter\AssemblyFormView;
@@ -11,7 +18,7 @@ use App\Assembly\Repository\AssemblyContentRepositoryInterface;
 use App\Assembly\Repository\AssemblyRepositoryInterface;
 use App\Assembly\Repository\MysqlAssemblyContentRepository;
 use App\Assembly\Repository\MysqlAssemblyRepository;
-use App\Assembly\Service\AssemblyAccess;
+use App\Security\AdminAccess;
 use App\Assembly\Service\AssemblyBoardRoster;
 use App\Assembly\Service\AssemblyCompleteness;
 use App\Assembly\Service\AssemblyContentResolver;
@@ -636,15 +643,37 @@ return static function (array $config): Container {
         new MemberBookingsView(),
     ));
 
+    $container->set(AssociationTextRepositoryInterface::class, fn ($c) => new MysqlAssociationTextRepository($c->get(PDO::class)));
+
+    $container->set(AssociationTextService::class, fn ($c) => new AssociationTextService(
+        $c->get(AdminAccess::class),
+        new AssociationTextInputPolicy(),
+        $c->get(AssociationTextRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(AssociationTextApiController::class, fn ($c) => new AssociationTextApiController(
+        $c->get(AssociationTextService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(AssociationTextPageController::class, fn ($c) => new AssociationTextPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(AssociationTextService::class),
+        new AssociationTextView(),
+    ));
+
     $container->set(AssemblyRepositoryInterface::class, fn ($c) => new MysqlAssemblyRepository($c->get(PDO::class)));
     $container->set(AssemblyContentRepositoryInterface::class, fn ($c) => new MysqlAssemblyContentRepository($c->get(PDO::class)));
 
-    $container->set(AssemblyAccess::class, fn () => new AssemblyAccess());
+    $container->set(AdminAccess::class, fn () => new AdminAccess());
 
     $container->set(AssemblyBoardRoster::class, fn () => new AssemblyBoardRoster((array) ($config['assembly']['board'] ?? [])));
 
     $container->set(AssemblyService::class, fn ($c) => new AssemblyService(
-        $c->get(AssemblyAccess::class),
+        $c->get(AdminAccess::class),
         new AssemblyInputPolicy(),
         new AssemblyCompleteness(),
         $c->get(AssemblyRepositoryInterface::class),
@@ -655,7 +684,7 @@ return static function (array $config): Container {
     ));
 
     $container->set(AssemblyReader::class, fn ($c) => new AssemblyReader(
-        $c->get(AssemblyAccess::class),
+        $c->get(AdminAccess::class),
         $c->get(AssemblyRepositoryInterface::class),
         $c->get(AssemblyContentRepositoryInterface::class),
         $c->get(UserRepositoryInterface::class),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Assembly\Service;
 
+use App\Security\AdminAccess;
 use App\Account\Entity\User;
 use App\Account\Repository\UserRepositoryInterface;
 use App\Assembly\Entity\Assembly;
@@ -17,7 +18,7 @@ use App\Assembly\Repository\AssemblyRepositoryInterface;
 final class AssemblyReader
 {
     public function __construct(
-        private readonly AssemblyAccess $access,
+        private readonly AdminAccess $access,
         private readonly AssemblyRepositoryInterface $assemblies,
         private readonly AssemblyContentRepositoryInterface $contents,
         private readonly UserRepositoryInterface $users,

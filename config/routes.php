@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Association\Controller\Api\AssociationTextApiController;
+use App\Association\Controller\AssociationTextPageController;
 use App\Assembly\Controller\Api\AssemblyApiController;
 use App\Assembly\Controller\AssemblyPageController;
 use App\Account\Controller\Api\AccountApiController;
@@ -51,6 +53,8 @@ return [
         ['GET', '/admin/assemblies', [AssemblyPageController::class, 'index']],
         ['GET', '/admin/assemblies/{id}', [AssemblyPageController::class, 'edit']],
         ['GET', '/admin/assemblies/{id}/print', [AssemblyPageController::class, 'print']],
+        ['GET', '/admin/texts', [AssociationTextPageController::class, 'index']],
+        ['GET', '/admin/texts/{id}', [AssociationTextPageController::class, 'show']],
         ['GET', '/admin/restore', [RestoreController::class, 'page']],
         ['GET', '/admin/ops', [OpsPageController::class, 'backups']],
         ['GET', '/admin/ops/production', [OpsPageController::class, 'production']],
@@ -108,6 +112,9 @@ return [
         ['POST',   '/api/admin/assemblies/{id}/validate', [AssemblyApiController::class, 'validate']],
         ['POST',   '/api/admin/assemblies/{id}/corrections', [AssemblyApiController::class, 'correct']],
         ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
+        ['POST',   '/api/admin/texts', [AssociationTextApiController::class, 'store']],
+        ['PUT',    '/api/admin/texts/{id}', [AssociationTextApiController::class, 'update']],
+        ['DELETE', '/api/admin/texts/{id}', [AssociationTextApiController::class, 'destroy']],
         ['GET',    '/api/admin/users', [UserAdminApiController::class, 'index']],
         ['POST',   '/api/admin/users', [UserAdminApiController::class, 'store']],
         ['PATCH',  '/api/admin/users/{id}', [UserAdminApiController::class, 'update']],
