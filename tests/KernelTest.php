@@ -179,6 +179,30 @@ final class KernelTest extends TestCase
     }
 
     #[Test]
+    public function testTheLinkOfAnExchangeMailAndOfTheBookingMailComeBackToTheirPageAfterLogin(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/exchanges/{id}', ['page_controller', 'show']);
+        $router->add('GET', '/admin/bookings', ['page_controller', 'show']);
+        $container = new Container();
+        $container->set('page_controller', fn () => new class () {
+            public function show(): never
+            {
+                throw new UnauthenticatedException('Connexion requise.');
+            }
+        });
+        $kernel = $this->kernel($router, $container);
+
+        $exchange = $kernel->handle(new Request('GET', '/exchanges/12', [], [], []));
+        $bookings = $kernel->handle(new Request('GET', '/admin/bookings', [], [], []));
+        $evil = $kernel->handle(new Request('GET', '/exchanges/0012', [], [], []));
+
+        self::assertSame('/login?next=%2Fexchanges%2F12', $exchange->headers()['Location']);
+        self::assertSame('/login?next=%2Fadmin%2Fbookings', $bookings->headers()['Location']);
+        self::assertSame('/login', $evil->headers()['Location'], 'hors de la liste blanche : retour au tableau de bord');
+    }
+
+    #[Test]
 
     public function testHandleReturnsJson401WhenControllerThrowsUnauthenticatedOnApiRoute(): void
     {

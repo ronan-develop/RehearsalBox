@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** Retour après connexion : seules les pages de la messagerie sont des destinations permises (jamais de redirection ouverte). */
+/** Retour après connexion : seules les pages de la messagerie, de l'exploitation, d'un échange et des réservations à valider sont des destinations permises (jamais de redirection ouverte). */
 final class SafeRedirectTest extends TestCase
 {
     /** @return iterable<string, array{0: string}> */
@@ -25,6 +25,9 @@ final class SafeRedirectTest extends TestCase
         yield 'mesures' => ['/admin/metrics'];
         yield 'mesures, sécurité' => ['/admin/metrics/security'];
         yield 'mesures, charge' => ['/admin/metrics/load'];
+        yield 'demande d\'échange' => ['/exchanges/12'];
+        yield 'demande d\'échange à dix chiffres' => ['/exchanges/2147483647'];
+        yield 'réservations à valider' => ['/admin/bookings'];
     }
 
     #[Test]
@@ -59,6 +62,19 @@ final class SafeRedirectTest extends TestCase
         yield 'séparation d\'en-tête' => ["/messages/1\r\nSet-Cookie: x=1"];
         yield 'paramètres' => ['/messages/1?x=1'];
         yield 'fragment' => ['/messages/1#x'];
+        yield 'échange identifiant zéro' => ['/exchanges/0'];
+        yield 'échange avec zéros' => ['/exchanges/012'];
+        yield 'échange avec paramètre' => ['/exchanges/12?x=1'];
+        yield 'échange avec barre finale' => ['/exchanges/12/'];
+        yield 'échange sans identifiant' => ['/exchanges/'];
+        yield 'échange avec saut de ligne' => ["/exchanges/12\n"];
+        yield 'échange avec séparation d\'en-tête' => ["/exchanges/12\r\nSet-Cookie: x=1"];
+        yield 'échange encodé' => ['/exchanges/12%0d%0a'];
+        yield 'échange trop long' => ['/exchanges/12345678901'];
+        yield 'échange, sous-page' => ['/exchanges/12/respond'];
+        yield 'réservations avec identifiant' => ['/admin/bookings/1'];
+        yield 'réservations avec barre finale' => ['/admin/bookings/'];
+        yield 'réservations avec paramètre' => ['/admin/bookings?x=1'];
         yield 'tableau' => [['/messages/1']];
         yield 'null' => [null];
         yield 'vide' => [''];
