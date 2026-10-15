@@ -16,11 +16,6 @@ function pathFor(id) {
   return `/api/admin/texts/${id}`;
 }
 
-/** @returns {{ path: string, options: { method: string, body?: string } }} */
-export function createRequest(title, body) {
-  return { path: '/api/admin/texts', options: { method: 'POST', body: JSON.stringify({ title, body }) } };
-}
-
 export function updateRequest(id, revision, title, body) {
   return { path: pathFor(id), options: { method: 'PUT', body: JSON.stringify({ revision, title, body }) } };
 }

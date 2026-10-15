@@ -33,8 +33,7 @@
   font-size: 0.875rem;
 }
 
-/* Bloc de création et panneau de modification : une colonne, espacés. */
-.rb-text-create,
+/* Panneau de modification et de lecture : une colonne, espacés. */
 .rb-text-edit,
 .rb-text-view {
   display: grid;
@@ -42,8 +41,7 @@
   margin-bottom: var(--rb-space-4);
 }
 
-.rb-text-view > .rb-btn,
-.rb-text-create > .rb-btn {
+.rb-text-view > .rb-btn {
   width: 100%;
   text-align: center;
 }
@@ -81,7 +79,6 @@
 }
 
 @media (min-width: 768px) {
-  .rb-text-create > .rb-btn,
   .rb-text-view > .rb-btn {
     width: auto;
     justify-self: start;
