@@ -449,7 +449,7 @@ return static function (array $config): Container {
 
     $container->set(PlanningFragmentApiController::class, fn ($c) => new PlanningFragmentApiController(
         $c->get(AuthGuard::class),
-        new ExceptionalPlanningFragment($c->get(SlotServiceInterface::class), $c->get(TemplateRendererInterface::class)),
+        new ExceptionalPlanningFragment($c->get(SlotServiceInterface::class), $c->get(TemplateRendererInterface::class), $c->get(PlanningView::class), $c->get(GroupRepositoryInterface::class)),
     ));
 
     $container->set(PlanningView::class, fn ($c) => new PlanningView(

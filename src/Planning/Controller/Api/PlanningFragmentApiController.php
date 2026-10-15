@@ -20,8 +20,8 @@ final class PlanningFragmentApiController
 
     public function exceptional(Request $request): JsonResponse
     {
-        $this->authGuard->requireLogin();
+        $user = $this->authGuard->requireLogin();
 
-        return new JsonResponse($this->exceptional->render());
+        return new JsonResponse($this->exceptional->render($user->id()));
     }
 }
