@@ -1,12 +1,12 @@
 /**
- * Pages admin « Textes de l'association » : liste (création), affichage d'un texte, édition en place et suppression. Appelle l'API
- * (apiFetch, CSRF) et affiche le résultat. Aucun envoi de formulaire avec rechargement ; la navigation après création ou suppression
+ * Pages admin « Textes de l'association » : affichage d'un texte, édition en place et suppression. Appelle l'API
+ * (apiFetch, CSRF) et affiche le résultat. Aucun envoi de formulaire avec rechargement ; la navigation après suppression
  * est un changement de page.
  */
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { confirmAction } from '../../ui/rb-confirm-dialog.js';
-import { DELETE_WARNING, createRequest, deleteRequest, failureMessage, updateRequest } from './texts-requests.js';
+import { DELETE_WARNING, deleteRequest, failureMessage, updateRequest } from './texts-requests.js';
 
 const FIELDS = ['title', 'body'];
 
@@ -48,20 +48,6 @@ function fieldValue(scope, name) {
   return scope.querySelector(`[name="${name}"]`).value;
 }
 
-async function handleCreate(button) {
-  const scope = button.closest('[data-text-create]');
-  clearErrors(scope);
-  button.disabled = true;
-  try {
-    const { path, options } = createRequest(fieldValue(scope, 'title'), fieldValue(scope, 'body'));
-    const created = await apiFetch(path, options);
-    window.location.assign(created.url);
-  } catch (error) {
-    button.disabled = false;
-    reportFailure(scope, error);
-  }
-}
-
 function toggleEdit(section, editing) {
   section.querySelector('[data-text-view]').hidden = editing;
   section.querySelector('[data-text-edit]').hidden = !editing;
@@ -101,12 +87,6 @@ async function handleDelete(button) {
 
 export function initAdminTexts(root = document) {
   root.addEventListener('click', (event) => {
-    const create = event.target.closest('[data-text-create] [data-action="create"]');
-    if (create !== null) {
-      handleCreate(create);
-
-      return;
-    }
     const action = event.target.closest('[data-text] [data-action]');
     if (action === null) {
       return;
