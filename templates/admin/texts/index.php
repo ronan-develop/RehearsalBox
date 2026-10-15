@@ -37,20 +37,6 @@
         </ul>
         <p class="rb-admin-note"<?= $rows === [] ? '' : ' hidden' ?>>Aucun texte pour l'instant.</p>
 
-        <div class="rb-card rb-text-create" data-text-create>
-            <div class="rb-field">
-                <label for="text-create-title">Titre</label>
-                <input type="text" id="text-create-title" name="title" maxlength="150" class="rb-input">
-                <p class="rb-field-error" role="alert" data-field-error="title" hidden></p>
-            </div>
-            <div class="rb-field">
-                <label for="text-create-body">Texte</label>
-                <textarea id="text-create-body" name="body" maxlength="100000" rows="12" class="rb-input"></textarea>
-                <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>
-            </div>
-            <button type="button" class="rb-btn rb-btn-primary" data-action="create">Enregistrer le texte</button>
-            <p class="rb-field-error" role="alert" data-form-error hidden></p>
-        </div>
     </div>
 
     <?php require __DIR__ . '/../../partials/nav.php'; ?>
