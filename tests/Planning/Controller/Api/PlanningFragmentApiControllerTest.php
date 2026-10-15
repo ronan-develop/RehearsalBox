@@ -48,7 +48,12 @@ final class PlanningFragmentApiControllerTest extends RepositoryTestCase
         $this->slotService = new SlotService(new MysqlRecurringSlotRepository($this->pdo), $this->groups, $this->exceptions);
         $this->controller = new PlanningFragmentApiController(
             new AuthGuard($this->auth),
-            new ExceptionalPlanningFragment($this->slotService, new PhpTemplateRenderer(__DIR__ . '/../../../../templates')),
+            new ExceptionalPlanningFragment(
+                $this->slotService,
+                new PhpTemplateRenderer(__DIR__ . '/../../../../templates'),
+                new \App\Planning\Presenter\PlanningView($this->slotService, new \App\Planning\Presenter\PlanningDays(), new \Symfony\Component\Clock\Clock(), new \DateTimeZone('Europe/Paris')),
+                $this->groups,
+            ),
         );
     }
 
@@ -86,6 +91,26 @@ final class PlanningFragmentApiControllerTest extends RepositoryTestCase
         self::assertStringContainsString('Groupe Demandeur', $body['html']);
         self::assertStringContainsString('18:00 – 20:00', $body['html']);
         self::assertStringNotContainsString('role="button"', $body['html'], 'les cartes occasionnelles ne sont pas cliquables (#81)');
+    }
+
+    #[Test]
+    public function testItAlsoReturnsTheFixedPlanningSoTheNewSlotAppearsThereWithoutReload(): void
+    {
+        $holder = $this->groups->save(new Group(0, 'Titulaire', null, null, 'holder@example.test'));
+        $this->groups->addMember($holder->id(), $this->user->id());
+        $today = new \DateTimeImmutable('today');
+        $slot = $this->slotService->create($holder->id(), Weekday::from((int) $today->format('N') - 1), '18:00:00', '22:00:00');
+        $requesting = $this->groups->save(new Group(0, 'Groupe Demandeur', null, null, 'req@example.test'));
+        $exception = $this->exceptions->createRequest($slot->id(), $today, $requesting->id(), $this->user->id(), null, '19:00:00', '20:30:00');
+        $this->exceptions->respond($exception->id(), true, $this->user->id());
+        $this->auth->attempt('alice@rehearsalbox.test', 'fixture-secret');
+
+        $body = json_decode($this->controller->exceptional(new Request('GET', '/api/planning/exceptional', [], [], []))->body(), true);
+
+        self::assertStringContainsString('rb-planning-card--exceptional', $body['planningHtml']);
+        self::assertStringContainsString('</span>' . $today->format('d/m') . '</span>', $body['planningHtml']);
+        self::assertStringContainsString('Cédé à Groupe Demandeur le ' . $today->format('d/m') . ' (19:00 – 20:30)', $body['planningHtml']);
+        self::assertMatchesRegularExpression('/<rb-planning-card [^>]*group-name="Titulaire"[^>]* member>/', $body['planningHtml'], 'les cartes fixes gardent leur rôle (membre) pour la personne');
     }
 
     #[Test]

@@ -290,7 +290,7 @@ final class PageControllerTest extends RepositoryTestCase
     public function testDashboardShowsExceptionalSliderWithNonClickableCardsForAcceptedOccasionalSlot(): void
     {
         [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
-        $this->createLoggedInUser($userRepository, $authService);
+        $user = $this->createLoggedInUser($userRepository, $authService);
 
         $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
         $holderSlot = $slotService->create($holderGroup->id(), Weekday::Tuesday, '18:00:00', '20:00:00');
@@ -314,7 +314,7 @@ final class PageControllerTest extends RepositoryTestCase
 
         self::assertStringContainsString('data-planning-slider-exceptional', $response->body());
         self::assertStringContainsString('Groupe Demandeur', $response->body());
-        self::assertStringContainsString($monday->format('d/m/Y'), $response->body());
+        self::assertStringContainsString('</span>' . $monday->format('d/m') . '</span>', $response->body(), 'la date est dans la pastille');
 
         $exceptionalSection = substr(
             $response->body(),
@@ -325,9 +325,38 @@ final class PageControllerTest extends RepositoryTestCase
         self::assertStringNotContainsString('role="button"', $cardOpenTag);
 
         // #243 : la page et le fragment de rechargement affichent EXACTEMENT les mêmes cartes (un seul gabarit, plus de miroir JavaScript).
-        $fragment = (new \App\Planning\Presenter\ExceptionalPlanningFragment($slotService, new PhpTemplateRenderer(__DIR__ . '/../../templates')))->render();
+        $fragment = (new \App\Planning\Presenter\ExceptionalPlanningFragment(
+            $slotService,
+            new PhpTemplateRenderer(__DIR__ . '/../../templates'),
+            new PlanningView($slotService, new PlanningDays(), new \Symfony\Component\Clock\Clock(), new \DateTimeZone('Europe/Paris')),
+            $groupRepository,
+        ))->render($user->id());
         self::assertSame(1, $fragment['count']);
         self::assertStringContainsString($fragment['html'], $response->body());
+    }
+
+    #[Test]
+    public function testAnAcceptedExchangeAlsoAppearsInTheFixedPlanningWithADatePillAndMarksTheCededSlot(): void
+    {
+        [$controller, $groupRepository, $slotService, $userRepository, $authService, $exceptionRepository] = $this->makeController();
+        $this->createLoggedInUser($userRepository, $authService);
+        $holderGroup = $groupRepository->save(new Group(0, 'Groupe Titulaire', null, null, 'contact@example.test'));
+        $requestingGroup = $groupRepository->save(new Group(0, 'Groupe Demandeur', null, null, 'contact@example.test'));
+        $requester = $userRepository->save(new User(0, 'requester@rehearsalbox.test', 'x', 'Requester', UserRole::Musicien, true, 0, null));
+        $today = new \DateTimeImmutable('today');
+        $holderSlot = $slotService->create($holderGroup->id(), Weekday::from((int) $today->format('N') - 1), '18:00:00', '22:00:00');
+        $exception = $exceptionRepository->createRequest($holderSlot->id(), $today, $requestingGroup->id(), $requester->id(), null, '19:00:00', '20:30:00');
+        $exceptionRepository->respond($exception->id(), true, $requester->id());
+
+        $body = $controller->dashboard()->body();
+        $start = (int) strpos($body, 'data-planning-track>');
+        $planning = substr($body, $start, (int) strpos($body, 'id="planning-panel-exceptional"') - $start);
+
+        self::assertStringContainsString('rb-planning-card--exceptional', $planning, 'la carte occasionnelle est dans le planning fixe');
+        self::assertStringContainsString('</span>' . $today->format('d/m') . '</span>', $planning, 'la date est dans la pastille');
+        self::assertStringNotContainsString('>Occasionnel<', $body, 'plus de mot « Occasionnel » dans la pastille');
+        self::assertStringContainsString('Cédé à Groupe Demandeur le ' . $today->format('d/m') . ' (19:00 – 20:30)', $planning);
+        self::assertSame(1, substr_count($planning, 'role="button"'), 'seul le créneau fixe est cliquable');
     }
 
     #[Test]

@@ -10,10 +10,12 @@ function fakeSection(empty) {
   };
 }
 
-function fakeRoot({ section, count, track }) {
+function fakeRoot({ section, count, track, planningTrack = null, search = null }) {
   return {
     querySelector: (selector) => {
       if (selector === '[data-planning-track-exceptional]') return track;
+      if (selector === '[data-planning-track]') return planningTrack;
+      if (selector === '[data-planning-search]') return search;
       if (selector === '[data-exceptional-planning-section]') return section;
       if (selector === '[data-planning-tab-count]') return count;
       return null;
@@ -63,4 +65,27 @@ test('without the exceptional track on the page nothing is fetched', async () =>
   await refreshExceptionalPlanning({ querySelector: () => null });
 
   assert.equal(fetched, false);
+});
+
+test('the fixed planning is replaced by the server-rendered track too, and the search filter is applied again', async () => {
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ html: '<article></article>', count: 1, planningHtml: '<h3>Mercredi</h3>' }) });
+  const planningTrack = { innerHTML: '<h3>Ancien</h3>' };
+  const events = [];
+  const search = { dispatchEvent: (event) => events.push(event.type) };
+
+  await refreshExceptionalPlanning(fakeRoot({ section: fakeSection(true), count: { textContent: '0' }, track: { innerHTML: '' }, planningTrack, search }));
+
+  assert.equal(planningTrack.innerHTML, '<h3>Mercredi</h3>', 'le planning montre aussitôt le créneau accepté (#461)');
+  assert.deepEqual(events, ['input'], 'le filtre de recherche déjà saisi est réappliqué sur les nouvelles cartes');
+});
+
+test('a response without the planning, or a page without a planning track, leaves the planning untouched', async () => {
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ html: '', count: 0 }) });
+  const planningTrack = { innerHTML: '<h3>Intact</h3>' };
+
+  await refreshExceptionalPlanning(fakeRoot({ section: fakeSection(true), count: { textContent: '0' }, track: { innerHTML: '' }, planningTrack }));
+  assert.equal(planningTrack.innerHTML, '<h3>Intact</h3>');
+
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ html: '', count: 0, planningHtml: '<h3>X</h3>' }) });
+  await refreshExceptionalPlanning(fakeRoot({ section: fakeSection(true), count: { textContent: '0' }, track: { innerHTML: '' } }));
 });

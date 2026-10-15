@@ -64,7 +64,7 @@ final class DashboardViewTest extends RepositoryTestCase
         $groups->addMember($alpha->id(), $alice->id());
         $groups->addMember($beta->id(), $bob->id());
         $slot = (new SlotService($slots, $groups, $exceptions))->create($alpha->id(), Weekday::Wednesday, '18:00:00', '22:00:00');
-        foreach (['2026-10-14', '2026-10-21', '2026-10-28'] as $date) {
+        foreach (['wednesday next week', 'wednesday +2 weeks', 'wednesday +3 weeks'] as $date) { // jamais une date en dur : une demande passée n'est plus listée
             $exceptions->createRequest($slot->id(), new \DateTimeImmutable($date), $beta->id(), $bob->id(), null);
         }
         $counting = new CountingGroupRepository($groups);
@@ -92,5 +92,31 @@ final class DashboardViewTest extends RepositoryTestCase
         self::assertSame('AM', $data['currentUserInitials']);
         self::assertArrayHasKey($alpha->id(), $data['currentUserGroupRoles']);
         self::assertSame([], $data['sentExceptions']);
+    }
+
+    #[Test]
+    public function testAnAcceptedExchangeAppearsInTheFixedPlanningAndStaysInTheExceptionalList(): void
+    {
+        $groups = new MysqlGroupRepository($this->pdo);
+        $slots = new MysqlRecurringSlotRepository($this->pdo);
+        $exceptions = new MysqlSlotExceptionRepository($this->pdo);
+        $users = new MysqlUserRepository($this->pdo);
+        $alice = $users->save(new User(0, 'alice@rehearsalbox.test', 'x', 'Alice', UserRole::Musicien, true, 0, null));
+        $bob = $users->save(new User(0, 'bob@rehearsalbox.test', 'x', 'Bob', UserRole::Musicien, true, 0, null));
+        $alpha = $groups->save(new Group(0, 'Alpha', null, null, 'alpha@example.test'));
+        $beta = $groups->save(new Group(0, 'Beta', null, null, 'beta@example.test'));
+        $groups->addMember($alpha->id(), $alice->id());
+        $groups->addMember($beta->id(), $bob->id());
+        $holderSlot = (new SlotService($slots, $groups, $exceptions))->create($alpha->id(), Weekday::Sunday, '18:00:00', '22:00:00');
+        $sunday = new \DateTimeImmutable('sunday this week');
+        $request = $exceptions->createRequest($holderSlot->id(), $sunday, $beta->id(), $bob->id(), null, '19:00:00', '20:00:00');
+        $exceptions->respond($request->id(), true, $alice->id(), $sunday);
+
+        $data = $this->viewOver($groups)->for($alice);
+
+        self::assertCount(1, $data['exceptionalPlanningSlots'], 'l\'onglet dédié garde son affichage');
+        $day = $data['planningDays'][0];
+        self::assertSame(['Alpha', 'Beta'], array_map(static fn ($slot): string => $slot->groupName(), $day->slots()));
+        self::assertSame('Beta', $day->cessionsFor($day->slots()[0])[0]->groupName());
     }
 }

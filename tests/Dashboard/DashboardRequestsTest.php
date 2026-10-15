@@ -157,7 +157,7 @@ final class DashboardRequestsTest extends RepositoryTestCase
     public function testAGroupExchangeIsLabelledAsAnExchangeAndNamesTheGroupThatMustValidate(): void
     {
         $slot = $this->slotService->create($this->betaId, Weekday::Wednesday, '18:00:00', '22:00:00');
-        $this->exceptions->createRequest($slot->id(), new \DateTimeImmutable('2026-10-14'), $this->alphaId, $this->aliceId, null);
+        $this->exceptions->createRequest($slot->id(), new \DateTimeImmutable('wednesday next week'), $this->alphaId, $this->aliceId, null); // jamais une date en dur : une demande passée n'est plus listée
         $this->login('alice');
 
         $sent = $this->deck('sent');
@@ -176,7 +176,7 @@ final class DashboardRequestsTest extends RepositoryTestCase
     public function testBookingsAndExchangesAreMixedByMostRecentFirstInTheSameColumn(): void
     {
         $slot = $this->slotService->create($this->betaId, Weekday::Wednesday, '18:00:00', '22:00:00');
-        $this->exceptions->createRequest($slot->id(), new \DateTimeImmutable('2026-10-14'), $this->alphaId, $this->aliceId, null);
+        $this->exceptions->createRequest($slot->id(), new \DateTimeImmutable('wednesday next week'), $this->alphaId, $this->aliceId, null); // jamais une date en dur : une demande passée n'est plus listée
         $this->service->request($this->aliceId, $this->alphaId, new \DateTimeImmutable('2026-10-20'), '19:00', '20:00', null);
         $this->login('alice');
 
