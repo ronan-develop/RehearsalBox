@@ -257,6 +257,16 @@ final class AssemblyServiceTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheConfiguredFullNameOfTheHolderIsStoredInsteadOfTheAccountName(): void
+    {
+        $service = $this->serviceWithRoster(new AssemblyBoardRoster(['president' => $this->president->email()], ['president' => 'Pierre Dupont']));
+        $id = $service->create($this->admin, ['kind' => 'ordinaire', 'heldOn' => '2026-10-10'], $this->now);
+        $service->saveDraft($this->admin, $id, 0, $this->input(['board' => ['president' => $this->president->id()]]), $this->now);
+
+        self::assertSame('Pierre Dupont', $this->reader->minutes($this->admin, $id)['content']->board['president']->name);
+    }
+
+    #[Test]
     public function testARestrictedPostRefusesAnyOtherAccountServerSide(): void
     {
         $service = $this->serviceWithRoster(new AssemblyBoardRoster(['president' => $this->president->email(), 'tresorier' => $this->treasurer->email()]));

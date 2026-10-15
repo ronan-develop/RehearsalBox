@@ -68,4 +68,21 @@ final class AssemblyBoardRosterTest extends TestCase
         self::assertFalse($roster->isRestricted(BoardPost::President));
         self::assertFalse($roster->isRestricted(BoardPost::Tresorier));
     }
+
+    #[Test]
+    public function testAHolderIsNamedByTheConfigurationOnlyWhenTheAccountMatches(): void
+    {
+        $roster = new AssemblyBoardRoster(
+            ['president' => 'pres@x.test', 'tresorier' => 'tres@x.test'],
+            ['president' => '  Prénom Nom ', 'tresorier' => '', 'secretaire' => 'Sans titulaire'],
+        );
+        $pres = $this->user(1, 'PRES@x.test');
+        $other = $this->user(3, 'autre@x.test');
+
+        self::assertSame('Prénom Nom', $roster->nameFor(BoardPost::President, $pres));
+        self::assertNull($roster->nameFor(BoardPost::President, $other), 'un autre compte n\'hérite pas du nom');
+        self::assertNull($roster->nameFor(BoardPost::Tresorier, $this->user(2, 'tres@x.test')), 'nom vide : pseudo du compte');
+        self::assertNull($roster->nameFor(BoardPost::Secretaire, $other), 'poste libre : le nom configuré est ignoré');
+        self::assertSame(['president' => 'Prénom Nom'], $roster->names());
+    }
 }
