@@ -88,6 +88,20 @@ final class DashboardView
         ];
     }
 
+    /** Une seule demande, pour sa page (#462) : la même carte que sur le tableau de bord, sans reconstruire tout le bloc. */
+    public function itemFor(SlotException $exception, ExceptionDirection $direction): DashboardExceptionItem
+    {
+        $slotsById = [];
+        foreach ($this->slots->findAllActive() as $slot) {
+            if ($slot->id() === $exception->recurringSlotId()) {
+                $slotsById[$slot->id()] = $slot;
+            }
+        }
+        $groupsById = [];
+
+        return $this->toItem($exception, $direction, $slotsById, $groupsById);
+    }
+
     /**
      * Plus récent d'abord ; à created_at égal (même seconde), l'id le plus grand (créé en dernier) passe en premier, pour un ordre déterministe.
      *

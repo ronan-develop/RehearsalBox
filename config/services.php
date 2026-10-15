@@ -64,6 +64,7 @@ use App\Planning\Controller\Api\AvailabilityApiController;
 use App\Planning\Controller\AdminBookingPageController;
 use App\Group\Controller\AdminGroupPageController;
 use App\Planning\Controller\BookingPageController;
+use App\Planning\Controller\ExchangePageController;
 use App\Account\Controller\AdminUserPageController;
 use App\Messaging\Controller\Api\ConversationApiController;
 use App\Messaging\Controller\Api\DirectConversationApiController;
@@ -438,13 +439,23 @@ return static function (array $config): Container {
         $c->get(SlotServiceInterface::class),
         $c->get(GroupServiceInterface::class),
         $c->get(GroupDocumentRepositoryInterface::class),
-        new DashboardView(
-            $c->get(AvailabilityServiceInterface::class),
-            $c->get(GroupRepositoryInterface::class),
-            $c->get(SlotServiceInterface::class),
-            $c->get(PlanningView::class),
-            new DashboardBookings($c->get(FreeSlotBookingService::class)),
-        ),
+        $c->get(DashboardView::class),
+    ));
+
+    $container->set(DashboardView::class, fn ($c) => new DashboardView(
+        $c->get(AvailabilityServiceInterface::class),
+        $c->get(GroupRepositoryInterface::class),
+        $c->get(SlotServiceInterface::class),
+        $c->get(PlanningView::class),
+        new DashboardBookings($c->get(FreeSlotBookingService::class)),
+    ));
+
+    $container->set(ExchangePageController::class, fn ($c) => new ExchangePageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(AvailabilityServiceInterface::class),
+        $c->get(DashboardView::class),
     ));
 
     $container->set(PlanningFragmentApiController::class, fn ($c) => new PlanningFragmentApiController(

@@ -19,6 +19,8 @@ function removeExceptionCard(root, exceptionId) {
   if (deck) {
     renumberDeck(deck);
   }
+  // Page d'une demande (#462) : la carte partie, la confirmation et le lien de retour prennent sa place.
+  root.querySelector('[data-exchange-done]')?.removeAttribute('hidden');
 }
 
 export function getCurrentGroupId(root = document) {

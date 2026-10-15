@@ -28,6 +28,7 @@ use App\Group\Controller\Api\GroupDocumentApiController;
 use App\Group\Controller\Api\GroupSpaceApiController;
 use App\Account\Controller\Api\PasswordResetApiController;
 use App\Planning\Controller\Api\PlanningFragmentApiController;
+use App\Planning\Controller\ExchangePageController;
 use App\Planning\Controller\Api\SlotApiController;
 use App\Messaging\Controller\MessagesPageController;
 use App\Controller\PageController;
@@ -52,6 +53,7 @@ return [
         ['GET', '/admin/metrics/security', [MetricsPageController::class, 'security']],
         ['GET', '/admin/metrics/load', [MetricsPageController::class, 'load']],
         ['GET', '/bookings', [BookingPageController::class, 'index']],
+        ['GET', '/exchanges/{id}', [ExchangePageController::class, 'show']],
         ['GET', '/groups/{slug}/space', [PageController::class, 'groupSpace']],
         ['GET', '/messages', [MessagesPageController::class, 'list']],
         ['GET', '/messages/archives', [MessagesPageController::class, 'archives']],
