@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Assembly\Exception\AssemblyLockedException;
+use App\Assembly\Exception\AssemblyNotFoundException;
+use App\Assembly\Exception\AssemblyValidationException;
 use App\Group\Exception\DuplicateGroupNameException;
 use App\Planning\Exception\DuplicateOccurrenceException;
 use App\Planning\Exception\AvailabilityValidationException;
@@ -38,6 +41,7 @@ final class ExceptionTranslator
             $e instanceof ConversationValidationException,
             $e instanceof GroupValidationException => new JsonResponse(['error' => $e->getMessage(), 'fields' => $e->fields()], 422),
             $e instanceof UserValidationException,
+            $e instanceof AssemblyValidationException,
             $e instanceof AvailabilityValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
             $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED),
             $e instanceof RateLimitedException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED, ['Retry-After' => (string) $e->retryAfterSeconds()]),
@@ -47,6 +51,7 @@ final class ExceptionTranslator
             $e instanceof UserAdminRuleException,
             $e instanceof LastGroupManagerException => new JsonResponse(['error' => $e->getMessage()], 422),
             $e instanceof FreeSlotBookingConflictException,
+            $e instanceof AssemblyLockedException,
             $e instanceof RequestAlreadyRespondedException,
             $e instanceof RequestChangedException,
             $e instanceof DuplicateOccurrenceException,
@@ -54,6 +59,7 @@ final class ExceptionTranslator
             $e instanceof StorageQuotaExceededException => new JsonResponse(['error' => $e->getMessage()], 409),
             // Le message nomme l'identifiant demandé : il n'est jamais renvoyé.
             $e instanceof UserNotFoundException => new JsonResponse(['error' => 'Utilisateur introuvable.'], 404),
+            $e instanceof AssemblyNotFoundException => new JsonResponse(['error' => 'Compte rendu introuvable.'], 404),
             default => null,
         };
     }

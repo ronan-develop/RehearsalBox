@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Http;
 
+use App\Assembly\Exception\AssemblyLockedException;
+use App\Assembly\Exception\AssemblyNotFoundException;
+use App\Assembly\Exception\AssemblyValidationException;
 use App\Http\ExceptionTranslator;
 use App\Group\Exception\DuplicateGroupNameException;
 use App\Planning\Exception\DuplicateOccurrenceException;
@@ -42,6 +45,9 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'changement d\'adresse' => [new InvalidEmailChangeException(), 422, ['error' => (new InvalidEmailChangeException())->getMessage()]];
         yield 'fichier refusé' => [new InvalidUploadException('Type non autorisé.'), 422, ['error' => 'Type non autorisé.']];
         yield 'règle d\'administration' => [new UserAdminRuleException('Dernier administrateur.'), 422, ['error' => 'Dernier administrateur.']];
+        yield 'compte rendu incomplet' => [new AssemblyValidationException(['location' => 'Lieu requis.']), 422, ['error' => 'Validation échouée', 'fields' => ['location' => 'Lieu requis.']]];
+        yield 'compte rendu validé ou modifié' => [new AssemblyLockedException(), 409, ['error' => (new AssemblyLockedException())->getMessage()]];
+        yield 'compte rendu introuvable' => [new AssemblyNotFoundException(), 404, ['error' => 'Compte rendu introuvable.']];
         yield 'demande déjà traitée' => [new RequestAlreadyRespondedException('Déjà traitée.'), 409, ['error' => 'Déjà traitée.']];
         yield 'demande modifiée entre-temps' => [new RequestChangedException(), 409, ['error' => (new RequestChangedException())->getMessage()]];
         yield 'nom de groupe déjà pris' => [new DuplicateGroupNameException(), 409, ['error' => (new DuplicateGroupNameException())->getMessage()]];
