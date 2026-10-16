@@ -7,7 +7,7 @@ import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { confirmAction } from '../../ui/rb-confirm-dialog.js';
 import { PREFIXES, linePrefix, toggleLinePrefix } from './texts-format.js';
-import { DELETE_WARNING, createRequest, deleteRequest, printStamp, failureMessage, updateRequest } from './texts-requests.js';
+import { DELETE_WARNING, createRequest, deleteRequest, failureMessage, updateRequest } from './texts-requests.js';
 
 const FIELDS = ['title', 'body'];
 
@@ -134,15 +134,7 @@ async function handleDelete(button) {
   }
 }
 
-/** Pose la date du jour dans le cachet juste avant l'impression, que le bouton ou Ctrl+P la déclenche. */
-function stampPrintouts() {
-  for (const stamp of document.querySelectorAll('[data-print-stamp]')) {
-    stamp.textContent = printStamp(new Date());
-  }
-}
-
 export function initAdminTexts(root = document) {
-  window.addEventListener('beforeprint', stampPrintouts);
   // L'interrupteur suit le curseur : clavier, souris ou saisie, la ligne courante décide de ce qui est allumé.
   for (const type of ['keyup', 'click', 'input', 'focusin']) {
     root.addEventListener(type, (event) => {

@@ -33,7 +33,6 @@ $textId = (string) $text['id'];
                     <button type="button" class="rb-btn" data-action="edit">Modifier</button>
                     <button type="button" class="rb-btn" data-action="print">Imprimer</button>
                 </div>
-                <p class="rb-text-print-stamp" data-print-stamp></p>
             </div>
 
             <div class="rb-card rb-text-edit" data-text-edit hidden>

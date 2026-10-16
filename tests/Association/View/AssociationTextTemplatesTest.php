@@ -74,12 +74,12 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testTheShowPageOffersAPrintButtonAndAPrintOnlyStamp(): void
+    public function testTheShowPageOffersAPrintButtonAndNoPrintStamp(): void
     {
         $html = $this->render('admin/texts/show', ['text' => $this->text()]);
 
         self::assertMatchesRegularExpression('#<div class="rb-text-view-actions">\s*<button[^>]*data-action="edit">Modifier</button>\s*<button type="button" class="rb-btn" data-action="print">Imprimer</button>\s*</div>#', $html, 'Modifier et Imprimer sur la même ligne');
-        self::assertMatchesRegularExpression('#<p class="rb-text-print-stamp" data-print-stamp[^>]*></p>#', $html);
+        self::assertStringNotContainsString('print-stamp', $html, 'pas de « Imprimé le »');
     }
 
     #[Test]
