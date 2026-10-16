@@ -90,7 +90,7 @@ test('renderGroupsHtml : aucun groupe disponible => pas de ligne d\'ajout ni de 
     userGroups: [{ id: 1, name: 'Alpha', role: 'membre' }],
     allGroups: [{ id: 1, name: 'Alpha' }],
   });
-  assert.ok(html.includes('class="rb-user-group-row" data-group-id="1"'));
+  assert.ok(html.includes('class="rb-user-group-row rb-card" data-group-id="1"'));
   assert.ok(html.includes('data-user-group-remove'));
   assert.ok(!html.includes('data-user-group-add'));
   assert.ok(!html.includes('data-user-group-move'));
@@ -107,22 +107,43 @@ test('renderGroupsHtml : le bon rôle est sélectionné pour chaque ligne', () =
   assert.doesNotMatch(html, /<option value="membre" selected>/);
 });
 
-test('renderGroupsHtml : une ligne par groupe, déplacement et ajout si des groupes sont disponibles', () => {
+test('renderGroupsHtml : une carte par groupe, déplacement et ajout si des groupes sont disponibles', () => {
   const html = renderGroupsHtml({
     userId: 3,
     userGroups: [{ id: 2, name: 'Beta', role: 'membre' }],
     allGroups: ALL,
   });
-  assert.match(html, /<li class="rb-user-group-row" data-group-id="2">/);
-  assert.match(html, /<select data-user-group-role aria-label="Rôle dans Beta">/);
+  assert.match(html, /<li class="rb-user-group-row rb-card" data-group-id="2">/);
+  assert.match(html, /<span class="rb-user-group-name">Beta<\/span>/);
+  assert.match(html, /<select class="rb-input" data-user-group-role aria-label="Rôle dans Beta">/);
   assert.match(html, /<button type="button" class="rb-btn rb-btn-danger" data-user-group-remove>Retirer<\/button>/);
-  assert.match(html, /<select data-user-group-target aria-label="Changer de groupe">/);
+  assert.match(html, /<select class="rb-input" data-user-group-target aria-label="Changer de groupe">/);
   assert.match(html, /Changer de groupe vers…/);
   assert.match(html, /<button type="button" class="rb-btn" data-user-group-move>Déplacer<\/button>/);
-  assert.match(html, /<select data-user-group-add-target>/);
-  assert.match(html, /Ajouter à un groupe…/);
-  assert.match(html, /<select data-user-group-add-role>/);
-  assert.match(html, /<button type="button" class="rb-btn" data-user-group-add>Ajouter<\/button>/);
+  assert.match(html, /<div class="rb-user-group-add rb-card">/);
+  assert.match(html, /<label for="rb-ug-add-target-3">Groupe<\/label>\s*<select id="rb-ug-add-target-3" class="rb-input" data-user-group-add-target>/);
+  assert.match(html, /<label for="rb-ug-add-role-3">Rôle<\/label>\s*<select id="rb-ug-add-role-3" class="rb-input" data-user-group-add-role>/);
+  assert.match(html, /<button type="button" class="rb-btn rb-btn-primary" data-user-group-add>Ajouter<\/button>/);
   assert.match(html, /<option value="1">Alpha<\/option>/);
   assert.doesNotMatch(html, /<option value="2">Beta<\/option>/);
+});
+
+test('renderGroupsHtml : aucun select nu, aucun style en ligne, aucune classe partagée avec la liste d\'étiquettes', () => {
+  const html = renderGroupsHtml({
+    userId: 3,
+    userGroups: [{ id: 2, name: 'Beta', role: 'membre' }, { id: 1, name: 'Alpha', role: 'gestionnaire' }],
+    allGroups: [...ALL, { id: 9, name: 'Gamma' }],
+  });
+  for (const tag of html.match(/<select[^>]*>/g)) {
+    assert.match(tag, /class="rb-input"/, `select nu : ${tag}`);
+  }
+  assert.doesNotMatch(html, /style=/);
+  assert.doesNotMatch(html, /class="rb-user-groups"/, 'les étiquettes du résumé utilisent déjà rb-user-groups');
+  assert.match(html, /<div class="rb-group-manager" data-user-id="3">/);
+});
+
+test('renderGroupsHtml : les identifiants des libellés sont uniques par personne et échappés', () => {
+  const html = renderGroupsHtml({ userId: '3"><x', userGroups: [], allGroups: ALL });
+  assert.ok(!html.includes('"><x'));
+  assert.match(html, /for="rb-ug-add-target-3&quot;&gt;&lt;x"/);
 });

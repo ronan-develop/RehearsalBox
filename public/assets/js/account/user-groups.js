@@ -63,34 +63,46 @@ function groupOptions(groups) {
   return groups.map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join('');
 }
 
-/** HTML du composant <rb-user-groups> : lignes des groupes de la personne, puis déplacement et ajout si des groupes sont libres. */
+/** HTML du composant <rb-user-groups> : une carte par groupe de la personne, puis une carte d'ajout si des groupes sont libres. */
 export function renderGroupsHtml({ userId, userGroups, allGroups }) {
   const groups = validGroups(userGroups);
   const available = availableGroups(groups, allGroups);
+  const id = escapeHtml(userId);
 
   const rows = groups.map((group) => {
     const name = escapeHtml(group.name);
     const move = available.length > 0
-      ? `<select data-user-group-target aria-label="Changer de groupe"><option value="">Changer de groupe vers…</option>${groupOptions(available)}</select>`
+      ? '<div class="rb-user-group-move">'
+        + `<select class="rb-input" data-user-group-target aria-label="Changer de groupe"><option value="">Changer de groupe vers…</option>${groupOptions(available)}</select>`
         + '<button type="button" class="rb-btn" data-user-group-move>Déplacer</button>'
+        + '</div>'
       : '';
 
-    return `<li class="rb-user-group-row" data-group-id="${escapeHtml(group.id)}">`
-      + `<span>${name}</span>`
-      + `<select data-user-group-role aria-label="Rôle dans ${name}">${roleOptions(group.role)}</select>`
+    return `<li class="rb-user-group-row rb-card" data-group-id="${escapeHtml(group.id)}">`
+      + '<div class="rb-user-group-head">'
+      + `<span class="rb-user-group-name">${name}</span>`
+      + `<select class="rb-input" data-user-group-role aria-label="Rôle dans ${name}">${roleOptions(group.role)}</select>`
       + '<button type="button" class="rb-btn rb-btn-danger" data-user-group-remove>Retirer</button>'
+      + '</div>'
       + move
       + '</li>';
   });
 
   const list = rows.length > 0 ? `<ul class="rb-user-group-list">${rows.join('')}</ul>` : '<p class="rb-admin-note">Aucun groupe</p>';
   const add = available.length > 0
-    ? '<div class="rb-user-group-add">'
-      + `<select data-user-group-add-target><option value="">Ajouter à un groupe…</option>${groupOptions(available)}</select>`
-      + '<select data-user-group-add-role><option value="membre">Membre</option><option value="gestionnaire">Gestionnaire</option></select>'
-      + '<button type="button" class="rb-btn" data-user-group-add>Ajouter</button>'
+    ? '<div class="rb-user-group-add rb-card">'
+      + '<p class="rb-user-group-add-title">Ajouter à un groupe</p>'
+      + '<div class="rb-field">'
+      + `<label for="rb-ug-add-target-${id}">Groupe</label>`
+      + `<select id="rb-ug-add-target-${id}" class="rb-input" data-user-group-add-target><option value="">Choisir un groupe…</option>${groupOptions(available)}</select>`
+      + '</div>'
+      + '<div class="rb-field">'
+      + `<label for="rb-ug-add-role-${id}">Rôle</label>`
+      + `<select id="rb-ug-add-role-${id}" class="rb-input" data-user-group-add-role>${roleOptions('membre')}</select>`
+      + '</div>'
+      + '<button type="button" class="rb-btn rb-btn-primary" data-user-group-add>Ajouter</button>'
       + '</div>'
     : '';
 
-  return `<div class="rb-user-groups" data-user-id="${escapeHtml(userId)}">${list}${add}</div>`;
+  return `<div class="rb-group-manager" data-user-id="${id}">${list}${add}</div>`;
 }
