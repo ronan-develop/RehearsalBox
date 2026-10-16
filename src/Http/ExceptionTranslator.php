@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Accounting\Exception\AccountingValidationException;
+use App\Accounting\Exception\EntryNotFoundException;
+use App\Accounting\Exception\FiscalYearChangedException;
+use App\Accounting\Exception\FiscalYearLockedException;
+use App\Accounting\Exception\FiscalYearNotFoundException;
 use App\Association\Exception\AssociationBoardNotFoundException;
 use App\Association\Exception\AssociationBoardValidationException;
 use App\Association\Exception\AssociationTextChangedException;
@@ -49,6 +54,7 @@ final class ExceptionTranslator
             $e instanceof AssemblyValidationException,
             $e instanceof AssociationTextValidationException,
             $e instanceof AssociationBoardValidationException,
+            $e instanceof AccountingValidationException,
             $e instanceof AvailabilityValidationException => new JsonResponse(['error' => 'Validation échouée', 'fields' => $e->fields()], 422),
             $e instanceof ConversationRateLimitException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED),
             $e instanceof RateLimitedException => new JsonResponse(['error' => $e->getMessage()], Response::RATE_LIMITED, ['Retry-After' => (string) $e->retryAfterSeconds()]),
@@ -60,6 +66,8 @@ final class ExceptionTranslator
             $e instanceof FreeSlotBookingConflictException,
             $e instanceof AssemblyLockedException,
             $e instanceof AssociationTextChangedException,
+            $e instanceof FiscalYearLockedException,
+            $e instanceof FiscalYearChangedException,
             $e instanceof RequestAlreadyRespondedException,
             $e instanceof RequestChangedException,
             $e instanceof DuplicateOccurrenceException,
@@ -67,6 +75,8 @@ final class ExceptionTranslator
             $e instanceof StorageQuotaExceededException => new JsonResponse(['error' => $e->getMessage()], 409),
             // Le message nomme l'identifiant demandé : il n'est jamais renvoyé.
             $e instanceof UserNotFoundException => new JsonResponse(['error' => 'Utilisateur introuvable.'], 404),
+            $e instanceof FiscalYearNotFoundException => new JsonResponse(['error' => 'Exercice introuvable.'], 404),
+            $e instanceof EntryNotFoundException => new JsonResponse(['error' => 'Écriture introuvable.'], 404),
             $e instanceof AssociationBoardNotFoundException => new JsonResponse(['error' => 'Poste introuvable.'], 404),
             $e instanceof AssociationTextNotFoundException => new JsonResponse(['error' => 'Texte introuvable.'], 404),
             $e instanceof AssemblyNotFoundException => new JsonResponse(['error' => 'Compte rendu introuvable.'], 404),

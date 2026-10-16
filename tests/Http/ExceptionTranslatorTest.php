@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Http;
 
 use App\Association\Exception\AssociationTextChangedException;
+use App\Accounting\Exception\AccountingValidationException;
+use App\Accounting\Exception\EntryNotFoundException;
+use App\Accounting\Exception\FiscalYearChangedException;
+use App\Accounting\Exception\FiscalYearLockedException;
+use App\Accounting\Exception\FiscalYearNotFoundException;
 use App\Association\Exception\AssociationBoardNotFoundException;
 use App\Association\Exception\AssociationBoardValidationException;
 use App\Association\Exception\AssociationTextNotFoundException;
@@ -56,6 +61,11 @@ final class ExceptionTranslatorTest extends TestCase
         yield 'texte modifié entre-temps' => [new AssociationTextChangedException(), 409, ['error' => (new AssociationTextChangedException())->getMessage()]];
         yield 'poste du bureau refusé' => [new AssociationBoardValidationException(['userId' => 'Choisissez un compte actif.']), 422, ['error' => 'Validation échouée', 'fields' => ['userId' => 'Choisissez un compte actif.']]];
         yield 'poste du bureau introuvable' => [new AssociationBoardNotFoundException(), 404, ['error' => 'Poste introuvable.']];
+        yield 'écriture comptable refusée' => [new AccountingValidationException(['amount' => 'Montant invalide.']), 422, ['error' => 'Validation échouée', 'fields' => ['amount' => 'Montant invalide.']]];
+        yield 'exercice clos' => [new FiscalYearLockedException(), 409, ['error' => 'Cet exercice n\'est plus ouvert : aucune écriture n\'y est possible.']];
+        yield 'exercice modifié entre-temps' => [new FiscalYearChangedException(), 409, ['error' => 'Cet exercice a été modifié entre-temps : rechargez la page.']];
+        yield 'exercice introuvable' => [new FiscalYearNotFoundException(), 404, ['error' => 'Exercice introuvable.']];
+        yield 'écriture introuvable' => [new EntryNotFoundException(), 404, ['error' => 'Écriture introuvable.']];
         yield 'texte introuvable' => [new AssociationTextNotFoundException(), 404, ['error' => 'Texte introuvable.']];
         yield 'compte rendu introuvable' => [new AssemblyNotFoundException(), 404, ['error' => 'Compte rendu introuvable.']];
         yield 'demande déjà traitée' => [new RequestAlreadyRespondedException('Déjà traitée.'), 409, ['error' => 'Déjà traitée.']];
