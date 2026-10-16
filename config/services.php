@@ -4,7 +4,18 @@ declare(strict_types=1);
 
 use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Controller\Api\RecurringApiController;
 use App\Accounting\Controller\Api\StatementApiController;
+use App\Accounting\Controller\RecurringPageController;
+use App\Accounting\Presenter\RecurringView;
+use App\Accounting\Repository\MysqlRecurringOccurrenceRepository;
+use App\Accounting\Repository\MysqlRecurringTemplateRepository;
+use App\Accounting\Repository\RecurringOccurrenceRepositoryInterface;
+use App\Accounting\Repository\RecurringTemplateRepositoryInterface;
+use App\Accounting\Service\Recurring\RecurrenceSchedule;
+use App\Accounting\Service\Recurring\RecurringOccurrenceService;
+use App\Accounting\Service\Recurring\RecurringTemplateService;
+use App\Accounting\Service\Recurring\TemplateInputPolicy;
 use App\Accounting\Controller\StatementPageController;
 use App\Accounting\Presenter\StatementListView;
 use App\Accounting\Repository\MysqlStatementRepository;
@@ -732,6 +743,42 @@ return static function (array $config): Container {
         $c->get(FiscalYearService::class),
         $c->get(StatementService::class),
         new StatementListView(new MoneyFormatter()),
+    ));
+
+    $container->set(RecurringTemplateRepositoryInterface::class, fn ($c) => new MysqlRecurringTemplateRepository($c->get(PDO::class)));
+    $container->set(RecurringOccurrenceRepositoryInterface::class, fn ($c) => new MysqlRecurringOccurrenceRepository($c->get(PDO::class)));
+
+    $container->set(RecurringTemplateService::class, fn ($c) => new RecurringTemplateService(
+        $c->get(AdminAccess::class),
+        new TemplateInputPolicy(new AccountingAmountParser()),
+        $c->get(RecurringTemplateRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(RecurringOccurrenceService::class, fn ($c) => new RecurringOccurrenceService(
+        $c->get(AdminAccess::class),
+        $c->get(RecurringTemplateRepositoryInterface::class),
+        $c->get(RecurringOccurrenceRepositoryInterface::class),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryService::class),
+        new RecurrenceSchedule(),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(RecurringApiController::class, fn ($c) => new RecurringApiController(
+        $c->get(RecurringTemplateService::class),
+        $c->get(RecurringOccurrenceService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(RecurringPageController::class, fn ($c) => new RecurringPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(FiscalYearService::class),
+        $c->get(RecurringTemplateService::class),
+        $c->get(RecurringOccurrenceService::class),
+        new RecurringView(new MoneyFormatter()),
     ));
 
     $container->set(AssociationBoardRepositoryInterface::class, fn ($c) => new MysqlAssociationBoardRepository($c->get(PDO::class)));

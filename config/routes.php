@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Controller\Api\RecurringApiController;
 use App\Accounting\Controller\Api\StatementApiController;
+use App\Accounting\Controller\RecurringPageController;
 use App\Accounting\Controller\StatementPageController;
 use App\Association\Controller\Api\AssociationBoardApiController;
 use App\Association\Controller\Api\AssociationTextApiController;
@@ -61,6 +63,7 @@ return [
         ['GET', '/admin/assemblies/{id}', [AssemblyPageController::class, 'edit']],
         ['GET', '/admin/assemblies/{id}/print', [AssemblyPageController::class, 'print']],
         ['GET', '/admin/accounting', [AccountingPageController::class, 'index']],
+        ['GET', '/admin/accounting/recurring', [RecurringPageController::class, 'index']],
         ['GET', '/admin/accounting/statements', [StatementPageController::class, 'index']],
         ['GET', '/admin/accounting/statements/{id}/file', [StatementPageController::class, 'download']],
         ['GET', '/admin/board', [AssociationBoardPageController::class, 'index']],
@@ -125,6 +128,10 @@ return [
         ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
         ['POST',   '/api/admin/accounting/years', [AccountingApiController::class, 'createYear']],
         ['POST',   '/api/admin/accounting/statements', [StatementApiController::class, 'store']],
+        ['POST',   '/api/admin/accounting/recurring', [RecurringApiController::class, 'create']],
+        ['PUT',    '/api/admin/accounting/recurring/{id}', [RecurringApiController::class, 'update']],
+        ['POST',   '/api/admin/accounting/recurring/{id}/confirm', [RecurringApiController::class, 'confirm']],
+        ['POST',   '/api/admin/accounting/recurring/{id}/ignore', [RecurringApiController::class, 'ignore']],
         ['POST',   '/api/admin/accounting/years/{id}/entries', [AccountingApiController::class, 'recordEntry']],
         ['POST',   '/api/admin/accounting/years/{id}/close', [AccountingApiController::class, 'closeYear']],
         ['POST',   '/api/admin/accounting/years/{id}/approve', [AccountingApiController::class, 'approveYear']],
