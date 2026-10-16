@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, confirmOccurrenceRequest, ignoreOccurrenceRequest, templateRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 test('chaque requête vise la bonne route et ne porte que les champs attendus', () => {
   assert.deepEqual(createYearRequest({ label: '2025-2026', startsOn: '2025-10-01', endsOn: '2026-09-30', openingBalance: '100,00', role: 'admin' }), {
@@ -62,4 +62,28 @@ test('le dépôt d\'un relevé part en multipart avec les seuls champs attendus,
   assert.equal(depositStatementRequest('4', { periodStart: 'a', periodEnd: 'b', replaces: '7' }, file).options.body.get('replaces'), '7');
   assert.throws(() => depositStatementRequest('4x', {}, file));
   assert.throws(() => depositStatementRequest('4', { replaces: '0' }, file));
+});
+
+test('modèle récurrent : création en POST, modification en PUT, case décochée = false, identifiant contrôlé', () => {
+  const values = { label: 'Loyer', direction: 'depense', category: 'loyer', paymentMethod: 'virement', amount: '498,00', voucherRef: '', periodicity: 'trimestrielle', dueDay: '5', firstMonth: '2025-10', isActive: '1', role: 'admin' };
+  const created = templateRequest('', values);
+  assert.equal(created.path, '/api/admin/accounting/recurring');
+  assert.equal(created.options.method, 'POST');
+  assert.equal(JSON.parse(created.options.body).isActive, true);
+  assert.equal('role' in JSON.parse(created.options.body), false);
+  const updated = templateRequest('4', { ...values, isActive: undefined });
+  assert.equal(updated.path, '/api/admin/accounting/recurring/4');
+  assert.equal(updated.options.method, 'PUT');
+  assert.equal(JSON.parse(updated.options.body).isActive, false);
+  assert.throws(() => templateRequest('4/x', values));
+});
+
+test('confirmer ou abandonner une échéance n\'envoie que l\'échéance, le montant et la pièce', () => {
+  const confirm = confirmOccurrenceRequest('4', { period: '2025-10-01', amount: '63,40', voucherRef: 'F-1', label: 'Piraté', direction: 'recette' });
+  assert.equal(confirm.path, '/api/admin/accounting/recurring/4/confirm');
+  assert.deepEqual(JSON.parse(confirm.options.body), { period: '2025-10-01', amount: '63,40', voucherRef: 'F-1' });
+  const ignore = ignoreOccurrenceRequest('4', { period: '2025-10-01', amount: '1' });
+  assert.equal(ignore.path, '/api/admin/accounting/recurring/4/ignore');
+  assert.deepEqual(JSON.parse(ignore.options.body), { period: '2025-10-01' });
+  assert.throws(() => confirmOccurrenceRequest('0', {}));
 });
