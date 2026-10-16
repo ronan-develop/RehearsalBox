@@ -251,3 +251,23 @@
     justify-self: start;
   }
 }
+
+/* Relevés de compte : cartes de la liste, écart en clair (couleur ET texte), formulaire de dépôt. */
+.rb-statement-form {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-top: var(--rb-space-3);
+}
+
+.rb-statement-gap {
+  margin: var(--rb-space-2) 0 0;
+  font-weight: 600;
+}
+
+.rb-statement-gap-ok {
+  color: var(--rb-ok);
+}
+
+.rb-statement-gap-warn {
+  color: var(--rb-warn);
+}
