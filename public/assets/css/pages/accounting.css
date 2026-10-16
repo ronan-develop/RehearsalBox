@@ -271,3 +271,63 @@
 .rb-statement-gap-warn {
   color: var(--rb-warn);
 }
+
+/* Cotisations : tableau adhérents × mois, défilement horizontal DANS le cadre (jamais sur la page) ; chaque état est écrit en toutes lettres. */
+.rb-dues-scroll {
+  overflow-x: auto;
+  margin-top: var(--rb-space-3);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+}
+
+.rb-dues-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.rb-dues-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.rb-dues-table th,
+.rb-dues-table td {
+  padding: var(--rb-space-2);
+  border-bottom: 1px solid var(--rb-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.rb-dues-table tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--rb-surface);
+  text-align: left;
+}
+
+.rb-dues-payee {
+  color: var(--rb-ok);
+  font-weight: 600;
+}
+
+.rb-dues-a_payer {
+  color: var(--rb-warn);
+}
+
+.rb-dues-dispensee {
+  color: var(--rb-text-2);
+}
+
+.rb-dues-table .rb-btn {
+  min-height: 44px;
+}
+
+.rb-dues-form {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-top: var(--rb-space-3);
+}
