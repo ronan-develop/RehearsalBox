@@ -100,6 +100,17 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
         return new LedgerTotals($recettes, $depenses, $net);
     }
 
+    public function bankNetUntil(int $fiscalYearId, \DateTimeImmutable $date): int
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(CASE direction WHEN 'recette' THEN amount_cents ELSE -CAST(amount_cents AS SIGNED) END), 0)
+             FROM accounting_entries WHERE fiscal_year_id = :year AND payment_method <> 'especes' AND occurred_on <= :date"
+        );
+        $statement->execute(['year' => $fiscalYearId, 'date' => $date->format('Y-m-d')]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): AccountingEntry
     {
