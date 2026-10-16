@@ -463,3 +463,12 @@ Interface administrateur `/admin/accounting` (onglet « Comptabilité »), `Cont
 ## Comptabilité : exercices (#362, livraison 3)
 
 `POST /api/admin/accounting/years/{id}/close` (corps : `revision`, 409 si périmée ou déjà clos) et `…/approve` (corps : `approvedOn`, 422 par champ, 409 si l'exercice n'est pas clôturé). Panneau `_year-actions.php` : confirmation repliée avant la clôture (irréversible), date de l'AG pour l'approbation, solde final affiché et repris à l'ouverture de l'exercice suivant. La création de l'exercice suivant (livraison 2) propose les dates et le report.
+
+## Comptabilité : relevés de compte (#362, livraison 4)
+
+Migration 042 (`accounting_statements`), `Statement`, `StatementRepositoryInterface`, `StatementFileStore`, `StatementService`, pages `/admin/accounting/statements` (liste, écart) et `/admin/accounting/statements/{id}/file`, API `POST /api/admin/accounting/statements` (multipart, CSRF, 20 dépôts par heure et par administrateur).
+- **Stockage** hors racine web (`storage.accounting_statements_path`, dossier 0700, fichiers 0600), nom **aléatoire**. Le type se juge sur la COPIE stockée (finfo) : PDF entier et non chiffré, JPEG/PNG ré-encodés par `ImageSanitizer` ; **sans GD, les images sont refusées** (échec fermé, contrairement aux documents de groupe). Doublon refusé par empreinte SHA-256 dans l'exercice.
+- **Immuable** : ni modification ni suppression ; un relevé déposé par erreur est **remplacé** (l'ancien reste, marqué « remplacé ») tant que l'exercice est ouvert ; un exercice clos fige ses relevés. Plafonds par exercice : 60 relevés, 200 Mo, 10 Mo par fichier ; dépôt sous le verrou de la ligne d'exercice, fichier retiré si la transaction échoue.
+- **Écart** : solde de la banque selon le livre à la fin de la période (solde d'ouverture de l'exercice + écritures hors espèces jusqu'à `period_end`) comparé au solde saisi du relevé (facultatif). Limite connue : le solde d'ouverture de l'exercice est compté en entier côté banque, la caisse en espèces n'ayant pas de solde propre.
+- **Téléchargement** : toujours en pièce jointe, `nosniff`, CSP `sandbox`, `Cache-Control: private, no-store`, flux ; fichier absent : 404.
+- **À faire (livraison 10)** : inclure `accounting-statements` dans les sauvegardes et le rapport d'orphelins (`DocumentOrphanReport`).
