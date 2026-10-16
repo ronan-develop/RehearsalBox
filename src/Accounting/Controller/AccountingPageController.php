@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Accounting\Controller;
 
 use App\Account\Entity\UserRole;
-use App\Accounting\Entity\FiscalYear;
 use App\Accounting\Presenter\AccountingJournalView;
 use App\Accounting\Service\EntryService;
 use App\Accounting\Service\FiscalYearService;
@@ -37,7 +36,7 @@ final class AccountingPageController
     {
         $admin = $this->authGuard->requireRole(UserRole::Admin);
         $years = $this->years->list($admin);
-        $year = $this->chosen($years, StrictId::from($request->query('year')));
+        $year = YearChooser::choose($years, StrictId::from($request->query('year')));
         $summary = $year === null ? null : $this->years->summary($admin, $year->id);
 
         return new Response($this->renderer->render('admin/accounting/index', [
@@ -52,19 +51,5 @@ final class AccountingPageController
             ),
             'currentUserRole' => $admin->role(),
         ]));
-    }
-
-    /**
-     * @param list<FiscalYear> $years du plus récent au plus ancien
-     */
-    private function chosen(array $years, ?int $requested): ?FiscalYear
-    {
-        foreach ($years as $year) {
-            if ($year->id === $requested) {
-                return $year;
-            }
-        }
-
-        return $years[0] ?? null;
     }
 }
