@@ -459,3 +459,7 @@ Interface administrateur `/admin/accounting` (onglet « Comptabilité »), `Cont
 - **API** (toutes réservées aux admins, CSRF) : `POST /api/admin/accounting/years`, `POST …/years/{id}/entries`, `POST …/entries/{id}/reverse` ; réponse 201 `{id, number, url}`, erreurs métier en 422/409/404 par `ExceptionTranslator`. Aucune modification ni suppression d'écriture : seule la contre-passation corrige.
 - **JS** : `public/assets/js/admin/accounting/` (requêtes, logique de formulaire pure testée, composant d'écran) ; `admin/form-feedback.js` partage les messages d'erreur par champ.
 - **Tests** : `tests/Accounting/Http` (API et page bout en bout), `IdorMatrixTest` (refus par acteur) avec un méta-contrôle qui échoue si une route comptable n'y figure pas.
+
+## Comptabilité : exercices (#362, livraison 3)
+
+`POST /api/admin/accounting/years/{id}/close` (corps : `revision`, 409 si périmée ou déjà clos) et `…/approve` (corps : `approvedOn`, 422 par champ, 409 si l'exercice n'est pas clôturé). Panneau `_year-actions.php` : confirmation repliée avant la clôture (irréversible), date de l'AG pour l'approbation, solde final affiché et repris à l'ouverture de l'exercice suivant. La création de l'exercice suivant (livraison 2) propose les dates et le report.
