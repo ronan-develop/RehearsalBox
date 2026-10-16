@@ -108,7 +108,7 @@ abstract class AccountingTestCase extends RepositoryTestCase
         $transactions = new TransactionRunner($pdo);
         $amounts = new AccountingAmountParser();
         $this->years = new FiscalYearService(new AdminAccess(), new FiscalYearInputPolicy($amounts), $years, $entries, $transactions, $logger);
-        $this->entries = new EntryService(new AdminAccess(), new EntryInputPolicy($amounts), $years, $entries, $transactions, $logger);
+        $this->entries = new EntryService(new AdminAccess(), new EntryInputPolicy($amounts), $years, $entries, new \App\Accounting\Repository\MysqlMemberDuesRepository($pdo), $transactions, $logger);
     }
 
     /** Crée un exercice du 1er octobre 2025 au 30 septembre 2026 (ouvert, solde d'ouverture 100,00 €) et rend son identifiant. */

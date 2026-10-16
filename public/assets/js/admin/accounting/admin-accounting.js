@@ -8,7 +8,7 @@ import { clearErrors, reportFailure } from '../form-feedback.js';
 import { categoriesFor, isVoucherRequired, presetValues, todayIso } from './accounting-form.js';
 import { approveYearRequest, closeYearRequest, createYearRequest, failureMessage, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
-const ENTRY_FIELDS = ['occurredOn', 'label', 'amount', 'direction', 'category', 'paymentMethod', 'voucherRef', 'note'];
+const ENTRY_FIELDS = ['occurredOn', 'label', 'amount', 'direction', 'category', 'paymentMethod', 'voucherRef', 'note', 'memberUserId', 'periodMonth'];
 const YEAR_FIELDS = ['label', 'startsOn', 'endsOn', 'openingBalance'];
 const REVERSE_FIELDS = ['reason', 'occurredOn'];
 const APPROVE_FIELDS = ['approvedOn'];
@@ -25,9 +25,20 @@ function syncCategories(form) {
   const previous = select.value;
   select.replaceChildren(...categoriesFor(direction, all).map((category) => new Option(category.label, category.value)));
   select.value = [...select.options].some((option) => option.value === previous) ? previous : (select.options[0]?.value ?? '');
+  syncDues(form);
   const required = isVoucherRequired(direction);
   form.elements.voucherRef.required = required;
   form.querySelector('[data-voucher-hint]').textContent = required ? '(obligatoire pour une dépense)' : '(facultatif)';
+}
+
+/** Adhérent et mois n'ont de sens que pour une cotisation : ils s'affichent (et partent) seulement dans ce cas. */
+function syncDues(form) {
+  const dues = form.querySelector('[data-dues-fields]');
+  const show = form.elements.category.value === 'cotisations';
+  dues.hidden = !show;
+  if (!show) {
+    form.elements.memberUserId.value = '';
+  }
 }
 
 function openEntryForm(section) {
@@ -58,6 +69,7 @@ function applyPreset(button) {
   form.elements.direction.value = preset.direction;
   syncCategories(form);
   form.elements.category.value = preset.category;
+  syncDues(form);
   form.elements.paymentMethod.value = preset.paymentMethod;
   form.elements.label.value = preset.label;
   if (preset.amount !== '') {
@@ -171,6 +183,8 @@ export function initAdminAccounting(root = document) {
   root.addEventListener('change', (event) => {
     if (event.target.matches('[data-entry-form] [name="direction"]')) {
       syncCategories(event.target.closest('[data-entry-form]'));
+    } else if (event.target.matches('[data-entry-form] [name="category"]')) {
+      syncDues(event.target.closest('[data-entry-form]'));
     }
   });
 }

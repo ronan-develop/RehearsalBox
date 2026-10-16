@@ -39,7 +39,11 @@ export function createYearRequest(values) {
 }
 
 export function recordEntryRequest(yearId, values) {
-  const body = pick(values, ['occurredOn', 'label', 'amount', 'direction', 'category', 'paymentMethod', 'voucherRef', 'note']);
+  const body = pick(values, ['occurredOn', 'label', 'amount', 'direction', 'category', 'paymentMethod', 'voucherRef', 'note', 'memberUserId', 'periodMonth']);
+  if (body.memberUserId === '') {
+    delete body.memberUserId;
+    delete body.periodMonth;
+  }
 
   return { path: `/api/admin/accounting/years/${idOrThrow(yearId, 'd\'exercice')}/entries`, options: { method: 'POST', body: JSON.stringify(body) } };
 }
@@ -105,5 +109,17 @@ export function ignoreOccurrenceRequest(templateId, values) {
   return {
     path: `/api/admin/accounting/recurring/${idOrThrow(templateId, 'de modèle')}/ignore`,
     options: { method: 'POST', body: JSON.stringify(pick(values, ['period'])) },
+  };
+}
+
+/** Dispense de cotisation : l'adhérent (identifiant), le mois (AAAA-MM) et l'état voulu ; rien d'autre ne part. */
+export function exemptionRequest(memberId, month, exempt) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    throw new Error('Mois invalide.');
+  }
+
+  return {
+    path: '/api/admin/accounting/cotisations/exemptions',
+    options: { method: 'POST', body: JSON.stringify({ memberUserId: idOrThrow(memberId, 'd\'adhérent'), periodMonth: month, exempt: exempt === true }) },
   };
 }

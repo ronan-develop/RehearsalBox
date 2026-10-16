@@ -18,6 +18,7 @@
         <?php if ($entry['isReversal']): ?><span class="rb-badge rb-badge-warn">Annulation</span><?php endif; ?>
         <?php if ($entry['isReversed']): ?><span class="rb-badge rb-badge-warn">Annulée</span><?php endif; ?>
     </p>
+    <?php if ($entry['dues'] !== ''): ?><p class="rb-entry-note"><?= e($entry['dues']) ?></p><?php endif; ?>
     <?php if ($entry['voucher'] !== ''): ?><p class="rb-entry-note">Pièce : <?= e($entry['voucher']) ?></p><?php endif; ?>
     <?php if ($entry['note'] !== ''): ?><p class="rb-entry-note"><?= e($entry['note']) ?></p><?php endif; ?>
     <?php if ($entry['canReverse']): ?>

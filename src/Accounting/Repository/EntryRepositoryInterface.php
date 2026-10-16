@@ -29,5 +29,15 @@ interface EntryRepositoryInterface
     public function totals(int $fiscalYearId): LedgerTotals;
 
     /** Mouvement net de la BANQUE (tout sauf les espèces) de l'exercice jusqu'à `$date` incluse : recettes moins dépenses. */
+    /** Une cotisation non annulée existe-t-elle déjà pour cet adhérent et ce mois (premier jour) ? */
+    public function memberMonthPaid(int $memberUserId, \DateTimeImmutable $periodMonth): bool;
+
+    /**
+     * Cotisations non annulées dont le mois couvert est dans l'intervalle.
+     *
+     * @return array<string, true> clés `idAdhérent|AAAA-MM-01`
+     */
+    public function paidMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): array;
+
     public function bankNetUntil(int $fiscalYearId, \DateTimeImmutable $date): int;
 }

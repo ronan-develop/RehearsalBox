@@ -20,6 +20,8 @@ final class EntryDraft
         public readonly PaymentMethod $paymentMethod,
         public readonly ?string $voucherRef,
         public readonly ?string $note,
+        public readonly ?int $memberUserId = null,
+        public readonly ?\DateTimeImmutable $periodMonth = null,
     ) {
     }
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, confirmOccurrenceRequest, ignoreOccurrenceRequest, templateRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, exemptionRequest, confirmOccurrenceRequest, ignoreOccurrenceRequest, templateRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 test('chaque requête vise la bonne route et ne porte que les champs attendus', () => {
   assert.deepEqual(createYearRequest({ label: '2025-2026', startsOn: '2025-10-01', endsOn: '2026-09-30', openingBalance: '100,00', role: 'admin' }), {
@@ -86,4 +86,24 @@ test('confirmer ou abandonner une échéance n\'envoie que l\'échéance, le mon
   assert.equal(ignore.path, '/api/admin/accounting/recurring/4/ignore');
   assert.deepEqual(JSON.parse(ignore.options.body), { period: '2025-10-01' });
   assert.throws(() => confirmOccurrenceRequest('0', {}));
+});
+
+test('cotisation d\'un adhérent : identifiant et mois partent avec l\'écriture ; sans adhérent, le mois est retiré', () => {
+  const withMember = recordEntryRequest('4', { label: 'Cotisation', memberUserId: '12', periodMonth: '2025-11', amount: '20,00' });
+  assert.equal(JSON.parse(withMember.options.body).memberUserId, '12');
+  assert.equal(JSON.parse(withMember.options.body).periodMonth, '2025-11');
+  const without = JSON.parse(recordEntryRequest('4', { label: 'Don', memberUserId: '', periodMonth: '2025-11' }).options.body);
+  assert.equal('memberUserId' in without, false);
+  assert.equal('periodMonth' in without, false);
+});
+
+test('dispense : route, corps minimal, identifiant et mois contrôlés', () => {
+  assert.deepEqual(exemptionRequest('12', '2025-11', true), {
+    path: '/api/admin/accounting/cotisations/exemptions',
+    options: { method: 'POST', body: '{"memberUserId":"12","periodMonth":"2025-11","exempt":true}' },
+  });
+  assert.equal(JSON.parse(exemptionRequest('12', '2025-11', 'oui').options.body).exempt, false);
+  assert.throws(() => exemptionRequest('0', '2025-11', true));
+  assert.throws(() => exemptionRequest('12', '2025-13', true));
+  assert.throws(() => exemptionRequest('12', '2025-11-01', true));
 });
