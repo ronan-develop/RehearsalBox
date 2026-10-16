@@ -32,4 +32,30 @@ enum EntryCategory: string
             default => Direction::Depense,
         };
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::DroitsEntree => 'Droits d\'entrée',
+            self::Cotisations => 'Cotisations',
+            self::Subventions => 'Subventions',
+            self::RevenusBiens => 'Revenus des biens et valeurs',
+            self::Retributions => 'Rétributions pour services rendus',
+            self::AutresRecettes => 'Autres recettes',
+            self::Fournitures => 'Achats et fournitures',
+            self::Materiel => 'Matériel',
+            self::Loyer => 'Loyer',
+            self::Electricite => 'Électricité',
+            self::Assurances => 'Assurances',
+            self::FraisBancaires => 'Frais bancaires',
+            self::ImpotsTaxes => 'Impôts et taxes',
+            self::AutresDepenses => 'Autres dépenses',
+        };
+    }
+
+    /** @return list<self> les catégories d'un sens, dans l'ordre de la liste */
+    public static function forDirection(Direction $direction): array
+    {
+        return array_values(array_filter(self::cases(), static fn (self $category): bool => $category->direction() === $direction));
+    }
 }

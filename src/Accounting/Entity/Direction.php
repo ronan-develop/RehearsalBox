@@ -14,4 +14,12 @@ enum Direction: string
     {
         return $this === self::Recette ? self::Depense : self::Recette;
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Recette => 'Argent reçu',
+            self::Depense => 'Argent dépensé',
+        };
+    }
 }

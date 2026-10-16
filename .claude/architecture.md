@@ -451,3 +451,11 @@ Domaine `src/Accounting/` (Entity, Exception, Repository, Service), **sans inter
 - **Journal** : identifiants seulement (auteur, exercice, écriture), jamais un libellé, un motif ni un montant.
 - À venir (ticket #362) : journal et saisie en interface, exercices, relevés PDF, écritures récurrentes, cotisations par personne, import CSV, rappels au trésorier, rapport et export.
 
+
+## Comptabilité de l'association : journal et saisie (#362, livraison 2)
+
+Interface administrateur `/admin/accounting` (onglet « Comptabilité »), `Controller/` et `Presenter/` dans `src/Accounting/`.
+- **Page** : rendu serveur de `AccountingJournalView` (exercice choisi par `?year=`, filtres `direction` et `category` en liste blanche, valeurs inconnues ignorées) ; montants formatés par `MoneyFormatter` (« 1 234,56 € »), jamais calculés en JS.
+- **API** (toutes réservées aux admins, CSRF) : `POST /api/admin/accounting/years`, `POST …/years/{id}/entries`, `POST …/entries/{id}/reverse` ; réponse 201 `{id, number, url}`, erreurs métier en 422/409/404 par `ExceptionTranslator`. Aucune modification ni suppression d'écriture : seule la contre-passation corrige.
+- **JS** : `public/assets/js/admin/accounting/` (requêtes, logique de formulaire pure testée, composant d'écran) ; `admin/form-feedback.js` partage les messages d'erreur par champ.
+- **Tests** : `tests/Accounting/Http` (API et page bout en bout), `IdorMatrixTest` (refus par acteur) avec un méta-contrôle qui échoue si une route comptable n'y figure pas.

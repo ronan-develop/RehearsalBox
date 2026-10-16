@@ -48,13 +48,13 @@ final class AdminMenuTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testTheTabsListFiveSectionsWithReservationsFirstAndMarkTheCurrentOne(): void
+    public function testTheTabsListSixSectionsWithReservationsFirstAndMarkTheCurrentOne(): void
     {
-        foreach (['bookings', 'slots', 'groups', 'users', 'assemblies'] as $tab) {
+        foreach (['bookings', 'slots', 'groups', 'users', 'assemblies', 'accounting'] as $tab) {
             $html = $this->renderer()->render('partials/admin-tabs', ['adminTab' => $tab]);
 
             preg_match_all('#<a href="(/admin/[a-z]+)" class="rb-admin-tab"( aria-current="page")?#', $html, $found, PREG_SET_ORDER);
-            self::assertSame(['/admin/bookings', '/admin/slots', '/admin/groups', '/admin/users', '/admin/assemblies'], array_column($found, 1));
+            self::assertSame(['/admin/bookings', '/admin/slots', '/admin/groups', '/admin/users', '/admin/assemblies', '/admin/accounting'], array_column($found, 1));
             $current = array_values(array_filter($found, static fn (array $m): bool => isset($m[2])));
             self::assertCount(1, $current, "un seul onglet courant pour « {$tab} »");
         }

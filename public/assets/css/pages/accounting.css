@@ -1,0 +1,235 @@
+/* Comptabilité de l'association (#362) : exercice, soldes, panneaux repliés et journal en cartes ; mobile d'abord. */
+
+.rb-year-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-year-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--rb-space-3);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius-sm);
+  color: var(--rb-text-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rb-year-link[aria-current="page"] {
+  border-color: var(--rb-accent);
+  color: var(--rb-text);
+}
+
+/* Soldes de l'exercice : quatre chiffres, deux par ligne sur mobile. */
+.rb-ledger-summary {
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-ledger-summary h2 {
+  margin: 0 0 var(--rb-space-1);
+}
+
+.rb-ledger-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--rb-space-3);
+  margin: var(--rb-space-3) 0 0;
+}
+
+.rb-ledger-figures dt {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-ledger-figures dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rb-ledger-balance {
+  font-size: 1.5rem;
+}
+
+.rb-amount-recette {
+  color: var(--rb-ok);
+}
+
+.rb-amount-depense {
+  color: var(--rb-err);
+}
+
+/* Panneaux repliés (saisie, nouvel exercice, annulation) : une colonne, comme « Nouveau texte ». */
+.rb-ledger-new {
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-entry-form,
+.rb-year-form,
+.rb-entry-reverse {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-top: var(--rb-space-3);
+}
+
+.rb-entry-form h2,
+.rb-year-form h2 {
+  margin: 0;
+}
+
+.rb-entry-form .rb-field,
+.rb-year-form .rb-field,
+.rb-entry-reverse .rb-field {
+  margin-bottom: 0;
+}
+
+.rb-entry-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-space-2);
+}
+
+.rb-entry-presets-title {
+  flex: 1 0 100%;
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-field-hint {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.rb-entry-actions {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+.rb-entry-actions > .rb-btn,
+.rb-ledger-new > .rb-btn,
+.rb-ledger-filter-actions > .rb-btn {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* Filtres du journal. */
+.rb-ledger-filters {
+  display: grid;
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-ledger-filters .rb-field {
+  margin-bottom: 0;
+}
+
+.rb-ledger-filter-actions {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+/* Journal : une carte par écriture. */
+.rb-entry-list {
+  display: grid;
+  gap: var(--rb-space-2);
+  margin: 0 0 var(--rb-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.rb-entry {
+  display: grid;
+  gap: var(--rb-space-2);
+  padding: var(--rb-space-3);
+}
+
+.rb-entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--rb-space-2) var(--rb-space-3);
+}
+
+.rb-entry-number {
+  font-weight: 700;
+}
+
+.rb-entry-date {
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-entry-amount {
+  margin-left: auto;
+  font-size: 1.125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rb-entry-label {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rb-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rb-space-2);
+  margin: 0;
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+}
+
+.rb-entry-note {
+  margin: 0;
+  color: var(--rb-text-2);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+/* Les attributs hidden doivent gagner contre display: grid. */
+.rb-entry-form[hidden],
+.rb-year-form[hidden],
+.rb-entry-reverse[hidden],
+.rb-ledger-new > .rb-btn[hidden],
+.rb-entry-actions > .rb-btn[hidden],
+[data-field-error][hidden],
+[data-form-error][hidden] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .rb-ledger-figures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .rb-ledger-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    align-items: end;
+  }
+
+  .rb-ledger-filter-actions {
+    grid-auto-flow: column;
+  }
+
+  .rb-entry-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .rb-entry-actions > .rb-btn,
+  .rb-ledger-new > .rb-btn,
+  .rb-ledger-filter-actions > .rb-btn {
+    width: auto;
+  }
+}

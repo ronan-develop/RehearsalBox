@@ -2,6 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Accounting\Controller\AccountingPageController;
+use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Presenter\AccountingJournalView;
+use App\Accounting\Presenter\MoneyFormatter;
+use App\Accounting\Repository\EntryRepositoryInterface;
+use App\Accounting\Repository\FiscalYearRepositoryInterface;
+use App\Accounting\Repository\MysqlEntryRepository;
+use App\Accounting\Repository\MysqlFiscalYearRepository;
+use App\Accounting\Service\AccountingAmountParser;
+use App\Accounting\Service\EntryInputPolicy;
+use App\Accounting\Service\EntryService;
+use App\Accounting\Service\FiscalYearInputPolicy;
+use App\Accounting\Service\FiscalYearService;
 use App\Association\Controller\Api\AssociationBoardApiController;
 use App\Association\Controller\Api\AssociationTextApiController;
 use App\Association\Controller\AssociationBoardPageController;
@@ -647,6 +660,42 @@ return static function (array $config): Container {
         $c->get(GroupRepositoryInterface::class),
         $c->get(FreeSlotBookingService::class),
         new MemberBookingsView(),
+    ));
+
+    $container->set(FiscalYearRepositoryInterface::class, fn ($c) => new MysqlFiscalYearRepository($c->get(PDO::class)));
+    $container->set(EntryRepositoryInterface::class, fn ($c) => new MysqlEntryRepository($c->get(PDO::class)));
+
+    $container->set(FiscalYearService::class, fn ($c) => new FiscalYearService(
+        $c->get(AdminAccess::class),
+        new FiscalYearInputPolicy(new AccountingAmountParser()),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(EntryService::class, fn ($c) => new EntryService(
+        $c->get(AdminAccess::class),
+        new EntryInputPolicy(new AccountingAmountParser()),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(AccountingApiController::class, fn ($c) => new AccountingApiController(
+        $c->get(FiscalYearService::class),
+        $c->get(EntryService::class),
+        $c->get(AuthGuard::class),
+    ));
+
+    $container->set(AccountingPageController::class, fn ($c) => new AccountingPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(FiscalYearService::class),
+        $c->get(EntryService::class),
+        new AccountingJournalView(new MoneyFormatter()),
     ));
 
     $container->set(AssociationBoardRepositoryInterface::class, fn ($c) => new MysqlAssociationBoardRepository($c->get(PDO::class)));
