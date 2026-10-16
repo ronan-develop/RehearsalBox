@@ -23,13 +23,14 @@ final class AssociationTextView
         ], $texts);
     }
 
-    /** @return array{id: int, title: string, body: string, revision: int, updated: string, by: string} */
+    /** @return array{id: int, title: string, body: string, bodyHtml: string, revision: int, updated: string, by: string} */
     public function show(AssociationText $text): array
     {
         return [
             'id' => $text->id,
             'title' => $text->title,
             'body' => $text->body,
+            'bodyHtml' => (new AssociationTextFormatter())->html($text->body),
             'revision' => $text->revision,
             'updated' => $text->updatedAt->format('d/m/Y'),
             'by' => $text->updatedByName,
