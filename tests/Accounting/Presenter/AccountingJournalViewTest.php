@@ -58,6 +58,25 @@ final class AccountingJournalViewTest extends TestCase
     }
 
     #[Test]
+    public function testTheLifecycleStateOfTheYearDrivesTheAvailableActions(): void
+    {
+        $open = $this->page([])['year'];
+        self::assertSame(['isOpen' => true, 'canClose' => true, 'canApprove' => false, 'revision' => 0, 'closing' => '', 'approvedOn' => ''], array_intersect_key($open, array_flip(['isOpen', 'canClose', 'canApprove', 'revision', 'closing', 'approvedOn'])));
+
+        $closed = new FiscalYear(1, '2025-2026', new \DateTimeImmutable('2025-10-01'), new \DateTimeImmutable('2026-09-30'), FiscalYearStatus::Cloture, 10000, 9000, 4, null, 3);
+        $page = $this->page([], $closed)['year'];
+        self::assertFalse($page['canClose']);
+        self::assertTrue($page['canApprove']);
+        self::assertSame(3, $page['revision']);
+        self::assertSame("90,00\u{a0}€", $page['closing']);
+
+        $approved = new FiscalYear(1, '2025-2026', new \DateTimeImmutable('2025-10-01'), new \DateTimeImmutable('2026-09-30'), FiscalYearStatus::Approuve, 10000, 9000, 4, new \DateTimeImmutable('2026-11-20'), 4);
+        $page = $this->page([], $approved)['year'];
+        self::assertFalse($page['canApprove']);
+        self::assertSame('20/11/2026', $page['approvedOn']);
+    }
+
+    #[Test]
     public function testEntriesCarryASignedAmountAndHumanLabels(): void
     {
         $page = $this->page([
