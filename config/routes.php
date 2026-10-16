@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Accounting\Controller\AccountingPageController;
+use App\Accounting\Controller\Api\AccountingApiController;
 use App\Association\Controller\Api\AssociationBoardApiController;
 use App\Association\Controller\Api\AssociationTextApiController;
 use App\Association\Controller\AssociationBoardPageController;
@@ -56,6 +58,7 @@ return [
         ['GET', '/admin/assemblies', [AssemblyPageController::class, 'index']],
         ['GET', '/admin/assemblies/{id}', [AssemblyPageController::class, 'edit']],
         ['GET', '/admin/assemblies/{id}/print', [AssemblyPageController::class, 'print']],
+        ['GET', '/admin/accounting', [AccountingPageController::class, 'index']],
         ['GET', '/admin/board', [AssociationBoardPageController::class, 'index']],
         ['GET', '/admin/texts', [AssociationTextPageController::class, 'index']],
         ['GET', '/admin/texts/{id}', [AssociationTextPageController::class, 'show']],
@@ -116,6 +119,9 @@ return [
         ['POST',   '/api/admin/assemblies/{id}/validate', [AssemblyApiController::class, 'validate']],
         ['POST',   '/api/admin/assemblies/{id}/corrections', [AssemblyApiController::class, 'correct']],
         ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
+        ['POST',   '/api/admin/accounting/years', [AccountingApiController::class, 'createYear']],
+        ['POST',   '/api/admin/accounting/years/{id}/entries', [AccountingApiController::class, 'recordEntry']],
+        ['POST',   '/api/admin/accounting/entries/{id}/reverse', [AccountingApiController::class, 'reverseEntry']],
         ['PUT',    '/api/admin/board/{post}', [AssociationBoardApiController::class, 'assign']],
         ['DELETE', '/api/admin/board/{post}', [AssociationBoardApiController::class, 'vacate']],
         ['POST',   '/api/admin/texts', [AssociationTextApiController::class, 'store']],
