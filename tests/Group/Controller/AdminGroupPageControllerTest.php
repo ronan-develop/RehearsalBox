@@ -93,8 +93,8 @@ final class AdminGroupPageControllerTest extends RepositoryTestCase
         self::assertMatchesRegularExpression('/<a href="\/admin\/groups" class="rb-admin-tab" aria-current="page">\s*Groupes\s*<\/a>/u', $body);
         self::assertMatchesRegularExpression('/<a href="\/admin\/users" class="rb-admin-tab">\s*Utilisateurs\s*<\/a>/u', $body);
         self::assertStringNotContainsString('Gérer les utilisateurs', $body, 'plus de petit lien pris pour un « retour »');
-        // La barre du bas garde ses 5 entrées (pas de 6e lien qui déborderait sur mobile).
-        self::assertSame(5, substr_count($body, 'rb-bottom-nav-link'), 'la navigation du bas reste à 5 entrées');
+        // La barre du bas compte 4 entrées (Disponibilités, Admin, Compte, Déconnexion) ; Créneaux est un onglet d'administration (#481).
+        self::assertSame(4, substr_count($body, 'rb-bottom-nav-link'), 'la navigation du bas reste à 4 entrées');
     }
 
     #[Test]

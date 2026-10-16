@@ -393,8 +393,8 @@ final class PageControllerTest extends RepositoryTestCase
         $response = $controller->dashboard();
 
         self::assertStringContainsString('<nav', $response->body());
-        self::assertStringContainsString('href="/admin/slots"', $response->body());
-        self::assertStringContainsString('href="/admin/groups"', $response->body());
+        self::assertStringContainsString('<a href="/admin/bookings" class="rb-bottom-nav-link">Admin', $response->body(), 'une seule entrée d\'administration (#481)');
+        self::assertStringNotContainsString('href="/admin/slots"', $response->body());
         self::assertStringContainsString('data-logout', $response->body());
     }
 

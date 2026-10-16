@@ -260,10 +260,12 @@ rb-color-picker {
   border: 1px solid var(--rb-border);
   border-radius: var(--rb-radius-md);
   padding: 3px;
+  overflow-x: auto;
 }
 
 .rb-admin-tab {
-  flex: 1;
+  flex: 1 0 auto;
+  padding: 0 var(--rb-space-3);
   display: flex;
   align-items: center;
   justify-content: center;
