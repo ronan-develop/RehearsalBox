@@ -7,8 +7,7 @@
 <?php if ($currentUserRole === \App\Account\Entity\UserRole::Admin): ?>
 <nav class="rb-bottom-nav">
     <a href="/" class="rb-bottom-nav-link">Disponibilités</a>
-    <a href="/admin/slots" class="rb-bottom-nav-link">Créneaux <span class="rb-badge rb-badge-warn rb-bottom-nav-badge" data-bookings-badge hidden>0</span></a>
-    <a href="/admin/groups" class="rb-bottom-nav-link">Groupes</a>
+    <a href="/admin/bookings" class="rb-bottom-nav-link">Admin <span class="rb-badge rb-badge-warn rb-bottom-nav-badge" data-bookings-badge hidden>0</span></a>
     <?php if (!empty($showOpsLink)): ?>
         <a href="/admin/ops" class="rb-bottom-nav-link">Ops</a>
     <?php endif; ?>
