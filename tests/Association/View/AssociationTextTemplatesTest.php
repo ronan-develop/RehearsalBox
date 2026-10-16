@@ -74,12 +74,12 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testTheShowPageOffersAPrintButtonAndAPrintOnlyStamp(): void
+    public function testTheShowPageOffersAPrintButtonAndNoPrintStamp(): void
     {
         $html = $this->render('admin/texts/show', ['text' => $this->text()]);
 
         self::assertMatchesRegularExpression('#<div class="rb-text-view-actions">\s*<button[^>]*data-action="edit">Modifier</button>\s*<button type="button" class="rb-btn" data-action="print">Imprimer</button>\s*</div>#', $html, 'Modifier et Imprimer sur la même ligne');
-        self::assertMatchesRegularExpression('#<p class="rb-text-print-stamp" data-print-stamp[^>]*></p>#', $html);
+        self::assertStringNotContainsString('print-stamp', $html, 'pas de « Imprimé le »');
     }
 
     #[Test]
@@ -101,13 +101,14 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testBothEditorsOfferOnlyTheSubtitleSwitch(): void
+    public function testBothEditorsOfferTheSubtitleAndListSwitches(): void
     {
         $show = $this->render('admin/texts/show', ['text' => $this->text()]);
         $index = $this->render('admin/texts/index', ['rows' => []]);
 
         foreach ([$show, $index] as $html) {
-            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>#', $html);
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="subtitle" aria-pressed="false">Sous-titre</button>#', $html);
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="list" aria-pressed="false">Liste</button>#', $html);
             self::assertStringNotContainsString('>Titre</button>', $html, 'le titre du texte a son propre champ');
         }
     }

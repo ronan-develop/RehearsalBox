@@ -33,7 +33,6 @@ $textId = (string) $text['id'];
                     <button type="button" class="rb-btn" data-action="edit">Modifier</button>
                     <button type="button" class="rb-btn" data-action="print">Imprimer</button>
                 </div>
-                <p class="rb-text-print-stamp" data-print-stamp></p>
             </div>
 
             <div class="rb-card rb-text-edit" data-text-edit hidden>
@@ -44,8 +43,9 @@ $textId = (string) $text['id'];
                 </div>
                 <div class="rb-field">
                     <label for="text-edit-body">Texte</label>
-                    <div class="rb-text-format">
-                        <button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>
+                    <div class="rb-text-format" role="group" aria-label="Mise en forme">
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="subtitle" aria-pressed="false">Sous-titre</button>
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="list" aria-pressed="false">Liste</button>
                     </div>
                     <textarea id="text-edit-body" name="body" maxlength="100000" rows="18" class="rb-input"><?= e($text['body']) ?></textarea>
                     <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>

@@ -78,7 +78,20 @@
   margin: 0 0 var(--rb-space-3);
 }
 
-/* Interrupteur Sous-titre au-dessus de la zone de texte : allumé quand la ligne du curseur est un sous-titre. */
+/* Liste à puces d'un texte (#492) : puces visibles, retrait, éléments non coupés à l'impression. */
+.rb-text-list {
+  margin: 0 0 var(--rb-space-3);
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.rb-text-list li {
+  margin-bottom: var(--rb-space-1);
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+}
+
+/* Interrupteurs Sous-titre et Liste au-dessus de la zone de texte : allumés quand la ligne du curseur en est un. */
 .rb-text-format {
   display: flex;
   flex-wrap: wrap;
@@ -96,11 +109,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--rb-space-2);
-}
-
-/* Cachet de la copie papier : invisible à l'écran, rempli juste avant l'impression. */
-.rb-text-print-stamp {
-  display: none;
 }
 
 /* Pied du panneau de modification : pile verticale sur mobile. */
@@ -143,6 +151,15 @@
 
 /* Copie papier d'un texte (#488) : titre et corps en noir sur blanc ; menu, boutons, retour et mention de modification disparaissent. */
 @media print {
+  /* Marge de page nulle : le navigateur n'imprime plus l'adresse de la page ni le numéro en bas ; la marge est rendue par le contenu. */
+  @page {
+    margin: 0;
+  }
+
+  .rb-admin-page {
+    padding: 2cm;
+  }
+
   body {
     background: #fff;
     color: #000;
@@ -166,7 +183,8 @@
 
   .rb-text-view h1,
   .rb-text-subheading,
-  .rb-text-body {
+  .rb-text-body,
+  .rb-text-list {
     color: #000;
     text-shadow: none;
   }
@@ -178,12 +196,5 @@
 
   .rb-text-format {
     display: none;
-  }
-
-  .rb-text-print-stamp {
-    display: block;
-    margin-top: var(--rb-space-4);
-    color: #000;
-    font-size: 0.75rem;
   }
 }

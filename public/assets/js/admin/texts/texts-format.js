@@ -1,8 +1,10 @@
 /**
- * Sous-titres d'un texte (#490), sans DOM : bascule du préfixe « ## » sur la ligne du curseur (le titre du texte a son propre champ).
- * Même convention que le rendu serveur (AssociationTextFormatter) : le préfixe, une espace, puis le texte.
+ * Mise en forme d'un texte (#490, #492), sans DOM : bascule d'un préfixe de ligne, « ## » (sous-titre) ou « - » (élément de liste),
+ * sur la ligne du curseur. Même convention que le rendu serveur (AssociationTextFormatter) : le préfixe, une espace, puis le texte.
  */
-const PREFIX = '## ';
+export const PREFIXES = { subtitle: '## ', list: '- ' };
+
+const KNOWN = Object.values(PREFIXES);
 
 /** Début et fin (exclue) de la ligne qui contient la position donnée. */
 function lineBounds(value, position) {
@@ -13,24 +15,27 @@ function lineBounds(value, position) {
   return { start, end: end === -1 ? value.length : end };
 }
 
-/** Vrai si la ligne du curseur est un sous-titre. */
-export function isSubtitle(value, position) {
+/** Le préfixe que porte la ligne du curseur, ou une chaîne vide. */
+export function linePrefix(value, position) {
   const { start, end } = lineBounds(value, position);
+  const line = value.slice(start, end);
 
-  return value.slice(start, end).startsWith(PREFIX);
+  return KNOWN.find((prefix) => line.startsWith(prefix)) ?? '';
 }
 
 /**
- * Pose le préfixe sur la ligne du curseur, ou le retire s'il y est déjà. Le curseur reste sur la même lettre.
+ * Pose le préfixe demandé sur la ligne du curseur, le retire s'il y est déjà, ou remplace l'autre. Le curseur reste sur la même lettre.
  *
  * @returns {{ value: string, caret: number }}
  */
-export function toggleSubtitle(value, position) {
+export function toggleLinePrefix(value, position, prefix) {
   const at = Math.min(Math.max(position, 0), value.length);
-  const { start } = lineBounds(value, at);
-  if (isSubtitle(value, at)) {
-    return { value: value.slice(0, start) + value.slice(start + PREFIX.length), caret: Math.max(start, at - PREFIX.length) };
+  if (!KNOWN.includes(prefix)) {
+    return { value, caret: at };
   }
+  const { start } = lineBounds(value, at);
+  const current = linePrefix(value, at);
+  const added = current === prefix ? '' : prefix;
 
-  return { value: value.slice(0, start) + PREFIX + value.slice(start), caret: at + PREFIX.length };
+  return { value: value.slice(0, start) + added + value.slice(start + current.length), caret: Math.max(start, at - current.length + added.length) };
 }

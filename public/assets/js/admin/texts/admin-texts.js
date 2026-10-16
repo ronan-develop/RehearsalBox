@@ -6,8 +6,8 @@
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { confirmAction } from '../../ui/rb-confirm-dialog.js';
-import { isSubtitle, toggleSubtitle } from './texts-format.js';
-import { DELETE_WARNING, createRequest, deleteRequest, printStamp, failureMessage, updateRequest } from './texts-requests.js';
+import { PREFIXES, linePrefix, toggleLinePrefix } from './texts-format.js';
+import { DELETE_WARNING, createRequest, deleteRequest, failureMessage, updateRequest } from './texts-requests.js';
 
 const FIELDS = ['title', 'body'];
 
@@ -79,20 +79,22 @@ function toggleCreate(section, open) {
   }
 }
 
-/** Allume l'interrupteur quand la ligne du curseur est un sous-titre. */
-function syncSwitch(textarea) {
-  const button = textarea.closest('.rb-field').querySelector('[data-action="subtitle"]');
-  button.setAttribute('aria-pressed', String(isSubtitle(textarea.value, textarea.selectionStart)));
+/** Allume l'interrupteur dont le préfixe est celui de la ligne du curseur (aucun si la ligne est du texte). */
+function syncSwitches(textarea) {
+  const prefix = linePrefix(textarea.value, textarea.selectionStart);
+  for (const button of textarea.closest('.rb-field').querySelectorAll('[data-action="format"]')) {
+    button.setAttribute('aria-pressed', String(prefix !== '' && PREFIXES[button.dataset.format] === prefix));
+  }
 }
 
-/** Bascule le sous-titre sur la ligne du curseur de la zone de texte du panneau, puis rend la main au curseur. */
-function handleSubtitle(button) {
+/** Bascule le sous-titre ou l'élément de liste sur la ligne du curseur de la zone de texte du panneau, puis rend la main au curseur. */
+function handleFormat(button) {
   const textarea = button.closest('.rb-field').querySelector('textarea');
-  const { value, caret } = toggleSubtitle(textarea.value, textarea.selectionStart);
+  const { value, caret } = toggleLinePrefix(textarea.value, textarea.selectionStart, PREFIXES[button.dataset.format]);
   textarea.value = value;
   textarea.focus();
   textarea.setSelectionRange(caret, caret);
-  syncSwitch(textarea);
+  syncSwitches(textarea);
 }
 
 function toggleEdit(section, editing) {
@@ -132,20 +134,12 @@ async function handleDelete(button) {
   }
 }
 
-/** Pose la date du jour dans le cachet juste avant l'impression, que le bouton ou Ctrl+P la déclenche. */
-function stampPrintouts() {
-  for (const stamp of document.querySelectorAll('[data-print-stamp]')) {
-    stamp.textContent = printStamp(new Date());
-  }
-}
-
 export function initAdminTexts(root = document) {
-  window.addEventListener('beforeprint', stampPrintouts);
-  // L'interrupteur suit le curseur : clavier, souris ou saisie, la ligne courante décide s'il est allumé.
+  // L'interrupteur suit le curseur : clavier, souris ou saisie, la ligne courante décide de ce qui est allumé.
   for (const type of ['keyup', 'click', 'input', 'focusin']) {
     root.addEventListener(type, (event) => {
       if (event.target.matches?.('.rb-text-create textarea, .rb-text-edit textarea')) {
-        syncSwitch(event.target);
+        syncSwitches(event.target);
       }
     });
   }
@@ -160,8 +154,8 @@ export function initAdminTexts(root = document) {
         case 'cancel-create':
           toggleCreate(createSection, false);
           break;
-        case 'subtitle':
-          handleSubtitle(createAction);
+        case 'format':
+          handleFormat(createAction);
           break;
         case 'create':
           handleCreate(createAction);
@@ -185,8 +179,8 @@ export function initAdminTexts(root = document) {
       case 'print':
         window.print();
         break;
-      case 'subtitle':
-        handleSubtitle(action);
+      case 'format':
+        handleFormat(action);
         break;
       case 'save':
         handleSave(action);

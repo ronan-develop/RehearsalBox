@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** #490 : « ## » sous-titre (le titre du texte a son propre champ) ; le reste est du texte. Chaque ligne est échappée AVANT d'être enveloppée : aucun HTML saisi n'est interprété. */
+/** #490, #492 : « ## » sous-titre (le titre du texte a son propre champ), « - » élément de liste ; le reste est du texte. Chaque ligne est échappée AVANT d'être enveloppée : aucun HTML saisi n'est interprété. */
 final class AssociationTextFormatterTest extends TestCase
 {
     #[Test]
@@ -21,6 +21,28 @@ final class AssociationTextFormatterTest extends TestCase
             '<h2 class="rb-text-subheading">Statuts</h2><p>Article 1<br>suite</p><h2 class="rb-text-subheading">Article 2</h2><p>Texte</p>',
             $html,
         );
+    }
+
+    #[Test]
+    public function testConsecutiveDashLinesFormOneBulletList(): void
+    {
+        $html = (new AssociationTextFormatter())->html("L'association se compose de :\n- Membres d'honneur.\n- Membres bienfaiteurs.\n- Membres actifs.\n\nSuite");
+
+        self::assertSame(
+            '<p>L&#039;association se compose de :</p><ul class="rb-text-list"><li>Membres d&#039;honneur.</li><li>Membres bienfaiteurs.</li><li>Membres actifs.</li></ul><p>Suite</p>',
+            $html,
+        );
+    }
+
+    #[Test]
+    public function testAListEndsAtABlankLineASubtitleOrPlainText(): void
+    {
+        $formatter = new AssociationTextFormatter();
+
+        self::assertSame('<ul class="rb-text-list"><li>a</li></ul><ul class="rb-text-list"><li>b</li></ul>', $formatter->html("- a\n\n- b"));
+        self::assertSame('<ul class="rb-text-list"><li>a</li></ul><h2 class="rb-text-subheading">T</h2><ul class="rb-text-list"><li>b</li></ul>', $formatter->html("- a\n## T\n- b"));
+        self::assertSame('<ul class="rb-text-list"><li>a</li></ul><p>texte</p>', $formatter->html("- a\ntexte"));
+        self::assertSame('<p>texte</p><ul class="rb-text-list"><li>a</li></ul>', $formatter->html("texte\n- a"));
     }
 
     #[Test]
@@ -39,6 +61,10 @@ final class AssociationTextFormatterTest extends TestCase
         yield 'dièse au milieu' => ['a # b', '<p>a # b</p>'];
         yield 'dièses seuls' => ['##', '<p>##</p>'];
         yield 'dièses et espace seuls' => ['## ', '<p>##</p>'];
+        yield 'tiret collé au mot' => ['-x', '<p>-x</p>'];
+        yield 'tiret seul' => ['-', '<p>-</p>'];
+        yield 'tiret et espace seuls' => ['- ', '<p>-</p>'];
+        yield 'tiret au milieu' => ['a - b', '<p>a - b</p>'];
         yield 'trois dièses' => ['### x', '<p>### x</p>'];
         yield 'espace avant' => [' ## x', '<p>## x</p>'];
     }
@@ -53,7 +79,7 @@ final class AssociationTextFormatterTest extends TestCase
     #[Test]
     public function testEnteredHtmlIsEscapedInHeadingsAndParagraphsAlike(): void
     {
-        $html = (new AssociationTextFormatter())->html("## <script>x</script>\n## <b onclick=\"a\">y</b>\n<img src=x onerror=alert(1)>");
+        $html = (new AssociationTextFormatter())->html("## <script>x</script>\n## <b onclick=\"a\">y</b>\n- <img src=x onerror=alert(1)>");
 
         self::assertStringNotContainsString('<script', $html);
         self::assertStringNotContainsString('<b ', $html);

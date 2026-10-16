@@ -31,14 +31,15 @@ final class AssociationTextPrintCssTest extends TestCase
     }
 
     #[Test]
-    public function testThePrintSheetIsBlackOnWhiteAndShowsTheStampOnlyWhenPrinting(): void
+    public function testThePrintSheetIsBlackOnWhiteWithoutPrintStampNorBrowserHeaderRoom(): void
     {
         $print = $this->printBlock();
         $css = (string) file_get_contents(__DIR__ . '/../../../public/assets/css/pages/association-texts.css');
 
         self::assertMatchesRegularExpression('/background:\s*#fff/', $print);
         self::assertMatchesRegularExpression('/color:\s*#000/', $print);
-        self::assertMatchesRegularExpression('/\.rb-text-print-stamp\s*\{[^}]*display:\s*none/s', explode('@media print', $css)[0], 'le cachet est masqué à l\'écran');
-        self::assertMatchesRegularExpression('/\.rb-text-print-stamp\s*\{[^}]*display:\s*block/s', $print);
+        self::assertStringNotContainsString('print-stamp', $css);
+        self::assertMatchesRegularExpression('/@page\s*\{[^}]*margin:\s*0/', $print, 'sans marge de page, pas d\'adresse ni de numéro imprimés par le navigateur');
+        self::assertMatchesRegularExpression('/\.rb-admin-page\s*\{[^}]*padding:\s*2cm/', $print, 'la marge est rendue par le contenu');
     }
 }
