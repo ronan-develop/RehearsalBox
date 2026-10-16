@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Association\View;
 
 use App\Account\Entity\UserRole;
+use App\Association\Presenter\AssociationTextFormatter;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +24,7 @@ final class AssociationTextTemplatesTest extends TestCase
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
     private function text(array $overrides = []): array
     {
-        return array_merge([
+        $text = array_merge([
             'id' => 7,
             'title' => 'Statuts 2026',
             'body' => "<b>gras</b>\nligne 2",
@@ -31,6 +32,9 @@ final class AssociationTextTemplatesTest extends TestCase
             'updated' => '2026-10-10 18:30',
             'by' => 'Alice',
         ], $overrides);
+        $text['bodyHtml'] = (new AssociationTextFormatter())->html($text['body']);
+
+        return $text;
     }
 
     #[Test]
@@ -85,7 +89,27 @@ final class AssociationTextTemplatesTest extends TestCase
 
         self::assertStringContainsString('&lt;b&gt;gras&lt;/b&gt;', $html);
         self::assertStringNotContainsString('<b>gras</b>', $html);
-        self::assertMatchesRegularExpression('#<div class="rb-text-body">[^<]*(<[^>]+>[^<]*)*?<br#', $html);
+        self::assertStringContainsString('<p>&lt;b&gt;gras&lt;/b&gt;<br>ligne 2</p>', $html);
+    }
+
+    #[Test]
+    public function testTheShowPageRendersTitlesAndSubtitlesFromTheirMarkers(): void
+    {
+        $html = $this->render('admin/texts/show', ['text' => $this->text(['body' => "# Statuts\n## Article 1\nTexte"])]);
+
+        self::assertStringContainsString('<h2 class="rb-text-heading">Statuts</h2><h3 class="rb-text-subheading">Article 1</h3><p>Texte</p>', $html);
+    }
+
+    #[Test]
+    public function testBothEditorsOfferTheTitleAndSubtitleSwitches(): void
+    {
+        $show = $this->render('admin/texts/show', ['text' => $this->text()]);
+        $index = $this->render('admin/texts/index', ['rows' => []]);
+
+        foreach ([$show, $index] as $html) {
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="1" aria-pressed="false">Titre</button>#', $html);
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="2" aria-pressed="false">Sous-titre</button>#', $html);
+        }
     }
 
     #[Test]

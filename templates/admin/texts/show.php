@@ -4,7 +4,7 @@
  * appelle l'API pour enregistrer, supprimer ou revenir à la lecture ; les valeurs du panneau sont échappées ici.
  *
  * @var string $csrfToken
- * @var array{id: int, title: string, body: string, revision: int, updated: string, by: string} $text
+ * @var array{id: int, title: string, body: string, bodyHtml: string, revision: int, updated: string, by: string} $text
  * @var \App\Account\Entity\UserRole $currentUserRole
  */
 $textId = (string) $text['id'];
@@ -28,7 +28,7 @@ $textId = (string) $text['id'];
             <div class="rb-card rb-text-view" data-text-view>
                 <h1><?= e($text['title']) ?></h1>
                 <p class="rb-text-meta">Modifié le <?= e($text['updated']) ?> par <?= e($text['by']) ?></p>
-                <div class="rb-text-body"><?= nl2br(e($text['body'])) ?></div>
+                <div class="rb-text-body"><?= $text['bodyHtml'] ?></div>
                 <div class="rb-text-view-actions">
                     <button type="button" class="rb-btn" data-action="edit">Modifier</button>
                     <button type="button" class="rb-btn" data-action="print">Imprimer</button>
@@ -44,7 +44,11 @@ $textId = (string) $text['id'];
                 </div>
                 <div class="rb-field">
                     <label for="text-edit-body">Texte</label>
-                    <textarea id="text-edit-body" name="body" maxlength="100000" rows="18" class="rb-input"><?= e($text['body']) ?></textarea>
+                    <div class="rb-text-format" role="group" aria-label="Mise en forme">
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="1" aria-pressed="false">Titre</button>
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="2" aria-pressed="false">Sous-titre</button>
+                    </div>
+                                        <textarea id="text-edit-body" name="body" maxlength="100000" rows="18" class="rb-input"><?= e($text['body']) ?></textarea>
                     <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>
                 </div>
                 <p class="rb-field-error" role="alert" data-form-error hidden></p>
