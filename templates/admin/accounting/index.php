@@ -51,7 +51,7 @@ $adminTab = 'accounting';
                     </dl>
                 </div>
 
-                <p><a class="rb-btn" href="/admin/accounting/statements?year=<?= e((string) $year['id']) ?>">Relevés de compte</a></p>
+                <p><a class="rb-btn" href="/admin/accounting/statements?year=<?= e((string) $year['id']) ?>">Relevés de compte</a> <a class="rb-btn" href="/admin/accounting/recurring">Écritures récurrentes</a></p>
 
                 <?php require __DIR__ . '/_year-actions.php'; ?>
 
