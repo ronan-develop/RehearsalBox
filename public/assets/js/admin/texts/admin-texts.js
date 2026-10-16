@@ -6,7 +6,7 @@
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { confirmAction } from '../../ui/rb-confirm-dialog.js';
-import { DELETE_WARNING, deleteRequest, failureMessage, updateRequest } from './texts-requests.js';
+import { DELETE_WARNING, createRequest, deleteRequest, failureMessage, updateRequest } from './texts-requests.js';
 
 const FIELDS = ['title', 'body'];
 
@@ -48,6 +48,36 @@ function fieldValue(scope, name) {
   return scope.querySelector(`[name="${name}"]`).value;
 }
 
+async function handleCreate(button) {
+  const scope = button.closest('[data-text-create]');
+  clearErrors(scope);
+  button.disabled = true;
+  try {
+    const { path, options } = createRequest(fieldValue(scope, 'title'), fieldValue(scope, 'body'));
+    const created = await apiFetch(path, options);
+    window.location.assign(created.url);
+  } catch (error) {
+    button.disabled = false;
+    reportFailure(scope, error);
+  }
+}
+
+/** Déplie ou replie le panneau de création ; l'ouverture met le curseur dans le titre, la fermeture efface la saisie et les erreurs. */
+function toggleCreate(section, open) {
+  const panel = section.querySelector('[data-text-create]');
+  panel.hidden = !open;
+  section.querySelector('[data-action="new"]').hidden = open;
+  if (open) {
+    panel.querySelector('[name="title"]').focus();
+
+    return;
+  }
+  clearErrors(panel);
+  for (const name of FIELDS) {
+    panel.querySelector(`[name="${name}"]`).value = '';
+  }
+}
+
 function toggleEdit(section, editing) {
   section.querySelector('[data-text-view]').hidden = editing;
   section.querySelector('[data-text-edit]').hidden = !editing;
@@ -87,6 +117,23 @@ async function handleDelete(button) {
 
 export function initAdminTexts(root = document) {
   root.addEventListener('click', (event) => {
+    const createAction = event.target.closest('[data-text-section] [data-action]');
+    if (createAction !== null) {
+      const createSection = createAction.closest('[data-text-section]');
+      switch (createAction.dataset.action) {
+        case 'new':
+          toggleCreate(createSection, true);
+          break;
+        case 'cancel-create':
+          toggleCreate(createSection, false);
+          break;
+        case 'create':
+          handleCreate(createAction);
+          break;
+      }
+
+      return;
+    }
     const action = event.target.closest('[data-text] [data-action]');
     if (action === null) {
       return;

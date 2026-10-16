@@ -34,7 +34,7 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testTheIndexLinksEachTextAndHasNoCreationForm(): void
+    public function testTheIndexLinksEachTextAndOffersACollapsedCreationPanel(): void
     {
         $html = $this->render('admin/texts/index', [
             'rows' => [['id' => 7, 'title' => 'Statuts 2026', 'updated' => '2026-10-10 18:30', 'by' => 'Alice']],
@@ -42,8 +42,10 @@ final class AssociationTextTemplatesTest extends TestCase
 
         self::assertStringContainsString('<a href="/admin/texts/7"', $html);
         self::assertStringContainsString('Modifié le 2026-10-10 18:30 par Alice', $html);
-        self::assertStringNotContainsString('data-action="create"', $html);
-        self::assertStringNotContainsString('<textarea', $html);
+        self::assertStringContainsString('data-action="new"', $html, 'bouton « Nouveau texte »');
+        self::assertMatchesRegularExpression('/<div[^>]*data-text-create[^>]*\\bhidden\\b/', $html, 'panneau replié par défaut');
+        self::assertStringContainsString('data-action="create"', $html);
+        self::assertStringContainsString('data-action="cancel-create"', $html);
         self::assertStringContainsString('<p class="rb-admin-note" hidden>Aucun texte pour l\'instant.</p>', $html);
     }
 
