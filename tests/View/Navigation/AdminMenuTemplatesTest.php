@@ -29,6 +29,25 @@ final class AdminMenuTemplatesTest extends TestCase
     }
 
     #[Test]
+    public function testTheBottomMenuNeverLinksToOpsAnymore(): void
+    {
+        $html = $this->renderer()->render('partials/nav', ['currentUserRole' => UserRole::Admin, 'showOpsLink' => true]);
+
+        self::assertStringNotContainsString('/admin/ops', $html);
+    }
+
+    #[Test]
+    public function testTheOwnerGetsASixthOpsTabAndOthersDoNot(): void
+    {
+        $owner = $this->renderer()->render('partials/admin-tabs', ['adminTab' => 'bookings', 'showOpsLink' => true]);
+        $other = $this->renderer()->render('partials/admin-tabs', ['adminTab' => 'bookings']);
+
+        self::assertSame(1, substr_count($owner, 'href="/admin/ops"'));
+        self::assertGreaterThan(strpos($owner, 'href="/admin/assemblies"'), strpos($owner, 'href="/admin/ops"'), 'Ops en dernier');
+        self::assertStringNotContainsString('/admin/ops', $other);
+    }
+
+    #[Test]
     public function testTheTabsListFiveSectionsWithReservationsFirstAndMarkTheCurrentOne(): void
     {
         foreach (['bookings', 'slots', 'groups', 'users', 'assemblies'] as $tab) {

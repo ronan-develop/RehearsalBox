@@ -4,6 +4,7 @@
  * (navigation serveur, simples liens), l'onglet courant est marqué aria-current="page".
  *
  * @var string $adminTab 'bookings', 'slots', 'groups', 'users' ou 'assemblies'
+ * @var bool|null $showOpsLink onglet « Ops » : propriétaire seulement (#400, OpsLinkRenderer)
  */
 ?>
 <nav class="rb-admin-tabs" aria-label="Administration">
@@ -22,4 +23,9 @@
     <a href="/admin/assemblies" class="rb-admin-tab"<?= $adminTab === 'assemblies' ? ' aria-current="page"' : '' ?>>
         Assemblées
     </a>
+    <?php if (!empty($showOpsLink)): ?>
+        <a href="/admin/ops" class="rb-admin-tab">
+            Ops
+        </a>
+    <?php endif; ?>
 </nav>
