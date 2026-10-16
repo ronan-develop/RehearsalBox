@@ -37,6 +37,29 @@
         </ul>
         <p class="rb-admin-note"<?= $rows === [] ? '' : ' hidden' ?>>Aucun texte pour l'instant.</p>
 
+        <section data-text-section>
+            <button type="button" class="rb-btn rb-btn-primary" data-action="new">Nouveau texte</button>
+
+            <div class="rb-card rb-text-create" data-text-create hidden>
+                <h2>Nouveau texte</h2>
+                <div class="rb-field">
+                    <label for="text-create-title">Titre</label>
+                    <input type="text" id="text-create-title" name="title" maxlength="150" class="rb-input">
+                    <p class="rb-field-error" role="alert" data-field-error="title" hidden></p>
+                </div>
+                <div class="rb-field">
+                    <label for="text-create-body">Texte</label>
+                    <textarea id="text-create-body" name="body" maxlength="100000" rows="14" class="rb-input"></textarea>
+                    <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>
+                </div>
+                <p class="rb-field-error" role="alert" data-form-error hidden></p>
+                <div class="rb-text-actions">
+                    <button type="button" class="rb-btn rb-btn-primary" data-action="create">Enregistrer le texte</button>
+                    <button type="button" class="rb-btn" data-action="cancel-create">Annuler</button>
+                </div>
+            </div>
+        </section>
+
     </div>
 
     <?php require __DIR__ . '/../../partials/nav.php'; ?>
