@@ -44,6 +44,24 @@ final class AccountingTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testYearActionsFollowTheLifecycle(): void
+    {
+        $open = $this->render();
+        self::assertStringContainsString('data-close-form', $open);
+        self::assertStringNotContainsString('data-approve-form', $open);
+        self::assertMatchesRegularExpression('/<form[^>]*data-close-form[^>]*hidden/', $open, 'confirmation repliée');
+
+        $closed = $this->render([], $this->year(FiscalYearStatus::Cloture));
+        self::assertStringNotContainsString('data-close-form', $closed);
+        self::assertStringContainsString('data-approve-form', $closed);
+        self::assertStringNotContainsString('data-entry-form', $closed, 'plus de saisie après la clôture');
+
+        $approved = $this->render([], new FiscalYear(4, '2025-2026', new \DateTimeImmutable('2025-10-01'), new \DateTimeImmutable('2026-09-30'), FiscalYearStatus::Approuve, 10000, 9000, 3, new \DateTimeImmutable('2026-11-20'), 2));
+        self::assertStringNotContainsString('data-approve-form', $approved);
+        self::assertStringContainsString('20/11/2026', $approved);
+    }
+
+    #[Test]
     public function testEverySavedTextIsEscapedInEveryContext(): void
     {
         $html = $this->render([$this->entry(1, 1, null, self::HOSTILE)], $this->year(FiscalYearStatus::Ouvert, self::HOSTILE));
