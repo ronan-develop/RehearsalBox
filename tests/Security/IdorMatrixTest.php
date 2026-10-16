@@ -436,6 +436,11 @@ final class IdorMatrixTest extends TestCase
     #[Test]
     public function testTheBoardPageIsForAdministratorsOnlyAndUnknownPostsAreNotFound(): void
     {
+        self::assertSame(302, $this->call('anon', 'GET', '/admin')[0]);
+        foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
+            self::assertSame(403, $this->call($actor, 'GET', '/admin')[0], "{$actor} /admin");
+        }
+        self::assertSame(302, $this->call('admin', 'GET', '/admin')[0]);
         self::assertSame(302, $this->call('anon', 'GET', '/admin/board')[0]);
         foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
             self::assertSame(403, $this->call($actor, 'GET', '/admin/board')[0], $actor);

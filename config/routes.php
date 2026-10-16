@@ -48,6 +48,7 @@ return [
         ['GET', '/account/password', [PageController::class, 'accountPassword']],
         ['GET', '/account/secure', [PageController::class, 'secureAccount']],
         ['GET', '/account/email/confirm', [PageController::class, 'confirmEmail']],
+        ['GET', '/admin', [AdminBookingPageController::class, 'home']],
         ['GET', '/admin/slots', [PageController::class, 'adminSlots']],
         ['GET', '/admin/groups', [AdminGroupPageController::class, 'index']],
         ['GET', '/admin/users', [AdminUserPageController::class, 'index']],

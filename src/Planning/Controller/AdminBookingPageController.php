@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Planning\Controller;
 
 use App\Account\Entity\UserRole;
+use App\Http\RedirectResponse;
 use App\Http\Response;
 use App\Planning\Presenter\AdminBookingsView;
 use App\Security\AuthGuard;
@@ -22,6 +23,14 @@ final class AdminBookingPageController
         private readonly FreeSlotBookingService $bookings,
         private readonly AdminBookingsView $view,
     ) {
+    }
+
+    /** `/admin` : l'adresse que porte l'entrée « Admin » du menu ; l'espace s'ouvre sur les réservations à valider. */
+    public function home(): Response
+    {
+        $this->authGuard->requireRole(UserRole::Admin);
+
+        return new RedirectResponse('/admin/bookings');
     }
 
     public function index(): Response

@@ -22,7 +22,7 @@ final class AdminMenuTemplatesTest extends TestCase
     {
         $html = $this->renderer()->render('partials/nav', ['currentUserRole' => UserRole::Admin]);
 
-        self::assertMatchesRegularExpression('#<a href="/admin/bookings" class="rb-bottom-nav-link">Admin\s*<span[^>]*data-bookings-badge#', $html);
+        self::assertMatchesRegularExpression('#<a href="/admin" class="rb-bottom-nav-link">Admin\s*<span[^>]*data-bookings-badge#', $html);
         self::assertStringNotContainsString('href="/admin/slots"', $html);
         self::assertStringNotContainsString('href="/admin/groups"', $html);
         self::assertStringNotContainsString('>Groupes<', $html);
