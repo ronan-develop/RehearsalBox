@@ -76,6 +76,26 @@ final class AdminBookingPageControllerTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testTheAdminAddressLeadsAnAdministratorToTheReservations(): void
+    {
+        $this->login('admin');
+
+        $response = $this->controller->home();
+
+        self::assertSame(302, $response->statusCode());
+        self::assertSame('/admin/bookings', $response->headers()['Location']);
+    }
+
+    #[Test]
+    public function testTheAdminAddressIsRefusedToAMusician(): void
+    {
+        $this->login('alice');
+
+        $this->expectException(AccessDeniedException::class);
+        $this->controller->home();
+    }
+
+    #[Test]
     public function testItListsThePendingBookingsWithEscapedTextAndTheDecisionControls(): void
     {
         $booking = $this->service->request($this->aliceId, $this->groupId, new \DateTimeImmutable('2026-10-07'), '09:00', '14:00', 'Enregistrement <b>live</b>');

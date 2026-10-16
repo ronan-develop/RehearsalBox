@@ -6,7 +6,7 @@
 <?php if ($currentUserRole === \App\Account\Entity\UserRole::Admin): ?>
 <nav class="rb-bottom-nav">
     <a href="/" class="rb-bottom-nav-link">Disponibilités</a>
-    <a href="/admin/bookings" class="rb-bottom-nav-link">Admin <span class="rb-badge rb-badge-warn rb-bottom-nav-badge" data-bookings-badge hidden>0</span></a>
+    <a href="/admin" class="rb-bottom-nav-link">Admin <span class="rb-badge rb-badge-warn rb-bottom-nav-badge" data-bookings-badge hidden>0</span></a>
     <a href="/account/password" class="rb-bottom-nav-link">Compte</a>
     <button type="button" class="rb-bottom-nav-link rb-bottom-nav-logout" data-logout>Déconnexion</button>
 </nav>
