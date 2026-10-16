@@ -206,6 +206,8 @@ final class IdorMatrixTest extends TestCase
             // Comptabilité (#362) : administrateurs seulement
             ['POST', '/api/admin/accounting/years', ['label' => 'Piraté', 'startsOn' => '2025-10-01', 'endsOn' => '2026-09-30', 'openingBalance' => '0'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/years/1/entries', ['occurredOn' => '2025-11-05', 'label' => 'Piraté', 'amount' => '1', 'direction' => 'recette', 'category' => 'cotisations', 'paymentMethod' => 'virement'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/years/1/close', ['revision' => 0], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/years/1/approve', ['approvedOn' => '2026-11-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/entries/1/reverse', ['reason' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             // Mon compte (#161) : seul l'utilisateur connecté, sur son propre compte
             ['PATCH', '/api/account/profile', ['displayName' => 'Intrus'], ['anon']],
