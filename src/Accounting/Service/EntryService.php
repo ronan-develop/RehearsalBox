@@ -12,6 +12,7 @@ use App\Accounting\Exception\FiscalYearLockedException;
 use App\Accounting\Exception\FiscalYearNotFoundException;
 use App\Accounting\Repository\EntryRepositoryInterface;
 use App\Accounting\Repository\FiscalYearRepositoryInterface;
+use App\Accounting\Repository\MemberDuesRepositoryInterface;
 use App\Database\TransactionRunner;
 use App\Security\AdminAccess;
 use Psr\Log\LoggerInterface;
@@ -32,6 +33,7 @@ final class EntryService
         private readonly EntryInputPolicy $policy,
         private readonly FiscalYearRepositoryInterface $years,
         private readonly EntryRepositoryInterface $entries,
+        private readonly MemberDuesRepositoryInterface $members,
         private readonly TransactionRunner $transactions,
         private readonly LoggerInterface $logger,
     ) {
@@ -59,6 +61,7 @@ final class EntryService
                 throw new AccountingValidationException(['occurredOn' => 'La date doit être comprise dans l\'exercice (du ' . $year->startsOn->format('d/m/Y') . ' au ' . $year->endsOn->format('d/m/Y') . ').']);
             }
 
+            $this->assertDuesAreFree($draft);
             $entry = $this->write($year->id, $year->nextEntryNumber, $draft, null, $actor, $now);
             if ($inTransaction !== null) {
                 $inTransaction($entry);
@@ -124,6 +127,25 @@ final class EntryService
         $this->years->find($fiscalYearId) ?? throw new FiscalYearNotFoundException();
 
         return $this->entries->listByYear($fiscalYearId, self::LIST_LIMIT);
+    }
+
+    /**
+     * Cotisation d'un adhérent (#362) : le compte doit être actif et le mois ne doit pas être déjà payé (hors écriture annulée). Jugé sous le
+     * verrou de l'exercice, dans la transaction de l'écriture.
+     *
+     * @throws AccountingValidationException
+     */
+    private function assertDuesAreFree(EntryDraft $draft): void
+    {
+        if ($draft->memberUserId === null || $draft->periodMonth === null) {
+            return;
+        }
+        if (!$this->members->isActiveMember($draft->memberUserId)) {
+            throw new AccountingValidationException(['memberUserId' => 'Ce compte est introuvable ou désactivé.']);
+        }
+        if ($this->entries->memberMonthPaid($draft->memberUserId, $draft->periodMonth)) {
+            throw new AccountingValidationException(['periodMonth' => 'La cotisation de cet adhérent est déjà enregistrée pour ce mois.']);
+        }
     }
 
     /** À appeler sous le verrou de l'exercice : insère, prend le numéro suivant, relit l'écriture. */

@@ -26,8 +26,8 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
             $this->pdo->prepare(
                 'INSERT INTO accounting_entries
                     (fiscal_year_id, entry_number, occurred_on, label, amount_cents, direction, category, payment_method, voucher_ref, note,
-                     reverses_entry_id, created_by_user_id, created_at)
-                 VALUES (:year, :number, :occurred_on, :label, :amount, :direction, :category, :method, :voucher, :note, :reverses, :actor, :now)'
+                     reverses_entry_id, member_user_id, period_month, created_by_user_id, created_at)
+                 VALUES (:year, :number, :occurred_on, :label, :amount, :direction, :category, :method, :voucher, :note, :reverses, :member, :month, :actor, :now)'
             )->execute([
                 'year' => $fiscalYearId,
                 'number' => $number,
@@ -40,6 +40,8 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
                 'voucher' => $draft->voucherRef,
                 'note' => $draft->note,
                 'reverses' => $reversesEntryId,
+                'member' => $draft->memberUserId,
+                'month' => $draft->periodMonth?->format('Y-m-d'),
                 'actor' => $actorId,
                 'now' => $now->format('Y-m-d H:i:s'),
             ]);
@@ -100,6 +102,34 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
         return new LedgerTotals($recettes, $depenses, $net);
     }
 
+    public function memberMonthPaid(int $memberUserId, \DateTimeImmutable $periodMonth): bool
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT 1 FROM accounting_entries e
+             WHERE e.member_user_id = :member AND e.period_month = :month AND e.category = 'cotisations' AND e.reverses_entry_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM accounting_entries r WHERE r.reverses_entry_id = e.id) LIMIT 1"
+        );
+        $statement->execute(['member' => $memberUserId, 'month' => $periodMonth->format('Y-m-d')]);
+
+        return $statement->fetchColumn() !== false;
+    }
+
+    public function paidMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT e.member_user_id, e.period_month FROM accounting_entries e
+             WHERE e.member_user_id IS NOT NULL AND e.period_month BETWEEN :from AND :to AND e.category = 'cotisations' AND e.reverses_entry_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM accounting_entries r WHERE r.reverses_entry_id = e.id) LIMIT 20000"
+        );
+        $statement->execute(['from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')]);
+        $paid = [];
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $paid[$row['member_user_id'] . '|' . $row['period_month']] = true;
+        }
+
+        return $paid;
+    }
+
     public function bankNetUntil(int $fiscalYearId, \DateTimeImmutable $date): int
     {
         $statement = $this->pdo->prepare(
@@ -127,6 +157,8 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
             $row['voucher_ref'] === null ? null : (string) $row['voucher_ref'],
             $row['note'] === null ? null : (string) $row['note'],
             $row['reverses_entry_id'] === null ? null : (int) $row['reverses_entry_id'],
+            $row['member_user_id'] === null ? null : (int) $row['member_user_id'],
+            $row['period_month'] === null ? null : new \DateTimeImmutable((string) $row['period_month']),
         );
     }
 }

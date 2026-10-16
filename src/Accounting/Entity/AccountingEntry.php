@@ -20,6 +20,8 @@ final class AccountingEntry
         public readonly ?string $voucherRef,
         public readonly ?string $note,
         public readonly ?int $reversesEntryId,
+        public readonly ?int $memberUserId = null,
+        public readonly ?\DateTimeImmutable $periodMonth = null,
     ) {
     }
 }

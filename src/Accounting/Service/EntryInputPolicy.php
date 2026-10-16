@@ -52,12 +52,49 @@ final class EntryInputPolicy
             $errors['voucherRef'] = 'Indiquez la pièce justificative (numéro de facture, de ticket…).';
         }
         $note = self::line($input['note'] ?? null, 'note', self::NOTE_MAX, false, '', $errors);
+        [$member, $month] = self::dues($input, $category, $errors);
 
         if ($errors !== [] || $date === null || $label === null || $cents === null || $direction === null || $category === null || $method === null) {
             throw new AccountingValidationException($errors);
         }
 
-        return new EntryDraft($date, $label, $cents, $direction, $category, $method, $voucher, $note);
+        return new EntryDraft($date, $label, $cents, $direction, $category, $method, $voucher, $note, $member, $month);
+    }
+
+    /**
+     * Adhérent et mois couverts d'une cotisation (#362) : réservés à la catégorie « cotisations », fournis ensemble, identifiant strictement
+     * numérique, mois au format AAAA-MM. L'existence du compte est jugée par le service.
+     *
+     * @param array<string, mixed> $input
+     * @param array<string, string> $errors
+     * @return array{0: int|null, 1: \DateTimeImmutable|null}
+     */
+    private static function dues(array $input, ?EntryCategory $category, array &$errors): array
+    {
+        $rawMember = $input['memberUserId'] ?? null;
+        $rawMonth = $input['periodMonth'] ?? null;
+        $rawMember = $rawMember === '' ? null : $rawMember;
+        $rawMonth = $rawMonth === '' ? null : $rawMonth;
+        if ($rawMember === null && $rawMonth === null) {
+            return [null, null];
+        }
+        if ($category !== EntryCategory::Cotisations) {
+            $errors['memberUserId'] = 'L\'adhérent et le mois ne concernent que les cotisations.';
+
+            return [null, null];
+        }
+        $member = \App\Support\StrictId::from($rawMember);
+        if ($member === null) {
+            $errors['memberUserId'] = 'Choisissez l\'adhérent.';
+        }
+        $month = null;
+        if (is_string($rawMonth) && preg_match('/\A[0-9]{4}-(?:0[1-9]|1[0-2])\z/D', $rawMonth) === 1 && $rawMonth >= '1900-01' && $rawMonth <= '2999-12') {
+            $month = new \DateTimeImmutable($rawMonth . '-01');
+        } else {
+            $errors['periodMonth'] = 'Choisissez le mois couvert, par exemple 2025-10.';
+        }
+
+        return [$member, $month];
     }
 
     /**
