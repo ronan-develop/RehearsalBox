@@ -6,11 +6,12 @@ import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { clearErrors, reportFailure } from '../form-feedback.js';
 import { categoriesFor, isVoucherRequired, presetValues, todayIso } from './accounting-form.js';
-import { createYearRequest, failureMessage, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, failureMessage, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 const ENTRY_FIELDS = ['occurredOn', 'label', 'amount', 'direction', 'category', 'paymentMethod', 'voucherRef', 'note'];
 const YEAR_FIELDS = ['label', 'startsOn', 'endsOn', 'openingBalance'];
 const REVERSE_FIELDS = ['reason', 'occurredOn'];
+const APPROVE_FIELDS = ['approvedOn'];
 
 function values(form) {
   return Object.fromEntries([...new FormData(form).entries()].map(([key, value]) => [key, String(value)]));
@@ -96,6 +97,15 @@ function toggleYear(section, open) {
   section.querySelector('[data-action="new-year"]').hidden = open;
 }
 
+/** Panneau de confirmation d'une action sur l'exercice : le bouton d'appel se masque tant que le formulaire est ouvert. */
+function toggleYearPanel(box, name, open) {
+  box.querySelector(`[data-${name}-form]`).hidden = !open;
+  box.querySelector(`[data-action="${name}-year"]`).hidden = open;
+  if (open) {
+    box.querySelector(`[data-${name}-form] input`)?.focus();
+  }
+}
+
 function onClick(event) {
   const target = event.target.closest('[data-action], [data-preset]');
   if (target === null) {
@@ -113,6 +123,10 @@ function onClick(event) {
     case 'cancel-reverse': toggleReverse(target.closest('[data-entry]'), false); break;
     case 'new-year': toggleYear(section, true); break;
     case 'cancel-year': toggleYear(section, false); break;
+    case 'close-year': toggleYearPanel(target.closest('[data-year-actions]'), 'close', true); break;
+    case 'cancel-close': toggleYearPanel(target.closest('[data-year-actions]'), 'close', false); break;
+    case 'approve-year': toggleYearPanel(target.closest('[data-year-actions]'), 'approve', true); break;
+    case 'cancel-approve': toggleYearPanel(target.closest('[data-year-actions]'), 'approve', false); break;
     default:
   }
 }
@@ -129,6 +143,20 @@ function onSubmit(event) {
     event.preventDefault();
     submit(form, REVERSE_FIELDS, () => reverseRequest(form.dataset.entryId, values(form)), (done) => {
       showToast(`Écriture annulée (n° ${done.number}).`, 'success');
+      window.location.assign(done.url);
+    });
+  } else if (form.matches('[data-close-form]')) {
+    event.preventDefault();
+    const box = form.closest('[data-year-actions]');
+    submit(form, [], () => closeYearRequest(box.dataset.yearId, { revision: box.dataset.revision }), (done) => {
+      showToast('Exercice clôturé.', 'success');
+      window.location.assign(done.url);
+    });
+  } else if (form.matches('[data-approve-form]')) {
+    event.preventDefault();
+    const box = form.closest('[data-year-actions]');
+    submit(form, APPROVE_FIELDS, () => approveYearRequest(box.dataset.yearId, values(form)), (done) => {
+      showToast('Approbation enregistrée.', 'success');
       window.location.assign(done.url);
     });
   } else if (form.matches('[data-year-form]')) {
