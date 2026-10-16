@@ -39,6 +39,23 @@ $form = $page['form'];
             </select>
             <p class="rb-field-error" role="alert" data-field-error="category" hidden></p>
         </div>
+        <div class="rb-entry-dues" data-dues-fields hidden>
+            <div class="rb-field">
+                <label for="entry-member">Adhérent</label>
+                <select id="entry-member" name="memberUserId" class="rb-input">
+                    <option value="">Choisir l'adhérent</option>
+                    <?php foreach ($form['members'] as $option): ?>
+                        <option value="<?= e($option['value']) ?>"><?= e($option['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="rb-field-error" role="alert" data-field-error="memberUserId" hidden></p>
+            </div>
+            <div class="rb-field">
+                <label for="entry-month">Mois couvert</label>
+                <input type="month" id="entry-month" name="periodMonth" class="rb-input" value="<?= e($form['month']) ?>">
+                <p class="rb-field-error" role="alert" data-field-error="periodMonth" hidden></p>
+            </div>
+        </div>
         <div class="rb-field">
             <label for="entry-date">Date</label>
             <input type="date" id="entry-date" name="occurredOn" class="rb-input" required>
