@@ -101,13 +101,14 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testBothEditorsOfferOnlyTheSubtitleSwitch(): void
+    public function testBothEditorsOfferTheSubtitleAndListSwitches(): void
     {
         $show = $this->render('admin/texts/show', ['text' => $this->text()]);
         $index = $this->render('admin/texts/index', ['rows' => []]);
 
         foreach ([$show, $index] as $html) {
-            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>#', $html);
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="subtitle" aria-pressed="false">Sous-titre</button>#', $html);
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="list" aria-pressed="false">Liste</button>#', $html);
             self::assertStringNotContainsString('>Titre</button>', $html, 'le titre du texte a son propre champ');
         }
     }
