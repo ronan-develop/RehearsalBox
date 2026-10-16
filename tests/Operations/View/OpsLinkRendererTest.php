@@ -14,7 +14,7 @@ use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** #400 : le lien « Ops » de la barre du bas n'est montré qu'au propriétaire, jamais aux autres administrateurs ni aux musiciens. */
+/** #400, #483 : l'onglet « Ops » de l'administration (plus la barre du bas) n'est montré qu'au propriétaire, jamais aux autres administrateurs ni aux musiciens. */
 final class OpsLinkRendererTest extends TestCase
 {
     private function render(?User $current, ?UserRole $role, string $viewerEmail = 'owner@rehearsalbox.test'): string
@@ -57,7 +57,7 @@ final class OpsLinkRendererTest extends TestCase
         };
         $renderer = new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), new AuthGuard($auth), new MetricsAccess($viewerEmail));
 
-        return $renderer->render('partials/nav', ['currentUserRole' => $role]);
+        return $renderer->render('partials/admin-tabs', ['currentUserRole' => $role, 'adminTab' => 'bookings']);
     }
 
     private function user(string $email, UserRole $role = UserRole::Admin): User
@@ -66,12 +66,11 @@ final class OpsLinkRendererTest extends TestCase
     }
 
     #[Test]
-    public function testTheOwnerSeesTheOpsLink(): void
+    public function testTheOwnerSeesTheOpsTab(): void
     {
         $html = $this->render($this->user('owner@rehearsalbox.test'), UserRole::Admin);
 
-        self::assertStringContainsString('href="/admin/ops"', $html);
-        self::assertStringContainsString('Ops', $html);
+        self::assertMatchesRegularExpression('#<a href="/admin/ops" class="rb-admin-tab">\s*Ops\s*</a>#', $html);
     }
 
     #[Test]
@@ -126,6 +125,6 @@ final class OpsLinkRendererTest extends TestCase
         };
         $renderer = new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), new AuthGuard($auth), new MetricsAccess('owner@rehearsalbox.test'));
 
-        self::assertStringNotContainsString('/admin/ops', $renderer->render('partials/nav', ['currentUserRole' => UserRole::Musicien]));
+        self::assertStringNotContainsString('/admin/ops', $renderer->render('partials/admin-tabs', ['currentUserRole' => UserRole::Musicien, 'adminTab' => 'bookings']));
     }
 }
