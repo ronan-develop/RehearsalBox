@@ -33,7 +33,8 @@
   font-size: 0.875rem;
 }
 
-/* Panneau de modification et de lecture : une colonne, espacés. */
+/* Panneaux de création, de modification et de lecture : une colonne, espacés. */
+.rb-text-create,
 .rb-text-edit,
 .rb-text-view {
   display: grid;
@@ -41,7 +42,8 @@
   margin-bottom: var(--rb-space-4);
 }
 
-.rb-text-view > .rb-btn {
+.rb-text-view > .rb-btn,
+[data-text-section] > .rb-btn {
   width: 100%;
   text-align: center;
 }
@@ -54,6 +56,7 @@
   color: var(--rb-text);
 }
 
+.rb-text-create textarea,
 .rb-text-edit textarea {
   min-height: 12rem;
   resize: vertical;
@@ -71,15 +74,18 @@
 }
 
 /* Les attributs hidden doivent gagner contre display: grid. */
+.rb-text-create[hidden],
 .rb-text-edit[hidden],
 .rb-text-view[hidden],
+[data-text-section] > .rb-btn[hidden],
 [data-field-error][hidden],
 [data-form-error][hidden] {
   display: none;
 }
 
 @media (min-width: 768px) {
-  .rb-text-view > .rb-btn {
+  .rb-text-view > .rb-btn,
+  [data-text-section] > .rb-btn {
     width: auto;
     justify-self: start;
   }
