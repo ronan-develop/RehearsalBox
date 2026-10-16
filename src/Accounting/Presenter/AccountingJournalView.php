@@ -25,9 +25,10 @@ final class AccountingJournalView
     /**
      * @param list<FiscalYear> $years du plus récent au plus ancien
      * @param list<AccountingEntry> $entries de l'exercice choisi, par numéro
+     * @param array<int, string> $memberNames noms des comptes actifs par identifiant (adhérents d'une cotisation)
      * @return array<string, mixed>
      */
-    public function page(array $years, ?FiscalYear $year, ?LedgerTotals $totals, array $entries, string $direction, string $category): array
+    public function page(array $years, ?FiscalYear $year, ?LedgerTotals $totals, array $entries, string $direction, string $category, array $memberNames = []): array
     {
         $directionFilter = Direction::tryFrom($direction);
         $categoryFilter = EntryCategory::tryFrom($category);
@@ -41,7 +42,7 @@ final class AccountingJournalView
                 'url' => '/admin/accounting?year=' . $y->id,
             ], $years),
             'year' => $year === null || $totals === null ? null : $this->summary($year, $totals),
-            'entries' => $year === null ? [] : $this->rows($year, $entries, $directionFilter, $categoryFilter),
+            'entries' => $year === null ? [] : $this->rows($year, $entries, $directionFilter, $categoryFilter, $memberNames),
             'filters' => [
                 'direction' => $directionFilter === null ? '' : $directionFilter->value,
                 'category' => $categoryFilter === null ? '' : $categoryFilter->value,
@@ -49,7 +50,7 @@ final class AccountingJournalView
                 'directions' => $this->directions(),
                 'categories' => $this->categories(),
             ],
-            'form' => ['directions' => $this->directions(), 'categories' => $this->categories(), 'methods' => $this->methods()],
+            'form' => ['directions' => $this->directions(), 'categories' => $this->categories(), 'methods' => $this->methods(), 'members' => array_map(static fn (int $id, string $name): array => ['value' => (string) $id, 'label' => $name], array_keys($memberNames), array_values($memberNames)), 'month' => date('Y-m')],
             'next' => $this->next($years[0] ?? null),
         ];
     }
@@ -80,9 +81,10 @@ final class AccountingJournalView
 
     /**
      * @param list<AccountingEntry> $entries
+     * @param array<int, string> $memberNames
      * @return list<array<string, mixed>>
      */
-    private function rows(FiscalYear $year, array $entries, ?Direction $direction, ?EntryCategory $category): array
+    private function rows(FiscalYear $year, array $entries, ?Direction $direction, ?EntryCategory $category, array $memberNames): array
     {
         $reversed = [];
         foreach ($entries as $entry) {
@@ -109,6 +111,7 @@ final class AccountingJournalView
                 'method' => $entry->paymentMethod->label(),
                 'voucher' => $entry->voucherRef ?? '',
                 'note' => $entry->note ?? '',
+                'dues' => $entry->periodMonth === null ? '' : 'Cotisation de ' . ($memberNames[$entry->memberUserId ?? 0] ?? 'un ancien membre') . ' pour ' . MonthLabel::of($entry->periodMonth),
                 'isReversal' => $isReversal,
                 'isReversed' => $isReversed,
                 'canReverse' => $year->isOpen() && !$isReversal && !$isReversed,

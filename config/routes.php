@@ -6,6 +6,7 @@ use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
 use App\Accounting\Controller\Api\RecurringApiController;
 use App\Accounting\Controller\Api\StatementApiController;
+use App\Accounting\Controller\CotisationPageController;
 use App\Accounting\Controller\RecurringPageController;
 use App\Accounting\Controller\StatementPageController;
 use App\Association\Controller\Api\AssociationBoardApiController;
@@ -64,6 +65,7 @@ return [
         ['GET', '/admin/assemblies/{id}/print', [AssemblyPageController::class, 'print']],
         ['GET', '/admin/accounting', [AccountingPageController::class, 'index']],
         ['GET', '/admin/accounting/recurring', [RecurringPageController::class, 'index']],
+        ['GET', '/admin/accounting/cotisations', [CotisationPageController::class, 'index']],
         ['GET', '/admin/accounting/statements', [StatementPageController::class, 'index']],
         ['GET', '/admin/accounting/statements/{id}/file', [StatementPageController::class, 'download']],
         ['GET', '/admin/board', [AssociationBoardPageController::class, 'index']],
@@ -128,6 +130,7 @@ return [
         ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
         ['POST',   '/api/admin/accounting/years', [AccountingApiController::class, 'createYear']],
         ['POST',   '/api/admin/accounting/statements', [StatementApiController::class, 'store']],
+        ['POST',   '/api/admin/accounting/cotisations/exemptions', [AccountingApiController::class, 'setExemption']],
         ['POST',   '/api/admin/accounting/recurring', [RecurringApiController::class, 'create']],
         ['PUT',    '/api/admin/accounting/recurring/{id}', [RecurringApiController::class, 'update']],
         ['POST',   '/api/admin/accounting/recurring/{id}/confirm', [RecurringApiController::class, 'confirm']],

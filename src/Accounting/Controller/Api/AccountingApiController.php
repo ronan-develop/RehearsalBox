@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Accounting\Controller\Api;
 
 use App\Account\Entity\UserRole;
+use App\Accounting\Service\Dues\CotisationService;
 use App\Accounting\Service\EntryService;
 use App\Accounting\Service\FiscalYearService;
 use App\Http\JsonResponse;
@@ -23,6 +24,7 @@ final class AccountingApiController
     public function __construct(
         private readonly FiscalYearService $years,
         private readonly EntryService $entries,
+        private readonly CotisationService $dues,
         private readonly AuthGuard $authGuard,
     ) {
     }
@@ -68,5 +70,14 @@ final class AccountingApiController
         $this->years->approve($admin, $yearId, $request->allBody());
 
         return new JsonResponse(['id' => $yearId, 'url' => '/admin/accounting?year=' . $yearId]);
+    }
+
+    /** Pose ou retire la dispense de cotisation d'un adhérent pour un mois (le corps ne contient que l'adhérent, le mois et l'état). */
+    public function setExemption(Request $request): JsonResponse
+    {
+        $admin = $this->authGuard->requireRole(UserRole::Admin);
+        $this->dues->setExemption($admin, $request->allBody());
+
+        return new JsonResponse(['url' => '/admin/accounting/cotisations']);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Accounting\Controller;
 
 use App\Account\Entity\UserRole;
 use App\Accounting\Presenter\AccountingJournalView;
+use App\Accounting\Service\Dues\CotisationService;
 use App\Accounting\Service\EntryService;
 use App\Accounting\Service\FiscalYearService;
 use App\Http\Request;
@@ -29,6 +30,7 @@ final class AccountingPageController
         private readonly FiscalYearService $years,
         private readonly EntryService $entries,
         private readonly AccountingJournalView $view,
+        private readonly CotisationService $dues,
     ) {
     }
 
@@ -48,6 +50,7 @@ final class AccountingPageController
                 $year === null ? [] : $this->entries->list($admin, $year->id),
                 is_string($request->query('direction')) ? $request->query('direction') : '',
                 is_string($request->query('category')) ? $request->query('category') : '',
+                $this->dues->memberNames($admin),
             ),
             'currentUserRole' => $admin->role(),
         ]));

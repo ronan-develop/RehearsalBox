@@ -6,7 +6,10 @@ use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
 use App\Accounting\Controller\Api\RecurringApiController;
 use App\Accounting\Controller\Api\StatementApiController;
+use App\Accounting\Controller\CotisationPageController;
 use App\Accounting\Controller\RecurringPageController;
+use App\Accounting\Presenter\CotisationView;
+use App\Accounting\Service\Dues\CotisationService;
 use App\Accounting\Presenter\RecurringView;
 use App\Accounting\Repository\MysqlRecurringOccurrenceRepository;
 use App\Accounting\Repository\MysqlRecurringTemplateRepository;
@@ -27,7 +30,9 @@ use App\Accounting\Presenter\AccountingJournalView;
 use App\Accounting\Presenter\MoneyFormatter;
 use App\Accounting\Repository\EntryRepositoryInterface;
 use App\Accounting\Repository\FiscalYearRepositoryInterface;
+use App\Accounting\Repository\MemberDuesRepositoryInterface;
 use App\Accounting\Repository\MysqlEntryRepository;
+use App\Accounting\Repository\MysqlMemberDuesRepository;
 use App\Accounting\Repository\MysqlFiscalYearRepository;
 use App\Accounting\Service\AccountingAmountParser;
 use App\Accounting\Service\EntryInputPolicy;
@@ -693,18 +698,38 @@ return static function (array $config): Container {
         $c->get(LoggerInterface::class),
     ));
 
+    $container->set(MemberDuesRepositoryInterface::class, fn ($c) => new MysqlMemberDuesRepository($c->get(PDO::class)));
+
     $container->set(EntryService::class, fn ($c) => new EntryService(
         $c->get(AdminAccess::class),
         new EntryInputPolicy(new AccountingAmountParser()),
         $c->get(FiscalYearRepositoryInterface::class),
         $c->get(EntryRepositoryInterface::class),
+        $c->get(MemberDuesRepositoryInterface::class),
         $c->get(TransactionRunner::class),
         $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(CotisationService::class, fn ($c) => new CotisationService(
+        $c->get(AdminAccess::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(MemberDuesRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(CotisationPageController::class, fn ($c) => new CotisationPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(FiscalYearService::class),
+        $c->get(CotisationService::class),
+        new CotisationView(),
     ));
 
     $container->set(AccountingApiController::class, fn ($c) => new AccountingApiController(
         $c->get(FiscalYearService::class),
         $c->get(EntryService::class),
+        $c->get(CotisationService::class),
         $c->get(AuthGuard::class),
     ));
 
@@ -715,6 +740,7 @@ return static function (array $config): Container {
         $c->get(FiscalYearService::class),
         $c->get(EntryService::class),
         new AccountingJournalView(new MoneyFormatter()),
+        $c->get(CotisationService::class),
     ));
 
     $container->set(StatementRepositoryInterface::class, fn ($c) => new MysqlStatementRepository($c->get(PDO::class)));
