@@ -207,6 +207,10 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/admin/accounting/years', ['label' => 'Piraté', 'startsOn' => '2025-10-01', 'endsOn' => '2026-09-30', 'openingBalance' => '0'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/years/1/entries', ['occurredOn' => '2025-11-05', 'label' => 'Piraté', 'amount' => '1', 'direction' => 'recette', 'category' => 'cotisations', 'paymentMethod' => 'virement'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/statements', ['__upload' => true, 'fiscalYearId' => '1', 'periodStart' => '2025-10-01', 'periodEnd' => '2025-10-31'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/recurring', ['label' => 'Piraté', 'direction' => 'depense', 'category' => 'loyer', 'paymentMethod' => 'virement', 'periodicity' => 'mensuelle', 'dueDay' => '5', 'firstMonth' => '2025-10'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['PUT', '/api/admin/accounting/recurring/1', ['label' => 'Piraté', 'direction' => 'depense', 'category' => 'loyer', 'paymentMethod' => 'virement', 'periodicity' => 'mensuelle', 'dueDay' => '5', 'firstMonth' => '2025-10'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/recurring/1/confirm', ['period' => '2025-10-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/recurring/1/ignore', ['period' => '2025-10-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/years/1/close', ['revision' => 0], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/years/1/approve', ['approvedOn' => '2026-11-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/entries/1/reverse', ['reason' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
@@ -494,13 +498,14 @@ final class IdorMatrixTest extends TestCase
     #[Test]
     public function testStatementPagesAndDownloadAreForAdministratorsOnly(): void
     {
-        foreach (['/admin/accounting/statements', '/admin/accounting/statements/1/file'] as $path) {
+        foreach (['/admin/accounting/statements', '/admin/accounting/statements/1/file', '/admin/accounting/recurring'] as $path) {
             self::assertSame(302, $this->call('anon', 'GET', $path)[0], "anonyme {$path}");
             foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
                 self::assertSame(403, $this->call($actor, 'GET', $path)[0], "{$actor} {$path}");
             }
         }
         self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/statements')[0]);
+        self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/recurring')[0]);
         self::assertSame(404, $this->call('admin', 'GET', '/admin/accounting/statements/' . self::MISSING_ID . '/file')[0]);
         foreach (['0', '-1', 'abc', '1e0', '007', '99999999999999999999', '%00'] as $malformed) {
             self::assertSame(403, $this->call('admin', 'GET', "/admin/accounting/statements/{$malformed}/file")[0], $malformed);
