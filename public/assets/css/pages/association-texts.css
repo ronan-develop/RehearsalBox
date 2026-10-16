@@ -62,6 +62,11 @@
   resize: vertical;
 }
 
+/* Cachet de la copie papier : invisible à l'écran, rempli juste avant l'impression. */
+.rb-text-print-stamp {
+  display: none;
+}
+
 /* Pied du panneau de modification : pile verticale sur mobile. */
 .rb-text-actions {
   display: grid;
@@ -98,5 +103,47 @@
 
   .rb-text-actions .rb-btn {
     width: auto;
+  }
+}
+
+/* Copie papier d'un texte (#488) : titre et corps en noir sur blanc ; menu, boutons, retour et mention de modification disparaissent. */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .rb-bottom-nav,
+  .rb-back-link,
+  .rb-text-view > .rb-btn,
+  .rb-text-meta,
+  .rb-text-edit {
+    display: none;
+  }
+
+  .rb-text-view {
+    background: #fff;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    color: #000;
+  }
+
+  .rb-text-view h1,
+  .rb-text-body {
+    color: #000;
+    text-shadow: none;
+  }
+
+  .rb-text-body {
+    orphans: 3;
+    widows: 3;
+  }
+
+  .rb-text-print-stamp {
+    display: block;
+    margin-top: var(--rb-space-4);
+    color: #000;
+    font-size: 0.75rem;
   }
 }

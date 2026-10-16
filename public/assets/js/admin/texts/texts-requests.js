@@ -30,3 +30,10 @@ export function deleteRequest(id) {
 }
 
 export const DELETE_WARNING = 'Supprimer ce texte ? Il sera effacé définitivement.';
+
+/** Cachet de la copie papier : « Imprimé le jj/mm/aaaa » (date locale). */
+export function printStamp(date) {
+  const two = (n) => String(n).padStart(2, '0');
+
+  return `Imprimé le ${two(date.getDate())}/${two(date.getMonth() + 1)}/${date.getFullYear()}`;
+}
