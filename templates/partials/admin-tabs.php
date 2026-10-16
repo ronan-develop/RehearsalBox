@@ -3,7 +3,7 @@
  * Onglets des pages admin « Groupes » / « Utilisateurs » (#155) : deux pages distinctes
  * (navigation serveur, simples liens), l'onglet courant est marqué aria-current="page".
  *
- * @var string $adminTab 'bookings', 'slots', 'groups', 'users' ou 'assemblies'
+ * @var string $adminTab 'bookings', 'slots', 'groups', 'users', 'assemblies' ou 'accounting'
  * @var bool|null $showOpsLink onglet « Ops » : propriétaire seulement (#400, OpsLinkRenderer)
  */
 ?>
@@ -22,6 +22,9 @@
     </a>
     <a href="/admin/assemblies" class="rb-admin-tab"<?= $adminTab === 'assemblies' ? ' aria-current="page"' : '' ?>>
         Assemblées
+    </a>
+    <a href="/admin/accounting" class="rb-admin-tab"<?= $adminTab === 'accounting' ? ' aria-current="page"' : '' ?>>
+        Comptabilité
     </a>
     <?php if (!empty($showOpsLink)): ?>
         <a href="/admin/ops" class="rb-admin-tab">
