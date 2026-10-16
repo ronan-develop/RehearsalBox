@@ -78,7 +78,20 @@
   margin: 0 0 var(--rb-space-3);
 }
 
-/* Interrupteur Sous-titre au-dessus de la zone de texte : allumé quand la ligne du curseur est un sous-titre. */
+/* Liste à puces d'un texte (#492) : puces visibles, retrait, éléments non coupés à l'impression. */
+.rb-text-list {
+  margin: 0 0 var(--rb-space-3);
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.rb-text-list li {
+  margin-bottom: var(--rb-space-1);
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+}
+
+/* Interrupteurs Sous-titre et Liste au-dessus de la zone de texte : allumés quand la ligne du curseur en est un. */
 .rb-text-format {
   display: flex;
   flex-wrap: wrap;
@@ -166,7 +179,8 @@
 
   .rb-text-view h1,
   .rb-text-subheading,
-  .rb-text-body {
+  .rb-text-body,
+  .rb-text-list {
     color: #000;
     text-shadow: none;
   }

@@ -49,8 +49,9 @@
                 </div>
                 <div class="rb-field">
                     <label for="text-create-body">Texte</label>
-                    <div class="rb-text-format">
-                        <button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>
+                    <div class="rb-text-format" role="group" aria-label="Mise en forme">
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="subtitle" aria-pressed="false">Sous-titre</button>
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="format" data-format="list" aria-pressed="false">Liste</button>
                     </div>
                     <textarea id="text-create-body" name="body" maxlength="100000" rows="14" class="rb-input"></textarea>
                     <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>
