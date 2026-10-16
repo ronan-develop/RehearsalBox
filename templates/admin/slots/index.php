@@ -11,6 +11,7 @@
 <body>
     <div class="rb-admin-page">
         <?php $backHref = '/'; $backLabel = 'Retour aux disponibilités'; require __DIR__ . '/../../partials/back-button.php'; ?>
+        <?php $adminTab = 'slots'; require __DIR__ . '/../../partials/admin-tabs.php'; ?>
         <h1>Créneaux récurrents</h1>
         <p class="rb-admin-subtitle">Attribution hebdomadaire fixe du local par groupe.</p>
 
