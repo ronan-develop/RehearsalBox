@@ -74,7 +74,7 @@ final class AssociationTextTemplatesTest extends TestCase
     {
         $html = $this->render('admin/texts/show', ['text' => $this->text()]);
 
-        self::assertMatchesRegularExpression('#<button type="button" class="rb-btn" data-action="print">Imprimer</button>#', $html);
+        self::assertMatchesRegularExpression('#<div class="rb-text-view-actions">\s*<button[^>]*data-action="edit">Modifier</button>\s*<button type="button" class="rb-btn" data-action="print">Imprimer</button>\s*</div>#', $html, 'Modifier et Imprimer sur la même ligne');
         self::assertMatchesRegularExpression('#<p class="rb-text-print-stamp" data-print-stamp[^>]*></p>#', $html);
     }
 

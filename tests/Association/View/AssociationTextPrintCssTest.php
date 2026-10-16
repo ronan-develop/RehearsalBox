@@ -24,7 +24,7 @@ final class AssociationTextPrintCssTest extends TestCase
     {
         $print = $this->printBlock();
 
-        foreach (['.rb-bottom-nav', '.rb-back-link', '.rb-text-view > .rb-btn', '.rb-text-meta'] as $selector) {
+        foreach (['.rb-bottom-nav', '.rb-back-link', '.rb-text-view-actions', '.rb-text-meta'] as $selector) {
             self::assertStringContainsString($selector, $print, "{$selector} masqué à l'impression");
         }
         self::assertMatchesRegularExpression('/display:\s*none/', $print);

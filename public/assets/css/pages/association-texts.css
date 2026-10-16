@@ -42,7 +42,6 @@
   margin-bottom: var(--rb-space-4);
 }
 
-.rb-text-view > .rb-btn,
 [data-text-section] > .rb-btn {
   width: 100%;
   text-align: center;
@@ -60,6 +59,13 @@
 .rb-text-edit textarea {
   min-height: 12rem;
   resize: vertical;
+}
+
+/* Modifier et Imprimer sur une même ligne, à la largeur de leur texte. */
+.rb-text-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
 }
 
 /* Cachet de la copie papier : invisible à l'écran, rempli juste avant l'impression. */
@@ -89,7 +95,6 @@
 }
 
 @media (min-width: 768px) {
-  .rb-text-view > .rb-btn,
   [data-text-section] > .rb-btn {
     width: auto;
     justify-self: start;
@@ -115,7 +120,7 @@
 
   .rb-bottom-nav,
   .rb-back-link,
-  .rb-text-view > .rb-btn,
+  .rb-text-view-actions,
   .rb-text-meta,
   .rb-text-edit {
     display: none;
