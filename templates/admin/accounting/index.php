@@ -51,6 +51,8 @@ $adminTab = 'accounting';
                     </dl>
                 </div>
 
+                <?php require __DIR__ . '/_year-actions.php'; ?>
+
                 <?php if ($year['isOpen']): ?>
                     <?php require __DIR__ . '/_entry-form.php'; ?>
                 <?php endif; ?>

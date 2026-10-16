@@ -50,3 +50,17 @@ export function reverseRequest(entryId, values) {
     options: { method: 'POST', body: JSON.stringify(pick(values, ['reason', 'occurredOn'])) },
   };
 }
+
+/** La révision vient de la page (entier) : elle protège d'une clôture décidée sur un écran périmé. */
+export function closeYearRequest(yearId, values) {
+  const revision = Number(values.revision);
+  if (!Number.isInteger(revision) || revision < 0) {
+    throw new Error('Révision invalide.');
+  }
+
+  return { path: `/api/admin/accounting/years/${idOrThrow(yearId, 'd\'exercice')}/close`, options: { method: 'POST', body: JSON.stringify({ revision }) } };
+}
+
+export function approveYearRequest(yearId, values) {
+  return { path: `/api/admin/accounting/years/${idOrThrow(yearId, 'd\'exercice')}/approve`, options: { method: 'POST', body: JSON.stringify(pick(values, ['approvedOn'])) } };
+}

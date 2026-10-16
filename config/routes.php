@@ -121,6 +121,8 @@ return [
         ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
         ['POST',   '/api/admin/accounting/years', [AccountingApiController::class, 'createYear']],
         ['POST',   '/api/admin/accounting/years/{id}/entries', [AccountingApiController::class, 'recordEntry']],
+        ['POST',   '/api/admin/accounting/years/{id}/close', [AccountingApiController::class, 'closeYear']],
+        ['POST',   '/api/admin/accounting/years/{id}/approve', [AccountingApiController::class, 'approveYear']],
         ['POST',   '/api/admin/accounting/entries/{id}/reverse', [AccountingApiController::class, 'reverseEntry']],
         ['PUT',    '/api/admin/board/{post}', [AssociationBoardApiController::class, 'assign']],
         ['DELETE', '/api/admin/board/{post}', [AssociationBoardApiController::class, 'vacate']],

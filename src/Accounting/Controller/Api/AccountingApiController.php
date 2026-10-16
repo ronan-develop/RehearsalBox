@@ -51,4 +51,22 @@ final class AccountingApiController
 
         return new JsonResponse(['id' => $reversal->id, 'number' => $reversal->number, 'url' => '/admin/accounting?year=' . $reversal->fiscalYearId], 201);
     }
+
+    public function closeYear(Request $request, string $id): JsonResponse
+    {
+        $admin = $this->authGuard->requireRole(UserRole::Admin);
+        $yearId = StrictId::orDenied($id);
+        $this->years->close($admin, $yearId, (int) $request->body('revision', 0));
+
+        return new JsonResponse(['id' => $yearId, 'url' => '/admin/accounting?year=' . $yearId]);
+    }
+
+    public function approveYear(Request $request, string $id): JsonResponse
+    {
+        $admin = $this->authGuard->requireRole(UserRole::Admin);
+        $yearId = StrictId::orDenied($id);
+        $this->years->approve($admin, $yearId, $request->allBody());
+
+        return new JsonResponse(['id' => $yearId, 'url' => '/admin/accounting?year=' . $yearId]);
+    }
 }

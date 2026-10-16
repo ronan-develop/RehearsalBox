@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createYearRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 test('chaque requête vise la bonne route et ne porte que les champs attendus', () => {
   assert.deepEqual(createYearRequest({ label: '2025-2026', startsOn: '2025-10-01', endsOn: '2026-09-30', openingBalance: '100,00', role: 'admin' }), {
@@ -33,4 +33,18 @@ test('un identifiant qui n\'est pas une chaîne de chiffres sans zéro initial e
     assert.throws(() => recordEntryRequest(id, {}), /invalide/, `année ${String(id)}`);
     assert.throws(() => reverseRequest(id, {}), /invalide/, `écriture ${String(id)}`);
   }
+});
+
+test('clôture et approbation : bonne route, seuls les champs attendus, identifiant contrôlé', () => {
+  assert.deepEqual(closeYearRequest('4', { revision: '3', status: 'approuve' }), {
+    path: '/api/admin/accounting/years/4/close',
+    options: { method: 'POST', body: '{"revision":3}' },
+  });
+  assert.deepEqual(approveYearRequest('4', { approvedOn: '2026-11-20', status: 'x' }), {
+    path: '/api/admin/accounting/years/4/approve',
+    options: { method: 'POST', body: '{"approvedOn":"2026-11-20"}' },
+  });
+  assert.throws(() => closeYearRequest('4/../x', { revision: '1' }));
+  assert.throws(() => approveYearRequest('0', {}));
+  assert.throws(() => closeYearRequest('4', { revision: 'abc' }));
 });
