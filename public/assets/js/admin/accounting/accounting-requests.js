@@ -81,3 +81,29 @@ export function depositStatementRequest(yearId, values, file) {
 
   return { path: '/api/admin/accounting/statements', options: { method: 'POST', body } };
 }
+
+const TEMPLATE_FIELDS = ['label', 'direction', 'category', 'paymentMethod', 'amount', 'voucherRef', 'periodicity', 'dueDay', 'firstMonth', 'isActive'];
+
+/** Modèle récurrent : tous les champs du modèle ; une case décochée envoie « false », jamais l'absence. */
+export function templateRequest(templateId, values) {
+  const body = pick(values, TEMPLATE_FIELDS);
+  body.isActive = values.isActive === true || values.isActive === '1';
+  const path = templateId === '' ? '/api/admin/accounting/recurring' : `/api/admin/accounting/recurring/${idOrThrow(templateId, 'de modèle')}`;
+
+  return { path, options: { method: templateId === '' ? 'POST' : 'PUT', body: JSON.stringify(body) } };
+}
+
+/** Confirmation d'une échéance : seuls l'échéance, le montant (variable) et la pièce partent ; le reste vient du modèle, côté serveur. */
+export function confirmOccurrenceRequest(templateId, values) {
+  return {
+    path: `/api/admin/accounting/recurring/${idOrThrow(templateId, 'de modèle')}/confirm`,
+    options: { method: 'POST', body: JSON.stringify(pick(values, ['period', 'amount', 'voucherRef'])) },
+  };
+}
+
+export function ignoreOccurrenceRequest(templateId, values) {
+  return {
+    path: `/api/admin/accounting/recurring/${idOrThrow(templateId, 'de modèle')}/ignore`,
+    options: { method: 'POST', body: JSON.stringify(pick(values, ['period'])) },
+  };
+}

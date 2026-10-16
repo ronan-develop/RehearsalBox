@@ -41,15 +41,16 @@ final class EntryService
      * @param array<string, mixed> $input voir EntryInputPolicy::parse
      * @throws FiscalYearNotFoundException
      * @throws FiscalYearLockedException exercice clos ou approuvé
+     * @param (callable(AccountingEntry): void)|null $inTransaction appelé APRÈS l'écriture et DANS la même transaction : s'il lève, rien n'est écrit
      * @throws AccountingValidationException saisie refusée, ou date hors de l'exercice
      */
-    public function record(User $actor, int $fiscalYearId, array $input, ?\DateTimeImmutable $now = null): AccountingEntry
+    public function record(User $actor, int $fiscalYearId, array $input, ?\DateTimeImmutable $now = null, ?callable $inTransaction = null): AccountingEntry
     {
         $this->access->assertAdmin($actor);
         $draft = $this->policy->parse($input);
         $now ??= new \DateTimeImmutable();
 
-        $entry = $this->transactions->run(function () use ($fiscalYearId, $draft, $actor, $now): AccountingEntry {
+        $entry = $this->transactions->run(function () use ($fiscalYearId, $draft, $actor, $now, $inTransaction): AccountingEntry {
             $year = $this->years->lock($fiscalYearId) ?? throw new FiscalYearNotFoundException();
             if (!$year->isOpen()) {
                 throw new FiscalYearLockedException();
@@ -58,7 +59,12 @@ final class EntryService
                 throw new AccountingValidationException(['occurredOn' => 'La date doit être comprise dans l\'exercice (du ' . $year->startsOn->format('d/m/Y') . ' au ' . $year->endsOn->format('d/m/Y') . ').']);
             }
 
-            return $this->write($year->id, $year->nextEntryNumber, $draft, null, $actor, $now);
+            $entry = $this->write($year->id, $year->nextEntryNumber, $draft, null, $actor, $now);
+            if ($inTransaction !== null) {
+                $inTransaction($entry);
+            }
+
+            return $entry;
         });
         $this->logger->info('Comptabilité : écriture saisie', ['actor' => $actor->id(), 'year' => $fiscalYearId, 'entry' => $entry->id]);
 
