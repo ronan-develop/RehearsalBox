@@ -203,6 +203,10 @@ final class IdorMatrixTest extends TestCase
             // Bureau de l'association (#478) : administrateurs seulement
             ['PUT', '/api/admin/board/president', ['userId' => 1, 'fullName' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['DELETE', '/api/admin/board/president', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            // Comptabilité (#362) : administrateurs seulement
+            ['POST', '/api/admin/accounting/years', ['label' => 'Piraté', 'startsOn' => '2025-10-01', 'endsOn' => '2026-09-30', 'openingBalance' => '0'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/years/1/entries', ['occurredOn' => '2025-11-05', 'label' => 'Piraté', 'amount' => '1', 'direction' => 'recette', 'category' => 'cotisations', 'paymentMethod' => 'virement'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/entries/1/reverse', ['reason' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             // Mon compte (#161) : seul l'utilisateur connecté, sur son propre compte
             ['PATCH', '/api/account/profile', ['displayName' => 'Intrus'], ['anon']],
             ['PATCH', '/api/account/email', ['email' => 'intrus@rehearsalbox.test', 'currentPassword' => 'x'], ['anon']],
@@ -470,6 +474,38 @@ final class IdorMatrixTest extends TestCase
             self::assertSame(403, $this->call('admin', 'DELETE', "/api/admin/texts/{$malformed}")[0], "identifiant « {$malformed} » (API)");
         }
         self::assertSame(404, $this->call('admin', 'GET', '/admin/texts/' . self::MISSING_ID)[0]);
+    }
+
+    // --- Comptabilité (#362) : page et méta-contrôle -----------------------------------
+
+    #[Test]
+    public function testAccountingPageIsForAdministratorsOnly(): void
+    {
+        self::assertSame(302, $this->call('anon', 'GET', '/admin/accounting')[0]);
+        foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
+            self::assertSame(403, $this->call($actor, 'GET', '/admin/accounting')[0], $actor);
+        }
+        self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting')[0]);
+    }
+
+    /** Toute route comptable doit figurer dans la matrice : une route ajoutée sans test de refus fait échouer ce contrôle. */
+    #[Test]
+    public function testEveryAccountingRouteIsInTheDeniedMatrix(): void
+    {
+        $routeGroups = require __DIR__ . '/../../config/routes.php';
+        $covered = [];
+        foreach (self::deniedAccessProvider() as [, $method, $path]) {
+            $covered[] = $method . ' ' . preg_replace('#/\d+#', '/{id}', $path);
+        }
+        foreach ([...$routeGroups['pages'], ...$routeGroups['api']] as [$method, $pattern]) {
+            if (!str_starts_with($pattern, '/admin/accounting') && !str_starts_with($pattern, '/api/admin/accounting')) {
+                continue;
+            }
+            if ($method === 'GET') {
+                continue; // les pages ont leur test dédié ci-dessus
+            }
+            self::assertContains($method . ' ' . $pattern, $covered, "route comptable absente de la matrice : {$method} {$pattern}");
+        }
     }
 
     // --- Garde-fous : la matrice n'est pas vide de sens -------------------------
