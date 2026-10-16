@@ -70,6 +70,15 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
+    public function testTheShowPageOffersAPrintButtonAndAPrintOnlyStamp(): void
+    {
+        $html = $this->render('admin/texts/show', ['text' => $this->text()]);
+
+        self::assertMatchesRegularExpression('#<button type="button" class="rb-btn" data-action="print">Imprimer</button>#', $html);
+        self::assertMatchesRegularExpression('#<p class="rb-text-print-stamp" data-print-stamp[^>]*></p>#', $html);
+    }
+
+    #[Test]
     public function testTheShowPageRendersTheBodyEscapedWithLineBreaks(): void
     {
         $html = $this->render('admin/texts/show', ['text' => $this->text()]);

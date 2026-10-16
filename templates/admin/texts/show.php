@@ -30,6 +30,8 @@ $textId = (string) $text['id'];
                 <p class="rb-text-meta">Modifié le <?= e($text['updated']) ?> par <?= e($text['by']) ?></p>
                 <div class="rb-text-body"><?= nl2br(e($text['body'])) ?></div>
                 <button type="button" class="rb-btn" data-action="edit">Modifier</button>
+                <button type="button" class="rb-btn" data-action="print">Imprimer</button>
+                <p class="rb-text-print-stamp" data-print-stamp></p>
             </div>
 
             <div class="rb-card rb-text-edit" data-text-edit hidden>
