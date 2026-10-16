@@ -61,8 +61,7 @@
   resize: vertical;
 }
 
-/* Titres et sous-titres d'un texte (#490) : gras et plus grands que le corps, jamais seuls en bas de page. */
-.rb-text-heading,
+/* Sous-titres d'un texte (#490) : gras et plus grands que le corps, jamais seuls en bas de page. */
 .rb-text-subheading {
   margin: var(--rb-space-4) 0 var(--rb-space-2);
   font-weight: 800;
@@ -71,19 +70,15 @@
   break-after: avoid;
 }
 
-.rb-text-heading {
-  font-size: 1.5rem;
-}
-
 .rb-text-subheading {
-  font-size: 1.2rem;
+  font-size: 1.35rem;
 }
 
 .rb-text-body p {
   margin: 0 0 var(--rb-space-3);
 }
 
-/* Interrupteurs Titre et Sous-titre au-dessus de la zone de texte : allumés quand la ligne du curseur est de ce niveau. */
+/* Interrupteur Sous-titre au-dessus de la zone de texte : allumé quand la ligne du curseur est un sous-titre. */
 .rb-text-format {
   display: flex;
   flex-wrap: wrap;
@@ -170,7 +165,6 @@
   }
 
   .rb-text-view h1,
-  .rb-text-heading,
   .rb-text-subheading,
   .rb-text-body {
     color: #000;

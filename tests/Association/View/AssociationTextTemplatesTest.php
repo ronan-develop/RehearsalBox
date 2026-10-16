@@ -93,22 +93,22 @@ final class AssociationTextTemplatesTest extends TestCase
     }
 
     #[Test]
-    public function testTheShowPageRendersTitlesAndSubtitlesFromTheirMarkers(): void
+    public function testTheShowPageRendersSubtitlesFromTheirMarker(): void
     {
-        $html = $this->render('admin/texts/show', ['text' => $this->text(['body' => "# Statuts\n## Article 1\nTexte"])]);
+        $html = $this->render('admin/texts/show', ['text' => $this->text(['body' => "# Pas un titre\n## Article 1\nTexte"])]);
 
-        self::assertStringContainsString('<h2 class="rb-text-heading">Statuts</h2><h3 class="rb-text-subheading">Article 1</h3><p>Texte</p>', $html);
+        self::assertStringContainsString('<p># Pas un titre</p><h2 class="rb-text-subheading">Article 1</h2><p>Texte</p>', $html);
     }
 
     #[Test]
-    public function testBothEditorsOfferTheTitleAndSubtitleSwitches(): void
+    public function testBothEditorsOfferOnlyTheSubtitleSwitch(): void
     {
         $show = $this->render('admin/texts/show', ['text' => $this->text()]);
         $index = $this->render('admin/texts/index', ['rows' => []]);
 
         foreach ([$show, $index] as $html) {
-            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="1" aria-pressed="false">Titre</button>#', $html);
-            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="2" aria-pressed="false">Sous-titre</button>#', $html);
+            self::assertMatchesRegularExpression('#<button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>#', $html);
+            self::assertStringNotContainsString('>Titre</button>', $html, 'le titre du texte a son propre champ');
         }
     }
 

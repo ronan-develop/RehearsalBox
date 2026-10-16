@@ -44,11 +44,10 @@ $textId = (string) $text['id'];
                 </div>
                 <div class="rb-field">
                     <label for="text-edit-body">Texte</label>
-                    <div class="rb-text-format" role="group" aria-label="Mise en forme">
-                        <button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="1" aria-pressed="false">Titre</button>
-                        <button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="2" aria-pressed="false">Sous-titre</button>
+                    <div class="rb-text-format">
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>
                     </div>
-                                        <textarea id="text-edit-body" name="body" maxlength="100000" rows="18" class="rb-input"><?= e($text['body']) ?></textarea>
+                    <textarea id="text-edit-body" name="body" maxlength="100000" rows="18" class="rb-input"><?= e($text['body']) ?></textarea>
                     <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>
                 </div>
                 <p class="rb-field-error" role="alert" data-form-error hidden></p>

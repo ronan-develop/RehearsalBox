@@ -6,7 +6,7 @@
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { confirmAction } from '../../ui/rb-confirm-dialog.js';
-import { headingLevel, toggleHeading } from './texts-format.js';
+import { isSubtitle, toggleSubtitle } from './texts-format.js';
 import { DELETE_WARNING, createRequest, deleteRequest, printStamp, failureMessage, updateRequest } from './texts-requests.js';
 
 const FIELDS = ['title', 'body'];
@@ -79,23 +79,20 @@ function toggleCreate(section, open) {
   }
 }
 
-/** Allume l'interrupteur dont le niveau est celui de la ligne du curseur (aucun si la ligne est du texte). */
-function syncSwitches(textarea) {
-  const level = headingLevel(textarea.value, textarea.selectionStart);
-  const field = textarea.closest('.rb-field');
-  for (const button of field.querySelectorAll('[data-action="heading"]')) {
-    button.setAttribute('aria-pressed', String(Number(button.dataset.level) === level));
-  }
+/** Allume l'interrupteur quand la ligne du curseur est un sous-titre. */
+function syncSwitch(textarea) {
+  const button = textarea.closest('.rb-field').querySelector('[data-action="subtitle"]');
+  button.setAttribute('aria-pressed', String(isSubtitle(textarea.value, textarea.selectionStart)));
 }
 
-/** Bascule titre ou sous-titre sur la ligne du curseur de la zone de texte du panneau, puis rend la main au curseur. */
-function handleHeading(button) {
+/** Bascule le sous-titre sur la ligne du curseur de la zone de texte du panneau, puis rend la main au curseur. */
+function handleSubtitle(button) {
   const textarea = button.closest('.rb-field').querySelector('textarea');
-  const { value, caret } = toggleHeading(textarea.value, textarea.selectionStart, Number(button.dataset.level));
+  const { value, caret } = toggleSubtitle(textarea.value, textarea.selectionStart);
   textarea.value = value;
   textarea.focus();
   textarea.setSelectionRange(caret, caret);
-  syncSwitches(textarea);
+  syncSwitch(textarea);
 }
 
 function toggleEdit(section, editing) {
@@ -144,11 +141,11 @@ function stampPrintouts() {
 
 export function initAdminTexts(root = document) {
   window.addEventListener('beforeprint', stampPrintouts);
-  // L'interrupteur suit le curseur : clavier, souris ou saisie, la ligne courante décide de ce qui est allumé.
+  // L'interrupteur suit le curseur : clavier, souris ou saisie, la ligne courante décide s'il est allumé.
   for (const type of ['keyup', 'click', 'input', 'focusin']) {
     root.addEventListener(type, (event) => {
       if (event.target.matches?.('.rb-text-create textarea, .rb-text-edit textarea')) {
-        syncSwitches(event.target);
+        syncSwitch(event.target);
       }
     });
   }
@@ -163,8 +160,8 @@ export function initAdminTexts(root = document) {
         case 'cancel-create':
           toggleCreate(createSection, false);
           break;
-        case 'heading':
-          handleHeading(createAction);
+        case 'subtitle':
+          handleSubtitle(createAction);
           break;
         case 'create':
           handleCreate(createAction);
@@ -188,8 +185,8 @@ export function initAdminTexts(root = document) {
       case 'print':
         window.print();
         break;
-      case 'heading':
-        handleHeading(action);
+      case 'subtitle':
+        handleSubtitle(action);
         break;
       case 'save':
         handleSave(action);

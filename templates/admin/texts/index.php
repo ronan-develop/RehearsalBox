@@ -49,11 +49,10 @@
                 </div>
                 <div class="rb-field">
                     <label for="text-create-body">Texte</label>
-                    <div class="rb-text-format" role="group" aria-label="Mise en forme">
-                        <button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="1" aria-pressed="false">Titre</button>
-                        <button type="button" class="rb-btn rb-btn-toggle" data-action="heading" data-level="2" aria-pressed="false">Sous-titre</button>
+                    <div class="rb-text-format">
+                        <button type="button" class="rb-btn rb-btn-toggle" data-action="subtitle" aria-pressed="false">Sous-titre</button>
                     </div>
-                                        <textarea id="text-create-body" name="body" maxlength="100000" rows="14" class="rb-input"></textarea>
+                    <textarea id="text-create-body" name="body" maxlength="100000" rows="14" class="rb-input"></textarea>
                     <p class="rb-field-error" role="alert" data-field-error="body" hidden></p>
                 </div>
                 <p class="rb-field-error" role="alert" data-form-error hidden></p>

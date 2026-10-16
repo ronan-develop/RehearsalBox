@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Association\Presenter;
 
 /**
- * Mise en forme d'un texte de l'association (#490), sans bibliothèque : une ligne « # titre » est un titre, « ## titre » un sous-titre,
+ * Mise en forme d'un texte de l'association (#490), sans bibliothèque : une ligne « ## sous-titre » est un sous-titre (le titre du texte a son propre champ),
  * le reste du texte forme des paragraphes (une ligne vide les sépare, un retour à la ligne devient un saut). Chaque ligne est échappée
  * AVANT d'être enveloppée dans sa balise : aucun HTML saisi n'est jamais interprété.
  */
@@ -17,18 +17,15 @@ final class AssociationTextFormatter
         $paragraph = [];
 
         foreach (preg_split('/\r\n|\r|\n/', $body) ?: [] as $line) {
-            if (trim($line) !== '' && preg_match('/\A(#{1,2}) (\S.*)\z/u', $line, $match) !== 1) {
+            if (trim($line) !== '' && preg_match('/\A## (\S.*)\z/u', $line, $match) !== 1) {
                 $paragraph[] = self::escape(trim($line));
 
                 continue;
             }
             $html .= self::paragraph($paragraph);
             $paragraph = [];
-            if (isset($match[2])) {
-                $text = self::escape(trim($match[2]));
-                $html .= $match[1] === '#'
-                    ? '<h2 class="rb-text-heading">' . $text . '</h2>'
-                    : '<h3 class="rb-text-subheading">' . $text . '</h3>';
+            if (isset($match[1])) {
+                $html .= '<h2 class="rb-text-subheading">' . self::escape(trim($match[1])) . '</h2>';
             }
             unset($match);
         }

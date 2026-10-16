@@ -1,30 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toggleHeading } from './texts-format.js';
+import { isSubtitle, toggleSubtitle } from './texts-format.js';
 
-test('un titre est posé sur la ligne du curseur, le curseur reste sur la même lettre', () => {
-  assert.deepEqual(toggleHeading('un\ndeux\ntrois', 5, 1), { value: 'un\n# deux\ntrois', caret: 7 });
-  assert.deepEqual(toggleHeading('un\ndeux\ntrois', 5, 2), { value: 'un\n## deux\ntrois', caret: 8 });
+test('le préfixe est posé sur la ligne du curseur, le curseur reste sur la même lettre', () => {
+  assert.deepEqual(toggleSubtitle('un\ndeux\ntrois', 5), { value: 'un\n## deux\ntrois', caret: 8 });
 });
 
-test('le même bouton retire le préfixe, l\'autre niveau le remplace', () => {
-  assert.deepEqual(toggleHeading('# un', 3, 1), { value: 'un', caret: 1 });
-  assert.deepEqual(toggleHeading('## un', 4, 1), { value: '# un', caret: 3 });
-  assert.deepEqual(toggleHeading('# un', 3, 2), { value: '## un', caret: 4 });
+test('le même bouton retire le préfixe', () => {
+  assert.deepEqual(toggleSubtitle('## un', 4), { value: 'un', caret: 1 });
+  assert.deepEqual(toggleSubtitle('a\n## b', 6), { value: 'a\nb', caret: 3 });
+});
+
+test('curseur dans le préfixe lui-même : il ne sort pas de la ligne', () => {
+  assert.deepEqual(toggleSubtitle('## un', 1), { value: 'un', caret: 0 });
 });
 
 test('première et dernière ligne, texte vide', () => {
-  assert.deepEqual(toggleHeading('a\nb', 0, 1), { value: '# a\nb', caret: 2 });
-  assert.deepEqual(toggleHeading('a\nb', 3, 1), { value: 'a\n# b', caret: 5 });
-  assert.deepEqual(toggleHeading('', 0, 1), { value: '# ', caret: 2 });
+  assert.deepEqual(toggleSubtitle('a\nb', 0), { value: '## a\nb', caret: 3 });
+  assert.deepEqual(toggleSubtitle('a\nb', 3), { value: 'a\n## b', caret: 6 });
+  assert.deepEqual(toggleSubtitle('', 0), { value: '## ', caret: 3 });
 });
 
 test('un curseur hors du texte est ramené dans le texte', () => {
-  assert.deepEqual(toggleHeading('ab', 99, 1), { value: '# ab', caret: 4 });
-  assert.deepEqual(toggleHeading('ab', -3, 1), { value: '# ab', caret: 2 });
+  assert.deepEqual(toggleSubtitle('ab', 99), { value: '## ab', caret: 5 });
+  assert.deepEqual(toggleSubtitle('ab', -3), { value: '## ab', caret: 3 });
 });
 
-test('un niveau inconnu ne change rien', () => {
-  assert.deepEqual(toggleHeading('ab', 1, 3), { value: 'ab', caret: 1 });
-  assert.deepEqual(toggleHeading('ab', 1, 'x'), { value: 'ab', caret: 1 });
+test('seule la ligne qui commence par « ## » est un sous-titre', () => {
+  assert.equal(isSubtitle('## un', 2), true);
+  assert.equal(isSubtitle('# un', 2), false);
+  assert.equal(isSubtitle('un ## deux', 4), false);
+  assert.equal(isSubtitle('a\n## b', 0), false);
+  assert.equal(isSubtitle('a\n## b', 4), true);
 });

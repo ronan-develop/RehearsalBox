@@ -9,16 +9,16 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** #490 : « # » titre, « ## » sous-titre ; le reste est du texte. Chaque ligne est échappée AVANT d'être enveloppée : aucun HTML saisi n'est interprété. */
+/** #490 : « ## » sous-titre (le titre du texte a son propre champ) ; le reste est du texte. Chaque ligne est échappée AVANT d'être enveloppée : aucun HTML saisi n'est interprété. */
 final class AssociationTextFormatterTest extends TestCase
 {
     #[Test]
-    public function testHeadingsAndSubheadingsGetTheirOwnTagsAndTextStaysInParagraphs(): void
+    public function testSubheadingsGetTheirOwnTagAndTextStaysInParagraphs(): void
     {
-        $html = (new AssociationTextFormatter())->html("# Statuts\nArticle 1\nsuite\n\n## Article 2\nTexte");
+        $html = (new AssociationTextFormatter())->html("## Statuts\nArticle 1\nsuite\n\n## Article 2\nTexte");
 
         self::assertSame(
-            '<h2 class="rb-text-heading">Statuts</h2><p>Article 1<br>suite</p><h3 class="rb-text-subheading">Article 2</h3><p>Texte</p>',
+            '<h2 class="rb-text-subheading">Statuts</h2><p>Article 1<br>suite</p><h2 class="rb-text-subheading">Article 2</h2><p>Texte</p>',
             $html,
         );
     }
@@ -34,12 +34,13 @@ final class AssociationTextFormatterTest extends TestCase
     /** @return iterable<string, array{0: string, 1: string}> */
     public static function notHeadings(): iterable
     {
-        yield 'dièse collé au mot' => ['#Titre', '<p>#Titre</p>'];
+        yield 'un seul dièse : du texte' => ['# Titre', '<p># Titre</p>'];
+        yield 'deux dièses collés au mot' => ['##Titre', '<p>##Titre</p>'];
         yield 'dièse au milieu' => ['a # b', '<p>a # b</p>'];
-        yield 'dièse seul' => ['#', '<p>#</p>'];
-        yield 'dièse et espace seuls' => ['# ', '<p>#</p>'];
+        yield 'dièses seuls' => ['##', '<p>##</p>'];
+        yield 'dièses et espace seuls' => ['## ', '<p>##</p>'];
         yield 'trois dièses' => ['### x', '<p>### x</p>'];
-        yield 'espace avant' => [' # x', '<p># x</p>'];
+        yield 'espace avant' => [' ## x', '<p>## x</p>'];
     }
 
     #[Test]
@@ -52,7 +53,7 @@ final class AssociationTextFormatterTest extends TestCase
     #[Test]
     public function testEnteredHtmlIsEscapedInHeadingsAndParagraphsAlike(): void
     {
-        $html = (new AssociationTextFormatter())->html("# <script>x</script>\n## <b onclick=\"a\">y</b>\n<img src=x onerror=alert(1)>");
+        $html = (new AssociationTextFormatter())->html("## <script>x</script>\n## <b onclick=\"a\">y</b>\n<img src=x onerror=alert(1)>");
 
         self::assertStringNotContainsString('<script', $html);
         self::assertStringNotContainsString('<b ', $html);
@@ -64,6 +65,6 @@ final class AssociationTextFormatterTest extends TestCase
     #[Test]
     public function testWindowsLineEndingsAreTreatedLikeNewlines(): void
     {
-        self::assertSame('<h2 class="rb-text-heading">T</h2><p>a<br>b</p>', (new AssociationTextFormatter())->html("# T\r\na\r\nb"));
+        self::assertSame('<h2 class="rb-text-subheading">T</h2><p>a<br>b</p>', (new AssociationTextFormatter())->html("## T\r\na\r\nb"));
     }
 }
