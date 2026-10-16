@@ -456,3 +456,77 @@ rb-restore {
 .rb-user-edit .rb-field button {
   justify-self: start;
 }
+
+/* Groupes d'un compte (#495) : une carte par groupe et une carte d'ajout, comme le reste de l'administration ; empilé sur mobile. */
+rb-user-groups {
+  display: block; /* un élément personnalisé est « inline » par défaut */
+}
+
+.rb-group-manager,
+.rb-user-group-list {
+  display: grid;
+  gap: var(--rb-space-3);
+}
+
+.rb-user-group-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rb-user-group-row,
+.rb-user-group-add {
+  display: grid;
+  gap: var(--rb-space-3);
+  padding: var(--rb-space-3);
+}
+
+.rb-user-group-head,
+.rb-user-group-move {
+  display: grid;
+  gap: var(--rb-space-2);
+  align-items: center;
+}
+
+.rb-user-group-name,
+.rb-user-group-add-title {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rb-user-group-add .rb-field {
+  margin-bottom: 0;
+}
+
+.rb-user-group-head .rb-btn,
+.rb-user-group-move .rb-btn {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .rb-user-group-head {
+    grid-template-columns: minmax(0, 1fr) minmax(8rem, 12rem) auto;
+  }
+
+  .rb-user-group-move {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rb-user-group-head .rb-btn,
+  .rb-user-group-move .rb-btn,
+  .rb-user-group-add .rb-btn-primary {
+    width: auto;
+  }
+
+  .rb-user-group-add {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .rb-user-group-add-title,
+  .rb-user-group-add .rb-btn-primary {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
