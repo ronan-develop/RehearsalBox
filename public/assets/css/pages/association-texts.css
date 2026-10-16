@@ -61,6 +61,36 @@
   resize: vertical;
 }
 
+/* Sous-titres d'un texte (#490) : gras et plus grands que le corps, jamais seuls en bas de page. */
+.rb-text-subheading {
+  margin: var(--rb-space-4) 0 var(--rb-space-2);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  break-after: avoid;
+}
+
+.rb-text-subheading {
+  font-size: 1.35rem;
+}
+
+.rb-text-body p {
+  margin: 0 0 var(--rb-space-3);
+}
+
+/* Interrupteur Sous-titre au-dessus de la zone de texte : allumé quand la ligne du curseur est un sous-titre. */
+.rb-text-format {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rb-space-2);
+}
+
+.rb-btn-toggle[aria-pressed="true"] {
+  color: var(--rb-text);
+  background: var(--rb-accent);
+  border-color: var(--rb-accent);
+}
+
 /* Modifier et Imprimer sur une même ligne, à la largeur de leur texte. */
 .rb-text-view-actions {
   display: flex;
@@ -135,6 +165,7 @@
   }
 
   .rb-text-view h1,
+  .rb-text-subheading,
   .rb-text-body {
     color: #000;
     text-shadow: none;
@@ -143,6 +174,10 @@
   .rb-text-body {
     orphans: 3;
     widows: 3;
+  }
+
+  .rb-text-format {
+    display: none;
   }
 
   .rb-text-print-stamp {

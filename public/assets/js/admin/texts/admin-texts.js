@@ -6,6 +6,7 @@
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { confirmAction } from '../../ui/rb-confirm-dialog.js';
+import { isSubtitle, toggleSubtitle } from './texts-format.js';
 import { DELETE_WARNING, createRequest, deleteRequest, printStamp, failureMessage, updateRequest } from './texts-requests.js';
 
 const FIELDS = ['title', 'body'];
@@ -78,6 +79,22 @@ function toggleCreate(section, open) {
   }
 }
 
+/** Allume l'interrupteur quand la ligne du curseur est un sous-titre. */
+function syncSwitch(textarea) {
+  const button = textarea.closest('.rb-field').querySelector('[data-action="subtitle"]');
+  button.setAttribute('aria-pressed', String(isSubtitle(textarea.value, textarea.selectionStart)));
+}
+
+/** Bascule le sous-titre sur la ligne du curseur de la zone de texte du panneau, puis rend la main au curseur. */
+function handleSubtitle(button) {
+  const textarea = button.closest('.rb-field').querySelector('textarea');
+  const { value, caret } = toggleSubtitle(textarea.value, textarea.selectionStart);
+  textarea.value = value;
+  textarea.focus();
+  textarea.setSelectionRange(caret, caret);
+  syncSwitch(textarea);
+}
+
 function toggleEdit(section, editing) {
   section.querySelector('[data-text-view]').hidden = editing;
   section.querySelector('[data-text-edit]').hidden = !editing;
@@ -124,6 +141,14 @@ function stampPrintouts() {
 
 export function initAdminTexts(root = document) {
   window.addEventListener('beforeprint', stampPrintouts);
+  // L'interrupteur suit le curseur : clavier, souris ou saisie, la ligne courante décide s'il est allumé.
+  for (const type of ['keyup', 'click', 'input', 'focusin']) {
+    root.addEventListener(type, (event) => {
+      if (event.target.matches?.('.rb-text-create textarea, .rb-text-edit textarea')) {
+        syncSwitch(event.target);
+      }
+    });
+  }
   root.addEventListener('click', (event) => {
     const createAction = event.target.closest('[data-text-section] [data-action]');
     if (createAction !== null) {
@@ -134,6 +159,9 @@ export function initAdminTexts(root = document) {
           break;
         case 'cancel-create':
           toggleCreate(createSection, false);
+          break;
+        case 'subtitle':
+          handleSubtitle(createAction);
           break;
         case 'create':
           handleCreate(createAction);
@@ -156,6 +184,9 @@ export function initAdminTexts(root = document) {
         break;
       case 'print':
         window.print();
+        break;
+      case 'subtitle':
+        handleSubtitle(action);
         break;
       case 'save':
         handleSave(action);
