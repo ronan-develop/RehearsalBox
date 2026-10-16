@@ -9,6 +9,7 @@ use App\Accounting\Exception\EntryNotFoundException;
 use App\Accounting\Exception\FiscalYearChangedException;
 use App\Accounting\Exception\FiscalYearLockedException;
 use App\Accounting\Exception\FiscalYearNotFoundException;
+use App\Accounting\Exception\StatementNotFoundException;
 use App\Association\Exception\AssociationBoardNotFoundException;
 use App\Association\Exception\AssociationBoardValidationException;
 use App\Association\Exception\AssociationTextChangedException;
@@ -77,6 +78,7 @@ final class ExceptionTranslator
             $e instanceof UserNotFoundException => new JsonResponse(['error' => 'Utilisateur introuvable.'], 404),
             $e instanceof FiscalYearNotFoundException => new JsonResponse(['error' => 'Exercice introuvable.'], 404),
             $e instanceof EntryNotFoundException => new JsonResponse(['error' => 'Écriture introuvable.'], 404),
+            $e instanceof StatementNotFoundException => new JsonResponse(['error' => 'Relevé introuvable.'], 404),
             $e instanceof AssociationBoardNotFoundException => new JsonResponse(['error' => 'Poste introuvable.'], 404),
             $e instanceof AssociationTextNotFoundException => new JsonResponse(['error' => 'Texte introuvable.'], 404),
             $e instanceof AssemblyNotFoundException => new JsonResponse(['error' => 'Compte rendu introuvable.'], 404),

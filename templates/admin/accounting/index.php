@@ -51,6 +51,8 @@ $adminTab = 'accounting';
                     </dl>
                 </div>
 
+                <p><a class="rb-btn" href="/admin/accounting/statements?year=<?= e((string) $year['id']) ?>">Relevés de compte</a></p>
+
                 <?php require __DIR__ . '/_year-actions.php'; ?>
 
                 <?php if ($year['isOpen']): ?>

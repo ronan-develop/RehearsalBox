@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Controller\Api\StatementApiController;
+use App\Accounting\Controller\StatementPageController;
+use App\Accounting\Presenter\StatementListView;
+use App\Accounting\Repository\MysqlStatementRepository;
+use App\Accounting\Repository\StatementRepositoryInterface;
+use App\Accounting\Service\StatementFileStore;
+use App\Accounting\Service\StatementInputPolicy;
+use App\Accounting\Service\StatementService;
 use App\Accounting\Presenter\AccountingJournalView;
 use App\Accounting\Presenter\MoneyFormatter;
 use App\Accounting\Repository\EntryRepositoryInterface;
@@ -698,6 +706,34 @@ return static function (array $config): Container {
         new AccountingJournalView(new MoneyFormatter()),
     ));
 
+    $container->set(StatementRepositoryInterface::class, fn ($c) => new MysqlStatementRepository($c->get(PDO::class)));
+
+    $container->set(StatementService::class, fn ($c) => new StatementService(
+        $c->get(AdminAccess::class),
+        new StatementInputPolicy(new AccountingAmountParser()),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(StatementRepositoryInterface::class),
+        new StatementFileStore($config['storage']['accounting_statements_path']),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(StatementApiController::class, fn ($c) => new StatementApiController(
+        $c->get(StatementService::class),
+        $c->get(AuthGuard::class),
+        $c->get('limit.statement-upload'),
+    ));
+
+    $container->set(StatementPageController::class, fn ($c) => new StatementPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(FiscalYearService::class),
+        $c->get(StatementService::class),
+        new StatementListView(new MoneyFormatter()),
+    ));
+
     $container->set(AssociationBoardRepositoryInterface::class, fn ($c) => new MysqlAssociationBoardRepository($c->get(PDO::class)));
 
     $container->set(AssociationBoardService::class, fn ($c) => new AssociationBoardService(
@@ -1090,6 +1126,12 @@ return static function (array $config): Container {
         new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'document-upload', 20, '-1 hour'),
         $c->get(ClockInterface::class),
         'Trop de documents envoyés : réessayez plus tard.',
+    ));
+
+    $container->set('limit.statement-upload', fn ($c) => new UserActionLimit(
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'statement-upload', 20, '-1 hour'),
+        $c->get(ClockInterface::class),
+        'Trop de relevés envoyés : réessayez plus tard.',
     ));
 
     $container->set(MemberApiController::class, fn ($c) => new MemberApiController(

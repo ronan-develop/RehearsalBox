@@ -75,13 +75,14 @@ trait HttpHarness
     /**
      * @param array<string, mixed> $body
      * @param array<string, mixed> $query
+     * @param array<string, array{name: string, type: string, tmp_name: string, error: int, size: int}> $files
      * @return array{0: int, 1: string, 2: array<string, string>} statut, corps, en-têtes
      */
-    private function call(string $actor, string $method, string $path, array $body = [], array $query = [], bool $csrf = true): array
+    private function call(string $actor, string $method, string $path, array $body = [], array $query = [], bool $csrf = true, array $files = []): array
     {
         [$kernel, $container] = $this->actor($actor);
         $headers = $csrf ? ['X-CSRF-Token' => $container->get(CsrfTokenManager::class)->getToken()] : [];
-        $response = $kernel->handle(new Request($method, $path, $query, $body, $headers, []));
+        $response = $kernel->handle(new Request($method, $path, $query, $body, $headers, $files));
 
         return [$response->statusCode(), $response->body(), $response->headers()];
     }

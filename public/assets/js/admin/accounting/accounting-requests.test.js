@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { approveYearRequest, closeYearRequest, createYearRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 test('chaque requête vise la bonne route et ne porte que les champs attendus', () => {
   assert.deepEqual(createYearRequest({ label: '2025-2026', startsOn: '2025-10-01', endsOn: '2026-09-30', openingBalance: '100,00', role: 'admin' }), {
@@ -47,4 +47,19 @@ test('clôture et approbation : bonne route, seuls les champs attendus, identifi
   assert.throws(() => closeYearRequest('4/../x', { revision: '1' }));
   assert.throws(() => approveYearRequest('0', {}));
   assert.throws(() => closeYearRequest('4', { revision: 'abc' }));
+});
+
+test('le dépôt d\'un relevé part en multipart avec les seuls champs attendus, sans « replaces » vide', () => {
+  const file = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+  const { path, options } = depositStatementRequest('4', { periodStart: '2025-10-01', periodEnd: '2025-10-31', closingBalance: '120,00', replaces: '', storedName: 'x', sha256: 'y' }, file);
+
+  assert.equal(path, '/api/admin/accounting/statements');
+  assert.equal(options.method, 'POST');
+  assert.ok(options.body instanceof FormData);
+  assert.deepEqual([...options.body.keys()].sort(), ['closingBalance', 'file', 'fiscalYearId', 'periodEnd', 'periodStart']);
+  assert.equal(options.body.get('fiscalYearId'), '4');
+  assert.equal(options.body.get('closingBalance'), '120,00');
+  assert.equal(depositStatementRequest('4', { periodStart: 'a', periodEnd: 'b', replaces: '7' }, file).options.body.get('replaces'), '7');
+  assert.throws(() => depositStatementRequest('4x', {}, file));
+  assert.throws(() => depositStatementRequest('4', { replaces: '0' }, file));
 });

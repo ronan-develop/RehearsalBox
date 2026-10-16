@@ -64,3 +64,20 @@ export function closeYearRequest(yearId, values) {
 export function approveYearRequest(yearId, values) {
   return { path: `/api/admin/accounting/years/${idOrThrow(yearId, 'd\'exercice')}/approve`, options: { method: 'POST', body: JSON.stringify(pick(values, ['approvedOn'])) } };
 }
+
+/** Dépôt d'un relevé : envoi multipart (le navigateur fixe l'en-tête). Seuls les champs attendus partent ; le serveur fixe tout le reste. */
+export function depositStatementRequest(yearId, values, file) {
+  const body = new FormData();
+  body.set('fiscalYearId', idOrThrow(yearId, 'd\'exercice'));
+  for (const key of ['periodStart', 'periodEnd', 'closingBalance']) {
+    if (values[key] !== undefined) {
+      body.set(key, values[key]);
+    }
+  }
+  if (values.replaces !== undefined && values.replaces !== '') {
+    body.set('replaces', idOrThrow(values.replaces, 'de relevé'));
+  }
+  body.set('file', file);
+
+  return { path: '/api/admin/accounting/statements', options: { method: 'POST', body } };
+}

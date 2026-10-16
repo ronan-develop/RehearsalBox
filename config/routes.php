@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Controller\Api\StatementApiController;
+use App\Accounting\Controller\StatementPageController;
 use App\Association\Controller\Api\AssociationBoardApiController;
 use App\Association\Controller\Api\AssociationTextApiController;
 use App\Association\Controller\AssociationBoardPageController;
@@ -59,6 +61,8 @@ return [
         ['GET', '/admin/assemblies/{id}', [AssemblyPageController::class, 'edit']],
         ['GET', '/admin/assemblies/{id}/print', [AssemblyPageController::class, 'print']],
         ['GET', '/admin/accounting', [AccountingPageController::class, 'index']],
+        ['GET', '/admin/accounting/statements', [StatementPageController::class, 'index']],
+        ['GET', '/admin/accounting/statements/{id}/file', [StatementPageController::class, 'download']],
         ['GET', '/admin/board', [AssociationBoardPageController::class, 'index']],
         ['GET', '/admin/texts', [AssociationTextPageController::class, 'index']],
         ['GET', '/admin/texts/{id}', [AssociationTextPageController::class, 'show']],
@@ -120,6 +124,7 @@ return [
         ['POST',   '/api/admin/assemblies/{id}/corrections', [AssemblyApiController::class, 'correct']],
         ['DELETE', '/api/admin/assemblies/{id}', [AssemblyApiController::class, 'destroy']],
         ['POST',   '/api/admin/accounting/years', [AccountingApiController::class, 'createYear']],
+        ['POST',   '/api/admin/accounting/statements', [StatementApiController::class, 'store']],
         ['POST',   '/api/admin/accounting/years/{id}/entries', [AccountingApiController::class, 'recordEntry']],
         ['POST',   '/api/admin/accounting/years/{id}/close', [AccountingApiController::class, 'closeYear']],
         ['POST',   '/api/admin/accounting/years/{id}/approve', [AccountingApiController::class, 'approveYear']],

@@ -73,6 +73,8 @@ $defaults = [
     ],
     'storage' => [
         'group_documents_path' => __DIR__ . '/../storage/group-documents',
+        // Relevés de compte de l'association (#362) : hors racine web, à inclure dans les sauvegardes avec les documents de groupe.
+        'accounting_statements_path' => __DIR__ . '/../storage/accounting-statements',
     ],
 ];
 

@@ -20,6 +20,7 @@ Ce qu'RehearsalBox garde d'une personne, pourquoi, combien de temps, et ce que l
 | Mesures d'exploitation (adresse IP **hachée** avec un secret, route, statut) | `metric_events`, `metric_hourly` | santé du site, détection d'abus | événements 30 jours (plafonnés par adresse et par jour, #442) ; agrégats 90 jours ; aucune adresse en clair |
 | Journal d'erreurs applicatif | `storage/logs` (hors base) | diagnostic | rotation par taille (voir `logging` dans `config/config.php`), fichier réservé au propriétaire ; jamais de mot de passe ni de jeton |
 | Documents des groupes (PDF, images) | `storage/group-documents` | partage de fiches techniques | tant que le groupe les garde ; images ré-encodées sans métadonnées (#432) |
+| Relevés de compte de l'association (PDF, images) (#362) | `storage/accounting-statements` | pièces justificatives du livre (IBAN et noms de tiers possibles, jamais lus ni journalisés) | 10 ans (obligation comptable) ; administrateurs seulement, ni suppression ni partage |
 | Sauvegardes de la base | `backups/` (hors racine web) | reprise après incident | 14 quotidiennes + 7 d'avant déploiement, puis effacées ; **une suppression de compte n'y est appliquée qu'à leur expiration** |
 
 ## Droits exercés par la personne, depuis « Mon compte »

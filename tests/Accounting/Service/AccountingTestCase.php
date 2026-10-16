@@ -6,6 +6,10 @@ namespace App\Tests\Accounting\Service;
 
 use App\Accounting\Repository\MysqlEntryRepository;
 use App\Accounting\Repository\MysqlFiscalYearRepository;
+use App\Accounting\Repository\MysqlStatementRepository;
+use App\Accounting\Service\StatementFileStore;
+use App\Accounting\Service\StatementInputPolicy;
+use App\Accounting\Service\StatementService;
 use App\Accounting\Service\AccountingAmountParser;
 use App\Accounting\Service\EntryInputPolicy;
 use App\Accounting\Service\EntryService;
@@ -28,6 +32,8 @@ abstract class AccountingTestCase extends RepositoryTestCase
     protected EntryService $entries;
     protected MysqlFiscalYearRepository $yearRepository;
     protected MysqlEntryRepository $entryRepository;
+    protected StatementService $statements;
+    protected string $statementDir;
     protected User $admin;
     protected User $musician;
     protected User $gone;
@@ -44,9 +50,35 @@ abstract class AccountingTestCase extends RepositoryTestCase
         $this->yearRepository = new MysqlFiscalYearRepository($this->pdo);
         $this->entryRepository = new MysqlEntryRepository($this->pdo);
         $this->buildServices($this->yearRepository, $this->entryRepository, $this->pdo);
+        $this->statementDir = sys_get_temp_dir() . '/rb-acc-statements-' . bin2hex(random_bytes(4));
+        $this->statements = new StatementService(new AdminAccess(), new StatementInputPolicy(new AccountingAmountParser()), $this->yearRepository, $this->entryRepository, new MysqlStatementRepository($this->pdo), new StatementFileStore($this->statementDir), new TransactionRunner($this->pdo), $this->logger());
         $this->admin = $this->users->save(new User(0, 'admin@rehearsalbox.test', 'hash', 'Admin', UserRole::Admin, true, 0, null));
         $this->gone = $this->users->save(new User(0, 'parti@rehearsalbox.test', 'hash', 'Parti', UserRole::Admin, false, 0, null));
         $this->musician = $this->user('Musicien');
+    }
+
+    protected function tearDown(): void
+    {
+        foreach (glob($this->statementDir . '/*') ?: [] as $file) {
+            @unlink($file);
+        }
+        @rmdir($this->statementDir);
+        parent::tearDown();
+    }
+
+    private function logger(): AbstractLogger
+    {
+        return new class ($this->logged) extends AbstractLogger {
+            /** @param list<string> $sink */
+            public function __construct(private array &$sink)
+            {
+            }
+
+            public function log($level, string|\Stringable $message, array $context = []): void
+            {
+                $this->sink[] = $message . ' ' . json_encode($context, JSON_UNESCAPED_UNICODE);
+            }
+        };
     }
 
     protected function buildServices(MysqlFiscalYearRepository|\App\Accounting\Repository\FiscalYearRepositoryInterface $years, \App\Accounting\Repository\EntryRepositoryInterface $entries, \PDO $pdo): void

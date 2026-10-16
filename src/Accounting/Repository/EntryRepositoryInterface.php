@@ -27,4 +27,7 @@ interface EntryRepositoryInterface
     public function listByYear(int $fiscalYearId, int $limit): array;
 
     public function totals(int $fiscalYearId): LedgerTotals;
+
+    /** Mouvement net de la BANQUE (tout sauf les espèces) de l'exercice jusqu'à `$date` incluse : recettes moins dépenses. */
+    public function bankNetUntil(int $fiscalYearId, \DateTimeImmutable $date): int;
 }
