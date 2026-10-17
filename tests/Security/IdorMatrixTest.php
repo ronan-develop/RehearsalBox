@@ -208,6 +208,12 @@ final class IdorMatrixTest extends TestCase
             ['POST', '/api/admin/accounting/years/1/entries', ['occurredOn' => '2025-11-05', 'label' => 'Piraté', 'amount' => '1', 'direction' => 'recette', 'category' => 'cotisations', 'paymentMethod' => 'virement'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/statements', ['__upload' => true, 'fiscalYearId' => '1', 'periodStart' => '2025-10-01', 'periodEnd' => '2025-10-31'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/cotisations/exemptions', ['memberUserId' => '1', 'periodMonth' => '2025-10', 'exempt' => true], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/imports/preview', ['__upload' => true], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/imports', ['__upload' => true], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/imports/validate', ['rows' => []], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/imports/lines/1/discard', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['PUT', '/api/admin/accounting/rules/1', ['category' => 'materiel', 'paymentMethod' => 'carte'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['DELETE', '/api/admin/accounting/rules/1', [], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/recurring', ['label' => 'Piraté', 'direction' => 'depense', 'category' => 'loyer', 'paymentMethod' => 'virement', 'periodicity' => 'mensuelle', 'dueDay' => '5', 'firstMonth' => '2025-10'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['PUT', '/api/admin/accounting/recurring/1', ['label' => 'Piraté', 'direction' => 'depense', 'category' => 'loyer', 'paymentMethod' => 'virement', 'periodicity' => 'mensuelle', 'dueDay' => '5', 'firstMonth' => '2025-10'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/recurring/1/confirm', ['period' => '2025-10-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
@@ -500,7 +506,7 @@ final class IdorMatrixTest extends TestCase
     #[Test]
     public function testStatementPagesAndDownloadAreForAdministratorsOnly(): void
     {
-        foreach (['/admin/accounting/statements', '/admin/accounting/statements/1/file', '/admin/accounting/recurring', '/admin/accounting/cotisations', '/admin/accounting/years/1/report', '/admin/accounting/years/1/export.csv'] as $path) {
+        foreach (['/admin/accounting/statements', '/admin/accounting/statements/1/file', '/admin/accounting/recurring', '/admin/accounting/cotisations', '/admin/accounting/imports', '/admin/accounting/rules', '/admin/accounting/years/1/report', '/admin/accounting/years/1/export.csv'] as $path) {
             self::assertSame(302, $this->call('anon', 'GET', $path)[0], "anonyme {$path}");
             foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
                 self::assertSame(403, $this->call($actor, 'GET', $path)[0], "{$actor} {$path}");
@@ -509,6 +515,8 @@ final class IdorMatrixTest extends TestCase
         self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/statements')[0]);
         self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/recurring')[0]);
         self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/cotisations')[0]);
+        self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/imports')[0]);
+        self::assertSame(200, $this->call('admin', 'GET', '/admin/accounting/rules')[0]);
         self::assertSame(404, $this->call('admin', 'GET', '/admin/accounting/statements/' . self::MISSING_ID . '/file')[0]);
         foreach (['0', '-1', 'abc', '1e0', '007', '99999999999999999999', '%00'] as $malformed) {
             self::assertSame(403, $this->call('admin', 'GET', "/admin/accounting/statements/{$malformed}/file")[0], $malformed);

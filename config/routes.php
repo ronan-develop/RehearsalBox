@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Controller\Api\ImportApiController;
 use App\Accounting\Controller\Api\RecurringApiController;
 use App\Accounting\Controller\Api\StatementApiController;
 use App\Accounting\Controller\CotisationPageController;
+use App\Accounting\Controller\ImportPageController;
 use App\Accounting\Controller\RecurringPageController;
 use App\Accounting\Controller\ReportController;
 use App\Accounting\Controller\StatementPageController;
@@ -67,6 +69,8 @@ return [
         ['GET', '/admin/accounting', [AccountingPageController::class, 'index']],
         ['GET', '/admin/accounting/recurring', [RecurringPageController::class, 'index']],
         ['GET', '/admin/accounting/cotisations', [CotisationPageController::class, 'index']],
+        ['GET', '/admin/accounting/imports', [ImportPageController::class, 'index']],
+        ['GET', '/admin/accounting/rules', [ImportPageController::class, 'rules']],
         ['GET', '/admin/accounting/years/{id}/report', [ReportController::class, 'report']],
         ['GET', '/admin/accounting/years/{id}/export.csv', [ReportController::class, 'csv']],
         ['GET', '/admin/accounting/statements', [StatementPageController::class, 'index']],
@@ -135,6 +139,12 @@ return [
         ['POST',   '/api/admin/accounting/statements', [StatementApiController::class, 'store']],
         ['GET',    '/api/admin/accounting/figures', [ReportController::class, 'figures']],
         ['POST',   '/api/admin/accounting/cotisations/exemptions', [AccountingApiController::class, 'setExemption']],
+        ['POST',   '/api/admin/accounting/imports/preview', [ImportApiController::class, 'preview']],
+        ['POST',   '/api/admin/accounting/imports', [ImportApiController::class, 'stage']],
+        ['POST',   '/api/admin/accounting/imports/validate', [ImportApiController::class, 'validate']],
+        ['POST',   '/api/admin/accounting/imports/lines/{id}/discard', [ImportApiController::class, 'discard']],
+        ['PUT',    '/api/admin/accounting/rules/{id}', [ImportApiController::class, 'updateRule']],
+        ['DELETE', '/api/admin/accounting/rules/{id}', [ImportApiController::class, 'deleteRule']],
         ['POST',   '/api/admin/accounting/recurring', [RecurringApiController::class, 'create']],
         ['PUT',    '/api/admin/accounting/recurring/{id}', [RecurringApiController::class, 'update']],
         ['POST',   '/api/admin/accounting/recurring/{id}/confirm', [RecurringApiController::class, 'confirm']],

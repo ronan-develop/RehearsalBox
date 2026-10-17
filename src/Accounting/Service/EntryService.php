@@ -6,6 +6,7 @@ namespace App\Accounting\Service;
 
 use App\Account\Entity\User;
 use App\Accounting\Entity\AccountingEntry;
+use App\Accounting\Entity\FiscalYear;
 use App\Accounting\Exception\AccountingValidationException;
 use App\Accounting\Exception\EntryNotFoundException;
 use App\Accounting\Exception\FiscalYearLockedException;
@@ -54,12 +55,7 @@ final class EntryService
 
         $entry = $this->transactions->run(function () use ($fiscalYearId, $draft, $actor, $now, $inTransaction): AccountingEntry {
             $year = $this->years->lock($fiscalYearId) ?? throw new FiscalYearNotFoundException();
-            if (!$year->isOpen()) {
-                throw new FiscalYearLockedException();
-            }
-            if (!$year->contains($draft->occurredOn)) {
-                throw new AccountingValidationException(['occurredOn' => 'La date doit être comprise dans l\'exercice (du ' . $year->startsOn->format('d/m/Y') . ' au ' . $year->endsOn->format('d/m/Y') . ').']);
-            }
+            $this->assertAccepts($year, $draft);
 
             $this->assertDuesAreFree($draft);
             $entry = $this->write($year->id, $year->nextEntryNumber, $draft, null, $actor, $now);
@@ -72,6 +68,67 @@ final class EntryService
         $this->logger->info('Comptabilité : écriture saisie', ['actor' => $actor->id(), 'year' => $fiscalYearId, 'entry' => $entry->id]);
 
         return $entry;
+    }
+
+    /**
+     * Plusieurs écritures en UNE transaction : tout ou rien (validation en lot de l'import CSV). Chaque élément donne l'exercice (par son
+     * identifiant), la saisie (mêmes règles que `record`) et, facultativement, un rappel exécuté dans la transaction après son écriture. Les
+     * exercices sont verrouillés dans l'ordre de leur identifiant (jamais d'interblocage entre deux lots) ; les numéros se suivent sans trou,
+     * dans l'ordre des éléments. Toutes les saisies refusées sont rapportées ensemble, clés `<clé de l'élément>.<champ>`.
+     *
+     * @param array<string|int, array{year: int, input: array<string, mixed>, after?: callable(AccountingEntry): void}> $items
+     * @return array<string|int, AccountingEntry> les écritures, avec les clés des éléments
+     * @throws FiscalYearNotFoundException
+     * @throws FiscalYearLockedException
+     * @throws AccountingValidationException
+     */
+    public function recordBatch(User $actor, array $items, ?\DateTimeImmutable $now = null): array
+    {
+        $this->access->assertAdmin($actor);
+        $now ??= new \DateTimeImmutable();
+        $drafts = [];
+        $errors = [];
+        foreach ($items as $key => $item) {
+            try {
+                $drafts[$key] = $this->policy->parse($item['input']);
+            } catch (AccountingValidationException $e) {
+                foreach ($e->fields() as $field => $message) {
+                    $errors["{$key}.{$field}"] = $message;
+                }
+            }
+        }
+        if ($errors !== []) {
+            throw new AccountingValidationException($errors);
+        }
+
+        $entries = $this->transactions->run(function () use ($items, $drafts, $actor, $now): array {
+            $yearIds = array_unique(array_map(static fn (array $item): int => $item['year'], $items));
+            sort($yearIds);
+            $locked = [];
+            foreach ($yearIds as $yearId) {
+                $locked[$yearId] = $this->years->lock($yearId) ?? throw new FiscalYearNotFoundException();
+            }
+            $next = array_map(static fn (FiscalYear $y): int => $y->nextEntryNumber, $locked);
+            $written = [];
+            foreach ($items as $key => $item) {
+                $yearId = $item['year'];
+                try {
+                    $this->assertAccepts($locked[$yearId], $drafts[$key]);
+                    $this->assertDuesAreFree($drafts[$key]);
+                } catch (AccountingValidationException $e) {
+                    throw new AccountingValidationException(array_combine(array_map(static fn (string $f): string => "{$key}.{$f}", array_keys($e->fields())), $e->fields()));
+                }
+                $written[$key] = $this->write($yearId, $next[$yearId]++, $drafts[$key], null, $actor, $now);
+                if (isset($item['after'])) {
+                    $item['after']($written[$key]);
+                }
+            }
+
+            return $written;
+        });
+        $this->logger->info('Comptabilité : écritures saisies en lot', ['actor' => $actor->id(), 'count' => count($entries)]);
+
+        return $entries;
     }
 
     /**
@@ -127,6 +184,22 @@ final class EntryService
         $this->years->find($fiscalYearId) ?? throw new FiscalYearNotFoundException();
 
         return $this->entries->listByYear($fiscalYearId, self::LIST_LIMIT);
+    }
+
+    /**
+     * L'exercice verrouillé accepte-t-il cette écriture : ouvert, et la date y tient.
+     *
+     * @throws FiscalYearLockedException
+     * @throws AccountingValidationException
+     */
+    private function assertAccepts(FiscalYear $year, EntryDraft $draft): void
+    {
+        if (!$year->isOpen()) {
+            throw new FiscalYearLockedException();
+        }
+        if (!$year->contains($draft->occurredOn)) {
+            throw new AccountingValidationException(['occurredOn' => 'La date doit être comprise dans l\'exercice (du ' . $year->startsOn->format('d/m/Y') . ' au ' . $year->endsOn->format('d/m/Y') . ').']);
+        }
     }
 
     /**

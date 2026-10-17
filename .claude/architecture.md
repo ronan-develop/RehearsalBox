@@ -447,6 +447,7 @@ Livre de comptes de l'association, **réservé aux administrateurs actifs** (gar
 | `Entity/`, `Exception/` | exercice, écriture, relevé, modèle récurrent, adhérent ; erreurs métier (422 par champ, 409, 404) traduites par `ExceptionTranslator` |
 | `Repository/` (`Month/`, `Notice/`) | PDO préparé à la main ; une écriture et un relevé n'ont ni modification ni suppression |
 | `Service/` (`Recurring/`, `Dues/`) | règles : saisie, contre-passation, clôture, approbation, relevés, écritures récurrentes, cotisations |
+| `Import/` (`Parse/`, `Rules/`, `Suggest/`, `Validate/`) | lecture du CSV de la banque, salle d'attente, règles de libellés, propositions, validation en lot |
 | `Todo/`, `Notification/` | « À faire » calculé depuis le livre (`TodoPlanner` pur) et rappel e-mail du trésorier |
 | `Export/`, `Support/` | export CSV neutralisé, saisie d'un mois, montant en texte, libellé de mois |
 | `Controller/`, `Presenter/` | pages en rendu serveur et API JSON ; données en texte brut, le gabarit échappe |
@@ -459,9 +460,11 @@ Livre de comptes de l'association, **réservé aux administrateurs actifs** (gar
 | Relevés | `/admin/accounting/statements`, `…/statements/{id}/file` | `POST …/statements` (multipart) |
 | Écritures récurrentes | `/admin/accounting/recurring` | `POST/PUT …/recurring[/{id}]`, `POST …/recurring/{id}/confirm`, `…/ignore` |
 | Cotisations | `/admin/accounting/cotisations` | `POST …/cotisations/exemptions` (la saisie passe par l'API des écritures) |
+| Import de la banque | `/admin/accounting/imports` | `POST …/imports/preview`, `…/imports` (multipart), `…/imports/validate`, `…/imports/lines/{id}/discard` |
+| Règles des libellés | `/admin/accounting/rules` | `PUT/DELETE …/rules/{id}` |
 | Rapport, export, chiffres de l'AG | `…/years/{id}/report`, `…/years/{id}/export.csv` | `GET …/figures[?year=]` |
 
-**Base de données** : migrations 041 (exercices, écritures), 042 (relevés), 043 (modèles et échéances récurrents), 044 (adhérent et mois sur l'écriture, dispenses), 046 (mois sans mouvement), 047 (rappels envoyés) ; la 045 est celle des e-mails de réinitialisation (#502, autre ticket).
+**Base de données** : migrations 041 (exercices, écritures), 042 (relevés), 043 (modèles et échéances récurrents), 044 (adhérent et mois sur l'écriture, dispenses), 046 (mois sans mouvement), 047 (rappels envoyés), 048 (import de la banque : profil, lots, lignes en attente, empreintes, règles) ; la 045 est celle des e-mails de réinitialisation (#502, autre ticket).
 
 **Règles qui tiennent tout le reste**
 - Montants en **centimes entiers** de bout en bout, jamais un flottant ; texte saisi lu par `AccountingAmountParser`, affiché par `MoneyFormatter`, écrit pour un champ ou un export par `EuroText`.
@@ -485,7 +488,7 @@ Livre de comptes de l'association, **réservé aux administrateurs actifs** (gar
 
 **Décision du propriétaire (2026-10-17)** : la cotisation des membres est **mensuelle** (20 € par mois et par personne), comme la pratique ; l'article 6 des statuts parle d'une cotisation annuelle, à faire corriger à la prochaine assemblée générale (le tableau et le montant prérempli suivent la pratique).
 
-**Reste à faire** : import CSV de la banque (livraison 7, en attente d'un exemple de fichier anonymisé de la banque) ; le mode d'emploi du trésorier se rédige dans `/admin/texts` (bouton « Mode d'emploi du trésorier » de la page, un brouillon prêt à coller est fourni hors dépôt).
+**Reste à faire** : essayer l'import avec un VRAI fichier de la banque dès qu'on en a un (le profil de colonnes se règle à l'écran, aucun code à changer) ; le mode d'emploi du trésorier se rédige dans `/admin/texts` (bouton « Mode d'emploi du trésorier » de la page, un brouillon prêt à coller est fourni hors dépôt).
 
 ## Comptabilité de l'association : socle (#362, livraison 1)
 
@@ -563,3 +566,16 @@ Migration 047 (`accounting_reminder_notices`), `src/Accounting/Notification/Trea
 - **Copie au président** quand le plus vieux retard dépasse `president_after_days` jours (un message à part, même cadence ; rien si le président est aussi le trésorier).
 - **Discrétion** : le message ne contient qu'un nombre de tâches et un lien vers `/admin/accounting` (ajouté à la liste fermée de `SafeRedirect`) ; jamais de montant, de nom ni de donnée bancaire (testé).
 - `TodoService::forReminder` n'a pas de garde de rôle (la tâche planifiée n'a personne de connecté) : à n'appeler que depuis la ligne de commande ; l'écart d'un relevé est calculé par `StatementGapCalculator`, partagé avec la page des relevés.
+
+## Comptabilité : import du CSV de la banque (#362, livraison 7)
+
+Migration 048, `src/Accounting/Import/`, pages `/admin/accounting/imports` et `/admin/accounting/rules`. **Aucune banque n'est codée en dur** : le trésorier indique à l'écran où se trouvent la date, le libellé et le montant (une colonne signée, ou débit et crédit), le séparateur, l'encodage (UTF-8 ou ISO-8859-1), le format de date et le séparateur des centimes ; un **aperçu** montre ce que le fichier donnerait AVANT tout enregistrement, et le dernier choix est retenu (`accounting_import_profile`). Dès qu'on a un vrai fichier, on règle les colonnes ; aucun code à changer.
+- **Salle d'attente, jamais le livre** : « Mettre en attente » écrit des lignes (`accounting_import_lines`) et un lot (`accounting_import_batches`) ; seule la validation crée des écritures. Le fichier n'est pas conservé, sa taille est bornée (1 Mo, 2000 lignes), il n'est jamais exécuté (un libellé qui commence par `=` reste du texte, neutralisé à l'export), le binaire et l'UTF-8 invalide sont refusés, chaque ligne mal formée est signalée avec son numéro sans répéter son contenu.
+- **Montants** lus par chiffres, en centimes entiers, séparateur de milliers toléré ; signe moins ou colonne de débit = argent dépensé.
+- **Doublons** : une empreinte (date, montant, sens, libellé normalisé, rang dans le fichier) par ligne, gardée 400 jours **sans le libellé** ; une ligne déjà vue n'est jamais remise en attente, un fichier identique est refusé, deux lignes identiques d'un même fichier sont deux lignes (deux cafés le même jour).
+- **Purge** : les lignes (libellés de tiers, parfois un IBAN) sont effacées après 30 jours par le cron horaire existant (`bin/send-reminders.php`) ; le journal ne reçoit que des identifiants et des compteurs.
+- **Propositions** (`LineSuggester`, pur) : (1) une échéance d'un modèle récurrent (même sens, même montant, ou même libellé pour un montant variable, à moins de 10 jours de l'échéance, pas encore décidée), (2) la cotisation d'un adhérent (argent reçu de 20,00 € dont le libellé contient tout le nom d'UN SEUL adhérent, mois pas encore payé), (3) une règle de libellé. En cas de doute, la ligne reste « à catégoriser » ; chaque proposition dit d'où elle vient.
+- **Validation en lot** (`BatchValidationService` + `EntryService::recordBatch`) : UNE transaction, tout ou rien, par le service d'écriture normal (numérotation sous verrou, exercice ouvert, date dans l'exercice, pièce obligatoire pour une dépense, un seul paiement par adhérent et par mois, exercices verrouillés dans l'ordre de leur identifiant). La **date, le montant et le sens viennent de la ligne**, jamais du client. Dans la même transaction : la ligne passe à « validée », l'échéance du modèle est confirmée, la règle est créée. Toutes les erreurs sont rapportées ensemble, clés `<ligne>.<champ>`.
+- **Mémoire des libellés** : une règle explicite, créée seulement par « Retenir pour la prochaine fois » (motif normalisé tiré du libellé, 4 à 60 lettres, jamais un apprentissage opaque) ; deux règles contradictoires de même longueur = doute = aucune proposition ; la page des règles liste, change la cible et supprime.
+- **L'application ne demande, ne stocke ni ne transmet jamais d'identifiants bancaires** ; aucune lecture automatique des PDF ; le relevé « classique » en PDF se dépose comme archive (livraison 4).
+
