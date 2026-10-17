@@ -35,15 +35,16 @@ final class UserAdminService implements UserAdminServiceInterface
     public function listUsers(\DateTimeImmutable $now): array
     {
         $mailActivity = $this->resets->latestByUser();
+        $lastLogins = $this->userRepository->lastLoginByUser();
 
-        return array_map(function (User $user) use ($now, $mailActivity): AdminUserItem {
+        return array_map(function (User $user) use ($now, $mailActivity, $lastLogins): AdminUserItem {
             $groups = $this->sortedByName($this->groupRepository->findByMember($user->id()));
             $roles = [];
             foreach ($groups as $group) {
                 $roles[$group->id()] = ($this->groupRepository->roleOf($group->id(), $user->id()) ?? \App\Group\Entity\GroupUserRole::Membre)->value;
             }
 
-            return new AdminUserItem($user, $groups, $user->isLocked($now), $roles, $mailActivity[$user->id()] ?? null);
+            return new AdminUserItem($user, $groups, $user->isLocked($now), $roles, $mailActivity[$user->id()] ?? null, $lastLogins[$user->id()] ?? null);
         }, $this->userRepository->findAll());
     }
 
