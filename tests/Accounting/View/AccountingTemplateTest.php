@@ -76,7 +76,7 @@ final class AccountingTemplateTest extends TestCase
         $html = $this->render();
 
         self::assertStringContainsString('class="rb-ledger-links"', $html);
-        foreach (['/admin/accounting/statements?year=4', '/admin/accounting/recurring', '/admin/accounting/cotisations?year=4', '/admin/accounting/years/4/report', '/admin/accounting/years/4/export.csv'] as $link) {
+        foreach (['/admin/accounting/statements?year=4', '/admin/accounting/recurring', '/admin/accounting/cotisations?year=4', '/admin/accounting/years/4/report', '/admin/accounting/years/4/export.csv', '/admin/texts'] as $link) {
             self::assertStringContainsString('href="' . $link . '"', $html);
         }
     }
