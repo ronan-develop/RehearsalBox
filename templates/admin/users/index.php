@@ -86,6 +86,13 @@
                             <?php if (!$user->isActive()): ?><span class="rb-badge rb-badge-warn">Désactivé</span><?php endif; ?>
                             <?php if ($item->isLocked()): ?><span class="rb-badge rb-badge-warn">Verrouillé</span><?php endif; ?>
                         </p>
+                        <p class="rb-user-login">
+                            <?php if ($item->lastLoginAt() !== null): ?>
+                                <span data-last-login>Dernière connexion le <?= e($item->lastLoginAt()->setTimezone($localTimezone)->format('d/m à H:i')) ?></span>
+                            <?php else: ?>
+                                <span data-never-logged>Jamais connecté</span>
+                            <?php endif; ?>
+                        </p>
                         <?php if ($item->mailActivity() !== null): ?>
                             <?php $mail = $item->mailActivity(); ?>
                             <p class="rb-user-mail">

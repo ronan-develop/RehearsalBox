@@ -178,4 +178,19 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
         self::assertSame(1, substr_count($body, 'data-mail-not-sent'));
         self::assertStringContainsString('16/10', $body);
     }
+
+    #[Test]
+    public function testAdminSeesTheLastLoginOfEachAccountOrThatItNeverConnected(): void
+    {
+        $this->loginAsAdmin();
+        $alice = $this->user('alice@rehearsalbox.test', 'Alice');
+        $this->user('bob@rehearsalbox.test', 'Bob');
+        (new \App\Account\Repository\MysqlUserRepository($this->pdo))->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00', new \DateTimeZone('UTC')));
+
+        $body = $this->controller->index()->body();
+
+        self::assertMatchesRegularExpression('/data-last-login>[^<]*17\/10/u', $body);
+        self::assertStringContainsString('data-never-logged', $body);
+        self::assertStringContainsString('Jamais connecté', $body);
+    }
 }

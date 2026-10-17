@@ -140,6 +140,35 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
         self::assertSame($user->sessionVersion(), $after->sessionVersion());
     }
 
+    #[Test]
+    public function testRecordLoginStoresTheDateForThatUserOnlyAndLeavesUpdatedAtAlone(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $alice = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+        $this->insertUser($repository, 'bob@rehearsalbox.test', 'Bob');
+        $this->pdo->exec("UPDATE users SET updated_at = '2026-01-01 00:00:00'");
+
+        $repository->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
+
+        $logins = $repository->lastLoginByUser();
+        self::assertSame([$alice->id()], array_keys($logins));
+        self::assertEquals(new \DateTimeImmutable('2026-10-17 09:30:00'), $logins[$alice->id()]);
+        $updatedAt = $this->pdo->query("SELECT DISTINCT updated_at FROM users")->fetchAll(\PDO::FETCH_COLUMN);
+        self::assertSame(['2026-01-01 00:00:00'], $updatedAt, 'une connexion n\'est pas une modification du compte');
+    }
+
+    #[Test]
+    public function testRecordLoginKeepsOnlyTheLatestDate(): void
+    {
+        $repository = new MysqlUserRepository($this->pdo);
+        $alice = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
+
+        $repository->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
+        $repository->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-18 08:00:00'));
+
+        self::assertEquals(new \DateTimeImmutable('2026-10-18 08:00:00'), $repository->lastLoginByUser()[$alice->id()]);
+    }
+
     private function insertUser(MysqlUserRepository $repository, string $email, string $displayName): User
     {
         $user = new User(

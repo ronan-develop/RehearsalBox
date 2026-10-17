@@ -6,7 +6,7 @@ namespace App\Account\Entity;
 
 use App\Group\Entity\Group;
 
-/** Une ligne de la page admin des utilisateurs : le compte, ses groupes (avec son rôle dans chacun), son état de verrouillage et sa dernière demande de lien de mot de passe (#502). */
+/** Une ligne de la page admin des utilisateurs : le compte, ses groupes (avec son rôle dans chacun), son état de verrouillage et sa dernière demande de lien de mot de passe (#502) et sa dernière connexion (#512). */
 final class AdminUserItem
 {
     /**
@@ -19,6 +19,7 @@ final class AdminUserItem
         private readonly bool $isLocked,
         private readonly array $groupRoles = [],
         private readonly ?MailActivity $mailActivity = null,
+        private readonly ?\DateTimeImmutable $lastLoginAt = null,
     ) {
     }
 
@@ -42,6 +43,12 @@ final class AdminUserItem
     public function isLocked(): bool
     {
         return $this->isLocked;
+    }
+
+    /** Dernière connexion réussie, null si le compte ne s'est jamais connecté. */
+    public function lastLoginAt(): ?\DateTimeImmutable
+    {
+        return $this->lastLoginAt;
     }
 
     /** Dernière demande de lien de mot de passe du compte, null si elle n'en a jamais fait. */

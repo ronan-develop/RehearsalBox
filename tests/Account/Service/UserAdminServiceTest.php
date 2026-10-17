@@ -236,4 +236,21 @@ final class UserAdminServiceTest extends RepositoryTestCase
         self::assertEquals($now, $items['alice@rehearsalbox.test']->mailActivity()?->mailSentAt);
         self::assertNull($items['bob@rehearsalbox.test']->mailActivity());
     }
+
+    #[Test]
+    public function testListExposesTheLastLoginOrNullForANeverConnectedAccount(): void
+    {
+        $alice = $this->user('alice@rehearsalbox.test', 'Alice');
+        $this->user('bob@rehearsalbox.test', 'Bob');
+        $at = new \DateTimeImmutable('2026-10-17 09:30:00');
+        $this->users->setLastLogin($alice->id(), $at);
+
+        $items = [];
+        foreach ($this->service->listUsers($at) as $item) {
+            $items[$item->user()->email()] = $item;
+        }
+
+        self::assertEquals($at, $items['alice@rehearsalbox.test']->lastLoginAt());
+        self::assertNull($items['bob@rehearsalbox.test']->lastLoginAt());
+    }
 }

@@ -7,7 +7,7 @@ Ce qu'RehearsalBox garde d'une personne, pourquoi, combien de temps, et ce que l
 | Donnée | Où | Pourquoi | Durée de conservation |
 |---|---|---|---|
 | Nom affiché, adresse e-mail, rôle, état du compte | `users` | identifier la personne, la joindre, contrôler l'accès | tant que le compte existe ; **anonymisés à la suppression** (la ligne reste, « Ancien membre », adresse inutilisable) |
-| Empreinte du mot de passe, compteur d'échecs, version de session | `users` | connexion sécurisée | idem ; l'empreinte est remplacée par un secret aléatoire à la suppression |
+| Empreinte du mot de passe, compteur d'échecs, version de session, **date de dernière connexion** (#512) | `users` | connexion sécurisée, savoir qui a activé son compte | idem ; la date est effacée à la suppression ; l'empreinte est remplacée par un secret aléatoire à la suppression |
 | Appartenance aux groupes et rôle | `group_user` | droits d'accès | supprimée avec le compte |
 | Messages (texte), titres de conversation, anciennes versions corrigées | `conversation_*` | la messagerie entre groupes | texte **chiffré en base** (#171). Conservés tant que la conversation existe (ils appartiennent aussi aux autres participants) ; corbeille : 30 jours avant effacement définitif ; anciennes versions corrigées : 30 jours |
 | Réservations libres, demandes d'échange de créneau | `free_slot_bookings`, `slot_exceptions` | gérer l'occupation du local | tant que le groupe existe ; rattachées à la ligne anonymisée après suppression du compte |
