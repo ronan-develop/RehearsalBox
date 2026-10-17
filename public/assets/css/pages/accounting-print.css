@@ -1,0 +1,45 @@
+/* Rapport financier imprimable (#362) : tableaux sobres, noir sur blanc ; s'ajoute à assembly-print.css. */
+
+.rb-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 1rem;
+}
+
+.rb-report-table th,
+.rb-report-table td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid #999;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rb-report-table tbody th {
+  font-weight: 400;
+}
+
+.rb-report-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rb-report-total th,
+.rb-report-total td {
+  font-weight: 700;
+  border-top: 2px solid #000;
+}
+
+.rb-report-meta {
+  color: #333;
+  font-size: 0.875em;
+}
+
+.rb-report-journal {
+  font-size: 0.875rem;
+}
+
+@media print {
+  .rb-report-journal tr {
+    break-inside: avoid;
+  }
+}

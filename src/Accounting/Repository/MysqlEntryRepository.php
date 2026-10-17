@@ -83,6 +83,21 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
         return array_map($this->hydrate(...), $statement->fetchAll(\PDO::FETCH_ASSOC));
     }
 
+    public function eachByYear(int $fiscalYearId): \Generator
+    {
+        $after = 0;
+        do {
+            $statement = $this->pdo->prepare('SELECT * FROM accounting_entries WHERE fiscal_year_id = :year AND entry_number > :after ORDER BY entry_number LIMIT 500');
+            $statement->execute(['year' => $fiscalYearId, 'after' => $after]);
+            $rows = $statement->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($rows as $row) {
+                $entry = $this->hydrate($row);
+                $after = $entry->number;
+                yield $entry;
+            }
+        } while (count($rows) === 500);
+    }
+
     public function totals(int $fiscalYearId): LedgerTotals
     {
         $statement = $this->pdo->prepare(

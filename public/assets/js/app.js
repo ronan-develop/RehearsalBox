@@ -14,6 +14,7 @@ import { initAdminAccounting } from './admin/accounting/admin-accounting.js';
 import { initAdminStatements } from './admin/accounting/admin-statements.js';
 import { initAdminRecurring } from './admin/accounting/admin-recurring.js';
 import { initAdminCotisations } from './admin/accounting/admin-cotisations.js';
+import { initAdminFigures } from './admin/accounting/admin-figures.js';
 import { initAdminBoard } from './admin/board/admin-board.js';
 import { initAdminTexts } from './admin/texts/admin-texts.js';
 import { initAdminAssemblies } from './admin/assembly/admin-assemblies.js';
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminStatements();
   initAdminRecurring();
   initAdminCotisations();
+  initAdminFigures();
   initAdminBoard();
   initAdminTexts();
   initBookingsBadge();

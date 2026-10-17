@@ -165,6 +165,7 @@ $assemblyId = (string) $form['id'];
                     </div>
                     <div class="rb-field">
                         <label for="assembly-financialReport">Rapport financier</label>
+                        <button type="button" class="rb-btn" data-import-figures>Reprendre les chiffres de l'exercice</button>
                         <textarea id="assembly-financialReport" name="financialReport" class="rb-input" maxlength="20000" rows="4"><?= e($form['financialReport']) ?></textarea>
                         <p class="rb-field-error" role="alert" data-field-error="financialReport" hidden></p>
                     </div>

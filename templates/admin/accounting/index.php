@@ -51,7 +51,11 @@ $adminTab = 'accounting';
                     </dl>
                 </div>
 
-                <p><a class="rb-btn" href="/admin/accounting/statements?year=<?= e((string) $year['id']) ?>">Relevés de compte</a> <a class="rb-btn" href="/admin/accounting/recurring">Écritures récurrentes</a></p>
+                <p><a class="rb-btn" href="/admin/accounting/statements?year=<?= e((string) $year['id']) ?>">Relevés de compte</a> <a class="rb-btn" href="/admin/accounting/recurring">Écritures récurrentes</a> <a class="rb-btn" href="/admin/accounting/cotisations?year=<?= e((string) $year['id']) ?>">Cotisations</a></p>
+                <p>
+                    <a class="rb-btn" href="/admin/accounting/years/<?= e((string) $year['id']) ?>/report">Rapport imprimable</a>
+                    <a class="rb-btn" href="/admin/accounting/years/<?= e((string) $year['id']) ?>/export.csv" download>Exporter en CSV</a>
+                </p>
 
                 <?php require __DIR__ . '/_year-actions.php'; ?>
 

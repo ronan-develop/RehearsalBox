@@ -8,6 +8,9 @@ use App\Accounting\Controller\Api\RecurringApiController;
 use App\Accounting\Controller\Api\StatementApiController;
 use App\Accounting\Controller\CotisationPageController;
 use App\Accounting\Controller\RecurringPageController;
+use App\Accounting\Controller\ReportController;
+use App\Accounting\Export\LedgerExportService;
+use App\Accounting\Presenter\YearReportView;
 use App\Accounting\Presenter\CotisationView;
 use App\Accounting\Service\Dues\CotisationService;
 use App\Accounting\Presenter\RecurringView;
@@ -715,6 +718,25 @@ return static function (array $config): Container {
         $c->get(EntryRepositoryInterface::class),
         $c->get(MemberDuesRepositoryInterface::class),
         $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(LedgerExportService::class, fn ($c) => new LedgerExportService(
+        $c->get(AdminAccess::class),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(MemberDuesRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(ReportController::class, fn ($c) => new ReportController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(AuthGuard::class),
+        $c->get(FiscalYearService::class),
+        $c->get(EntryService::class),
+        $c->get(CotisationService::class),
+        $c->get(LedgerExportService::class),
+        new YearReportView(new MoneyFormatter()),
+        (string) ($config['assembly']['association_name'] ?? ''),
     ));
 
     $container->set(CotisationPageController::class, fn ($c) => new CotisationPageController(

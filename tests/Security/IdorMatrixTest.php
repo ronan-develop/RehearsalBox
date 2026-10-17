@@ -499,7 +499,7 @@ final class IdorMatrixTest extends TestCase
     #[Test]
     public function testStatementPagesAndDownloadAreForAdministratorsOnly(): void
     {
-        foreach (['/admin/accounting/statements', '/admin/accounting/statements/1/file', '/admin/accounting/recurring', '/admin/accounting/cotisations'] as $path) {
+        foreach (['/admin/accounting/statements', '/admin/accounting/statements/1/file', '/admin/accounting/recurring', '/admin/accounting/cotisations', '/admin/accounting/years/1/report', '/admin/accounting/years/1/export.csv'] as $path) {
             self::assertSame(302, $this->call('anon', 'GET', $path)[0], "anonyme {$path}");
             foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
                 self::assertSame(403, $this->call($actor, 'GET', $path)[0], "{$actor} {$path}");
@@ -511,6 +511,13 @@ final class IdorMatrixTest extends TestCase
         self::assertSame(404, $this->call('admin', 'GET', '/admin/accounting/statements/' . self::MISSING_ID . '/file')[0]);
         foreach (['0', '-1', 'abc', '1e0', '007', '99999999999999999999', '%00'] as $malformed) {
             self::assertSame(403, $this->call('admin', 'GET', "/admin/accounting/statements/{$malformed}/file")[0], $malformed);
+            self::assertSame(403, $this->call('admin', 'GET', "/admin/accounting/years/{$malformed}/report")[0], $malformed);
+            self::assertSame(403, $this->call('admin', 'GET', "/admin/accounting/years/{$malformed}/export.csv")[0], $malformed);
+        }
+        self::assertSame(404, $this->call('admin', 'GET', '/admin/accounting/years/' . self::MISSING_ID . '/report')[0]);
+        self::assertSame(401, $this->call('anon', 'GET', '/api/admin/accounting/figures')[0]);
+        foreach (['stranger', 'memberA', 'managerA', 'outsiderB', 'dual'] as $actor) {
+            self::assertSame(403, $this->call($actor, 'GET', '/api/admin/accounting/figures')[0], $actor);
         }
     }
 
