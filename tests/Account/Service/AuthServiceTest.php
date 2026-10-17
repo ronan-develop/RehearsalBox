@@ -117,6 +117,33 @@ final class AuthServiceTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testASuccessfulLoginRecordsItsDateAndAFailedOneDoesNot(): void
+    {
+        $clock = new MockClock('2026-10-17 09:30:00 UTC');
+        [$service, $userRepository] = $this->makeServiceWithClock($clock);
+        $user = $this->createUser($userRepository, 'eve@rehearsalbox.test', 'password123');
+
+        $service->attempt('eve@rehearsalbox.test', 'mauvais');
+        self::assertSame([], $userRepository->lastLoginByUser());
+
+        $service->attempt('eve@rehearsalbox.test', 'password123');
+
+        self::assertSame($clock->now()->getTimestamp(), $userRepository->lastLoginByUser()[$user->id()]->getTimestamp());
+    }
+
+    #[Test]
+    public function testALoginRefusedForADisabledAccountRecordsNothing(): void
+    {
+        [$service, $userRepository] = $this->makeService();
+        $user = $this->createUser($userRepository, 'off@rehearsalbox.test', 'password123');
+        $userRepository->save($user->withActive(false));
+
+        $service->attempt('off@rehearsalbox.test', 'password123');
+
+        self::assertSame([], $userRepository->lastLoginByUser());
+    }
+
+    #[Test]
 
     public function testCurrentUserReturnsNullWhenNoUserInSession(): void
     {
