@@ -64,6 +64,7 @@ $adminTab = 'accounting';
                     <a class="rb-btn" href="/admin/accounting/cotisations?year=<?= e((string) $year['id']) ?>">Cotisations</a>
                     <a class="rb-btn" href="/admin/accounting/years/<?= e((string) $year['id']) ?>/report">Rapport imprimable</a>
                     <a class="rb-btn" href="/admin/accounting/years/<?= e((string) $year['id']) ?>/export.csv" download>Exporter en CSV</a>
+                    <a class="rb-btn" href="/admin/texts">Mode d'emploi du trésorier</a>
                 </nav>
 
                 <?php require __DIR__ . '/_year-actions.php'; ?>
