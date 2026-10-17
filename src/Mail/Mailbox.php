@@ -68,14 +68,18 @@ final class Mailbox
     }
 
     /**
-     * Envoi qui ne fait JAMAIS échouer l'appelant (cf. SafeMail) : faux si rien n'est parti.
+     * Envoi qui ne fait JAMAIS échouer l'appelant (cf. SafeMail) : faux si rien n'est parti. $successContext, s'il est donné, est
+     * journalisé (niveau info) quand le transport accepte le message : sans donnée personnelle, comme $failureContext (#502).
      *
      * @param callable(): RawMessage $build
      */
-    public function sendSafely(callable $build, string $failureContext): bool
+    public function sendSafely(callable $build, string $failureContext, ?string $successContext = null): bool
     {
         $sent = SafeMail::send($this->mailer, $build, $failureContext, $this->logger);
         $this->metrics->event($sent ? MetricEventType::MailSent : MetricEventType::MailFailed, 'mail');
+        if ($sent && $successContext !== null) {
+            $this->logger->info($successContext);
+        }
 
         return $sent;
     }

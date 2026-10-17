@@ -372,4 +372,50 @@ final class PasswordResetServiceTest extends RepositoryTestCase
         self::assertStringContainsString($link, (string) $email->getTextBody(), 'lien aussi dans la version texte');
         self::assertCount(1, $email->getAttachments(), 'le logo du site est intégré au mail');
     }
+
+    #[Test]
+    public function testAnAcceptedMailIsRecordedAndLoggedWithoutPersonalData(): void
+    {
+        $user = $this->insertUser();
+        $logger = new \App\Tests\Doubles\RecordingLogger();
+        $service = new PasswordResetService(
+            $this->users,
+            new MysqlPasswordResetRepository($this->pdo),
+            new FastPasswordHasher(),
+            new PasswordPolicy(),
+            new \App\Mail\Mailbox($mailer = $this->recordingMailer(), TestMailbox::FROM, TestMailbox::BASE_URL, logger: $logger),
+            new TransactionRunner($this->pdo),
+        );
+
+        $service->requestReset('alice@rehearsalbox.test', $this->now);
+
+        $latest = (new MysqlPasswordResetRepository($this->pdo))->latestByUser();
+        self::assertEquals($this->now, $latest[$user->id()]->mailSentAt);
+        self::assertSame(['info'], array_column($logger->records, 'level'));
+        self::assertStringContainsString('#' . $user->id(), $logger->text());
+        self::assertStringNotContainsString('alice@', $logger->text());
+        self::assertStringNotContainsString($this->tokenFrom($mailer->sent[0]), $logger->text());
+    }
+
+    #[Test]
+    public function testAMailTheTransportRefusedIsNeitherRecordedNorLoggedAsAccepted(): void
+    {
+        $user = $this->insertUser();
+        $logger = new \App\Tests\Doubles\RecordingLogger();
+        $service = new PasswordResetService(
+            $this->users,
+            new MysqlPasswordResetRepository($this->pdo),
+            new FastPasswordHasher(),
+            new PasswordPolicy(),
+            new \App\Mail\Mailbox($this->failingMailer(), TestMailbox::FROM, TestMailbox::BASE_URL, logger: $logger),
+            new TransactionRunner($this->pdo),
+        );
+
+        $service->requestReset('alice@rehearsalbox.test', $this->now);
+
+        $latest = (new MysqlPasswordResetRepository($this->pdo))->latestByUser();
+        self::assertEquals($this->now, $latest[$user->id()]->requestedAt);
+        self::assertNull($latest[$user->id()]->mailSentAt);
+        self::assertSame(['error'], array_column($logger->records, 'level'));
+    }
 }

@@ -181,4 +181,53 @@ final class MysqlPasswordResetRepositoryTest extends RepositoryTestCase
         self::assertSame(1, $repository->countCreatedSince($alice->id(), $now->modify('-1 hour'), 'alert'));
         self::assertSame(1, $repository->countCreatedSince($alice->id(), $now->modify('-1 hour')));
     }
+
+    #[Test]
+    public function testMarkMailSentRecordsTheAcceptanceTimeOfThatTokenOnly(): void
+    {
+        $repository = new MysqlPasswordResetRepository($this->pdo);
+        $user = $this->insertUser('alice@rehearsalbox.test');
+        $now = new \DateTimeImmutable('2026-10-04 12:00:00');
+        $repository->create($user->id(), $this->hash('a'), $now->modify('+1 hour'), $now);
+        $repository->create($user->id(), $this->hash('b'), $now->modify('+1 hour'), $now->modify('+5 minutes'));
+
+        $repository->markMailSent($this->hash('a'), $now->modify('+1 minute'));
+
+        $rows = $this->pdo->query('SELECT token_hash, mail_sent_at FROM password_resets ORDER BY id')->fetchAll(\PDO::FETCH_KEY_PAIR);
+        self::assertSame('2026-10-04 12:01:00', $rows[$this->hash('a')]);
+        self::assertNull($rows[$this->hash('b')]);
+    }
+
+    #[Test]
+    public function testLatestByUserReturnsTheMostRecentRequestOfEachUserWithItsMailState(): void
+    {
+        $repository = new MysqlPasswordResetRepository($this->pdo);
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $bob = $this->insertUser('bob@rehearsalbox.test');
+        $this->insertUser('carl@rehearsalbox.test');
+        $now = new \DateTimeImmutable('2026-10-04 12:00:00');
+        $repository->create($alice->id(), $this->hash('a1'), $now->modify('+1 hour'), $now);
+        $repository->markMailSent($this->hash('a1'), $now);
+        $repository->create($alice->id(), $this->hash('a2'), $now->modify('+2 hour'), $now->modify('+1 hour'));
+        $repository->create($bob->id(), $this->hash('b1'), $now->modify('+1 hour'), $now);
+        $repository->markMailSent($this->hash('b1'), $now->modify('+1 minute'));
+
+        $latest = $repository->latestByUser();
+
+        self::assertCount(2, $latest);
+        self::assertEquals(new \DateTimeImmutable('2026-10-04 13:00:00'), $latest[$alice->id()]->requestedAt);
+        self::assertNull($latest[$alice->id()]->mailSentAt, 'la dernière demande d\'Alice n\'a pas de mail accepté, même si la précédente en a un');
+        self::assertEquals(new \DateTimeImmutable('2026-10-04 12:01:00'), $latest[$bob->id()]->mailSentAt);
+    }
+
+    #[Test]
+    public function testLatestByUserIgnoresOtherPurposes(): void
+    {
+        $repository = new MysqlPasswordResetRepository($this->pdo);
+        $alice = $this->insertUser('alice@rehearsalbox.test');
+        $now = new \DateTimeImmutable('2026-10-04 12:00:00');
+        $repository->create($alice->id(), $this->hash('a'), $now->modify('+1 hour'), $now, 'autre');
+
+        self::assertSame([], $repository->latestByUser());
+    }
 }
