@@ -119,6 +119,23 @@ final class MysqlUserRepository implements UserRepositoryInterface
         $this->pdo->prepare('UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = :id')->execute(['id' => $userId]);
     }
 
+    public function recordLogin(int $userId, \DateTimeImmutable $at): void
+    {
+        // « updated_at = updated_at » : sans cela MariaDB le ferait avancer et on ne saurait plus distinguer un compte modifié d'un compte connecté.
+        $this->pdo->prepare('UPDATE users SET last_login_at = :at, updated_at = updated_at WHERE id = :id')
+            ->execute(['at' => $at->setTimezone(new \DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s'), 'id' => $userId]);
+    }
+
+    public function lastLoginByUser(): array
+    {
+        $logins = [];
+        foreach ($this->pdo->query('SELECT id, last_login_at FROM users WHERE last_login_at IS NOT NULL')->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $logins[(int) $row['id']] = new \DateTimeImmutable((string) $row['last_login_at']);
+        }
+
+        return $logins;
+    }
+
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): User
     {
