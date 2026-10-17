@@ -26,6 +26,13 @@ interface EntryRepositoryInterface
     /** @return list<AccountingEntry> par numéro, au plus `$limit` */
     public function listByYear(int $fiscalYearId, int $limit): array;
 
+    /**
+     * Toutes les écritures de l'exercice par numéro, lues par paquets (jamais tout en mémoire) : pour l'export complet.
+     *
+     * @return \Generator<int, AccountingEntry>
+     */
+    public function eachByYear(int $fiscalYearId): \Generator;
+
     public function totals(int $fiscalYearId): LedgerTotals;
 
     /** Mouvement net de la BANQUE (tout sauf les espèces) de l'exercice jusqu'à `$date` incluse : recettes moins dépenses. */
