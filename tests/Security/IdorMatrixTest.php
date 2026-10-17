@@ -212,6 +212,7 @@ final class IdorMatrixTest extends TestCase
             ['PUT', '/api/admin/accounting/recurring/1', ['label' => 'Piraté', 'direction' => 'depense', 'category' => 'loyer', 'paymentMethod' => 'virement', 'periodicity' => 'mensuelle', 'dueDay' => '5', 'firstMonth' => '2025-10'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/recurring/1/confirm', ['period' => '2025-10-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/recurring/1/ignore', ['period' => '2025-10-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
+            ['POST', '/api/admin/accounting/years/1/empty-month', ['month' => '2025-11'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/years/1/close', ['revision' => 0], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/years/1/approve', ['approvedOn' => '2026-11-01'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],
             ['POST', '/api/admin/accounting/entries/1/reverse', ['reason' => 'Piraté'], ['anon', 'stranger', 'memberA', 'managerA', 'outsiderB', 'dual']],

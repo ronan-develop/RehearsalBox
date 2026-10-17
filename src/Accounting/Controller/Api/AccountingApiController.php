@@ -10,6 +10,7 @@ use App\Accounting\Service\EntryService;
 use App\Accounting\Service\FiscalYearService;
 use App\Http\JsonResponse;
 use App\Http\Request;
+use App\Accounting\Todo\TodoService;
 use App\Security\AuthGuard;
 use App\Support\StrictId;
 
@@ -25,6 +26,7 @@ final class AccountingApiController
         private readonly FiscalYearService $years,
         private readonly EntryService $entries,
         private readonly CotisationService $dues,
+        private readonly TodoService $todo,
         private readonly AuthGuard $authGuard,
     ) {
     }
@@ -79,5 +81,15 @@ final class AccountingApiController
         $this->dues->setExemption($admin, $request->allBody());
 
         return new JsonResponse(['url' => '/admin/accounting/cotisations']);
+    }
+
+    /** « Rien à saisir ce mois-ci » : le corps ne contient que le mois ; l'exercice vient de l'adresse. */
+    public function markEmptyMonth(Request $request, string $id): JsonResponse
+    {
+        $admin = $this->authGuard->requireRole(UserRole::Admin);
+        $yearId = StrictId::orDenied($id);
+        $this->todo->markEmptyMonth($admin, $yearId, $request->allBody(), new \DateTimeImmutable('today'));
+
+        return new JsonResponse(['url' => '/admin/accounting?year=' . $yearId]);
     }
 }

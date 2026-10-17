@@ -5,6 +5,7 @@
  *
  * @var string $csrfToken
  * @var array<string, mixed> $page voir AccountingJournalView::page
+ * @var array<string, mixed>|null $todo voir TodoView::build
  * @var \App\Account\Entity\UserRole $currentUserRole
  */
 $year = $page['year'];
@@ -39,6 +40,8 @@ $adminTab = 'accounting';
                         <?php endforeach; ?>
                     </nav>
                 <?php endif; ?>
+
+                <?php if ($todo !== null): ?><?php require __DIR__ . '/_todo.php'; ?><?php endif; ?>
 
                 <div class="rb-card rb-ledger-summary">
                     <h2><?= e($year['label']) ?> <span class="rb-badge"><?= e($year['status']) ?></span></h2>

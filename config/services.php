@@ -10,7 +10,12 @@ use App\Accounting\Controller\CotisationPageController;
 use App\Accounting\Controller\RecurringPageController;
 use App\Accounting\Controller\ReportController;
 use App\Accounting\Export\LedgerExportService;
+use App\Accounting\Presenter\TodoView;
 use App\Accounting\Presenter\YearReportView;
+use App\Accounting\Repository\Month\MonthMarkRepositoryInterface;
+use App\Accounting\Repository\Month\MysqlMonthMarkRepository;
+use App\Accounting\Todo\TodoPlanner;
+use App\Accounting\Todo\TodoService;
 use App\Accounting\Presenter\CotisationView;
 use App\Accounting\Service\Dues\CotisationService;
 use App\Accounting\Presenter\RecurringView;
@@ -714,6 +719,19 @@ return static function (array $config): Container {
         $c->get(LoggerInterface::class),
     ));
 
+    $container->set(MonthMarkRepositoryInterface::class, fn ($c) => new MysqlMonthMarkRepository($c->get(PDO::class)));
+
+    $container->set(TodoService::class, fn ($c) => new TodoService(
+        $c->get(AdminAccess::class),
+        new TodoPlanner(),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(MonthMarkRepositoryInterface::class),
+        $c->get(StatementService::class),
+        $c->get(RecurringOccurrenceService::class),
+        $c->get(LoggerInterface::class),
+    ));
+
     $container->set(CotisationService::class, fn ($c) => new CotisationService(
         $c->get(AdminAccess::class),
         $c->get(EntryRepositoryInterface::class),
@@ -753,6 +771,7 @@ return static function (array $config): Container {
         $c->get(FiscalYearService::class),
         $c->get(EntryService::class),
         $c->get(CotisationService::class),
+        $c->get(TodoService::class),
         $c->get(AuthGuard::class),
     ));
 
@@ -764,6 +783,8 @@ return static function (array $config): Container {
         $c->get(EntryService::class),
         new AccountingJournalView(new MoneyFormatter()),
         $c->get(CotisationService::class),
+        $c->get(TodoService::class),
+        new TodoView(),
     ));
 
     $container->set(StatementRepositoryInterface::class, fn ($c) => new MysqlStatementRepository($c->get(PDO::class)));

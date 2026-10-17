@@ -46,5 +46,8 @@ interface EntryRepositoryInterface
      */
     public function paidMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): array;
 
+    /** @return array<string, true> mois (`AAAA-MM`) de l'exercice ayant au moins une écriture */
+    public function monthsWithEntries(int $fiscalYearId): array;
+
     public function bankNetUntil(int $fiscalYearId, \DateTimeImmutable $date): int;
 }

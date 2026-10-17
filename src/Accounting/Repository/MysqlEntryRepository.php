@@ -145,6 +145,14 @@ final class MysqlEntryRepository implements EntryRepositoryInterface
         return $paid;
     }
 
+    public function monthsWithEntries(int $fiscalYearId): array
+    {
+        $statement = $this->pdo->prepare("SELECT DISTINCT DATE_FORMAT(occurred_on, '%Y-%m') FROM accounting_entries WHERE fiscal_year_id = :year LIMIT 100");
+        $statement->execute(['year' => $fiscalYearId]);
+
+        return array_fill_keys(array_map('strval', $statement->fetchAll(\PDO::FETCH_COLUMN)), true);
+    }
+
     public function bankNetUntil(int $fiscalYearId, \DateTimeImmutable $date): int
     {
         $statement = $this->pdo->prepare(
