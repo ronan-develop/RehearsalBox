@@ -26,7 +26,7 @@ final class TodoServiceTest extends AccountingTestCase
     {
         parent::setUp();
         $this->today = new \DateTimeImmutable('2025-12-20');
-        $this->todo = new TodoService(new AdminAccess(), new TodoPlanner(), $this->yearRepository, $this->entryRepository, new MysqlMonthMarkRepository($this->pdo), $this->statements, $this->occurrences, new NullLogger());
+        $this->todo = new TodoService(new AdminAccess(), new TodoPlanner(), $this->yearRepository, $this->entryRepository, new MysqlMonthMarkRepository($this->pdo), new \App\Accounting\Repository\MysqlStatementRepository($this->pdo), new \App\Accounting\Service\StatementGapCalculator($this->entryRepository), $this->occurrences, new NullLogger());
     }
 
     /** @return list<string> */
@@ -128,6 +128,20 @@ final class TodoServiceTest extends AccountingTestCase
         }
         self::assertSame(4, $denied);
         self::assertSame(0, (int) $this->pdo->query('SELECT COUNT(*) FROM accounting_month_marks')->fetchColumn());
+    }
+
+    #[Test]
+    public function testTheReminderViewNeedsNoActorAndSeesTheLatestYearOnly(): void
+    {
+        self::assertSame([], $this->todo->forReminder($this->today), 'aucun exercice');
+        $year = $this->openYear();
+
+        $keys = array_map(static fn ($i): string => $i->key, $this->todo->forReminder($this->today));
+
+        self::assertContains('statement:2025-10', $keys);
+        self::assertNotContains('recurring', $keys);
+        $this->years->close($this->admin, $year, 0, $this->clock);
+        self::assertSame(['report', 'approve'], array_map(static fn ($i): string => $i->key, $this->todo->forReminder($this->today)));
     }
 
     #[Test]

@@ -12,8 +12,10 @@ use App\Accounting\Exception\FiscalYearNotFoundException;
 use App\Accounting\Repository\EntryRepositoryInterface;
 use App\Accounting\Repository\FiscalYearRepositoryInterface;
 use App\Accounting\Repository\Month\MonthMarkRepositoryInterface;
+use App\Accounting\Repository\StatementRepositoryInterface;
 use App\Accounting\Service\Recurring\RecurringOccurrenceService;
-use App\Accounting\Service\StatementService;
+use App\Accounting\Service\StatementGapCalculator;
+use App\Accounting\Service\StatementReview;
 use App\Security\AdminAccess;
 use Psr\Log\LoggerInterface;
 
@@ -30,7 +32,8 @@ final class TodoService
         private readonly FiscalYearRepositoryInterface $years,
         private readonly EntryRepositoryInterface $entries,
         private readonly MonthMarkRepositoryInterface $marks,
-        private readonly StatementService $statements,
+        private readonly StatementRepositoryInterface $statements,
+        private readonly StatementGapCalculator $gaps,
         private readonly RecurringOccurrenceService $recurring,
         private readonly LoggerInterface $logger,
     ) {
@@ -40,18 +43,33 @@ final class TodoService
     public function forYear(User $actor, FiscalYear $year, \DateTimeImmutable $today): array
     {
         $this->access->assertAdmin($actor);
+
+        return $this->snapshot($year, $today, $year->isOpen() ? count($this->recurring->pending($actor, $year, $today)) : 0);
+    }
+
+    /**
+     * Les tâches de l'exercice le plus récent pour la tâche planifiée de rappel (sans personne connectée, donc SANS garde de rôle : à n'appeler
+     * que depuis un script en ligne de commande, jamais depuis un contrôleur). Les échéances récurrentes ne comptent pas : elles n'ont pas de
+     * date limite et ne sont jamais « en retard ».
+     *
+     * @return list<TodoItem>
+     */
+    public function forReminder(\DateTimeImmutable $today): array
+    {
+        $year = $this->years->latest();
+
+        return $year === null ? [] : $this->snapshot($year, $today, 0);
+    }
+
+    /** @return list<TodoItem> */
+    private function snapshot(FiscalYear $year, \DateTimeImmutable $today, int $pendingRecurring): array
+    {
         if (!$year->isOpen()) {
             return $this->planner->plan($year, $today, [], [], [], 0);
         }
+        $reviews = array_map(fn ($statement): StatementReview => $this->gaps->review($year, $statement), $this->statements->listByYear($year->id, 100));
 
-        return $this->planner->plan(
-            $year,
-            $today,
-            $this->statements->review($actor, $year->id),
-            $this->entries->monthsWithEntries($year->id),
-            $this->marks->marked($year->id),
-            count($this->recurring->pending($actor, $year, $today)),
-        );
+        return $this->planner->plan($year, $today, $reviews, $this->entries->monthsWithEntries($year->id), $this->marks->marked($year->id), $pendingRecurring);
     }
 
     /**
