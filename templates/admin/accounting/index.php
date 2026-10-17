@@ -6,6 +6,7 @@
  * @var string $csrfToken
  * @var array<string, mixed> $page voir AccountingJournalView::page
  * @var array<string, mixed>|null $todo voir TodoView::build
+ * @var string|null $reminderProblem pourquoi les rappels activés ne partent pas (poste de trésorier vide, compte désactivé)
  * @var \App\Account\Entity\UserRole $currentUserRole
  */
 $year = $page['year'];
@@ -30,6 +31,9 @@ $adminTab = 'accounting';
         <p class="rb-admin-subtitle">Livre de comptes de l'association : l'argent reçu et l'argent dépensé, exercice par exercice.</p>
 
         <section data-accounting>
+            <?php if (($reminderProblem ?? null) !== null): ?>
+                <p class="rb-admin-note rb-todo-banner" role="status"><?= e($reminderProblem) ?> <a href="/admin/board">Régler le bureau</a></p>
+            <?php endif; ?>
             <?php if ($year === null): ?>
                 <p class="rb-admin-note">Aucun exercice pour l'instant : créez le premier pour commencer à noter les écritures.</p>
             <?php else: ?>
