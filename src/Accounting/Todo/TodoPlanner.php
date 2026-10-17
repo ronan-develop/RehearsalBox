@@ -7,6 +7,7 @@ namespace App\Accounting\Todo;
 use App\Accounting\Entity\FiscalYear;
 use App\Accounting\Entity\FiscalYearStatus;
 use App\Accounting\Service\StatementReview;
+use App\Accounting\Support\MonthLabel;
 
 /**
  * « À faire » du trésorier (#362), pur et sans base : calculé à partir de l'état du livre, rien à configurer. Pour chaque MOIS ÉCOULÉ de
@@ -129,6 +130,6 @@ final class TodoPlanner
 
     private static function monthName(\DateTimeImmutable $month): string
     {
-        return \App\Accounting\Presenter\MonthLabel::of($month);
+        return MonthLabel::of($month);
     }
 }

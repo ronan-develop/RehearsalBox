@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Accounting\Service;
 
 use App\Accounting\Exception\AccountingValidationException;
+use App\Support\StrictId;
 
 /** Saisie du dépôt d'un relevé (#362) : période, solde final facultatif, relevé remplacé facultatif ; toutes les erreurs remontées ensemble. */
 final class StatementInputPolicy
@@ -41,9 +42,8 @@ final class StatementInputPolicy
         $replaces = null;
         $rawReplaces = $input['replaces'] ?? null;
         if ($rawReplaces !== null && $rawReplaces !== '') {
-            if (is_string($rawReplaces) && preg_match('/\A[1-9][0-9]{0,9}\z/D', $rawReplaces) === 1) {
-                $replaces = (int) $rawReplaces;
-            } else {
+            $replaces = StrictId::from($rawReplaces);
+            if ($replaces === null) {
                 $errors['replaces'] = 'Relevé à remplacer invalide.';
             }
         }

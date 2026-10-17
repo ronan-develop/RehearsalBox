@@ -16,6 +16,7 @@ use App\Accounting\Repository\StatementRepositoryInterface;
 use App\Accounting\Service\Recurring\RecurringOccurrenceService;
 use App\Accounting\Service\StatementGapCalculator;
 use App\Accounting\Service\StatementReview;
+use App\Accounting\Support\MonthInput;
 use App\Security\AdminAccess;
 use Psr\Log\LoggerInterface;
 
@@ -86,7 +87,7 @@ final class TodoService
             throw new FiscalYearLockedException();
         }
         $raw = $input['month'] ?? null;
-        $month = is_string($raw) && preg_match('/\A[0-9]{4}-(?:0[1-9]|1[0-2])\z/D', $raw) === 1 && $raw >= '1900-01' && $raw <= '2999-12' ? new \DateTimeImmutable($raw . '-01') : null;
+        $month = MonthInput::parse($raw);
         if ($month === null || $month->modify('last day of this month') < $year->startsOn || $month > $year->endsOn) {
             throw new AccountingValidationException(['month' => 'Choisissez un mois de l\'exercice, par exemple 2025-11.']);
         }

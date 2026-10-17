@@ -364,3 +364,25 @@
   border: 1px solid var(--rb-warn);
   border-radius: var(--rb-radius-sm);
 }
+
+/* Outils de la comptabilité : une grille de boutons de 44 px, deux par ligne sur mobile (jamais des liens soulignés qui se chevauchent). */
+.rb-ledger-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--rb-space-2);
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-ledger-links .rb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* L'état d'une tâche se lit avant son libellé : le badge ne colle plus au texte. */
+.rb-todo-label .rb-badge {
+  margin-right: var(--rb-space-2);
+}

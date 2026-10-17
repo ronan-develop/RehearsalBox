@@ -4,7 +4,7 @@
  */
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
-import { clearErrors, reportFailure } from '../form-feedback.js';
+import { clearErrors, submitForm } from '../form-feedback.js';
 import { categoriesFor, isVoucherRequired, presetValues, todayIso } from './accounting-form.js';
 import { approveYearRequest, closeYearRequest, createYearRequest, emptyMonthRequest, failureMessage, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
@@ -78,19 +78,6 @@ function applyPreset(button) {
   (form.elements.amount.value === '' ? form.elements.amount : form.elements.voucherRef).focus();
 }
 
-async function submit(form, fields, build, onSuccess) {
-  clearErrors(form, fields);
-  const button = form.querySelector('[type="submit"]');
-  button.disabled = true;
-  try {
-    const { path, options } = build();
-    onSuccess(await apiFetch(path, options));
-  } catch (error) {
-    button.disabled = false;
-    reportFailure(form, fields, error, failureMessage);
-  }
-}
-
 function toggleReverse(card, open) {
   const form = card.querySelector('[data-reverse-form]');
   form.hidden = !open;
@@ -162,33 +149,33 @@ function onSubmit(event) {
   const form = event.target;
   if (form.matches('[data-entry-form]')) {
     event.preventDefault();
-    submit(form, ENTRY_FIELDS, () => recordEntryRequest(form.dataset.yearId, values(form)), (done) => {
+    submitForm(form, ENTRY_FIELDS, () => recordEntryRequest(form.dataset.yearId, values(form)), (done) => {
       showToast(`Écriture n° ${done.number} enregistrée.`, 'success');
       window.location.assign(done.url);
     });
   } else if (form.matches('[data-reverse-form]')) {
     event.preventDefault();
-    submit(form, REVERSE_FIELDS, () => reverseRequest(form.dataset.entryId, values(form)), (done) => {
+    submitForm(form, REVERSE_FIELDS, () => reverseRequest(form.dataset.entryId, values(form)), (done) => {
       showToast(`Écriture annulée (n° ${done.number}).`, 'success');
       window.location.assign(done.url);
     });
   } else if (form.matches('[data-close-form]')) {
     event.preventDefault();
     const box = form.closest('[data-year-actions]');
-    submit(form, [], () => closeYearRequest(box.dataset.yearId, { revision: box.dataset.revision }), (done) => {
+    submitForm(form, [], () => closeYearRequest(box.dataset.yearId, { revision: box.dataset.revision }), (done) => {
       showToast('Exercice clôturé.', 'success');
       window.location.assign(done.url);
     });
   } else if (form.matches('[data-approve-form]')) {
     event.preventDefault();
     const box = form.closest('[data-year-actions]');
-    submit(form, APPROVE_FIELDS, () => approveYearRequest(box.dataset.yearId, values(form)), (done) => {
+    submitForm(form, APPROVE_FIELDS, () => approveYearRequest(box.dataset.yearId, values(form)), (done) => {
       showToast('Approbation enregistrée.', 'success');
       window.location.assign(done.url);
     });
   } else if (form.matches('[data-year-form]')) {
     event.preventDefault();
-    submit(form, YEAR_FIELDS, () => createYearRequest(values(form)), (done) => window.location.assign(done.url));
+    submitForm(form, YEAR_FIELDS, () => createYearRequest(values(form)), (done) => window.location.assign(done.url));
   }
 }
 

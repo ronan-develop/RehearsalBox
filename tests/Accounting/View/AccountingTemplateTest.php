@@ -71,6 +71,17 @@ final class AccountingTemplateTest extends TestCase
     }
 
     #[Test]
+    public function testTheToolLinksAreAGridOfButtonsPointingToEveryAccountingPage(): void
+    {
+        $html = $this->render();
+
+        self::assertStringContainsString('class="rb-ledger-links"', $html);
+        foreach (['/admin/accounting/statements?year=4', '/admin/accounting/recurring', '/admin/accounting/cotisations?year=4', '/admin/accounting/years/4/report', '/admin/accounting/years/4/export.csv'] as $link) {
+            self::assertStringContainsString('href="' . $link . '"', $html);
+        }
+    }
+
+    #[Test]
     public function testAnEmptyTodoListSaysEverythingIsUpToDate(): void
     {
         self::assertStringContainsString('Tout est à jour', $this->render());

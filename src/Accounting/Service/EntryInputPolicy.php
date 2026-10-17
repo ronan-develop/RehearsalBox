@@ -8,6 +8,8 @@ use App\Accounting\Entity\Direction;
 use App\Accounting\Entity\EntryCategory;
 use App\Accounting\Entity\PaymentMethod;
 use App\Accounting\Exception\AccountingValidationException;
+use App\Accounting\Support\MonthInput;
+use App\Support\StrictId;
 
 /**
  * Saisie d'une écriture et d'une contre-passation (#362) : validée AVANT la base, toutes les erreurs remontées ensemble par champ. Seuls les
@@ -83,14 +85,12 @@ final class EntryInputPolicy
 
             return [null, null];
         }
-        $member = \App\Support\StrictId::from($rawMember);
+        $member = StrictId::from($rawMember);
         if ($member === null) {
             $errors['memberUserId'] = 'Choisissez l\'adhérent.';
         }
-        $month = null;
-        if (is_string($rawMonth) && preg_match('/\A[0-9]{4}-(?:0[1-9]|1[0-2])\z/D', $rawMonth) === 1 && $rawMonth >= '1900-01' && $rawMonth <= '2999-12') {
-            $month = new \DateTimeImmutable($rawMonth . '-01');
-        } else {
+        $month = MonthInput::parse($rawMonth);
+        if ($month === null) {
             $errors['periodMonth'] = 'Choisissez le mois couvert, par exemple 2025-10.';
         }
 

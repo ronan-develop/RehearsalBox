@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Accounting\Presenter;
 
 use App\Accounting\Entity\Direction;
+use App\Accounting\Support\EuroText;
 use App\Accounting\Entity\EntryCategory;
 use App\Accounting\Entity\PaymentMethod;
 use App\Accounting\Entity\Periodicity;
@@ -49,7 +50,7 @@ final class RecurringView
                 'method' => $t->paymentMethod->value,
                 'methodLabel' => $t->paymentMethod->label(),
                 'amount' => $t->amountCents === null ? 'Variable' : $this->money->format($t->amountCents),
-                'amountInput' => $t->amountCents === null ? '' : intdiv($t->amountCents, 100) . ',' . str_pad((string) ($t->amountCents % 100), 2, '0', STR_PAD_LEFT),
+                'amountInput' => $t->amountCents === null ? '' : EuroText::plain($t->amountCents),
                 'voucher' => $t->voucherRef ?? '',
                 'periodicity' => $t->periodicity->value,
                 'periodicityLabel' => $t->periodicity->label(),

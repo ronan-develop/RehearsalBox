@@ -4,9 +4,9 @@
  */
 import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
-import { clearErrors, reportFailure } from '../form-feedback.js';
+import { clearErrors, failureMessage, submitForm } from '../form-feedback.js';
 import { todayIso } from './accounting-form.js';
-import { exemptionRequest, failureMessage, recordEntryRequest } from './accounting-requests.js';
+import { exemptionRequest, recordEntryRequest } from './accounting-requests.js';
 
 const FIELDS = ['occurredOn', 'amount', 'paymentMethod', 'memberUserId', 'periodMonth'];
 
@@ -46,34 +46,26 @@ async function onClick(event) {
   }
 }
 
-async function onSubmit(event) {
+function onSubmit(event) {
   const form = event.target;
   if (!form.matches('[data-dues-form]')) {
     return;
   }
   event.preventDefault();
-  clearErrors(form, FIELDS);
-  const button = form.querySelector('[type="submit"]');
-  button.disabled = true;
-  try {
-    const values = {
-      occurredOn: form.elements.occurredOn.value,
-      amount: form.elements.amount.value,
-      paymentMethod: form.elements.paymentMethod.value,
-      memberUserId: form.elements.memberUserId.value,
-      periodMonth: form.elements.periodMonth.value,
-      direction: 'recette',
-      category: 'cotisations',
-      label: 'Cotisation',
-    };
-    const { path, options } = recordEntryRequest(form.dataset.yearId, values);
-    const done = await apiFetch(path, options);
+  const values = {
+    occurredOn: form.elements.occurredOn.value,
+    amount: form.elements.amount.value,
+    paymentMethod: form.elements.paymentMethod.value,
+    memberUserId: form.elements.memberUserId.value,
+    periodMonth: form.elements.periodMonth.value,
+    direction: 'recette',
+    category: 'cotisations',
+    label: 'Cotisation',
+  };
+  submitForm(form, FIELDS, () => recordEntryRequest(form.dataset.yearId, values), (done) => {
     showToast(`Écriture n° ${done.number} enregistrée.`, 'success');
     window.location.reload();
-  } catch (error) {
-    button.disabled = false;
-    reportFailure(form, FIELDS, error, failureMessage);
-  }
+  });
 }
 
 export function initAdminCotisations(root = document) {

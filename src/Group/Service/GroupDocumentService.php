@@ -13,6 +13,7 @@ use App\Security\Exception\AccessDeniedException;
 use App\Group\Service\GroupFilesPurgerInterface;
 use App\Group\Exception\InvalidUploadException;
 use App\Group\Exception\StorageQuotaExceededException;
+use App\Support\SafeFileName;
 
 final class GroupDocumentService implements GroupFilesPurgerInterface
 {
@@ -91,7 +92,7 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
                 return $this->documentRepository->save(new GroupDocument(
                     0,
                     $groupId,
-                    self::safeName($originalName),
+                    SafeFileName::clean($originalName, self::MAX_NAME_LENGTH, 'document'),
                     $storedName,
                     $realMimeType,
                     filesize($destinationPath),
@@ -171,27 +172,6 @@ final class GroupDocumentService implements GroupFilesPurgerInterface
                 @unlink($path);
             }
         }
-    }
-
-    /**
-     * Nom d'origine tel qu'il sera conservé et affiché : sans chemin, sans caractère de contrôle, borné en longueur (jamais
-     * coupé au milieu d'un caractère, extension conservée). Il ne sert jamais à construire un chemin sur le disque.
-     */
-    private static function safeName(string $originalName): string
-    {
-        $name = (string) preg_replace('/[\x00-\x1F\x7F]+/u', '', $originalName);
-        $name = trim((string) preg_replace('~^.*[\\\\/]~u', '', $name));
-        if ($name === '' || trim($name, '.') === '') {
-            return 'document';
-        }
-        if (mb_strlen($name) <= self::MAX_NAME_LENGTH) {
-            return $name;
-        }
-
-        $extension = pathinfo($name, PATHINFO_EXTENSION);
-        $suffix = $extension !== '' && mb_strlen($extension) <= 10 ? '.' . $extension : '';
-
-        return mb_substr($name, 0, self::MAX_NAME_LENGTH - mb_strlen($suffix)) . $suffix;
     }
 
     private function assertActorIsManager(int $groupId, int $actorUserId): void

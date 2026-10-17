@@ -22,6 +22,7 @@ Sommaire de référence. Lire avant toute intervention — suivre les liens pour
 | CI/CD, suivi                            | [.claude/cicd.md](.claude/cicd.md)                       |
 | Déploiement (WIP, hébergeur non choisi) | [.claude/deploiement.md](.claude/deploiement.md)         |
 | Données personnelles, durées, droits    | [.claude/rgpd.md](.claude/rgpd.md)                       |
+| Comptabilité de l'association (#362)    | [.claude/architecture.md](.claude/architecture.md) (« vue d'ensemble ») |
 
 ---
 

@@ -11,6 +11,7 @@ use App\Accounting\Entity\Periodicity;
 use App\Accounting\Exception\AccountingValidationException;
 use App\Accounting\Service\AccountingAmountParser;
 use App\Accounting\Service\EntryInputPolicy;
+use App\Accounting\Support\MonthInput;
 
 /** Saisie d'un modèle récurrent (#362) : validée AVANT la base, toutes les erreurs remontées ensemble par champ. */
 final class TemplateInputPolicy
@@ -52,7 +53,7 @@ final class TemplateInputPolicy
         if ($day === null) {
             $errors['dueDay'] = 'Le jour d\'échéance est compris entre 1 et 28.';
         }
-        $firstMonth = self::month($input['firstMonth'] ?? null);
+        $firstMonth = MonthInput::parse($input['firstMonth'] ?? null);
         if ($firstMonth === null) {
             $errors['firstMonth'] = 'Saisissez le premier mois, par exemple 2025-10.';
         }
@@ -68,15 +69,6 @@ final class TemplateInputPolicy
         $text = is_int($value) ? (string) $value : $value;
         if (is_string($text) && preg_match('/\A(?:[1-9]|1[0-9]|2[0-8])\z/D', $text) === 1) {
             return (int) $text;
-        }
-
-        return null;
-    }
-
-    private static function month(mixed $value): ?\DateTimeImmutable
-    {
-        if (is_string($value) && preg_match('/\A[0-9]{4}-(?:0[1-9]|1[0-2])\z/D', $value) === 1 && $value >= '1900-01' && $value <= '2999-12') {
-            return new \DateTimeImmutable($value . '-01');
         }
 
         return null;
