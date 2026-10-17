@@ -12,6 +12,7 @@ use App\Group\Repository\GroupRepositoryInterface;
 use App\Account\Repository\UserRepositoryInterface;
 use App\Account\Security\LastAdminGuard;
 use App\Account\Service\Throttle\LoginThrottle;
+use App\Account\Repository\PasswordResetRepositoryInterface;
 use App\Database\TransactionRunner;
 use App\Account\Service\UserAdminServiceInterface;
 use App\Account\Exception\UserAdminRuleException;
@@ -27,19 +28,22 @@ final class UserAdminService implements UserAdminServiceInterface
         private readonly LoginThrottle $loginThrottle,
         private readonly LastAdminGuard $lastAdminGuard,
         private readonly TransactionRunner $transactions,
+        private readonly PasswordResetRepositoryInterface $resets,
     ) {
     }
 
     public function listUsers(\DateTimeImmutable $now): array
     {
-        return array_map(function (User $user) use ($now): AdminUserItem {
+        $mailActivity = $this->resets->latestByUser();
+
+        return array_map(function (User $user) use ($now, $mailActivity): AdminUserItem {
             $groups = $this->sortedByName($this->groupRepository->findByMember($user->id()));
             $roles = [];
             foreach ($groups as $group) {
                 $roles[$group->id()] = ($this->groupRepository->roleOf($group->id(), $user->id()) ?? \App\Group\Entity\GroupUserRole::Membre)->value;
             }
 
-            return new AdminUserItem($user, $groups, $user->isLocked($now), $roles);
+            return new AdminUserItem($user, $groups, $user->isLocked($now), $roles, $mailActivity[$user->id()] ?? null);
         }, $this->userRepository->findAll());
     }
 

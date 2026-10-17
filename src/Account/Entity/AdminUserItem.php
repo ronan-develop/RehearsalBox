@@ -6,7 +6,7 @@ namespace App\Account\Entity;
 
 use App\Group\Entity\Group;
 
-/** Une ligne de la page admin des utilisateurs : le compte, ses groupes (avec son rôle dans chacun), et son état de verrouillage. */
+/** Une ligne de la page admin des utilisateurs : le compte, ses groupes (avec son rôle dans chacun), son état de verrouillage et sa dernière demande de lien de mot de passe (#502). */
 final class AdminUserItem
 {
     /**
@@ -18,6 +18,7 @@ final class AdminUserItem
         private readonly array $groups,
         private readonly bool $isLocked,
         private readonly array $groupRoles = [],
+        private readonly ?MailActivity $mailActivity = null,
     ) {
     }
 
@@ -41,5 +42,11 @@ final class AdminUserItem
     public function isLocked(): bool
     {
         return $this->isLocked;
+    }
+
+    /** Dernière demande de lien de mot de passe du compte, null si elle n'en a jamais fait. */
+    public function mailActivity(): ?MailActivity
+    {
+        return $this->mailActivity;
     }
 }

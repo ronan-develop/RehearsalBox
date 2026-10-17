@@ -3,6 +3,7 @@
  * @var string $csrfToken
  * @var list<\App\Account\Entity\AdminUserItem> $items
  * @var list<\App\Group\Entity\Group> $groups
+ * @var \DateTimeZone $localTimezone
  * @var int $currentUserId
  * @var \App\Account\Entity\UserRole $currentUserRole
  */
@@ -85,6 +86,17 @@
                             <?php if (!$user->isActive()): ?><span class="rb-badge rb-badge-warn">Désactivé</span><?php endif; ?>
                             <?php if ($item->isLocked()): ?><span class="rb-badge rb-badge-warn">Verrouillé</span><?php endif; ?>
                         </p>
+                        <?php if ($item->mailActivity() !== null): ?>
+                            <?php $mail = $item->mailActivity(); ?>
+                            <p class="rb-user-mail">
+                                Dernier lien demandé le <?= e($mail->requestedAt->setTimezone($localTimezone)->format('d/m à H:i')) ?> —
+                                <?php if ($mail->mailSentAt !== null): ?>
+                                    <span data-mail-accepted>mail accepté par le serveur à <?= e($mail->mailSentAt->setTimezone($localTimezone)->format('H:i')) ?></span>
+                                <?php else: ?>
+                                    <span data-mail-not-sent>mail non parti</span>
+                                <?php endif; ?>
+                            </p>
+                        <?php endif; ?>
                         <?php if ($item->groups() !== []): ?>
                             <p class="rb-user-groups">
                                 <?php foreach ($item->groups() as $group): ?>
