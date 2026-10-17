@@ -16,6 +16,7 @@ use App\Accounting\Repository\StatementRepositoryInterface;
 use App\Database\TransactionRunner;
 use App\Group\Exception\StorageQuotaExceededException;
 use App\Security\AdminAccess;
+use App\Support\SafeFileName;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -74,7 +75,7 @@ final class StatementService
                     throw new AccountingValidationException(['file' => 'Ce fichier est déjà déposé dans cet exercice.']);
                 }
                 $replaced = $replaces === null ? null : $this->replaceable($yearId, $replaces);
-                $id = $this->statements->insert($yearId, $start, $end, $balance, self::safeName($originalName), $stored->storedName, $stored->mime, $stored->sizeBytes, $stored->sha256, $actor->id(), $now);
+                $id = $this->statements->insert($yearId, $start, $end, $balance, SafeFileName::clean($originalName, self::NAME_MAX, 'releve'), $stored->storedName, $stored->mime, $stored->sizeBytes, $stored->sha256, $actor->id(), $now);
                 if ($replaced !== null && !$this->statements->markReplaced($replaced, $id)) {
                     throw new AccountingValidationException(['replaces' => 'Ce relevé a déjà été remplacé.']);
                 }
@@ -145,25 +146,5 @@ final class StatementService
         }
 
         return $old->id;
-    }
-
-    /**
-     * Nom d'origine tel qu'il sera conservé et affiché : sans chemin, sans caractère de contrôle ni de format (dont l'inversion du sens
-     * d'écriture), borné en longueur avec son extension. Il ne sert jamais à construire un chemin sur le disque.
-     */
-    private static function safeName(string $originalName): string
-    {
-        $name = (string) preg_replace('/[\p{Cc}\p{Cf}]+/u', '', $originalName);
-        $name = trim((string) preg_replace('~^.*[\\\\/]~u', '', $name));
-        if ($name === '' || trim($name, '.') === '') {
-            return 'releve';
-        }
-        if (mb_strlen($name) <= self::NAME_MAX) {
-            return $name;
-        }
-        $extension = pathinfo($name, PATHINFO_EXTENSION);
-        $suffix = $extension !== '' && mb_strlen($extension) <= 10 ? '.' . $extension : '';
-
-        return mb_substr($name, 0, self::NAME_MAX - mb_strlen($suffix)) . $suffix;
     }
 }
