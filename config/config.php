@@ -36,6 +36,12 @@ $defaults = [
         // Nom de l'association inscrit sur les comptes rendus d'assemblée générale (#361). config.local.php : jamais de nom réel dans le dépôt.
         'association_name' => '',
     ],
+    'accounting' => [
+        // Rappels par e-mail au trésorier (#362) : DÉSACTIVÉS par défaut. À activer dans config.local.php une fois le poste de trésorier
+        // réglé sur /admin/board. `due_day` : jour du mois suivant où une tâche mensuelle devient « en retard » ; `interval_days` : au plus un
+        // e-mail par intervalle ; `president_after_days` : copie au président au-delà de ce retard.
+        'reminders' => ['enabled' => false, 'due_day' => 5, 'interval_days' => 7, 'president_after_days' => 14],
+    ],
     'metrics' => [
         // Secret du serveur pour l'empreinte des adresses IP (config.local.php). Vide : aucune adresse n'est conservée, même sous forme d'empreinte.
         'secret' => '',

@@ -28,6 +28,7 @@ final class SafeRedirectTest extends TestCase
         yield 'demande d\'échange' => ['/exchanges/12'];
         yield 'demande d\'échange à dix chiffres' => ['/exchanges/2147483647'];
         yield 'réservations à valider' => ['/admin/bookings'];
+        yield 'comptabilité, lien du rappel au trésorier' => ['/admin/accounting'];
     }
 
     #[Test]
@@ -75,6 +76,11 @@ final class SafeRedirectTest extends TestCase
         yield 'réservations avec identifiant' => ['/admin/bookings/1'];
         yield 'réservations avec barre finale' => ['/admin/bookings/'];
         yield 'réservations avec paramètre' => ['/admin/bookings?x=1'];
+        yield 'comptabilité avec paramètre' => ['/admin/accounting?year=1'];
+        yield 'comptabilité, sous-page' => ['/admin/accounting/statements'];
+        yield 'comptabilité, export' => ['/admin/accounting/years/1/export.csv'];
+        yield 'comptabilité avec barre finale' => ['/admin/accounting/'];
+        yield 'comptabilité en majuscules' => ['/ADMIN/ACCOUNTING'];
         yield 'tableau' => [['/messages/1']];
         yield 'null' => [null];
         yield 'vide' => [''];

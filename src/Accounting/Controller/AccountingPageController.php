@@ -7,6 +7,7 @@ namespace App\Accounting\Controller;
 use App\Account\Entity\UserRole;
 use App\Accounting\Presenter\AccountingJournalView;
 use App\Accounting\Service\Dues\CotisationService;
+use App\Accounting\Notification\TreasurerReminderService;
 use App\Accounting\Presenter\TodoView;
 use App\Accounting\Service\EntryService;
 use App\Accounting\Service\FiscalYearService;
@@ -35,6 +36,7 @@ final class AccountingPageController
         private readonly CotisationService $dues,
         private readonly TodoService $todo,
         private readonly TodoView $todoView,
+        private readonly TreasurerReminderService $reminders,
     ) {
     }
 
@@ -57,6 +59,7 @@ final class AccountingPageController
                 $this->dues->memberNames($admin),
             ),
             'todo' => $year === null ? null : $this->todoView->build($this->todo->forYear($admin, $year, new \DateTimeImmutable('today')), $year->id),
+            'reminderProblem' => $this->reminders->recipientProblem(),
             'currentUserRole' => $admin->role(),
         ]));
     }
