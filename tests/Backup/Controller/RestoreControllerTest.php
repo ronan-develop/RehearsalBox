@@ -113,6 +113,7 @@ final class RestoreControllerTest extends RepositoryTestCase
             new BackupCatalog($this->dir . '/backups'),
             new RestoreStatus($this->dir . '/state', new MockClock('2026-10-20 10:00:00')),
             new DocumentOrphanReport($this->pdo, $this->dir . '/documents'),
+            new DocumentOrphanReport($this->pdo, $this->dir . '/statements', DocumentOrphanReport::ACCOUNTING_STATEMENTS),
             new CurrentPasswordVerifier($this->users, new FastPasswordHasher()),
             $launch ?? function (string $file): void {
                 $this->launched[] = $file;
@@ -311,6 +312,29 @@ final class RestoreControllerTest extends RepositoryTestCase
         self::assertStringContainsString('groupe n° ' . $group->id(), $html);
         self::assertStringContainsString('orphelin.pdf', $html);
         self::assertStringNotContainsString('Aucune incohérence', $html);
+    }
+
+    #[Test]
+    public function testTheStatementsWithoutFileAndTheirOrphanFilesAreListedApart(): void
+    {
+        $owner = $this->user(self::OWNER);
+        $this->pdo->prepare("INSERT INTO accounting_fiscal_years (label, starts_on, ends_on, created_by_user_id, created_at) VALUES ('2025-2026', '2025-10-01', '2026-09-30', ?, '2025-10-01 00:00:00')")->execute([$owner->id()]);
+        $year = (int) $this->pdo->lastInsertId();
+        $this->pdo->prepare("INSERT INTO accounting_statements (fiscal_year_id, period_start, period_end, original_name, stored_name, mime, size_bytes, sha256, uploaded_by_user_id, uploaded_at) VALUES (?, '2025-10-01', '2025-10-31', 'octobre.pdf', ?, 'application/pdf', 10, ?, ?, '2025-11-01 00:00:00')")->execute([$year, str_repeat('a', 32), str_repeat('1', 64), $owner->id()]);
+        mkdir($this->dir . '/statements', 0o700, true);
+        file_put_contents($this->dir . '/statements/' . str_repeat('c', 32), 'x');
+
+        try {
+            $html = $this->page($owner);
+        } finally {
+            unlink($this->dir . '/statements/' . str_repeat('c', 32));
+            rmdir($this->dir . '/statements');
+        }
+
+        self::assertStringContainsString('octobre.pdf', $html);
+        self::assertStringContainsString('exercice n° ' . $year, $html);
+        self::assertStringContainsString(str_repeat('c', 32), $html);
+        self::assertStringNotContainsString('Rien à signaler sur les relevés', $html);
     }
 
     #[Test]
