@@ -386,3 +386,39 @@
 .rb-todo-label .rb-badge {
   margin-right: var(--rb-space-2);
 }
+
+/* Import de la banque : formulaire de profil, aperçu, cartes de lignes à relire (une colonne sur mobile). */
+.rb-import-form {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin-bottom: var(--rb-space-4);
+}
+
+.rb-import-preview {
+  padding-top: var(--rb-space-3);
+  border-top: 1px solid var(--rb-border);
+}
+
+.rb-import-preview-list {
+  margin: 0;
+  padding-left: var(--rb-space-4);
+  overflow-wrap: anywhere;
+}
+
+.rb-import-line {
+  display: grid;
+  gap: var(--rb-space-2);
+}
+
+.rb-import-check {
+  display: flex;
+  align-items: center;
+  gap: var(--rb-space-2);
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.rb-import-source {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
