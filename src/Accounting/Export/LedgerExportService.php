@@ -8,7 +8,8 @@ use App\Account\Entity\User;
 use App\Accounting\Entity\AccountingEntry;
 use App\Accounting\Entity\Direction;
 use App\Accounting\Exception\FiscalYearNotFoundException;
-use App\Accounting\Presenter\MonthLabel;
+use App\Accounting\Support\EuroText;
+use App\Accounting\Support\MonthLabel;
 use App\Accounting\Repository\EntryRepositoryInterface;
 use App\Accounting\Repository\FiscalYearRepositoryInterface;
 use App\Accounting\Repository\MemberDuesRepositoryInterface;
@@ -71,7 +72,7 @@ final class LedgerExportService
     private function row(AccountingEntry $entry, array $names, array $numbers): array
     {
         $isRecette = $entry->direction === Direction::Recette;
-        $amount = intdiv($entry->amountCents, 100) . ',' . str_pad((string) ($entry->amountCents % 100), 2, '0', STR_PAD_LEFT);
+        $amount = EuroText::plain($entry->amountCents);
 
         return [
             (string) $entry->number,

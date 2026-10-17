@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Accounting\Presenter;
 
+use App\Accounting\Support\MonthLabel;
 use App\Accounting\Entity\FiscalYear;
 use App\Accounting\Service\Dues\CotisationCell;
 use App\Accounting\Service\Dues\CotisationTable;

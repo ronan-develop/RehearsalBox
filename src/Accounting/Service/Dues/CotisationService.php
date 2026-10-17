@@ -9,6 +9,7 @@ use App\Accounting\Entity\FiscalYear;
 use App\Accounting\Exception\AccountingValidationException;
 use App\Accounting\Repository\EntryRepositoryInterface;
 use App\Accounting\Repository\MemberDuesRepositoryInterface;
+use App\Accounting\Support\MonthInput;
 use App\Security\AdminAccess;
 use App\Support\StrictId;
 use Psr\Log\LoggerInterface;
@@ -78,7 +79,7 @@ final class CotisationService
         $errors = [];
         $memberId = StrictId::from($input['memberUserId'] ?? null);
         $raw = $input['periodMonth'] ?? null;
-        $month = is_string($raw) && preg_match('/\A[0-9]{4}-(?:0[1-9]|1[0-2])\z/D', $raw) === 1 && $raw >= '1900-01' && $raw <= '2999-12' ? new \DateTimeImmutable($raw . '-01') : null;
+        $month = MonthInput::parse($raw);
         $exempt = $input['exempt'] ?? null;
         if ($memberId === null || !$this->members->isActiveMember($memberId)) {
             $errors['memberUserId'] = 'Ce compte est introuvable ou désactivé.';

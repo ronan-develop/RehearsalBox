@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Accounting\Presenter;
 
+use App\Accounting\Support\MonthLabel;
 use App\Accounting\Entity\AccountingEntry;
 use App\Accounting\Entity\Direction;
 use App\Accounting\Entity\EntryCategory;

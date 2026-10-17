@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Accounting\Presenter;
+namespace App\Accounting\Support;
 
 /** Mois en français (« novembre 2025 ») sans dépendre de la locale du serveur. */
 final class MonthLabel

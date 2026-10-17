@@ -15,6 +15,7 @@ use App\Accounting\Repository\RecurringOccurrenceRepositoryInterface;
 use App\Accounting\Repository\RecurringTemplateRepositoryInterface;
 use App\Accounting\Service\EntryInputPolicy;
 use App\Accounting\Service\EntryService;
+use App\Accounting\Support\EuroText;
 use App\Security\AdminAccess;
 use Psr\Log\LoggerInterface;
 
@@ -80,7 +81,7 @@ final class RecurringOccurrenceService
         if ($date === null || $year === null) {
             throw new AccountingValidationException($errors + ['occurredOn' => 'Aucun exercice ouvert à cette date.']);
         }
-        $amount = self::text($input['amount'] ?? null) !== '' ? $input['amount'] : ($template->amountCents === null ? null : self::euros($template->amountCents));
+        $amount = self::text($input['amount'] ?? null) !== '' ? $input['amount'] : ($template->amountCents === null ? null : EuroText::plain($template->amountCents));
         $voucher = self::text($input['voucherRef'] ?? null) !== '' ? $input['voucherRef'] : $template->voucherRef;
 
         $entry = $this->entries->record($actor, $year->id, [
@@ -135,10 +136,5 @@ final class RecurringOccurrenceService
     private static function text(mixed $value): string
     {
         return is_string($value) ? trim($value) : '';
-    }
-
-    private static function euros(int $cents): string
-    {
-        return intdiv($cents, 100) . ',' . str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
     }
 }
