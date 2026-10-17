@@ -437,6 +437,54 @@ Dernière étape : `bin/collect-metrics.php` (cron horaire) appelle `MetricsAler
 - Correction découverte en route : la collecte écrit dans son propre journal `storage/logs/collect.log` (`logging.collect_path`). Elle écrivait dans `cron.log`, dont la date de modification sert justement à prouver que le cron des relances tourne : une collecte active aurait masqué un cron muet.
 - Export CSV des rapports : évalué, **non fait** (aucun besoin exprimé, les pages ont déjà leur tableau de valeurs ; à reprendre si le besoin se précise).
 
+## Comptabilité de l'association : vue d'ensemble (#362)
+
+Livre de comptes de l'association, **réservé aux administrateurs actifs** (garde de rôle dans chaque contrôleur ET dans chaque service). Les sections suivantes détaillent chaque livraison et ses décisions ; cette vue d'ensemble sert de point d'entrée.
+
+**Carte du code** (`src/Accounting/`)
+| Dossier | Rôle |
+|---|---|
+| `Entity/`, `Exception/` | exercice, écriture, relevé, modèle récurrent, adhérent ; erreurs métier (422 par champ, 409, 404) traduites par `ExceptionTranslator` |
+| `Repository/` (`Month/`, `Notice/`) | PDO préparé à la main ; une écriture et un relevé n'ont ni modification ni suppression |
+| `Service/` (`Recurring/`, `Dues/`) | règles : saisie, contre-passation, clôture, approbation, relevés, écritures récurrentes, cotisations |
+| `Todo/`, `Notification/` | « À faire » calculé depuis le livre (`TodoPlanner` pur) et rappel e-mail du trésorier |
+| `Export/`, `Support/` | export CSV neutralisé, saisie d'un mois, montant en texte, libellé de mois |
+| `Controller/`, `Presenter/` | pages en rendu serveur et API JSON ; données en texte brut, le gabarit échappe |
+
+**Pages et API** (toutes derrière `AuthGuard::requireRole(UserRole::Admin)` ; écritures en `POST`/`PUT` avec jeton CSRF ; identifiant non numérique : 403, inconnu : 404 sans l'écho)
+| Sujet | Page (GET) | API |
+|---|---|---|
+| Journal, « À faire » | `/admin/accounting?year=` | `POST /api/admin/accounting/years`, `…/years/{id}/entries`, `…/years/{id}/empty-month`, `…/entries/{id}/reverse` |
+| Exercice | idem | `…/years/{id}/close`, `…/years/{id}/approve` |
+| Relevés | `/admin/accounting/statements`, `…/statements/{id}/file` | `POST …/statements` (multipart) |
+| Écritures récurrentes | `/admin/accounting/recurring` | `POST/PUT …/recurring[/{id}]`, `POST …/recurring/{id}/confirm`, `…/ignore` |
+| Cotisations | `/admin/accounting/cotisations` | `POST …/cotisations/exemptions` (la saisie passe par l'API des écritures) |
+| Rapport, export, chiffres de l'AG | `…/years/{id}/report`, `…/years/{id}/export.csv` | `GET …/figures[?year=]` |
+
+**Base de données** : migrations 041 (exercices, écritures), 042 (relevés), 043 (modèles et échéances récurrents), 044 (adhérent et mois sur l'écriture, dispenses), 046 (mois sans mouvement), 047 (rappels envoyés) ; la 045 est celle des e-mails de réinitialisation (#502, autre ticket).
+
+**Règles qui tiennent tout le reste**
+- Montants en **centimes entiers** de bout en bout, jamais un flottant ; texte saisi lu par `AccountingAmountParser`, affiché par `MoneyFormatter`, écrit pour un champ ou un export par `EuroText`.
+- Écritures **immuables** : une erreur se corrige par une contre-passation ; un exercice clos est figé ; tout se fait dans UNE transaction sous le **verrou de la ligne d'exercice** (numérotation sans trou ni doublon, jamais deux écritures pour une même échéance).
+- **Le client ne décide jamais** du numéro, de l'exercice, de l'auteur, de l'état, du nom de fichier stocké, du type : le serveur les fixe (test « champs forgés » sur chaque écriture).
+- **Sorties** : tout texte saisi est échappé dans les gabarits (aucun script ni style en ligne), neutralisé dans le CSV (`CsvSafe`), absent des journaux et des e-mails (identifiants et compteurs seulement).
+- Fichiers (relevés) : hors racine web, nom aléatoire, type jugé sur le contenu de la copie stockée, servis en pièce jointe isolée.
+
+**Tests de sécurité** : `tests/Security/IdorMatrixTest` refuse chaque route à chaque acteur non administrateur, et un **méta-contrôle** échoue si une route `/admin/accounting*` ou `/api/admin/accounting*` d'écriture manque à la matrice ; `tests/Accounting/Http/` joue chaque API de bout en bout (401, 403, CSRF, identifiants hostiles, 422, 409, 404, champs forgés) ; des mutations volontaires ont été testées sur chaque garde-fou.
+
+**Exploitation**
+- **Rappels e-mail** : désactivés par défaut. Dans `config.local.php` : `'accounting' => ['reminders' => ['enabled' => true]]` (réglages `due_day` 5, `interval_days` 7, `president_after_days` 14), après avoir réglé le bureau sur `/admin/board`. Aucune entrée cron à ajouter (le cron horaire existant les envoie).
+- **Sauvegarde** : un dump ne contient pas les relevés ; lancer `bin/fetch-files.sh` depuis le poste de dev après chaque lot de relevés. La restauration signale les écarts (page `/admin/restore`, `bin/restore-db.php`).
+- **Déploiement** : `deploy.sh` crée le dossier des relevés en 0700 et applique les migrations après une sauvegarde de la base.
+
+**Limites connues** (acceptées, notées dans les sections détaillées)
+- Le solde d'ouverture est compté en entier côté banque pour l'écart d'un relevé (la caisse en espèces n'a pas de solde propre).
+- « Un adhérent, un mois » est jugé sous le verrou d'UN exercice : deux saisies simultanées sur deux exercices différents ne sont pas sérialisées.
+- Le journal et le rapport lisent au plus 1000 écritures par exercice ; l'export CSV, lui, les lit toutes par paquets.
+- `TodoService::forReminder` n'a pas de garde de rôle (tâche planifiée) : jamais depuis un contrôleur.
+
+**Reste à faire** : import CSV de la banque (livraison 7, en attente d'un exemple de fichier anonymisé de la banque) ; mode d'emploi du trésorier à écrire dans `/admin/texts` puis à relier depuis la page ; trancher cotisation de 20 € par mois (pratique) ou par an (article 6 des statuts).
+
 ## Comptabilité de l'association : socle (#362, livraison 1)
 
 Domaine `src/Accounting/` (Entity, Exception, Repository, Service), **sans interface** à cette livraison ; migration 041. Réservé aux administrateurs actifs (`AdminAccess::assertAdmin` dans chaque méthode de service).
@@ -449,7 +497,7 @@ Domaine `src/Accounting/` (Entity, Exception, Repository, Service), **sans inter
 - **Soldes et totaux** : calculés à la lecture (`LedgerTotals`, solde net par catégorie, contre-passations comprises), jamais stockés.
 - **Erreurs** : `AccountingValidationException` (422 par champ), `FiscalYearLockedException` et `FiscalYearChangedException` (409), `FiscalYearNotFoundException` et `EntryNotFoundException` (404, jamais l'identifiant dans le message).
 - **Journal** : identifiants seulement (auteur, exercice, écriture), jamais un libellé, un motif ni un montant.
-- À venir (ticket #362) : journal et saisie en interface, exercices, relevés PDF, écritures récurrentes, cotisations par personne, import CSV, rappels au trésorier, rapport et export.
+- La suite (interface, exercices, relevés, récurrentes, cotisations, « À faire » et rappels, rapport et export) est décrite dans les sections suivantes ; reste l'import CSV de la banque.
 
 
 ## Comptabilité de l'association : journal et saisie (#362, livraison 2)

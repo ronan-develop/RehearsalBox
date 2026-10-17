@@ -100,3 +100,14 @@ Le budget de taille a un **cliquet** : les classes déjà trop grosses sont list
 ```bash
 php bin/tail-log.php app 50    # 50 dernières lignes du journal applicatif (idem : cron)
 ```
+
+## Copie hors serveur des fichiers de production (#362)
+
+```bash
+set -a; . /chemin/vers/deploy.env; set +a        # variables RB_*, jamais affichées
+./bin/fetch-files.sh                              # relevés de compte (accounting-statements)
+./bin/fetch-files.sh group-documents              # documents de groupes
+```
+
+Archive tar.gz vérifiée, rangée en 0600 dans `RB_BACKUP_LOCAL_DIR` (hors dépôt, `$HOME/rehearsalbox-backups` par défaut) ; les relevés contiennent des IBAN : disque chiffré. Un dump de la base ne contient pas ces fichiers.
+
