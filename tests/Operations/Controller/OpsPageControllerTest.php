@@ -10,7 +10,7 @@ use App\Account\Service\AuthServiceInterface;
 use App\Backup\Restore\BackupCatalog;
 use App\Backup\Restore\RestoreStatus;
 use App\Http\Request;
-use App\Metrics\MetricsAccess;
+use App\Metrics\OperationsAccess;
 use App\Metrics\Report\Thresholds;
 use App\Operations\Backup\BackupHealthBuilder;
 use App\Operations\Backup\Declarations;
@@ -52,7 +52,7 @@ final class OpsPageControllerTest extends TestCase
         }
     }
 
-    private function controller(?User $current, string $viewerEmail = 'owner@rehearsalbox.test'): OpsPageController
+    private function controller(?User $current): OpsPageController
     {
         $auth = new class ($current) implements AuthServiceInterface {
             public function __construct(private readonly ?User $user)
@@ -94,7 +94,7 @@ final class OpsPageControllerTest extends TestCase
         return new OpsPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
             new AuthGuard($auth),
-            new MetricsAccess($viewerEmail),
+            new OperationsAccess(),
             new BackupHealthBuilder($catalog, new RestoreStatus($this->base . '/shared', $clock), null, null, new Thresholds(), $clock, $zone),
             new ProtectionHealthBuilder(new KeyFileProbe($this->base . '/shared/keys.json'), new Declarations($paths->declarations(), $clock), $paths, $catalog, new Thresholds(), $clock, $zone),
             new ProductionReportBuilder(new DeploymentLog($paths->deploymentsLog()), new ReleaseInventory($paths->releasesDir(), '', $zone), new MigrationStatus(null, $this->base), $catalog, '', $zone),
@@ -151,15 +151,25 @@ final class OpsPageControllerTest extends TestCase
     }
 
     #[Test]
+    public function testAnyOtherActiveAdministratorSeesBothTabsWithoutTheRestorationLink(): void
+    {
+        $other = $this->user('autre@rehearsalbox.test');
+
+        foreach ([$this->get($this->controller($other)), $this->production($this->controller($other))] as $response) {
+            self::assertSame(200, $response->statusCode());
+            self::assertStringContainsString('<h1>Exploitation</h1>', $response->body());
+            self::assertStringContainsString('href="/admin/metrics"', $response->body());
+        }
+    }
+
+    #[Test]
     public function testEveryoneElseGetsTheSameNotFound(): void
     {
-        $unknown = $this->get($this->controller($this->user('owner@rehearsalbox.test'), ''));
+        $unknown = $this->get($this->controller(null));
         $cases = [
             'visiteur' => $this->controller(null),
             'musicien' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Musicien)),
-            'autre admin' => $this->controller($this->user('other@rehearsalbox.test')),
-            'propriétaire désactivé' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Admin, false)),
-            'adresse non configurée' => $this->controller($this->user('owner@rehearsalbox.test'), ''),
+            'administrateur désactivé' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Admin, false)),
         ];
 
         foreach ($cases as $name => $controller) {
@@ -199,12 +209,11 @@ final class OpsPageControllerTest extends TestCase
     #[Test]
     public function testTheProductionTabFollowsTheSameUniform404(): void
     {
-        $unknown = $this->get($this->controller($this->user('owner@rehearsalbox.test'), ''));
+        $unknown = $this->get($this->controller(null));
         $cases = [
             'visiteur' => $this->controller(null),
             'musicien' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Musicien)),
-            'autre admin' => $this->controller($this->user('other@rehearsalbox.test')),
-            'adresse non configurée' => $this->controller($this->user('owner@rehearsalbox.test'), ''),
+            'administrateur désactivé' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Admin, false)),
         ];
 
         foreach ($cases as $name => $controller) {
