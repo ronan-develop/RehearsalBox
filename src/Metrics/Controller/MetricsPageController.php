@@ -7,7 +7,7 @@ namespace App\Metrics\Controller;
 use App\Http\ErrorPage;
 use App\Http\Request;
 use App\Http\Response;
-use App\Metrics\MetricsAccess;
+use App\Metrics\OperationsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\Load\LoadReportBuilder;
 use App\Metrics\Report\MetricsPeriod;
@@ -16,15 +16,15 @@ use App\Security\AuthGuard;
 use App\View\TemplateRendererInterface;
 
 /**
- * Tableau de bord des mesures, page « Santé et e-mails » (#196). Réservé à UN compte (MetricsAccess) : pour tous les autres,
- * y compris les autres administrateurs et les visiteurs non connectés, la page n'existe pas (404 uniforme, aucun indice).
+ * Tableau de bord des mesures, page « Santé et e-mails » (#196). Ouvert à tout administrateur ACTIF (OperationsAccess, décision du
+ * propriétaire du 2026-10-17) : pour tous les autres (visiteur, musicien, administrateur désactivé), la page n'existe pas (404 uniforme, aucun indice).
  */
 final class MetricsPageController
 {
     public function __construct(
         private readonly TemplateRendererInterface $renderer,
         private readonly AuthGuard $authGuard,
-        private readonly MetricsAccess $access,
+        private readonly OperationsAccess $access,
         private readonly HealthReportBuilder $reports,
         private readonly SecurityReportBuilder $securityReports,
         private readonly LoadReportBuilder $loadReports,

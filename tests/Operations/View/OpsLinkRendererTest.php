@@ -8,16 +8,17 @@ use App\Account\Entity\User;
 use App\Account\Entity\UserRole;
 use App\Account\Service\AuthServiceInterface;
 use App\Metrics\MetricsAccess;
+use App\Metrics\OperationsAccess;
 use App\Operations\View\OpsLinkRenderer;
 use App\Security\AuthGuard;
 use App\View\PhpTemplateRenderer;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** #400, #483 : l'onglet « Ops » de l'administration (plus la barre du bas) n'est montré qu'au propriétaire, jamais aux autres administrateurs ni aux musiciens. */
+/** #400, #483 : l'onglet « Ops » de l'administration est montré à tout administrateur actif, jamais aux musiciens ni aux visiteurs ; le lien « Restauration » reste celui du seul propriétaire. */
 final class OpsLinkRendererTest extends TestCase
 {
-    private function render(?User $current, ?UserRole $role, string $viewerEmail = 'owner@rehearsalbox.test'): string
+    private function render(?User $current, ?UserRole $role, string $viewerEmail = 'owner@rehearsalbox.test', string $template = 'partials/admin-tabs'): string
     {
         $auth = new class ($current) implements AuthServiceInterface {
             public int $lookups = 0;
@@ -55,9 +56,9 @@ final class OpsLinkRendererTest extends TestCase
             {
             }
         };
-        $renderer = new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), new AuthGuard($auth), new MetricsAccess($viewerEmail));
+        $renderer = new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), new AuthGuard($auth), new OperationsAccess(), new MetricsAccess($viewerEmail));
 
-        return $renderer->render('partials/admin-tabs', ['currentUserRole' => $role, 'adminTab' => 'bookings']);
+        return $renderer->render($template, ['currentUserRole' => $role, 'adminTab' => 'bookings', 'section' => 'backups']);
     }
 
     private function user(string $email, UserRole $role = UserRole::Admin): User
@@ -74,15 +75,28 @@ final class OpsLinkRendererTest extends TestCase
     }
 
     #[Test]
-    public function testAnotherAdministratorDoesNotSeeIt(): void
+    public function testAnotherActiveAdministratorSeesItToo(): void
     {
-        self::assertStringNotContainsString('/admin/ops', $this->render($this->user('other@rehearsalbox.test'), UserRole::Admin));
+        self::assertMatchesRegularExpression('#<a href="/admin/ops" class="rb-admin-tab">\s*Ops\s*</a>#', $this->render($this->user('other@rehearsalbox.test'), UserRole::Admin));
     }
 
     #[Test]
-    public function testWithoutAConfiguredOwnerNobodySeesIt(): void
+    public function testItDoesNotDependOnAConfiguredOwner(): void
     {
-        self::assertStringNotContainsString('/admin/ops', $this->render($this->user('owner@rehearsalbox.test'), UserRole::Admin, ''));
+        self::assertStringContainsString('/admin/ops', $this->render($this->user('other@rehearsalbox.test'), UserRole::Admin, ''));
+    }
+
+    #[Test]
+    public function testOnlyTheOwnerGetsTheRestorationLinkInTheOperationsHeader(): void
+    {
+        $owner = $this->render($this->user('owner@rehearsalbox.test'), UserRole::Admin, 'owner@rehearsalbox.test', 'admin/ops/_header');
+        $other = $this->render($this->user('other@rehearsalbox.test'), UserRole::Admin, 'owner@rehearsalbox.test', 'admin/ops/_header');
+        $nobody = $this->render($this->user('other@rehearsalbox.test'), UserRole::Admin, '', 'admin/ops/_header');
+
+        self::assertStringContainsString('href="/admin/restore"', $owner);
+        self::assertStringNotContainsString('/admin/restore', $other);
+        self::assertStringNotContainsString('/admin/restore', $nobody, 'sans propriétaire configuré, personne ne voit la restauration');
+        self::assertStringContainsString('href="/admin/metrics"', $other, 'les mesures restent proposées à tout administrateur');
     }
 
     #[Test]
@@ -123,7 +137,7 @@ final class OpsLinkRendererTest extends TestCase
             {
             }
         };
-        $renderer = new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), new AuthGuard($auth), new MetricsAccess('owner@rehearsalbox.test'));
+        $renderer = new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../../../templates'), new AuthGuard($auth), new OperationsAccess(), new MetricsAccess('owner@rehearsalbox.test'));
 
         self::assertStringNotContainsString('/admin/ops', $renderer->render('partials/admin-tabs', ['currentUserRole' => UserRole::Musicien, 'adminTab' => 'bookings']));
     }

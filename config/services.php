@@ -129,6 +129,7 @@ use App\Operations\Production\ProductionReportBuilder;
 use App\Operations\Production\ReleaseInventory;
 use App\Operations\View\OpsLinkRenderer;
 use App\Metrics\MetricsAccess;
+use App\Metrics\OperationsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\MetricsReaderInterface;
 use App\Metrics\Report\MysqlMetricsReader;
@@ -349,7 +350,7 @@ return static function (array $config): Container {
         return new MetricsPageController(
             $c->get(TemplateRendererInterface::class),
             $c->get(AuthGuard::class),
-            new MetricsAccess((string) $config['metrics']['viewer_email']),
+            new OperationsAccess(),
             new HealthReportBuilder($c->get(MetricsReaderInterface::class), $thresholds, $c->get(ClockInterface::class), $timezone),
             new SecurityReportBuilder(
                 $c->get(MetricsReaderInterface::class),
@@ -520,7 +521,7 @@ return static function (array $config): Container {
         Transport::fromDsn($config['mailer']['dsn']),
     ));
 
-    $container->set(TemplateRendererInterface::class, fn ($c) => new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../templates'), $c->get(AuthGuard::class), new MetricsAccess((string) $config['metrics']['viewer_email'])));
+    $container->set(TemplateRendererInterface::class, fn ($c) => new OpsLinkRenderer(new PhpTemplateRenderer(__DIR__ . '/../templates'), $c->get(AuthGuard::class), new OperationsAccess(), new MetricsAccess((string) $config['metrics']['viewer_email'])));
 
     $container->set(PageController::class, fn ($c) => new PageController(
         $c->get(TemplateRendererInterface::class),
@@ -1408,7 +1409,7 @@ return static function (array $config): Container {
     $container->set(OpsPageController::class, fn ($c) => new OpsPageController(
         $c->get(TemplateRendererInterface::class),
         $c->get(AuthGuard::class),
-        new MetricsAccess((string) $config['metrics']['viewer_email']),
+        new OperationsAccess(),
         $c->get(BackupHealthBuilder::class),
         $c->get(ProtectionHealthBuilder::class),
         $c->get(ProductionReportBuilder::class),

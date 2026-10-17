@@ -3,6 +3,7 @@
  * En-tête de l'exploitation (#375) : titre, onglets et liens vers les pages voisines (mesures, restauration).
  *
  * @var string $section 'backups' ou 'production'
+ * @var bool|null $showRestoreLink onglet « Restauration » : propriétaire seulement (OpsLinkRenderer)
  */
 $sections = ['backups' => ['/admin/ops', 'Sauvegardes'], 'production' => ['/admin/ops/production', 'Production']];
 ?>
@@ -15,5 +16,5 @@ $sections = ['backups' => ['/admin/ops', 'Sauvegardes'], 'production' => ['/admi
         <a href="<?= e($href) ?>" class="rb-admin-tab"<?= $key === $section ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
     <?php endforeach; ?>
     <a href="/admin/metrics" class="rb-admin-tab">Mesures</a>
-    <a href="/admin/restore" class="rb-admin-tab">Restauration</a>
+    <?php if (!empty($showRestoreLink)): ?><a href="/admin/restore" class="rb-admin-tab">Restauration</a><?php endif; ?>
 </nav>

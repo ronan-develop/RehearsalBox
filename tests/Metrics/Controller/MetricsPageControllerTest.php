@@ -9,7 +9,7 @@ use App\Account\Entity\UserRole;
 use App\Account\Service\AuthServiceInterface;
 use App\Http\Request;
 use App\Metrics\Controller\MetricsPageController;
-use App\Metrics\MetricsAccess;
+use App\Metrics\OperationsAccess;
 use App\Metrics\Report\HealthReportBuilder;
 use App\Metrics\Report\Load\DegradationDetector;
 use App\Metrics\Report\Load\LoadReportBuilder;
@@ -25,7 +25,7 @@ use Symfony\Component\Clock\MockClock;
 
 final class MetricsPageControllerTest extends TestCase
 {
-    private function controller(?User $current, string $viewerEmail = 'owner@rehearsalbox.test'): MetricsPageController
+    private function controller(?User $current): MetricsPageController
     {
         $auth = new class ($current) implements AuthServiceInterface {
             public function __construct(private readonly ?User $user)
@@ -63,7 +63,7 @@ final class MetricsPageControllerTest extends TestCase
         return new MetricsPageController(
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
             new AuthGuard($auth),
-            new MetricsAccess($viewerEmail),
+            new OperationsAccess(),
             new HealthReportBuilder(new FakeMetricsReader(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
             new SecurityReportBuilder(new FakeMetricsReader(), new AnomalyDetector(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
             new LoadReportBuilder(new FakeMetricsReader(), new DegradationDetector(), new Thresholds(), new MockClock('2026-10-07 12:30:00 UTC'), new \DateTimeZone('Europe/Paris')),
@@ -71,9 +71,9 @@ final class MetricsPageControllerTest extends TestCase
         );
     }
 
-    private function user(string $email, UserRole $role = UserRole::Admin): User
+    private function user(string $email, UserRole $role = UserRole::Admin, bool $active = true): User
     {
-        return new User(1, $email, 'hash', 'Test', $role, true, 0, null);
+        return new User(1, $email, 'hash', 'Test', $role, $active, 0, null);
     }
 
     #[Test]
@@ -92,13 +92,12 @@ final class MetricsPageControllerTest extends TestCase
     public function testEveryoneElseGetsAnIndistinguishable404(): void
     {
         $request = new Request('GET', '/admin/metrics', [], [], []);
-        $reference = $this->controller($this->user('owner@rehearsalbox.test'), 'nobody@rehearsalbox.test')->index($request);
+        $reference = $this->controller(null)->index($request);
 
         foreach ([
             'anonyme' => $this->controller(null),
-            'autre administrateur' => $this->controller($this->user('other@rehearsalbox.test')),
             'musicien' => $this->controller($this->user('owner@rehearsalbox.test', UserRole::Musicien)),
-            'aucune adresse configurée' => $this->controller($this->user('owner@rehearsalbox.test'), ''),
+            'administrateur désactivé' => $this->controller($this->user('other@rehearsalbox.test', UserRole::Admin, false)),
         ] as $who => $controller) {
             $response = $controller->index($request);
             self::assertSame(404, $response->statusCode(), $who);
@@ -117,7 +116,7 @@ final class MetricsPageControllerTest extends TestCase
     }
 
     #[Test]
-    public function testTheSecurityPageFollowsTheSameSingleAccountRule(): void
+    public function testTheSecurityPageIsOpenToAnyActiveAdministratorAndNoOneElse(): void
     {
         $request = new Request('GET', '/admin/metrics/security', [], [], []);
 
@@ -127,13 +126,14 @@ final class MetricsPageControllerTest extends TestCase
         self::assertStringContainsString('aria-current="page">Sécurité', $owner->body());
         self::assertSame(4, substr_count($owner->body(), '<figure class="rb-chart">'));
 
-        foreach ([null, $this->user('other@rehearsalbox.test'), $this->user('owner@rehearsalbox.test', UserRole::Musicien)] as $who) {
+        self::assertSame(200, $this->controller($this->user('other@rehearsalbox.test'))->security($request)->statusCode(), 'un autre administrateur actif');
+        foreach ([null, $this->user('owner@rehearsalbox.test', UserRole::Musicien), $this->user('other@rehearsalbox.test', UserRole::Admin, false)] as $who) {
             self::assertSame(404, $this->controller($who)->security($request)->statusCode());
         }
     }
 
     #[Test]
-    public function testTheLoadPageFollowsTheSameSingleAccountRule(): void
+    public function testTheLoadPageIsOpenToAnyActiveAdministratorAndNoOneElse(): void
     {
         $request = new Request('GET', '/admin/metrics/load', [], [], []);
 
@@ -142,7 +142,8 @@ final class MetricsPageControllerTest extends TestCase
         self::assertStringContainsString('Verdict de dégradation', $owner->body());
         self::assertStringContainsString('aria-current="page">Charge', $owner->body());
 
-        foreach ([null, $this->user('other@rehearsalbox.test')] as $who) {
+        self::assertSame(200, $this->controller($this->user('other@rehearsalbox.test'))->load($request)->statusCode(), 'un autre administrateur actif');
+        foreach ([null, $this->user('other@rehearsalbox.test', UserRole::Musicien)] as $who) {
             self::assertSame(404, $this->controller($who)->load($request)->statusCode());
         }
     }
