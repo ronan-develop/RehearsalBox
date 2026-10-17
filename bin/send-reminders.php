@@ -10,7 +10,8 @@ declare(strict_types=1);
 //    de mention (une seule relance par e-mail de mention).
 // 3. Rappel de COMPTABILITÉ (#362) : e-mail récapitulatif au trésorier des tâches en retard (au plus un par semaine, copie au président
 //    après 14 jours), sans montant ni nom ; désactivé par défaut (accounting.reminders.enabled).
-// 4. Oubli des anciennes versions de messages corrigés (#225) : au-delà de 30 jours, elles sont supprimées.
+// 4. Purge des lignes de la banque en attente depuis plus de 30 jours (#362 : libellés avec noms de tiers, parfois un IBAN).
+// 5. Oubli des anciennes versions de messages corrigés (#225) : au-delà de 30 jours, elles sont supprimées.
 // Jamais le contenu d'un message. Seulement dans la plage de jour (heure locale) ; hors plage, ne fait rien et les relances
 // dues partent le matin. Idempotent : peut être relancé sans doublon.
 // Journal : storage/logs/cron.log reçoit un bilan à chaque passage (niveau « info »), même quand il n'y a rien à envoyer.
@@ -24,6 +25,7 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use App\Accounting\Import\ImportService;
 use App\Accounting\Notification\TreasurerReminderService;
 use App\Messaging\Notification\ConversationReminderService;
 use App\Messaging\Notification\MentionReminderService;
@@ -51,6 +53,10 @@ foreach ([
     $log->{$report->failed() > 0 ? 'error' : 'info'}($label . ' : bilan', ['sent' => $report->sent(), 'failed' => $report->failed(), 'skipped' => $report->skipped()]);
     $failed += $report->failed();
 }
+
+$importPurged = $container->get(ImportService::class)->purgeExpired(new DateTimeImmutable());
+printf("Lignes de la banque en attente : %d purgée(s).\n", $importPurged);
+$log->info('Import de la banque : purge', ['deleted' => $importPurged]);
 
 $purged = $container->get(MessageVersionPurge::class)->purge();
 printf("Anciennes versions de messages : %d supprimée(s).\n", $purged);

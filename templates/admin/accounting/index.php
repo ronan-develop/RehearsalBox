@@ -60,6 +60,7 @@ $adminTab = 'accounting';
 
                 <nav class="rb-ledger-links" aria-label="Outils de la comptabilité">
                     <a class="rb-btn" href="/admin/accounting/statements?year=<?= e((string) $year['id']) ?>">Relevés de compte</a>
+                    <a class="rb-btn" href="/admin/accounting/imports">Importer la banque</a>
                     <a class="rb-btn" href="/admin/accounting/recurring">Écritures récurrentes</a>
                     <a class="rb-btn" href="/admin/accounting/cotisations?year=<?= e((string) $year['id']) ?>">Cotisations</a>
                     <a class="rb-btn" href="/admin/accounting/years/<?= e((string) $year['id']) ?>/report">Rapport imprimable</a>

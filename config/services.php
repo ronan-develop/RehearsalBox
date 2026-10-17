@@ -4,7 +4,20 @@ declare(strict_types=1);
 
 use App\Accounting\Controller\AccountingPageController;
 use App\Accounting\Controller\Api\AccountingApiController;
+use App\Accounting\Controller\Api\ImportApiController;
 use App\Accounting\Controller\Api\RecurringApiController;
+use App\Accounting\Controller\ImportPageController;
+use App\Accounting\Import\ImportService;
+use App\Accounting\Import\Parse\CsvImportParser;
+use App\Accounting\Import\Parse\ImportProfilePolicy;
+use App\Accounting\Import\Rules\RuleService;
+use App\Accounting\Import\Suggest\ImportReviewService;
+use App\Accounting\Import\Validate\BatchValidationService;
+use App\Accounting\Presenter\ImportView;
+use App\Accounting\Repository\Import\ImportRepositoryInterface;
+use App\Accounting\Repository\Import\LabelRuleRepositoryInterface;
+use App\Accounting\Repository\Import\MysqlImportRepository;
+use App\Accounting\Repository\Import\MysqlLabelRuleRepository;
 use App\Accounting\Controller\Api\StatementApiController;
 use App\Accounting\Controller\CotisationPageController;
 use App\Accounting\Controller\RecurringPageController;
@@ -753,6 +766,65 @@ return static function (array $config): Container {
         $c->get(LoggerInterface::class),
     ));
 
+    $container->set(ImportRepositoryInterface::class, fn ($c) => new MysqlImportRepository($c->get(PDO::class)));
+    $container->set(LabelRuleRepositoryInterface::class, fn ($c) => new MysqlLabelRuleRepository($c->get(PDO::class)));
+
+    $container->set(ImportService::class, fn ($c) => new ImportService(
+        $c->get(AdminAccess::class),
+        new ImportProfilePolicy(),
+        new CsvImportParser(),
+        $c->get(ImportRepositoryInterface::class),
+        $c->get(TransactionRunner::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(RuleService::class, fn ($c) => new RuleService(
+        $c->get(AdminAccess::class),
+        $c->get(LabelRuleRepositoryInterface::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(ImportReviewService::class, fn ($c) => new ImportReviewService(
+        $c->get(AdminAccess::class),
+        $c->get(ImportRepositoryInterface::class),
+        $c->get(RecurringTemplateRepositoryInterface::class),
+        $c->get(RecurringOccurrenceRepositoryInterface::class),
+        $c->get(MemberDuesRepositoryInterface::class),
+        $c->get(EntryRepositoryInterface::class),
+        $c->get(LabelRuleRepositoryInterface::class),
+    ));
+
+    $container->set(BatchValidationService::class, fn ($c) => new BatchValidationService(
+        $c->get(AdminAccess::class),
+        $c->get(ImportRepositoryInterface::class),
+        $c->get(FiscalYearRepositoryInterface::class),
+        $c->get(EntryService::class),
+        $c->get(LabelRuleRepositoryInterface::class),
+        $c->get(RecurringTemplateRepositoryInterface::class),
+        $c->get(RecurringOccurrenceRepositoryInterface::class),
+        new RecurrenceSchedule(),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(ImportApiController::class, fn ($c) => new ImportApiController(
+        $c->get(ImportService::class),
+        $c->get(BatchValidationService::class),
+        $c->get(RuleService::class),
+        $c->get(AuthGuard::class),
+        $c->get('limit.import-upload'),
+    ));
+
+    $container->set(ImportPageController::class, fn ($c) => new ImportPageController(
+        $c->get(TemplateRendererInterface::class),
+        $c->get(CsrfTokenManager::class),
+        $c->get(AuthGuard::class),
+        $c->get(ImportService::class),
+        $c->get(ImportReviewService::class),
+        $c->get(RuleService::class),
+        $c->get(CotisationService::class),
+        new ImportView(new MoneyFormatter()),
+    ));
+
     $container->set(CotisationService::class, fn ($c) => new CotisationService(
         $c->get(AdminAccess::class),
         $c->get(EntryRepositoryInterface::class),
@@ -1268,6 +1340,11 @@ return static function (array $config): Container {
         'Trop de documents envoyés : réessayez plus tard.',
     ));
 
+    $container->set('limit.import-upload', fn ($c) => new UserActionLimit(
+        new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'import-upload', 40, '-1 hour'),
+        $c->get(ClockInterface::class),
+        'Trop de fichiers envoyés : réessayez plus tard.',
+    ));
     $container->set('limit.statement-upload', fn ($c) => new UserActionLimit(
         new SubjectThrottle($c->get(ThrottleEventRepositoryInterface::class), 'statement-upload', 20, '-1 hour'),
         $c->get(ClockInterface::class),
