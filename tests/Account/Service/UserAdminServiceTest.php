@@ -26,12 +26,14 @@ final class UserAdminServiceTest extends RepositoryTestCase
     private MysqlUserRepository $users;
     private MysqlGroupRepository $groups;
     private UserAdminService $service;
+    private \App\Account\Repository\MysqlPasswordResetRepository $resets;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->users = new MysqlUserRepository($this->pdo);
         $this->groups = new MysqlGroupRepository($this->pdo);
+        $this->resets = new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo);
         $this->service = new UserAdminService(
             $this->users,
             $this->groups,
@@ -39,6 +41,7 @@ final class UserAdminServiceTest extends RepositoryTestCase
             \App\Tests\Support\TestLoginThrottle::make($this->pdo),
             new \App\Account\Security\LastAdminGuard($this->users),
             new \App\Database\TransactionRunner($this->pdo),
+            $this->resets,
         );
     }
 
@@ -214,5 +217,23 @@ final class UserAdminServiceTest extends RepositoryTestCase
         $this->expectException(UserNotFoundException::class);
 
         $this->service->unlock(9999);
+    }
+
+    #[Test]
+    public function testListExposesTheLastPasswordLinkRequestAndItsMailState(): void
+    {
+        $alice = $this->user('alice@rehearsalbox.test', 'Alice');
+        $bob = $this->user('bob@rehearsalbox.test', 'Bob');
+        $now = new \DateTimeImmutable('2026-10-04 12:00:00');
+        $this->resets->create($alice->id(), hash('sha256', 'a'), $now->modify('+1 hour'), $now);
+        $this->resets->markMailSent(hash('sha256', 'a'), $now);
+
+        $items = [];
+        foreach ($this->service->listUsers($now) as $item) {
+            $items[$item->user()->email()] = $item;
+        }
+
+        self::assertEquals($now, $items['alice@rehearsalbox.test']->mailActivity()?->mailSentAt);
+        self::assertNull($items['bob@rehearsalbox.test']->mailActivity());
     }
 }

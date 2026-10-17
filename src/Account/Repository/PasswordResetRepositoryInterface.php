@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Account\Repository;
 
+use App\Account\Entity\MailActivity;
+
 interface PasswordResetRepositoryInterface
 {
     /** Réinitialisation du mot de passe par e-mail (#107). */
@@ -27,4 +29,14 @@ interface PasswordResetRepositoryInterface
      * @return int|null id de l'utilisateur, ou null si le jeton est inconnu, expiré ou déjà utilisé
      */
     public function consume(string $tokenHash, \DateTimeImmutable $now, string $purpose = self::PURPOSE_RESET): ?int;
+
+    /** Note que le transport a accepté le mail portant ce jeton (#502). */
+    public function markMailSent(string $tokenHash, \DateTimeImmutable $now, string $purpose = self::PURPOSE_RESET): void;
+
+    /**
+     * La demande la plus récente de chaque compte, avec l'état de son mail (#502).
+     *
+     * @return array<int, MailActivity> indexé par identifiant d'utilisateur ; un compte sans demande est absent
+     */
+    public function latestByUser(string $purpose = self::PURPOSE_RESET): array;
 }

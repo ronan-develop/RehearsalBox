@@ -45,8 +45,9 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
             new PhpTemplateRenderer(__DIR__ . '/../../../templates'),
             new CsrfTokenManager($session),
             new AuthGuard($this->auth),
-            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo), new \App\Account\Security\LastAdminGuard($this->users), new \App\Database\TransactionRunner($this->pdo)),
+            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo), new \App\Account\Security\LastAdminGuard($this->users), new \App\Database\TransactionRunner($this->pdo), new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo)),
             new GroupService($this->groups, $this->users),
+            new \DateTimeZone('Europe/Paris'),
         );
     }
 
@@ -156,5 +157,25 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
         self::assertMatchesRegularExpression('/<a href="\/admin\/users" class="rb-admin-tab" aria-current="page">\s*Utilisateurs\s*<\/a>/u', $body);
         self::assertStringNotContainsString('← Groupes', $body, 'plus de lien « retour » : les onglets suffisent');
         self::assertStringContainsString('rb-bottom-nav', $body);
+    }
+
+    #[Test]
+    public function testAdminSeesWhetherTheLastPasswordLinkMailWasAcceptedByTheServer(): void
+    {
+        $this->loginAsAdmin();
+        $alice = $this->user('alice@rehearsalbox.test', 'Alice');
+        $bob = $this->user('bob@rehearsalbox.test', 'Bob');
+        $this->user('carl@rehearsalbox.test', 'Carl');
+        $resets = new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo);
+        $now = new \DateTimeImmutable('2026-10-16 17:58:00', new \DateTimeZone('UTC'));
+        $resets->create($alice->id(), hash('sha256', 'a'), $now->modify('+1 hour'), $now);
+        $resets->markMailSent(hash('sha256', 'a'), $now);
+        $resets->create($bob->id(), hash('sha256', 'b'), $now->modify('+1 hour'), $now);
+
+        $body = $this->controller->index()->body();
+
+        self::assertSame(1, substr_count($body, 'data-mail-accepted'));
+        self::assertSame(1, substr_count($body, 'data-mail-not-sent'));
+        self::assertStringContainsString('16/10', $body);
     }
 }

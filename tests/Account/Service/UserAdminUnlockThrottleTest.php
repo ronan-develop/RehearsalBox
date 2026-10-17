@@ -37,6 +37,7 @@ final class UserAdminUnlockThrottleTest extends RepositoryTestCase
             $this->throttle,
             new \App\Account\Security\LastAdminGuard($this->users),
             new \App\Database\TransactionRunner($this->pdo),
+            new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo),
         );
     }
 

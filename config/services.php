@@ -668,6 +668,7 @@ return static function (array $config): Container {
         $c->get(LoginThrottle::class),
         new LastAdminGuard($c->get(UserRepositoryInterface::class)),
         $c->get(TransactionRunner::class),
+        $c->get(PasswordResetRepositoryInterface::class),
     ));
 
     $container->set(GroupImpactRepositoryInterface::class, fn ($c) => new MysqlGroupImpactRepository($c->get(PDO::class)));
@@ -929,6 +930,7 @@ return static function (array $config): Container {
         $c->get(AuthGuard::class),
         $c->get(UserAdminServiceInterface::class),
         $c->get(GroupServiceInterface::class),
+        new \DateTimeZone($config['app']['timezone']),
     ));
 
     // Modifier un compte depuis l'administration (#272) : gardes partagées « dernier administrateur » et « dernier gestionnaire ».

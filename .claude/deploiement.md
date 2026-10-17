@@ -245,6 +245,8 @@ Vérifier après une modification DNS ou un changement d'hébergeur :
 
 Attention : un DKIM qui casse (clé retirée du cPanel, domaine d'envoi changé) fait rejeter TOUS les e-mails de l'application dès `p=reject` : ne jamais toucher à la clé sans refaire le test.
 
+**Savoir si un mail est parti (#502)** : la page admin « Utilisateurs » affiche, par compte, « Dernier lien demandé le … — mail accepté par le serveur à … » ou « mail non parti ». L'heure vient de `password_resets.mail_sent_at` (migration 045), renseignée seulement quand le transport (Exim) accepte le message ; elle ne prouve pas que le destinataire l'a reçu. « Mail accepté » + rien dans la boîte = la perte est après notre serveur (rejet ou filtrage chez le destinataire : demander le journal Exim à l'hébergeur). « Mail non parti » = l'erreur est dans `app.log` (classe de l'exception, sans adresse). Un envoi accepté est aussi journalisé en niveau `info` (« mail accepté par le transport (utilisateur #n) ») : invisible tant que `logging.level` reste à `warning`, à baisser temporairement dans `config.local.php` pour une enquête.
+
 ## Cache des assets (#150)
 
 `public/.htaccess` envoie `Cache-Control: no-cache` sur `*.css`, `*.js` et `*.mjs` : le navigateur revalide à chaque chargement (`Last-Modified` change à chaque release : 200 avec le nouveau fichier, sinon 304). Pas de `?v=` : `app.js` importe 13 modules par chemin relatif, que l'on ne peut pas versionner un par un sans build. Vérification après déploiement : `curl -sI https://<domaine>/assets/js/app.js | grep -i cache-control` doit afficher `no-cache`. Un navigateur qui avait déjà mis un fichier en cache **avant** ce réglage le garde jusqu'à l'expiration de sa fraîcheur heuristique (rechargement forcé une fois).

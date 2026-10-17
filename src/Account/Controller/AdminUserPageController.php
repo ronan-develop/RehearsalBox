@@ -21,6 +21,7 @@ final class AdminUserPageController
         private readonly AuthGuard $authGuard,
         private readonly UserAdminServiceInterface $userAdminService,
         private readonly GroupServiceInterface $groupService,
+        private readonly \DateTimeZone $localTimezone,
     ) {
     }
 
@@ -34,6 +35,7 @@ final class AdminUserPageController
             'groups' => $this->groupService->findAll(),
             'currentUserId' => $admin->id(),
             'currentUserRole' => $admin->role(),
+            'localTimezone' => $this->localTimezone,
         ]));
     }
 }

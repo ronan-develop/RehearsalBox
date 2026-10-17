@@ -66,9 +66,18 @@ final class PasswordResetService
         });
 
         // Le jeton n'a pas pu être remis (serveur SMTP, gabarit, bogue…) : on l'annule, sans rien révéler à l'appelant.
-        if (!$this->mailbox->sendSafely(fn () => $this->buildMail($user->email(), $token), sprintf('Réinitialisation de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()))) {
-            $this->resetRepository->invalidateAllForUser($user->id(), $now);
+        $sent = $this->mailbox->sendSafely(
+            fn () => $this->buildMail($user->email(), $token),
+            sprintf('Réinitialisation de mot de passe : envoi du mail impossible (utilisateur #%d)', $user->id()),
+            sprintf('Réinitialisation de mot de passe : mail accepté par le transport (utilisateur #%d)', $user->id()),
+        );
+        if ($sent) {
+            $this->resetRepository->markMailSent(ResetToken::hash($token), $now);
+
+            return;
         }
+
+        $this->resetRepository->invalidateAllForUser($user->id(), $now);
     }
 
     /**

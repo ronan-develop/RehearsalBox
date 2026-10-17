@@ -43,14 +43,14 @@ final class UserAdminApiControllerTest extends RepositoryTestCase
         $transactions = new \App\Database\TransactionRunner($this->pdo);
         $accounts = new \App\Account\Service\UserAccountAdminService(
             $this->users,
-            new \App\Account\Service\EmailChangeService($this->users, new \App\Account\Repository\MysqlEmailChangeRepository($this->pdo), new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo), $hasher, \App\Tests\Scenarios\TestMailbox::of(new \App\Tests\Doubles\RecordingMailer()), $transactions),
+            new \App\Account\Service\EmailChangeService($this->users, new \App\Account\Repository\MysqlEmailChangeRepository($this->pdo), new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo), $hasher, \App\Tests\Scenarios\TestMailbox::of(new \App\Tests\Doubles\RecordingMailer()), $transactions, new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo)),
             new \App\Account\Security\LastAdminGuard($this->users),
             new \App\Account\Security\DisplayNamePolicy(),
             $transactions,
             new \Psr\Log\NullLogger(),
         );
         $this->controller = new KernelTranslation(new UserAdminApiController(
-            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo), new \App\Account\Security\LastAdminGuard($this->users), $transactions),
+            new UserAdminService($this->users, $this->groups, new UserProvisioningService($this->users, $hasher, new PasswordPolicy()), \App\Tests\Support\TestLoginThrottle::make($this->pdo), new \App\Account\Security\LastAdminGuard($this->users), $transactions, new \App\Account\Repository\MysqlPasswordResetRepository($this->pdo)),
             new AuthGuard($this->auth),
             $accounts,
         ));
