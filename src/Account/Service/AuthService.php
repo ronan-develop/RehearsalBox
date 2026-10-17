@@ -61,7 +61,7 @@ final class AuthService implements AuthServiceInterface
         }
 
         $this->userRepository->resetFailedLogins($user->id());
-        $this->userRepository->recordLogin($user->id(), $this->clock->now());
+        $this->userRepository->setLastLogin($user->id(), $this->clock->now());
 
         $this->session->regenerate();
         // Le jeton CSRF d'avant la connexion ne vaut plus (#426) : un nouveau est émis à la page suivante.

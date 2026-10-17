@@ -39,11 +39,11 @@ interface UserRepositoryInterface
     /** Remet à zéro le compteur d'échecs et le verrou (connexion réussie, déblocage par un administrateur). */
     public function resetFailedLogins(int $userId): void;
 
-    /** Note la date de la dernière connexion réussie. Ne touche pas à `updated_at` : une connexion ne modifie pas le compte. */
-    public function recordLogin(int $userId, \DateTimeImmutable $at): void;
-
-    /** Efface la date de dernière connexion (suppression du compte : la personne ne laisse aucune trace d'activité). */
-    public function clearLastLogin(int $userId): void;
+    /**
+     * Note la date de la dernière connexion réussie, ou l'efface avec `null` (suppression du compte : plus aucune trace d'activité).
+     * Ne touche pas à `updated_at` : une connexion n'est pas une modification du compte.
+     */
+    public function setLastLogin(int $userId, ?\DateTimeImmutable $at): void;
 
     /** @return array<int, \DateTimeImmutable> identifiant du compte => dernière connexion (les comptes jamais connectés sont absents) */
     public function lastLoginByUser(): array;

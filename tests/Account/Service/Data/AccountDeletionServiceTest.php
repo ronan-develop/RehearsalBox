@@ -76,7 +76,7 @@ final class AccountDeletionServiceTest extends RepositoryTestCase
     {
         $alice = $this->person('Alice');
         $this->group('Alpha', $alice);
-        $this->users->recordLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
+        $this->users->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
         $this->service()->delete($alice->id(), self::PASSWORD);
 
         self::assertArrayNotHasKey($alice->id(), $this->users->lastLoginByUser(), 'la date de connexion est effacée avec le compte');

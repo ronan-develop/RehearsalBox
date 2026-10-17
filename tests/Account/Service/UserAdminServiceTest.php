@@ -243,7 +243,7 @@ final class UserAdminServiceTest extends RepositoryTestCase
         $alice = $this->user('alice@rehearsalbox.test', 'Alice');
         $this->user('bob@rehearsalbox.test', 'Bob');
         $at = new \DateTimeImmutable('2026-10-17 09:30:00');
-        $this->users->recordLogin($alice->id(), $at);
+        $this->users->setLastLogin($alice->id(), $at);
 
         $items = [];
         foreach ($this->service->listUsers($at) as $item) {

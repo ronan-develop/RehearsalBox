@@ -148,7 +148,7 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
         $this->insertUser($repository, 'bob@rehearsalbox.test', 'Bob');
         $this->pdo->exec("UPDATE users SET updated_at = '2026-01-01 00:00:00'");
 
-        $repository->recordLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
+        $repository->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
 
         $logins = $repository->lastLoginByUser();
         self::assertSame([$alice->id()], array_keys($logins));
@@ -163,8 +163,8 @@ final class MysqlUserRepositoryTest extends RepositoryTestCase
         $repository = new MysqlUserRepository($this->pdo);
         $alice = $this->insertUser($repository, 'alice@rehearsalbox.test', 'Alice');
 
-        $repository->recordLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
-        $repository->recordLogin($alice->id(), new \DateTimeImmutable('2026-10-18 08:00:00'));
+        $repository->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00'));
+        $repository->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-18 08:00:00'));
 
         self::assertEquals(new \DateTimeImmutable('2026-10-18 08:00:00'), $repository->lastLoginByUser()[$alice->id()]);
     }

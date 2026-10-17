@@ -78,7 +78,7 @@ final class AccountDeletionService
                     ->withPasswordHash($this->hasher->hash(bin2hex(random_bytes(32))))
                     ->withActive(false),
             );
-            $this->users->clearLastLogin($userId);
+            $this->users->setLastLogin($userId, null);
         });
 
         $this->mailbox->sendSafely(fn () => $this->mailbox->compose(

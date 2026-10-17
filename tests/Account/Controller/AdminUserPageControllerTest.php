@@ -185,7 +185,7 @@ final class AdminUserPageControllerTest extends RepositoryTestCase
         $this->loginAsAdmin();
         $alice = $this->user('alice@rehearsalbox.test', 'Alice');
         $this->user('bob@rehearsalbox.test', 'Bob');
-        (new \App\Account\Repository\MysqlUserRepository($this->pdo))->recordLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00', new \DateTimeZone('UTC')));
+        (new \App\Account\Repository\MysqlUserRepository($this->pdo))->setLastLogin($alice->id(), new \DateTimeImmutable('2026-10-17 09:30:00', new \DateTimeZone('UTC')));
 
         $body = $this->controller->index()->body();
 
