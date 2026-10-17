@@ -2,11 +2,10 @@
  * Page admin « Écritures récurrentes » (#362) : confirmer ou abandonner une échéance, créer ou modifier un modèle. Appelle l'API (apiFetch,
  * CSRF) et recharge la page au succès ; aucun envoi de formulaire natif. Le serveur revérifie tout.
  */
-import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
-import { clearErrors, reportFailure } from '../form-feedback.js';
+import { clearErrors, submitForm } from '../form-feedback.js';
 import { categoriesFor } from './accounting-form.js';
-import { confirmOccurrenceRequest, failureMessage, ignoreOccurrenceRequest, templateRequest } from './accounting-requests.js';
+import { confirmOccurrenceRequest, ignoreOccurrenceRequest, templateRequest } from './accounting-requests.js';
 
 const OCCURRENCE_FIELDS = ['amount', 'voucherRef', 'period', 'occurredOn'];
 const TEMPLATE_FIELDS = ['label', 'direction', 'category', 'paymentMethod', 'amount', 'voucherRef', 'periodicity', 'dueDay', 'firstMonth'];
@@ -56,19 +55,6 @@ function occurrenceValues(form) {
   return { period: form.dataset.period, amount: form.elements.amount?.value ?? '', voucherRef: form.elements.voucherRef?.value ?? '' };
 }
 
-async function send(form, fields, build, done) {
-  clearErrors(form, fields);
-  const buttons = form.querySelectorAll('button');
-  buttons.forEach((button) => { button.disabled = true; });
-  try {
-    const { path, options } = build();
-    done(await apiFetch(path, options));
-  } catch (error) {
-    buttons.forEach((button) => { button.disabled = false; });
-    reportFailure(form, fields, error, failureMessage);
-  }
-}
-
 function onClick(event) {
   const target = event.target.closest('[data-action]');
   const section = target?.closest('[data-recurring]');
@@ -81,7 +67,7 @@ function onClick(event) {
     case 'edit-template': openTemplate(section, JSON.parse(target.closest('[data-template]').dataset.template)); break;
     case 'ignore-occurrence': {
       const form = target.closest('[data-occurrence-form]');
-      send(form, OCCURRENCE_FIELDS, () => ignoreOccurrenceRequest(form.dataset.templateId, { period: form.dataset.period }), (done) => {
+      submitForm(form, OCCURRENCE_FIELDS, () => ignoreOccurrenceRequest(form.dataset.templateId, { period: form.dataset.period }), (done) => {
         showToast('Échéance abandonnée.', 'success');
         window.location.assign(done.url);
       });
@@ -95,7 +81,7 @@ function onSubmit(event) {
   const form = event.target;
   if (form.matches('[data-occurrence-form]')) {
     event.preventDefault();
-    send(form, OCCURRENCE_FIELDS, () => confirmOccurrenceRequest(form.dataset.templateId, occurrenceValues(form)), (done) => {
+    submitForm(form, OCCURRENCE_FIELDS, () => confirmOccurrenceRequest(form.dataset.templateId, occurrenceValues(form)), (done) => {
       showToast(`Écriture n° ${done.number} enregistrée.`, 'success');
       window.location.assign(done.url);
     });
@@ -103,7 +89,7 @@ function onSubmit(event) {
     event.preventDefault();
     const values = Object.fromEntries(TEMPLATE_FIELDS.map((key) => [key, form.elements[key].value]));
     values.isActive = form.elements.isActive.checked;
-    send(form, TEMPLATE_FIELDS, () => templateRequest(form.elements.id.value, values), () => {
+    submitForm(form, TEMPLATE_FIELDS, () => templateRequest(form.elements.id.value, values), () => {
       showToast('Modèle enregistré.', 'success');
       window.location.reload();
     });

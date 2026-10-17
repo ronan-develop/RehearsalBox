@@ -3,7 +3,7 @@
  * du TEXTE (le serveur le lit en centimes entiers, jamais de nombre côté navigateur), et un identifiant doit être une chaîne de chiffres
  * sans zéro initial avant de toucher une adresse. La page (admin-accounting.js) s'en sert ; les composants n'appellent jamais l'API.
  */
-import { failureMessage } from '../assembly/assembly-requests.js';
+import { failureMessage } from '../form-feedback.js';
 
 export { failureMessage };
 
