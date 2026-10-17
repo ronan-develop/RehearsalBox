@@ -5,19 +5,27 @@ declare(strict_types=1);
 namespace App\Backup\Restore;
 
 /**
- * #241 : après une restauration, liste les écarts entre group_documents et le dossier de stockage.
- * Lecture seule : ne supprime, n'écrit et ne lit jamais le contenu d'un fichier.
+ * #241 : après une restauration, liste les écarts entre une table de fichiers (documents de groupe, relevés de compte #362) et son dossier de
+ * stockage. Lecture seule : ne supprime, n'écrit et ne lit jamais le contenu d'un fichier. La table et les colonnes viennent des constantes
+ * ci-dessous, jamais d'une valeur extérieure.
  */
 final class DocumentOrphanReport
 {
-    public function __construct(private readonly \PDO $pdo, private readonly string $storagePath)
+    /** Documents de groupe : table, colonne du rattachement, clé rendue. */
+    public const GROUP_DOCUMENTS = ['group_documents', 'group_id', 'groupId'];
+    /** Relevés de compte de l'association (#362). */
+    public const ACCOUNTING_STATEMENTS = ['accounting_statements', 'fiscal_year_id', 'fiscalYearId'];
+
+    /** @param array{0: string, 1: string, 2: string} $source l'une des constantes GROUP_DOCUMENTS ou ACCOUNTING_STATEMENTS */
+    public function __construct(private readonly \PDO $pdo, private readonly string $storagePath, private readonly array $source = self::GROUP_DOCUMENTS)
     {
     }
 
-    /** @return list<array{id: int, groupId: int, originalName: string}> lignes dont le fichier est absent */
+    /** @return list<array<string, int|string>> lignes dont le fichier est absent : `id`, la clé de rattachement de la source (`groupId`, `fiscalYearId`) et `originalName` */
     public function missingFiles(): array
     {
-        $statement = $this->pdo->prepare('SELECT id, group_id, original_name, stored_name FROM group_documents ORDER BY id');
+        [$table, $ownerColumn, $ownerKey] = $this->source;
+        $statement = $this->pdo->prepare("SELECT id, {$ownerColumn} AS owner_id, original_name, stored_name FROM {$table} ORDER BY id");
         $statement->execute();
 
         $missing = [];
@@ -27,7 +35,7 @@ final class DocumentOrphanReport
             }
             $missing[] = [
                 'id' => (int) $row['id'],
-                'groupId' => (int) $row['group_id'],
+                $ownerKey => (int) $row['owner_id'],
                 'originalName' => (string) $row['original_name'],
             ];
         }
@@ -42,7 +50,7 @@ final class DocumentOrphanReport
             return [];
         }
 
-        $statement = $this->pdo->prepare('SELECT stored_name FROM group_documents');
+        $statement = $this->pdo->prepare("SELECT stored_name FROM {$this->source[0]}");
         $statement->execute();
         $known = array_flip($statement->fetchAll(\PDO::FETCH_COLUMN));
 

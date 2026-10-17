@@ -1315,6 +1315,7 @@ return static function (array $config): Container {
             new BackupCatalog($backupDir),
             new RestoreStatus($stateDir, $c->get(ClockInterface::class)),
             new DocumentOrphanReport($c->get(PDO::class), $config['storage']['group_documents_path']),
+            new DocumentOrphanReport($c->get(PDO::class), $config['storage']['accounting_statements_path'], DocumentOrphanReport::ACCOUNTING_STATEMENTS),
             new CurrentPasswordVerifier($c->get(UserRepositoryInterface::class), $c->get(PasswordHasherInterface::class)),
             $launcher->launch(...),
             $c->get(ClockInterface::class),

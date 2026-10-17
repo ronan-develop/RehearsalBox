@@ -73,7 +73,7 @@ trap 'deploy_log_finish $?' EXIT
 
 # --- 2. Envoi du code (fichiers suivis par git uniquement) ----------------
 progress_step "Envoi de la release ${release}"
-rb_ssh "mkdir -p \"\$HOME/$BASE/releases\" \"\$HOME/$BASE/shared/storage/group-documents\" \"\$HOME/$BASE/shared/well-known\" \"\$HOME/$BASE/backups\" && chmod 700 \"\$HOME/$BASE/shared\" \"\$HOME/$BASE/backups\" && mkdir \"\$HOME/$BASE/releases/$release\""
+rb_ssh "mkdir -p \"\$HOME/$BASE/releases\" \"\$HOME/$BASE/shared/storage/group-documents\" \"\$HOME/$BASE/shared/storage/accounting-statements\" \"\$HOME/$BASE/shared/well-known\" \"\$HOME/$BASE/backups\" && chmod 700 \"\$HOME/$BASE/shared\" \"\$HOME/$BASE/backups\" && mkdir \"\$HOME/$BASE/releases/$release\""
 # Jamais le seed (script destructif, comptes au mot de passe connu) : il n'a rien à faire en production.
 git archive --format=tar HEAD -- bin config database public src templates composer.json composer.lock ':(exclude)database/seed.php' \
     | rb_ssh "tar -x -C \"\$HOME/$BASE/releases/$release\""

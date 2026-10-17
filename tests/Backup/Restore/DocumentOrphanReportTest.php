@@ -47,6 +47,24 @@ final class DocumentOrphanReportTest extends RepositoryTestCase
     }
 
     #[Test]
+    public function testAccountingStatementsAreReportedTheSameWay(): void
+    {
+        $admin = (new MysqlUserRepository($this->pdo))->save(new User(0, 'admin@rehearsalbox.test', 'hash', 'Admin', UserRole::Admin, true, 0, null));
+        $this->pdo->prepare("INSERT INTO accounting_fiscal_years (label, starts_on, ends_on, created_by_user_id, created_at) VALUES ('2025-2026', '2025-10-01', '2026-09-30', ?, '2025-10-01 00:00:00')")->execute([$admin->id()]);
+        $year = (int) $this->pdo->lastInsertId();
+        $insert = $this->pdo->prepare("INSERT INTO accounting_statements (fiscal_year_id, period_start, period_end, original_name, stored_name, mime, size_bytes, sha256, uploaded_by_user_id, uploaded_at) VALUES (?, '2025-10-01', '2025-10-31', ?, ?, 'application/pdf', 10, ?, ?, '2025-11-01 00:00:00')");
+        $insert->execute([$year, 'present.pdf', str_repeat('a', 32), str_repeat('1', 64), $admin->id()]);
+        $insert->execute([$year, 'perdu.pdf', str_repeat('b', 32), str_repeat('2', 64), $admin->id()]);
+        file_put_contents($this->storagePath . '/' . str_repeat('a', 32), 'x');
+        file_put_contents($this->storagePath . '/' . str_repeat('c', 32), 'x');
+        $report = new DocumentOrphanReport($this->pdo, $this->storagePath, DocumentOrphanReport::ACCOUNTING_STATEMENTS);
+
+        self::assertSame([['id' => (int) $this->pdo->query("SELECT id FROM accounting_statements WHERE original_name = 'perdu.pdf'")->fetchColumn(), 'fiscalYearId' => $year, 'originalName' => 'perdu.pdf']], $report->missingFiles());
+        self::assertSame([str_repeat('c', 32)], $report->orphanFiles());
+        self::assertFileExists($this->storagePath . '/' . str_repeat('c', 32), 'lecture seule : rien n\'est supprimé');
+    }
+
+    #[Test]
     public function testAFileWithoutRowIsReportedAsOrphan(): void
     {
         $this->makeGroupAndUser();

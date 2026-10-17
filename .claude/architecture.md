@@ -471,7 +471,7 @@ Migration 042 (`accounting_statements`), `Statement`, `StatementRepositoryInterf
 - **Immuable** : ni modification ni suppression ; un relevé déposé par erreur est **remplacé** (l'ancien reste, marqué « remplacé ») tant que l'exercice est ouvert ; un exercice clos fige ses relevés. Plafonds par exercice : 60 relevés, 200 Mo, 10 Mo par fichier ; dépôt sous le verrou de la ligne d'exercice, fichier retiré si la transaction échoue.
 - **Écart** : solde de la banque selon le livre à la fin de la période (solde d'ouverture de l'exercice + écritures hors espèces jusqu'à `period_end`) comparé au solde saisi du relevé (facultatif). Limite connue : le solde d'ouverture de l'exercice est compté en entier côté banque, la caisse en espèces n'ayant pas de solde propre.
 - **Téléchargement** : toujours en pièce jointe, `nosniff`, CSP `sandbox`, `Cache-Control: private, no-store`, flux ; fichier absent : 404.
-- **À faire (livraison 10)** : inclure `accounting-statements` dans les sauvegardes et le rapport d'orphelins (`DocumentOrphanReport`).
+- **Sauvegarde et restauration** : `DocumentOrphanReport` couvre aussi les relevés (page `/admin/restore` et `bin/restore-db.php`), `bin/fetch-files.sh` copie le dossier hors serveur (les fichiers ne sont pas dans un dump), `deploy.sh` crée le dossier en 0700.
 
 ## Comptabilité : écritures récurrentes (#362, livraison 5)
 
