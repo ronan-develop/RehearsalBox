@@ -6,7 +6,7 @@ import { apiFetch } from '../../core/api.js';
 import { showToast } from '../../core/toast.js';
 import { clearErrors, reportFailure } from '../form-feedback.js';
 import { categoriesFor, isVoucherRequired, presetValues, todayIso } from './accounting-form.js';
-import { approveYearRequest, closeYearRequest, createYearRequest, failureMessage, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, emptyMonthRequest, failureMessage, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 const ENTRY_FIELDS = ['occurredOn', 'label', 'amount', 'direction', 'category', 'paymentMethod', 'voucherRef', 'note', 'memberUserId', 'periodMonth'];
 const YEAR_FIELDS = ['label', 'startsOn', 'endsOn', 'openingBalance'];
@@ -118,6 +118,20 @@ function toggleYearPanel(box, name, open) {
   }
 }
 
+/** « Rien à saisir ce mois-ci » : un clic, puis la page se recharge sans cette tâche. */
+async function markEmptyMonth(button) {
+  button.disabled = true;
+  try {
+    const { path, options } = emptyMonthRequest(button.dataset.yearId, button.dataset.month);
+    const done = await apiFetch(path, options);
+    showToast('Mois noté sans mouvement.', 'success');
+    window.location.assign(done.url);
+  } catch (error) {
+    button.disabled = false;
+    showToast(error?.fields?.month ?? failureMessage(error), 'error');
+  }
+}
+
 function onClick(event) {
   const target = event.target.closest('[data-action], [data-preset]');
   if (target === null) {
@@ -133,6 +147,7 @@ function onClick(event) {
     case 'cancel-entry': closeEntryForm(section); break;
     case 'reverse': toggleReverse(target.closest('[data-entry]'), true); break;
     case 'cancel-reverse': toggleReverse(target.closest('[data-entry]'), false); break;
+    case 'empty-month': markEmptyMonth(target); break;
     case 'new-year': toggleYear(section, true); break;
     case 'cancel-year': toggleYear(section, false); break;
     case 'close-year': toggleYearPanel(target.closest('[data-year-actions]'), 'close', true); break;

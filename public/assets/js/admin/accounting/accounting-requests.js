@@ -123,3 +123,12 @@ export function exemptionRequest(memberId, month, exempt) {
     options: { method: 'POST', body: JSON.stringify({ memberUserId: idOrThrow(memberId, 'd\'adhérent'), periodMonth: month, exempt: exempt === true }) },
   };
 }
+
+/** « Rien à saisir ce mois-ci » : le mois (AAAA-MM) est le seul champ ; l'exercice est dans l'adresse. */
+export function emptyMonthRequest(yearId, month) {
+  if (typeof month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    throw new Error('Mois invalide.');
+  }
+
+  return { path: `/api/admin/accounting/years/${idOrThrow(yearId, 'd\'exercice')}/empty-month`, options: { method: 'POST', body: JSON.stringify({ month }) } };
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, exemptionRequest, confirmOccurrenceRequest, ignoreOccurrenceRequest, templateRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
+import { approveYearRequest, closeYearRequest, createYearRequest, depositStatementRequest, emptyMonthRequest, exemptionRequest, confirmOccurrenceRequest, ignoreOccurrenceRequest, templateRequest, recordEntryRequest, reverseRequest } from './accounting-requests.js';
 
 test('chaque requête vise la bonne route et ne porte que les champs attendus', () => {
   assert.deepEqual(createYearRequest({ label: '2025-2026', startsOn: '2025-10-01', endsOn: '2026-09-30', openingBalance: '100,00', role: 'admin' }), {
@@ -106,4 +106,15 @@ test('dispense : route, corps minimal, identifiant et mois contrôlés', () => {
   assert.throws(() => exemptionRequest('0', '2025-11', true));
   assert.throws(() => exemptionRequest('12', '2025-13', true));
   assert.throws(() => exemptionRequest('12', '2025-11-01', true));
+});
+
+test('« rien à saisir ce mois-ci » : route de l\'exercice, mois seul, tout est contrôlé', () => {
+  assert.deepEqual(emptyMonthRequest('4', '2025-11'), {
+    path: '/api/admin/accounting/years/4/empty-month',
+    options: { method: 'POST', body: '{"month":"2025-11"}' },
+  });
+  assert.throws(() => emptyMonthRequest('0', '2025-11'));
+  assert.throws(() => emptyMonthRequest('4', '2025-11-01'));
+  assert.throws(() => emptyMonthRequest('4', '2025-13'));
+  assert.throws(() => emptyMonthRequest('4', ['2025-11']));
 });
