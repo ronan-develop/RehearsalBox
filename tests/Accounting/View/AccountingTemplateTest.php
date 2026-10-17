@@ -34,13 +34,36 @@ final class AccountingTemplateTest extends TestCase
     }
 
     /** @param list<AccountingEntry> $entries */
-    private function render(array $entries = [], ?FiscalYear $year = null, string $direction = '', string $category = '', bool $noYear = false): string
+    private function render(array $entries = [], ?FiscalYear $year = null, string $direction = '', string $category = '', bool $noYear = false, ?array $todo = null): string
     {
         $year ??= $this->year();
         $years = $noYear ? [] : [$year];
         $page = (new AccountingJournalView(new MoneyFormatter()))->page($years, $noYear ? null : $year, $noYear ? null : new LedgerTotals(2000, 0, ['cotisations' => 2000]), $entries, $direction, $category);
 
-        return (new PhpTemplateRenderer(__DIR__ . '/../../../templates'))->render('admin/accounting/index', ['csrfToken' => 'token', 'page' => $page, 'currentUserRole' => UserRole::Admin]);
+        return (new PhpTemplateRenderer(__DIR__ . '/../../../templates'))->render('admin/accounting/index', ['csrfToken' => 'token', 'page' => $page, 'todo' => $noYear ? null : ($todo ?? ['items' => [], 'hidden' => 0, 'lateCount' => 0, 'total' => 0]), 'currentUserRole' => UserRole::Admin]);
+    }
+
+    #[Test]
+    public function testTheTodoListShowsTheStateInWordsAndOffersTheEmptyMonthOnlyWhereItApplies(): void
+    {
+        $html = $this->render([], null, '', '', false, ['items' => [
+            ['key' => 'entries:2025-10', 'label' => '<b>Saisir</b> les mouvements', 'action' => 'Saisir', 'url' => '/admin/accounting?year=4', 'state' => 'en_retard', 'stateLabel' => 'En retard', 'late' => true, 'due' => 'avant le 05/11/2025', 'emptyMonth' => '2025-10'],
+            ['key' => 'statement:2025-10', 'label' => 'Déposer le relevé', 'action' => 'Déposer', 'url' => '/admin/accounting/statements?year=4', 'state' => 'a_faire', 'stateLabel' => 'À faire', 'late' => false, 'due' => '', 'emptyMonth' => ''],
+        ], 'hidden' => 2, 'lateCount' => 1, 'total' => 4]);
+
+        self::assertStringContainsString('En retard', $html);
+        self::assertStringContainsString('À faire', $html);
+        self::assertStringContainsString('&lt;b&gt;Saisir', $html);
+        self::assertStringNotContainsString('<b>Saisir', $html);
+        self::assertSame(1, substr_count($html, 'data-action="empty-month"'));
+        self::assertStringContainsString('data-month="2025-10"', $html);
+        self::assertStringContainsString('Et 2 autres tâches', $html);
+    }
+
+    #[Test]
+    public function testAnEmptyTodoListSaysEverythingIsUpToDate(): void
+    {
+        self::assertStringContainsString('Tout est à jour', $this->render());
     }
 
     #[Test]
