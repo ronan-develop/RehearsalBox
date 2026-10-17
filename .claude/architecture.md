@@ -483,7 +483,9 @@ Livre de comptes de l'association, **réservé aux administrateurs actifs** (gar
 - Le journal et le rapport lisent au plus 1000 écritures par exercice ; l'export CSV, lui, les lit toutes par paquets.
 - `TodoService::forReminder` n'a pas de garde de rôle (tâche planifiée) : jamais depuis un contrôleur.
 
-**Reste à faire** : import CSV de la banque (livraison 7, en attente d'un exemple de fichier anonymisé de la banque) ; mode d'emploi du trésorier à écrire dans `/admin/texts` puis à relier depuis la page ; trancher cotisation de 20 € par mois (pratique) ou par an (article 6 des statuts).
+**Décision du propriétaire (2026-10-17)** : la cotisation des membres est **mensuelle** (20 € par mois et par personne), comme la pratique ; l'article 6 des statuts parle d'une cotisation annuelle, à faire corriger à la prochaine assemblée générale (le tableau et le montant prérempli suivent la pratique).
+
+**Reste à faire** : import CSV de la banque (livraison 7, en attente d'un exemple de fichier anonymisé de la banque) ; le mode d'emploi du trésorier se rédige dans `/admin/texts` (bouton « Mode d'emploi du trésorier » de la page, un brouillon prêt à coller est fourni hors dépôt).
 
 ## Comptabilité de l'association : socle (#362, livraison 1)
 
