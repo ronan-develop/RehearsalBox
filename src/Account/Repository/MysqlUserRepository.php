@@ -126,6 +126,11 @@ final class MysqlUserRepository implements UserRepositoryInterface
             ->execute(['at' => $at->setTimezone(new \DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s'), 'id' => $userId]);
     }
 
+    public function clearLastLogin(int $userId): void
+    {
+        $this->pdo->prepare('UPDATE users SET last_login_at = NULL, updated_at = updated_at WHERE id = :id')->execute(['id' => $userId]);
+    }
+
     public function lastLoginByUser(): array
     {
         $logins = [];

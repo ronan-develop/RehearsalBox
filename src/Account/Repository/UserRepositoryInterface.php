@@ -42,6 +42,9 @@ interface UserRepositoryInterface
     /** Note la date de la dernière connexion réussie. Ne touche pas à `updated_at` : une connexion ne modifie pas le compte. */
     public function recordLogin(int $userId, \DateTimeImmutable $at): void;
 
+    /** Efface la date de dernière connexion (suppression du compte : la personne ne laisse aucune trace d'activité). */
+    public function clearLastLogin(int $userId): void;
+
     /** @return array<int, \DateTimeImmutable> identifiant du compte => dernière connexion (les comptes jamais connectés sont absents) */
     public function lastLoginByUser(): array;
 }
