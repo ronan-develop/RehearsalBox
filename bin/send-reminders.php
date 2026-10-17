@@ -8,7 +8,9 @@ declare(strict_types=1);
 //    plus de 24 h par ce groupe.
 // 2. Relance de MENTION (#178) : à l'adresse du compte d'une personne taguée qui n'a pas lu la conversation 24 h après l'e-mail
 //    de mention (une seule relance par e-mail de mention).
-// 3. Oubli des anciennes versions de messages corrigés (#225) : au-delà de 30 jours, elles sont supprimées.
+// 3. Rappel de COMPTABILITÉ (#362) : e-mail récapitulatif au trésorier des tâches en retard (au plus un par semaine, copie au président
+//    après 14 jours), sans montant ni nom ; désactivé par défaut (accounting.reminders.enabled).
+// 4. Oubli des anciennes versions de messages corrigés (#225) : au-delà de 30 jours, elles sont supprimées.
 // Jamais le contenu d'un message. Seulement dans la plage de jour (heure locale) ; hors plage, ne fait rien et les relances
 // dues partent le matin. Idempotent : peut être relancé sans doublon.
 // Journal : storage/logs/cron.log reçoit un bilan à chaque passage (niveau « info »), même quand il n'y a rien à envoyer.
@@ -22,6 +24,7 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use App\Accounting\Notification\TreasurerReminderService;
 use App\Messaging\Notification\ConversationReminderService;
 use App\Messaging\Notification\MentionReminderService;
 use App\Messaging\Service\MessageVersionPurge;
@@ -34,6 +37,7 @@ $failed = 0;
 foreach ([
     'Relances' => ConversationReminderService::class,
     'Relances de mention' => MentionReminderService::class,
+    'Rappels de comptabilité' => TreasurerReminderService::class,
 ] as $label => $service) {
     $report = $container->get($service)->sendDue();
 

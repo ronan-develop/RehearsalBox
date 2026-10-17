@@ -331,3 +331,36 @@
   gap: var(--rb-space-3);
   margin-top: var(--rb-space-3);
 }
+
+/* « À faire » du trésorier : une carte, chaque tâche sur sa ligne (état écrit en toutes lettres), boutons de 44 px. */
+.rb-todo {
+  margin-bottom: var(--rb-space-3);
+}
+
+.rb-todo-list {
+  display: grid;
+  gap: var(--rb-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rb-todo-item {
+  padding-bottom: var(--rb-space-3);
+  border-bottom: 1px solid var(--rb-border);
+}
+
+.rb-todo-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.rb-todo-late .rb-todo-label {
+  font-weight: 600;
+}
+
+.rb-todo-banner {
+  padding: var(--rb-space-3);
+  border: 1px solid var(--rb-warn);
+  border-radius: var(--rb-radius-sm);
+}

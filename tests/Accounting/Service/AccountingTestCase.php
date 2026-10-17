@@ -62,7 +62,7 @@ abstract class AccountingTestCase extends RepositoryTestCase
         $this->templates = new RecurringTemplateService(new AdminAccess(), new TemplateInputPolicy(new AccountingAmountParser()), $templates, $this->logger());
         $this->occurrences = new RecurringOccurrenceService(new AdminAccess(), $templates, new MysqlRecurringOccurrenceRepository($this->pdo), $this->yearRepository, $this->entries, new RecurrenceSchedule(), $this->logger());
         $this->statementDir = sys_get_temp_dir() . '/rb-acc-statements-' . bin2hex(random_bytes(4));
-        $this->statements = new StatementService(new AdminAccess(), new StatementInputPolicy(new AccountingAmountParser()), $this->yearRepository, $this->entryRepository, new MysqlStatementRepository($this->pdo), new StatementFileStore($this->statementDir), new TransactionRunner($this->pdo), $this->logger());
+        $this->statements = new StatementService(new AdminAccess(), new StatementInputPolicy(new AccountingAmountParser()), $this->yearRepository, new \App\Accounting\Service\StatementGapCalculator($this->entryRepository), new MysqlStatementRepository($this->pdo), new StatementFileStore($this->statementDir), new TransactionRunner($this->pdo), $this->logger());
         $this->admin = $this->users->save(new User(0, 'admin@rehearsalbox.test', 'hash', 'Admin', UserRole::Admin, true, 0, null));
         $this->gone = $this->users->save(new User(0, 'parti@rehearsalbox.test', 'hash', 'Parti', UserRole::Admin, false, 0, null));
         $this->musician = $this->user('Musicien');

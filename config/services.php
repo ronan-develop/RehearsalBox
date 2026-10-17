@@ -14,6 +14,9 @@ use App\Accounting\Presenter\TodoView;
 use App\Accounting\Presenter\YearReportView;
 use App\Accounting\Repository\Month\MonthMarkRepositoryInterface;
 use App\Accounting\Repository\Month\MysqlMonthMarkRepository;
+use App\Accounting\Notification\TreasurerReminderService;
+use App\Accounting\Repository\Notice\MysqlReminderNoticeRepository;
+use App\Accounting\Repository\Notice\ReminderNoticeRepositoryInterface;
 use App\Accounting\Todo\TodoPlanner;
 use App\Accounting\Todo\TodoService;
 use App\Accounting\Presenter\CotisationView;
@@ -32,6 +35,7 @@ use App\Accounting\Presenter\StatementListView;
 use App\Accounting\Repository\MysqlStatementRepository;
 use App\Accounting\Repository\StatementRepositoryInterface;
 use App\Accounting\Service\StatementFileStore;
+use App\Accounting\Service\StatementGapCalculator;
 use App\Accounting\Service\StatementInputPolicy;
 use App\Accounting\Service\StatementService;
 use App\Accounting\Presenter\AccountingJournalView;
@@ -723,12 +727,29 @@ return static function (array $config): Container {
 
     $container->set(TodoService::class, fn ($c) => new TodoService(
         $c->get(AdminAccess::class),
-        new TodoPlanner(),
+        new TodoPlanner((int) $config['accounting']['reminders']['due_day']),
         $c->get(FiscalYearRepositoryInterface::class),
         $c->get(EntryRepositoryInterface::class),
         $c->get(MonthMarkRepositoryInterface::class),
-        $c->get(StatementService::class),
+        $c->get(StatementRepositoryInterface::class),
+        new StatementGapCalculator($c->get(EntryRepositoryInterface::class)),
         $c->get(RecurringOccurrenceService::class),
+        $c->get(LoggerInterface::class),
+    ));
+
+    $container->set(ReminderNoticeRepositoryInterface::class, fn ($c) => new MysqlReminderNoticeRepository($c->get(PDO::class)));
+
+    $container->set(TreasurerReminderService::class, fn ($c) => new TreasurerReminderService(
+        $c->get(TodoService::class),
+        $c->get(AssociationBoardRepositoryInterface::class),
+        $c->get(UserRepositoryInterface::class),
+        $c->get(ReminderNoticeRepositoryInterface::class),
+        $c->get(Mailbox::class),
+        $c->get(ClockInterface::class),
+        new \DateTimeZone($config['app']['timezone']),
+        (bool) $config['accounting']['reminders']['enabled'],
+        (int) $config['accounting']['reminders']['interval_days'],
+        (int) $config['accounting']['reminders']['president_after_days'],
         $c->get(LoggerInterface::class),
     ));
 
@@ -785,6 +806,7 @@ return static function (array $config): Container {
         $c->get(CotisationService::class),
         $c->get(TodoService::class),
         new TodoView(),
+        $c->get(TreasurerReminderService::class),
     ));
 
     $container->set(StatementRepositoryInterface::class, fn ($c) => new MysqlStatementRepository($c->get(PDO::class)));
@@ -793,7 +815,7 @@ return static function (array $config): Container {
         $c->get(AdminAccess::class),
         new StatementInputPolicy(new AccountingAmountParser()),
         $c->get(FiscalYearRepositoryInterface::class),
-        $c->get(EntryRepositoryInterface::class),
+        new StatementGapCalculator($c->get(EntryRepositoryInterface::class)),
         $c->get(StatementRepositoryInterface::class),
         new StatementFileStore($config['storage']['accounting_statements_path']),
         $c->get(TransactionRunner::class),

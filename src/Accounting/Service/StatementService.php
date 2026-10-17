@@ -11,7 +11,6 @@ use App\Accounting\Exception\AccountingValidationException;
 use App\Accounting\Exception\FiscalYearLockedException;
 use App\Accounting\Exception\FiscalYearNotFoundException;
 use App\Accounting\Exception\StatementNotFoundException;
-use App\Accounting\Repository\EntryRepositoryInterface;
 use App\Accounting\Repository\FiscalYearRepositoryInterface;
 use App\Accounting\Repository\StatementRepositoryInterface;
 use App\Database\TransactionRunner;
@@ -35,7 +34,7 @@ final class StatementService
         private readonly AdminAccess $access,
         private readonly StatementInputPolicy $policy,
         private readonly FiscalYearRepositoryInterface $years,
-        private readonly EntryRepositoryInterface $entries,
+        private readonly StatementGapCalculator $gaps,
         private readonly StatementRepositoryInterface $statements,
         private readonly StatementFileStore $files,
         private readonly TransactionRunner $transactions,
@@ -98,7 +97,7 @@ final class StatementService
         $this->access->assertAdmin($actor);
         $year = $this->years->find($yearId) ?? throw new FiscalYearNotFoundException();
 
-        return array_map(fn (Statement $s): StatementReview => $this->check($year, $s), $this->statements->listByYear($yearId, self::MAX_PER_YEAR));
+        return array_map(fn (Statement $s): StatementReview => $this->gaps->review($year, $s), $this->statements->listByYear($yearId, self::MAX_PER_YEAR));
     }
 
     public function find(User $actor, int $id): Statement
@@ -124,13 +123,6 @@ final class StatementService
     public function pathOf(User $actor, int $id): string
     {
         return $this->files->pathOf($this->find($actor, $id)->storedName);
-    }
-
-    private function check(FiscalYear $year, Statement $statement): StatementReview
-    {
-        $ledger = $year->openingBalanceCents + $this->entries->bankNetUntil($year->id, $statement->periodEnd);
-
-        return new StatementReview($statement, $ledger, $statement->closingBalanceCents === null ? null : $statement->closingBalanceCents - $ledger);
     }
 
     /** @throws StorageQuotaExceededException */

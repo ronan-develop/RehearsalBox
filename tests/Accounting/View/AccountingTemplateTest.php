@@ -34,13 +34,13 @@ final class AccountingTemplateTest extends TestCase
     }
 
     /** @param list<AccountingEntry> $entries */
-    private function render(array $entries = [], ?FiscalYear $year = null, string $direction = '', string $category = '', bool $noYear = false, ?array $todo = null): string
+    private function render(array $entries = [], ?FiscalYear $year = null, string $direction = '', string $category = '', bool $noYear = false, ?array $todo = null, ?string $reminderProblem = null): string
     {
         $year ??= $this->year();
         $years = $noYear ? [] : [$year];
         $page = (new AccountingJournalView(new MoneyFormatter()))->page($years, $noYear ? null : $year, $noYear ? null : new LedgerTotals(2000, 0, ['cotisations' => 2000]), $entries, $direction, $category);
 
-        return (new PhpTemplateRenderer(__DIR__ . '/../../../templates'))->render('admin/accounting/index', ['csrfToken' => 'token', 'page' => $page, 'todo' => $noYear ? null : ($todo ?? ['items' => [], 'hidden' => 0, 'lateCount' => 0, 'total' => 0]), 'currentUserRole' => UserRole::Admin]);
+        return (new PhpTemplateRenderer(__DIR__ . '/../../../templates'))->render('admin/accounting/index', ['csrfToken' => 'token', 'page' => $page, 'todo' => $noYear ? null : ($todo ?? ['items' => [], 'hidden' => 0, 'lateCount' => 0, 'total' => 0]), 'reminderProblem' => $reminderProblem, 'currentUserRole' => UserRole::Admin]);
     }
 
     #[Test]
@@ -58,6 +58,16 @@ final class AccountingTemplateTest extends TestCase
         self::assertSame(1, substr_count($html, 'data-action="empty-month"'));
         self::assertStringContainsString('data-month="2025-10"', $html);
         self::assertStringContainsString('Et 2 autres tâches', $html);
+    }
+
+    #[Test]
+    public function testTheBannerNamesWhyNoReminderLeavesAndLinksToTheBoard(): void
+    {
+        $html = $this->render([], null, '', '', false, null, 'Le poste de trésorier est vide : aucun rappel ne part.');
+
+        self::assertStringContainsString('Le poste de trésorier est vide', $html);
+        self::assertStringContainsString('href="/admin/board"', $html);
+        self::assertStringNotContainsString('rb-todo-banner', $this->render());
     }
 
     #[Test]

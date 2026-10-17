@@ -503,3 +503,13 @@ Migration 046 (`accounting_month_marks`), `src/Accounting/Todo/` (`TodoPlanner` 
 - **Les libellés ne portent ni montant, ni nom, ni donnée bancaire** (testé) : ils partiront tels quels dans l'e-mail de rappel de la suite de cette livraison (`en_retard` = tâches à rappeler).
 - **« Rien à saisir ce mois-ci »** : une marque par exercice et par mois (clé unique), mois écoulé de l'exercice ouvert seulement, idempotente, jamais une écriture, jamais défaite.
 - Reste de la livraison 8 : e-mail de rappel (`TreasurerReminderService`, cron existant), en attente de la configuration e-mail du serveur (#502, déployée avec la migration 045).
+
+## Comptabilité : rappel e-mail du trésorier (#362, livraison 8, seconde partie)
+
+Migration 047 (`accounting_reminder_notices`), `src/Accounting/Notification/TreasurerReminderService`, gabarits `templates/mail/accounting-reminder*` (trésorier) et `accounting-reminder-president*`, branché sur `bin/send-reminders.php` (le cron horaire existant : **aucune nouvelle entrée cron**).
+- **Désactivé par défaut** : `accounting.reminders.enabled` dans `config.local.php` (avec `due_day` 5, `interval_days` 7, `president_after_days` 14). Activer APRÈS avoir réglé le poste de trésorier sur `/admin/board`.
+- **Destinataire** : le COMPTE titulaire du poste de trésorier. Poste vide, compte désactivé ou adresse invalide : aucun e-mail, et un bandeau sur `/admin/accounting` (seulement quand les rappels sont activés) dit pourquoi, avec un lien vers le bureau.
+- **Un seul e-mail récapitulatif** des tâches `en_retard` du `TodoPlanner` (même source que la page), au plus un par `interval_days` par canal malgré le cron horaire : réservation atomique (`UPDATE … WHERE last_sent_at <= limite`), libérée si l'envoi échoue (le cron suivant réessaie). Il s'arrête de lui-même dès que plus rien n'est en retard. Plage de jour (9 h à 20 h, heure locale) seulement.
+- **Copie au président** quand le plus vieux retard dépasse `president_after_days` jours (un message à part, même cadence ; rien si le président est aussi le trésorier).
+- **Discrétion** : le message ne contient qu'un nombre de tâches et un lien vers `/admin/accounting` (ajouté à la liste fermée de `SafeRedirect`) ; jamais de montant, de nom ni de donnée bancaire (testé).
+- `TodoService::forReminder` n'a pas de garde de rôle (la tâche planifiée n'a personne de connecté) : à n'appeler que depuis la ligne de commande ; l'écart d'un relevé est calculé par `StatementGapCalculator`, partagé avec la page des relevés.

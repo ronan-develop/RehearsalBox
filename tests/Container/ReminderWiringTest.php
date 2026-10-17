@@ -34,6 +34,7 @@ final class ReminderWiringTest extends TestCase
         self::assertInstanceOf(ConversationReminderService::class, $container->get(ConversationReminderService::class));
         self::assertInstanceOf(MentionNotifier::class, $container->get(MentionNotifier::class));
         self::assertInstanceOf(MentionReminderService::class, $container->get(MentionReminderService::class));
+        self::assertInstanceOf(\App\Accounting\Notification\TreasurerReminderService::class, $container->get(\App\Accounting\Notification\TreasurerReminderService::class));
         self::assertInstanceOf(ConversationService::class, $container->get(ConversationService::class), 'le service de messagerie reçoit le notificateur de mention');
     }
 
@@ -46,6 +47,7 @@ final class ReminderWiringTest extends TestCase
         $source = (string) file_get_contents($script);
         self::assertStringContainsString("PHP_SAPI !== 'cli'", $source, 'jamais exécutable depuis le web');
         self::assertStringContainsString('MentionReminderService', $source, 'le même cron envoie aussi les relances de mention');
+        self::assertStringContainsString('TreasurerReminderService', $source, 'le même cron envoie aussi le rappel de comptabilité (#362)');
     }
 
     private function exitCodeOf(string $command): int
