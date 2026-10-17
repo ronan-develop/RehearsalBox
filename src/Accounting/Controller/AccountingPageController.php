@@ -7,10 +7,12 @@ namespace App\Accounting\Controller;
 use App\Account\Entity\UserRole;
 use App\Accounting\Presenter\AccountingJournalView;
 use App\Accounting\Service\Dues\CotisationService;
+use App\Accounting\Presenter\TodoView;
 use App\Accounting\Service\EntryService;
 use App\Accounting\Service\FiscalYearService;
 use App\Http\Request;
 use App\Http\Response;
+use App\Accounting\Todo\TodoService;
 use App\Security\AuthGuard;
 use App\Security\CsrfTokenManager;
 use App\Support\StrictId;
@@ -31,6 +33,8 @@ final class AccountingPageController
         private readonly EntryService $entries,
         private readonly AccountingJournalView $view,
         private readonly CotisationService $dues,
+        private readonly TodoService $todo,
+        private readonly TodoView $todoView,
     ) {
     }
 
@@ -52,6 +56,7 @@ final class AccountingPageController
                 is_string($request->query('category')) ? $request->query('category') : '',
                 $this->dues->memberNames($admin),
             ),
+            'todo' => $year === null ? null : $this->todoView->build($this->todo->forYear($admin, $year, new \DateTimeImmutable('today')), $year->id),
             'currentUserRole' => $admin->role(),
         ]));
     }

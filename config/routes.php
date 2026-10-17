@@ -140,6 +140,7 @@ return [
         ['POST',   '/api/admin/accounting/recurring/{id}/confirm', [RecurringApiController::class, 'confirm']],
         ['POST',   '/api/admin/accounting/recurring/{id}/ignore', [RecurringApiController::class, 'ignore']],
         ['POST',   '/api/admin/accounting/years/{id}/entries', [AccountingApiController::class, 'recordEntry']],
+        ['POST',   '/api/admin/accounting/years/{id}/empty-month', [AccountingApiController::class, 'markEmptyMonth']],
         ['POST',   '/api/admin/accounting/years/{id}/close', [AccountingApiController::class, 'closeYear']],
         ['POST',   '/api/admin/accounting/years/{id}/approve', [AccountingApiController::class, 'approveYear']],
         ['POST',   '/api/admin/accounting/entries/{id}/reverse', [AccountingApiController::class, 'reverseEntry']],
