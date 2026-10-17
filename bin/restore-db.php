@@ -78,6 +78,8 @@ $followUp = static function () use ($pdo, $config): string {
     }
     $orphans = new DocumentOrphanReport($pdo, $config['storage']['group_documents_path']);
     $notes[] = sprintf('Documents de groupes : %d ligne(s) sans fichier, %d fichier(s) sans ligne (aucun supprimé).', count($orphans->missingFiles()), count($orphans->orphanFiles()));
+    $statements = new DocumentOrphanReport($pdo, $config['storage']['accounting_statements_path'], DocumentOrphanReport::ACCOUNTING_STATEMENTS);
+    $notes[] = sprintf('Relevés de compte : %d ligne(s) sans fichier, %d fichier(s) sans ligne (aucun supprimé).', count($statements->missingFiles()), count($statements->orphanFiles()));
 
     return implode("\n", $notes);
 };

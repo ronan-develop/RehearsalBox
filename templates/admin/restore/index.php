@@ -9,6 +9,8 @@
  * @var bool $running
  * @var list<array{id: int, groupId: int, originalName: string}> $missingFiles
  * @var list<string> $orphanFiles
+ * @var list<array{id: int, fiscalYearId: int, originalName: string}> $statementMissing
+ * @var list<string> $statementOrphans
  * @var string $confirmWord
  * @var bool $restoreEnabled faux : la restauration par le web est désactivée (config `restore.enabled`, #424) : aucune action proposée
  * @var \App\Account\Entity\UserRole $currentUserRole
@@ -167,6 +169,30 @@
                     <h3>Fichiers sans ligne</h3>
                     <ul>
                         <?php foreach ($orphanFiles as $name): ?>
+                            <li><?= e($name) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            <?php endif; ?>
+        </section>
+
+        <section class="rb-card rb-restore-section" aria-labelledby="restore-statements-title">
+            <h2 id="restore-statements-title">Relevés de compte après restauration</h2>
+            <?php if ($statementMissing === [] && $statementOrphans === []): ?>
+                <p class="rb-admin-note">Rien à signaler sur les relevés.</p>
+            <?php else: ?>
+                <?php if ($statementMissing !== []): ?>
+                    <h3>Lignes sans fichier</h3>
+                    <ul>
+                        <?php foreach ($statementMissing as $statement): ?>
+                            <li><?= e($statement['originalName']) ?> (exercice n° <?= e((string) $statement['fiscalYearId']) ?>)</li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+                <?php if ($statementOrphans !== []): ?>
+                    <h3>Fichiers sans ligne</h3>
+                    <ul>
+                        <?php foreach ($statementOrphans as $name): ?>
                             <li><?= e($name) ?></li>
                         <?php endforeach; ?>
                     </ul>
